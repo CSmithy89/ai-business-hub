@@ -10,7 +10,9 @@
 
 ## Epic Overview
 
-Implement the 5 MVP CRM agents following the Agno team pattern: Clara (orchestrator), Scout (scoring), Atlas (enrichment), Flow (pipeline), and Echo (activities). Register the team in AgentOS and expose via A2A protocol.
+Implement the 5 MVP CRM agents following the Agno team pattern: Clara (orchestrator), Scout (scoring), Atlas (enrichment), Flow (pipeline), and Tracker (activities). Register the team in AgentOS and expose via the platform's "Unified Protocol" architecture (AG-UI for frontend, A2A for inter-agent).
+
+> **Protocol Reference:** See [Dynamic Module System](/docs/architecture/dynamic-module-system.md) for Agno + CopilotKit integration details.
 
 ### Success Criteria
 - CRM team operational with 5 agents
@@ -18,7 +20,7 @@ Implement the 5 MVP CRM agents following the Agno team pattern: Clara (orchestra
 - Scout calculates scores on contact events
 - Atlas enriches new contacts automatically
 - Flow manages pipeline transitions
-- Echo tracks all engagement
+- Tracker tracks all engagement
 
 ---
 
@@ -61,7 +63,7 @@ def create_crm_team(
             create_scout_agent(model, storage),
             create_atlas_agent(model, storage),
             create_flow_agent(model, storage),
-            create_echo_agent(model, storage),
+            create_tracker_agent(model, storage),
         ],
         # ... rest of config
     )
@@ -92,7 +94,7 @@ def create_clara_agent(model: str, storage: PostgresStorage) -> Agent:
         model=Claude(id=model or "claude-sonnet-4-20250514"),
         instructions=[
             "You are Clara, the CRM Team Lead.",
-            "Route requests to Scout (scoring), Atlas (enrichment), Flow (pipeline), or Echo (activities).",
+            "Route requests to Scout (scoring), Atlas (enrichment), Flow (pipeline), or Tracker (activities).",
             "Synthesize findings into actionable insights.",
             "Generate morning briefings with prioritized actions.",
         ],
@@ -156,11 +158,11 @@ Enhance the existing Flow agent with stage automations and stuck deal detection.
 
 ---
 
-### CRM-02.6: Create Echo Activity Tracker Agent
+### CRM-02.6: Create Tracker Activity Tracker Agent
 **Points:** 3 | **Status:** `backlog`
 
 **Description:**
-Create Echo agent for engagement tracking and relationship health scoring.
+Create Tracker agent for engagement tracking and relationship health scoring.
 
 **Acceptance Criteria:**
 - [ ] `agents/crm/activity_tracker_agent.py` created
@@ -208,7 +210,7 @@ Register the CRM team in the AgentOS main.py configuration.
 TEAM_CONFIG["crm"] = {
     "factory": create_crm_team,
     "leader": "Clara",
-    "members": ["Scout", "Atlas", "Flow", "Echo"],
+    "members": ["Scout", "Atlas", "Flow", "Tracker"],
     "storage": "bm_crm_sessions",
     "session_prefix": "crm",
     "description": "AI-powered CRM with lead scoring, enrichment, and pipeline management",
@@ -217,19 +219,22 @@ TEAM_CONFIG["crm"] = {
 
 ---
 
-### CRM-02.9: Implement A2A Agent Card for CRM Team
+### CRM-02.9: Implement Unified Protocol Endpoints for CRM Team
 **Points:** 2 | **Status:** `backlog`
 
 **Description:**
-Expose CRM team via A2A protocol for inter-module communication.
+Expose CRM team via the Unified Protocol (AG-UI for frontend, A2A for inter-module).
 
 **Acceptance Criteria:**
-- [ ] Agent Card at `/.well-known/agent-card.json` (or `/a2a/crm/.well-known/agent-card.json`)
-- [ ] Card includes: id, name, description, version
-- [ ] Endpoints: rpc, ws (if supported)
-- [ ] Capabilities: streaming, events
-- [ ] Skills: score_lead, enrich_contact, get_pipeline_status, log_activity, get_daily_summary
-- [ ] JSON-RPC endpoint at `/a2a/crm/rpc`
+- [ ] **A2A Protocol:**
+  - [ ] Agent Card at `/a2a/crm/.well-known/agent-card.json`
+  - [ ] Card includes: id, name, description, version, skills
+  - [ ] JSON-RPC endpoint at `/a2a/crm/rpc`
+  - [ ] Capabilities: streaming, events
+- [ ] **AG-UI Protocol:**
+  - [ ] CopilotKit endpoint at `/agui/crm`
+  - [ ] Clara exposed as primary agent for "Ask Clara" chat
+  - [ ] Generative UI support for CRM widgets
 
 ---
 
@@ -255,7 +260,7 @@ Publish CRM events to Redis Streams for platform integration.
 
 - [ ] All 5 MVP agents created and tested
 - [ ] Team factory registered in main.py
-- [ ] A2A Agent Card exposed
+- [ ] Unified Protocol endpoints exposed (A2A + AG-UI)
 - [ ] All tools functional with database
 - [ ] Events publishing correctly
 - [ ] Integration test: Create contact → enriched → scored → tier assigned

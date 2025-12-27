@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { MetricsService } from './metrics/metrics-service';
 import { CsrfGuard } from './common/guards/csrf.guard';
@@ -20,7 +21,7 @@ async function bootstrap() {
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', csrfHeaderName],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-API-Key', csrfHeaderName],
   });
 
   // CSRF Protection Guard
@@ -42,12 +43,63 @@ async function bootstrap() {
 
   // Swagger/OpenAPI documentation configuration
   const config = new DocumentBuilder()
-    .setTitle('HYVVE Platform API')
+    .setTitle('HYVVE Core-PM API')
     .setDescription(
-      'NestJS backend for modular business logic - AI-powered business orchestration platform',
+      `External REST API for HYVVE Project Management and Knowledge Base
+
+AI-powered business orchestration platform with human oversight.
+
+## Authentication
+All endpoints require an API key in the X-API-Key header.
+Generate API keys in the HYVVE dashboard at Settings > API Keys.
+
+## Scopes
+- **PM_READ**: Read access to projects, tasks, phases, and views
+- **PM_WRITE**: Create and update projects, tasks, and phases
+- **PM_ADMIN**: Full access including deletion
+- **WEBHOOK_READ**: View webhook configurations
+- **WEBHOOK_WRITE**: Create and manage webhooks
+
+## Rate Limits
+Standard: 1000 requests/hour
+Enterprise: Custom limits available
+
+## Pagination
+List endpoints support pagination via \`limit\` and \`offset\` query parameters.
+- Default limit: 50
+- Maximum limit: 100
+
+## Error Responses
+All errors follow the format:
+\`\`\`json
+{
+  "statusCode": 400,
+  "message": "Error description",
+  "error": "Bad Request"
+}
+\`\`\``,
     )
-    .setVersion('0.1.0')
-    .addTag('health', 'Health check endpoints')
+    .setVersion('1.0')
+    .setContact('HYVVE Support', 'https://hyvve.ai', 'support@hyvve.ai')
+    .setLicense('Proprietary', 'https://hyvve.ai/terms')
+    .addTag('health', 'Health check and system status endpoints')
+    .addTag('projects', 'Project management - Create, read, update, and delete projects')
+    .addTag('phases', 'Phase management - Organize projects into phases/sprints')
+    .addTag('tasks', 'Task management - Full CRUD operations and task lifecycle')
+    .addTag('views', 'Saved views - Custom filtered views of tasks and projects')
+    .addTag('search', 'Full-text search across tasks and project data')
+    .addTag('webhooks', 'Webhook management - Event notifications to external systems')
+    .addApiKey(
+      {
+        type: 'apiKey',
+        name: 'X-API-Key',
+        in: 'header',
+        description: 'API key for authentication (format: sk_prod_... or sk_test_...)',
+      },
+      'api-key',
+    )
+    .addServer('http://localhost:3001', 'Local Development')
+    .addServer('https://api.hyvve.ai', 'Production')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -58,7 +110,14 @@ async function bootstrap() {
       persistAuthorization: true,
       tagsSorter: 'alpha',
       operationsSorter: 'alpha',
+      filter: true,
+      tryItOutEnabled: true,
     },
+  });
+
+  // Serve OpenAPI spec as JSON
+  app.use('/api/docs/spec.json', (_req: Request, res: Response) => {
+    res.json(document);
   });
 
   // Start server on configured port

@@ -26,7 +26,7 @@ BM-Email is a **standalone module** providing comprehensive email marketing auto
 **Enhanced When Installed With:**
 - BM-Marketing (coordinated as campaign channel, audience segments)
 - BM-CRM (contact data, engagement tracking, lead scoring)
-- BM-Content (shared content assets)
+- BM-CMS (shared content assets, landing pages)
 - BM-Analytics (AI-powered send time optimization)
 - Core-PM (email campaign projects)
 

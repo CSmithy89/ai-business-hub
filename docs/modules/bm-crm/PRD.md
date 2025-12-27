@@ -37,12 +37,14 @@ BM-CRM requires these platform foundation capabilities (all complete):
 | Dependency | Platform Feature | Status |
 |------------|------------------|--------|
 | Multi-tenancy | Workspace isolation with RLS | ✅ Complete |
-| Agent runtime | Agno AgentOS with A2A/AG-UI | ✅ Complete |
+| Agent runtime | Agno AgentOS with Unified Protocol (A2A/AG-UI/MCP) | ✅ Complete |
 | BYOAI | User-provided AI keys | ✅ Complete |
 | Approval system | Sentinel agent + approval queue | ✅ Complete |
 | Event bus | Redis Streams pub/sub | ✅ Complete |
 | Core-PM | Project/Task/KB management with Navi team | Planned (depends on Core-PM delivery) |
 | Knowledge base | RAG with pgvector (via Core-PM) | Planned (Phase 2+ of Core-PM) |
+
+> **Protocol Reference:** See [Dynamic Module System](/docs/architecture/dynamic-module-system.md) for the "Unified Protocol" architecture (Agno + CopilotKit) that BM-CRM uses for frontend (AG-UI), inter-agent (A2A), and tool integration (MCP).
 
 ---
 
@@ -86,7 +88,7 @@ BM-CRM requires these platform foundation capabilities (all complete):
 - [ ] **Scout** - Lead Scorer (40/35/25 algorithm) `[MVP]`
 - [ ] **Atlas** - Data Enricher (Clearbit/Apollo integration) `[MVP]`
 - [ ] **Flow** - Pipeline Manager (stage automations) `[MVP]`
-- [ ] **Echo** - Activity Tracker (engagement analysis) `[MVP]`
+- [ ] **Tracker** - Activity Tracker (engagement analysis) `[MVP]`
 
 **Integration:** `[MVP]`
 - [ ] CSV import/export `[MVP]`
@@ -127,7 +129,7 @@ BM-CRM requires these platform foundation capabilities (all complete):
 - [ ] CRM playbooks stored in Knowledge Base (sales scripts, objection handling) `[Growth-Phase3]`
 - [ ] Deal→Project linking (won deals create onboarding projects) `[Growth-Phase3]`
 - [ ] Clara↔Navi cross-team coordination for customer handoffs `[Growth-Phase3]`
-- [ ] Echo activity logging to PM tasks (meeting outcomes) `[Growth-Phase3]`
+- [ ] Tracker activity logging to PM tasks (meeting outcomes) `[Growth-Phase3]`
 - [ ] CRM reports as KB verified content `[Growth-Phase3]`
 
 ### Vision (Future) `[Vision]`
@@ -161,7 +163,7 @@ The BM-CRM module operates as a coordinated **8-agent team**, following the patt
 │     ┌─────────┬─────────┼─────────┬─────────┬─────────┐    │
 │     │         │         │         │         │         │    │
 │ ┌───┴───┐ ┌───┴───┐ ┌───┴───┐ ┌───┴───┐ ┌───┴───┐ ┌───┴───┐│
-│ │ Scout │ │ Atlas │ │ Flow  │ │ Echo  │ │ Sync  │ │Cadence││
+│ │ Scout │ │ Atlas │ │ Flow  │ │Tracker│ │ Sync  │ │Cadence││
 │ │(Score)│ │(Enrich│ │(Pipe) │ │(Track)│ │(Integ)│ │(Reach)││
 │ └───────┘ └───────┘ └───────┘ └───────┘ └───────┘ └───────┘│
 │                                                              │
@@ -183,7 +185,7 @@ The BM-CRM module operates as a coordinated **8-agent team**, following the patt
 When CRM agents have conflicting recommendations, the system follows a clear resolution protocol:
 
 **Scenario Examples:**
-1. Scout recommends SALES_READY tier, but Echo shows declining engagement
+1. Scout recommends SALES_READY tier, but Tracker shows declining engagement
 2. Flow suggests advancing deal stage, but Guardian flags missing consent
 3. Cadence wants to enroll contact in sequence, but Atlas shows invalid email
 
@@ -207,12 +209,12 @@ When CRM agents have conflicting recommendations, the system follows a clear res
 ⚠️ Agent Perspectives Differ
 
 Scout recommends: Mark as SALES_READY (score: 92)
-Echo cautions: Engagement declining 30% over 2 weeks
+Tracker cautions: Engagement declining 30% over 2 weeks
 
 Clara's synthesis: "Score is high but engagement is cooling.
 Recommend reaching out before upgrading tier."
 
-[Accept Scout] [Accept Echo] [Ask Clara for more context]
+[Accept Scout] [Accept Tracker] [Ask Clara for more context]
 ```
 
 ---
@@ -241,7 +243,7 @@ Clara delivers a personalized daily summary each morning containing:
 1. **🎯 Who to Call Today** - Top 5 prioritized contacts by score × recency × deal value (the "just tell me who to call" answer)
 2. **Hot Leads Alert** - Contacts that crossed into HOT/SALES_READY overnight
 3. **Stale Deals Warning** - Deals stuck past SLA thresholds (Flow's data)
-4. **Engagement Spikes** - Contacts with unusual activity (Echo's data)
+4. **Engagement Spikes** - Contacts with unusual activity (Tracker's data)
 5. **Follow-up Reminders** - Tasks due today
 6. **Pipeline Snapshot** - Quick metrics (deals by stage, weighted value)
 7. **Outreach Performance** - Sequence response rates (Cadence's data)
@@ -263,7 +265,7 @@ clara = Agent(
     role="CRM Team Lead",
     model=get_tenant_model(tenant_id),
     instructions=[
-        "Coordinate CRM operations across Scout, Atlas, Flow, Echo, Sync, Cadence, and Guardian.",
+        "Coordinate CRM operations across Scout, Atlas, Flow, Tracker, Sync, Cadence, and Guardian.",
         "Route user requests to the most appropriate specialist agent.",
         "Synthesize findings into actionable insights.",
         "Present results clearly with specific next steps.",
@@ -405,7 +407,7 @@ Intent Factors:
 
 ---
 
-#### 5. Echo - Activity Tracker
+#### 5. Tracker - Activity Tracker
 
 **Role:** Log and analyze all contact engagement
 
@@ -587,7 +589,7 @@ User moves deal to Proposal
     → Flow detects stage change
     → Flow suggests: "Generate proposal draft?"
     → If approved → Flow creates draft
-    → Echo logs the stage change
+    → Tracker logs the stage change
     → Scout recalculates score
 ```
 
@@ -838,12 +840,16 @@ User requests data deletion
 - Screen reader support
 - Color contrast ratios met
 
-### Integration
+### Integration (Unified Protocol)
 
-- Event bus: Publish all CRM events
-- A2A: CRM agents discoverable via A2A protocol
-- AG-UI: Real-time streaming for agent responses
-- MCP: CRM tools available as MCP tools
+BM-CRM uses the platform's "Unified Protocol" architecture:
+
+| Protocol | Purpose | Implementation |
+|----------|---------|----------------|
+| **AG-UI** | Frontend↔Agent | CopilotKit Generative UI, "Ask Clara" chat |
+| **A2A** | Agent↔Agent | Clara↔Navi coordination, inter-module tasks |
+| **MCP** | Agent↔Tools | External enrichment APIs, third-party services |
+| **Event Bus** | Async Events | All `crm.*` events published to Redis Streams |
 
 ### Agent Proactivity Settings
 
@@ -856,7 +862,7 @@ Users can configure how proactive the CRM agents are:
 | **Proactive** | High | Real-time alerts, suggestions during workflows, contextual tips |
 
 **Per-Agent Granularity:**
-- User can adjust proactivity per agent (e.g., Scout proactive, Echo quiet)
+- User can adjust proactivity per agent (e.g., Scout proactive, Tracker quiet)
 - Global setting applies as default, per-agent overrides available
 - "Snooze" option: Temporarily silence all agent suggestions for 1h/4h/8h/24h
 
@@ -956,7 +962,7 @@ Each agent gets a card with:
 | Scout | "Lead Intelligence" | "I score every lead so you focus on the right ones" |
 | Atlas | "Data Detective" | "I enrich contacts with company info and social links" |
 | Flow | "Pipeline Pilot" | "I keep deals moving and flag stuck opportunities" |
-| Echo | "Activity Analyst" | "I track engagement and identify cold contacts" |
+| Tracker | "Activity Analyst" | "I track engagement and identify cold contacts" |
 | Sync | "Integration Guru" | "I keep your CRM in sync with HubSpot, Salesforce" |
 | Guardian | "Compliance Officer" | "I handle GDPR, consent, and data protection" |
 | Cadence | "Outreach Specialist" | "I manage your email sequences and follow-ups" |
@@ -1013,7 +1019,7 @@ agents/crm/
 ├── lead_scorer_agent.py         # Scout - Lead Scoring ✅ EXISTS
 ├── data_enricher_agent.py       # Atlas - Data Enrichment ✅ EXISTS
 ├── pipeline_agent.py            # Flow - Pipeline Management ✅ EXISTS
-├── activity_tracker_agent.py    # Echo - Activity Tracking
+├── activity_tracker_agent.py    # Tracker - Activity Tracking
 ├── integration_agent.py         # Sync - External Integrations [Growth]
 ├── compliance_agent.py          # Guardian - GDPR/Compliance [Growth]
 ├── outreach_agent.py            # Cadence - Email Sequences [Growth]
@@ -1030,7 +1036,7 @@ from crm.team import create_crm_team
 TEAM_CONFIG["crm"] = {
     "factory": create_crm_team,
     "leader": "Clara",
-    "members": ["Scout", "Atlas", "Flow", "Echo"],  # MVP
+    "members": ["Scout", "Atlas", "Flow", "Tracker"],  # MVP
     "storage": "bm_crm_sessions",
     "session_prefix": "crm",
     "description": "AI-powered CRM with lead scoring, enrichment, and pipeline management",
@@ -1058,14 +1064,14 @@ def create_crm_team(
     scout = create_scout_agent(model=model, storage=storage)
     atlas = create_atlas_agent(model=model, storage=storage)
     flow = create_flow_agent(model=model, storage=storage)
-    echo = create_echo_agent(model=model, storage=storage)
+    tracker = create_tracker_agent(model=model, storage=storage)
 
     return Team(
         name="CRM Team",
         mode="coordinate",
         model=Claude(id=model or "claude-sonnet-4-20250514"),
         leader=clara,
-        members=[scout, atlas, flow, echo],
+        members=[scout, atlas, flow, tracker],
         delegate_task_to_all_members=False,
         respond_directly=True,
         share_member_interactions=True,
@@ -1263,7 +1269,7 @@ CRM module publishes these events to Redis Streams:
 
 ### Phase 1: Core CRM (MVP)
 **Duration:** 4-6 weeks
-**Agents:** Clara, Scout, Atlas, Flow, Echo (5)
+**Agents:** Clara, Scout, Atlas, Flow, Tracker (5)
 
 - [ ] Data model implementation (Contact, Account, Deal, Activity)
 - [ ] CRUD APIs for all entities

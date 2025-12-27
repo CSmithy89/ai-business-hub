@@ -44,7 +44,7 @@ Implement the foundational data models and CRUD operations for CRM entities.
 ### EPIC-CRM-02: MVP Agent Team
 **Stories:** 10 | **Points:** 30 | **Status:** `backlog`
 
-Implement the 5 MVP agents: Clara (orchestrator), Scout (scoring), Atlas (enrichment), Flow (pipeline), Echo (activities).
+Implement the 5 MVP agents: Clara (orchestrator), Scout (scoring), Atlas (enrichment), Flow (pipeline), Tracker (activities).
 
 | Story | Title | Points | Status |
 |-------|-------|--------|--------|
@@ -53,10 +53,10 @@ Implement the 5 MVP agents: Clara (orchestrator), Scout (scoring), Atlas (enrich
 | CRM-02.3 | Enhance Scout lead scorer agent | 3 | `backlog` |
 | CRM-02.4 | Enhance Atlas data enricher agent | 3 | `backlog` |
 | CRM-02.5 | Enhance Flow pipeline manager agent | 3 | `backlog` |
-| CRM-02.6 | Create Echo activity tracker agent | 3 | `backlog` |
+| CRM-02.6 | Create Tracker activity tracker agent | 3 | `backlog` |
 | CRM-02.7 | Create CRM tools.py with shared tools | 3 | `backlog` |
 | CRM-02.8 | Register CRM team in main.py TEAM_CONFIG | 2 | `backlog` |
-| CRM-02.9 | Implement A2A Agent Card for CRM team | 2 | `backlog` |
+| CRM-02.9 | Implement Unified Protocol Endpoints (A2A + AG-UI) | 2 | `backlog` |
 | CRM-02.10 | Create CRM event bus publishers | 1 | `backlog` |
 
 ---
@@ -209,7 +209,7 @@ Implement deep integration with Core-PM for project linking, KB playbooks, and c
 | CRM-11.1 | Create CRM playbooks in Knowledge Base | 3 | `backlog` |
 | CRM-11.2 | Implement Deal→Project linking on deal won | 3 | `backlog` |
 | CRM-11.3 | Add Clara↔Navi A2A coordination for handoffs | 3 | `backlog` |
-| CRM-11.4 | Link Echo activities to PM tasks | 3 | `backlog` |
+| CRM-11.4 | Link Tracker activities to PM tasks | 3 | `backlog` |
 | CRM-11.5 | Create CRM reports as KB verified content | 3 | `backlog` |
 
 ---

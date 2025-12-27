@@ -65,13 +65,13 @@ This document is the authoritative reference for:
 | **BM-SEO** (SEO) | OPERATE | Complete | Not Started | 5 | P2 - Standalone |
 | **BM-Ads** (Ads) | OPERATE | Complete | Not Started | 6 | P2 - Standalone |
 | **BM-Support** (Support) | OPERATE | Research | Not Started | 8 | P2 - Standalone |
-| **BM-Content** (Content) | OPERATE | Complete | Not Started | 6 | P2 - Standalone |
+| **BM-CMS** (Website/Blog) | OPERATE | Complete | Not Started | 5 | P2 - Standalone |
 | **BM-Analytics** (AI Analytics) | HORIZONTAL | Planned | Not Started | 4 | P2 |
 | **BM-HR** (HR) | OPERATE | Brief | Not Started | 5 | P3 - Standalone |
 | **BM-Finance** (Finance) | OPERATE | Brief | Not Started | 4 | P3 - Standalone |
 | **BM-PR** (PR) | OPERATE | Brief | Not Started | 5 | P3 - Standalone |
 
-**Total Agents Defined:** 111 (107 + 4 BM-Analytics)
+**Total Agents Defined:** 110 (BM-Content replaced by BM-CMS with 5 agents)
 
 ---
 
@@ -192,18 +192,17 @@ Reserved platform handles:
 
 > **Note:** BM-Email is **standalone** with built-in analytics. When BM-Marketing is installed, campaigns are coordinated via A2A.
 
-### BM-Content - Content Marketing (6) - Standalone
+### BM-CMS - Content Management System (5) - Standalone
 
 | Handle | Display Name | Role | Status |
 |--------|--------------|------|--------|
-| `@bm-content.editor` | Editor | Team Lead / Orchestrator | Planned |
-| `@bm-content.writer` | Writer | Content Creator | Planned |
-| `@bm-content.visual` | Visual | Visual Content Creator | Planned |
-| `@bm-content.library` | Library | Asset Manager | Planned |
-| `@bm-content.repurpose` | Repurpose | Content Atomizer | Planned |
-| `@bm-content.calendar` | Calendar | Editorial Planner | Planned |
+| `@bm-cms.publisher` | Publisher | Team Lead / Orchestrator | Planned |
+| `@bm-cms.page` | Page | Page Builder | Planned |
+| `@bm-cms.blog` | Blog | Blog Manager | Planned |
+| `@bm-cms.media` | Media | Media Library | Planned |
+| `@bm-cms.template` | Template | Template Designer | Planned |
 
-> **Note:** BM-Content is **standalone** with built-in analytics. Provides assets to any installed module via A2A.
+> **Note:** BM-CMS is **standalone** for website/blog content. Each module has built-in content creation for its domain; BM-CMS manages web pages and blogs.
 
 ### BM-SEO - Search Optimization (5) - Standalone
 
@@ -215,7 +214,7 @@ Reserved platform handles:
 | `@bm-seo.technical` | Technical | Technical SEO Specialist | Planned |
 | `@bm-seo.rank` | Rank | Rank Tracker | Planned |
 
-> **Note:** BM-SEO is **standalone** with built-in analytics. Shares keyword intelligence with BM-Content and BM-Ads via A2A when installed.
+> **Note:** BM-SEO is **standalone** with built-in analytics. Shares keyword intelligence with BM-CMS and BM-Ads via A2A when installed.
 
 ### BM-Ads - Paid Advertising (6) - Standalone
 
@@ -438,19 +437,19 @@ These names are permanently reserved for platform-level agents:
 | Candidate | BM-HR | Core-PM |
 | Media Contact | BM-PR | BM-CRM (extends Contact) |
 | Press Release | BM-PR | BM-Social |
-| Marketing Campaign | BM-Marketing | BM-Email, BM-Content, BM-Ads, BM-Social, Core-PM |
+| Marketing Campaign | BM-Marketing | BM-Email, BM-CMS, BM-Ads, BM-Social, Core-PM |
 | Audience Segment | BM-Marketing | BM-Email, BM-Ads, BM-Social |
 | Channel Strategy | BM-Marketing | All tactical extensions |
 | Attribution Event | BM-Marketing | BM-Finance (revenue), Core-PM |
 | Marketing Budget | BM-Marketing | BM-Finance, Core-PM |
 | Email Sequence | BM-Email | BM-CRM (contact status), BM-Marketing |
-| Email Template | BM-Email | BM-Content (assets) |
-| Content Asset | BM-Content | BM-Email, BM-Social, BM-Ads, BM-SEO |
-| Editorial Calendar | BM-Content | BM-Social (scheduling), BM-Email |
-| SEO Audit | BM-SEO | BM-Content (optimization), Core-PM |
-| Keyword Research | BM-SEO | BM-Content, BM-Ads |
+| Email Template | BM-Email | BM-CMS (assets) |
+| Web Page | BM-CMS | BM-SEO (optimization), BM-Marketing |
+| Blog Post | BM-CMS | BM-Social (share), BM-Email, BM-SEO |
+| SEO Audit | BM-SEO | BM-CMS (optimization), Core-PM |
+| Keyword Research | BM-SEO | BM-CMS, BM-Ads |
 | Ad Campaign | BM-Ads | BM-Marketing (attribution), BM-Finance |
-| Ad Creative | BM-Ads | BM-Content (assets), BM-Brand |
+| Ad Creative | BM-Ads | BM-CMS (assets), BM-Brand |
 
 ### Event Bus Integration
 
@@ -482,7 +481,7 @@ All modules publish events to Redis Streams with this naming convention:
 | `finance.invoice.paid` | BM-Finance | BM-CRM (deal update), BM-Sales (order update) |
 | `hr.candidate.hired` | BM-HR | Core-PM (onboarding project) |
 | `pr.coverage.detected` | BM-PR | BM-Social (share), BM-CRM (contact) |
-| `marketing.campaign.created` | BM-Marketing | BM-Email, BM-Content, BM-Ads, BM-Social |
+| `marketing.campaign.created` | BM-Marketing | BM-Email, BM-CMS, BM-Ads, BM-Social |
 | `marketing.campaign.launched` | BM-Marketing | All extensions, Core-PM |
 | `marketing.segment.updated` | BM-Marketing | BM-Email (lists), BM-Ads (audiences) |
 | `marketing.attribution.recorded` | BM-Marketing | BM-Finance (revenue), Core-PM |
@@ -491,9 +490,9 @@ All modules publish events to Redis Streams with this naming convention:
 | `email.sent` | BM-Email | BM-Marketing (metrics) |
 | `email.opened` | BM-Email | BM-Marketing, BM-CRM (engagement) |
 | `email.clicked` | BM-Email | BM-Marketing, BM-CRM (lead scoring) |
-| `content.asset.published` | BM-Content | BM-Social (share), BM-SEO (index) |
-| `content.asset.updated` | BM-Content | BM-SEO (re-index) |
-| `seo.audit.completed` | BM-SEO | BM-Content (fixes), Core-PM (tasks) |
+| `cms.page.published` | BM-CMS | BM-Social (share), BM-SEO (index) |
+| `cms.page.updated` | BM-CMS | BM-SEO (re-index) |
+| `seo.audit.completed` | BM-SEO | BM-CMS (fixes), Core-PM (tasks) |
 | `seo.rank.changed` | BM-SEO | BM-Marketing (metrics), Core-PM |
 | `ads.campaign.created` | BM-Ads | BM-Marketing (budget), BM-Finance |
 | `ads.conversion.recorded` | BM-Ads | BM-Marketing (attribution), BM-CRM (lead) |
@@ -661,12 +660,12 @@ Agents can call tools from other modules via the platform:
 | BM-SEO | 0 | 0 | 5 | 5 |
 | BM-Ads | 0 | 0 | 6 | 6 |
 | BM-Support | 0 | 0 | 8 | 8 |
-| BM-Content | 0 | 0 | 6 | 6 |
+| BM-CMS | 0 | 0 | 5 | 5 |
 | BM-Analytics | 0 | 0 | 4 | 4 |
 | BM-HR | 0 | 0 | 5 | 5 |
 | BM-Finance | 0 | 0 | 4 | 4 |
 | BM-PR | 0 | 0 | 5 | 5 |
-| **Total** | **18** | **9** | **86** | **111** |
+| **Total** | **18** | **9** | **85** | **110** |
 
 ---
 
@@ -692,7 +691,7 @@ Agents can call tools from other modules via the platform:
 @bm-social.{conductor|spark|tempo|metrics|engage|trends|...}
 @bm-seo.{crawler|keyword|onpage|technical|rank}
 @bm-ads.{buyer|creative|target|bid|google|meta}
-@bm-content.{editor|writer|visual|library|repurpose|calendar}
+@bm-cms.{publisher|page|blog|media|template}
 @bm-support.{hub|triage|reply|automate|quality|captain|library|escalate}
 @bm-hr.{hunter|gatekeeper|scheduler|interviewer|culture}
 @bm-finance.{bookkeeper|controller|cfo|compliance}
@@ -729,4 +728,4 @@ pm.task.completed
 *Document maintained by: Architecture Team*
 *Last updated: 2025-12-24*
 *Architecture v2: "Complete Modules, Automatic Integration" - Standalone modules with A2A discovery*
-*BM-Analytics added as horizontal service (4 agents). Total: 111 agents across 18 modules.*
+*BM-Content replaced with BM-CMS (website/blog). Total: 110 agents across 18 modules.*

@@ -1,0 +1,600 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>PM-11.2</story-id>
+    <story-title>API Authentication / API Key Management</story-title>
+    <epic>PM-11 - External API &amp; Governance</epic>
+    <points>8</points>
+    <status>ready-for-dev</status>
+    <generated-date>2025-12-24</generated-date>
+  </metadata>
+
+  <story-summary>
+    <overview>
+      Implement secure API authentication using API keys with scoped permissions. This story builds on PM-11.1 by replacing placeholder authentication with real API key validation, SHA-256 hashing, and a UI for managing API keys in workspace settings.
+    </overview>
+    <key-deliverables>
+      <deliverable>ApiKeyGuard for X-API-Key header authentication</deliverable>
+      <deliverable>ScopeGuard for permission enforcement (pm:read, pm:write, pm:admin, kb:*, webhook:*)</deliverable>
+      <deliverable>API Keys settings page at /settings/api-keys</deliverable>
+      <deliverable>Key creation dialog with scope selection</deliverable>
+      <deliverable>SHA-256 key hashing for secure storage</deliverable>
+      <deliverable>Update PM-11.1 controllers to use API key context instead of placeholders</deliverable>
+    </key-deliverables>
+    <acceptance-criteria>
+      <criterion id="AC1">API key authentication via X-API-Key or Authorization: Bearer header</criterion>
+      <criterion id="AC2">Scoped permissions stored in ApiKey.permissions JSON field</criterion>
+      <criterion id="AC3">Settings UI to create, list, copy, and revoke API keys</criterion>
+      <criterion id="AC4">SHA-256 hashing with key prefix storage for identification</criterion>
+    </acceptance-criteria>
+  </story-summary>
+
+  <existing-infrastructure>
+    <database-model>
+      <model-name>ApiKey</model-name>
+      <location>packages/db/prisma/schema.prisma</location>
+      <schema>
+        <![CDATA[
+model ApiKey {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  name        String
+  keyHash     String @unique @map("key_hash")
+  keyPrefix   String @map("key_prefix")
+  permissions Json
+
+  lastUsedAt DateTime? @map("last_used_at")
+  expiresAt  DateTime? @map("expires_at")
+
+  createdById String    @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CreatedBy", fields: [createdById], references: [id])
+
+  @@index([workspaceId])
+  @@index([keyHash])
+  @@index([keyPrefix])
+  @@map("api_keys")
+}
+        ]]>
+      </schema>
+      <notes>
+        <note>permissions field is JSON with structure: { scopes: string[], rateLimit?: number }</note>
+        <note>No schema changes required - existing model supports all PM-11.2 requirements</note>
+        <note>keyHash stores SHA-256 hash of full API key (never plaintext)</note>
+        <note>keyPrefix stores first 16 characters for display (e.g., "sk_prod_xxxxxxx")</note>
+      </notes>
+    </database-model>
+
+    <existing-guards>
+      <guard>
+        <name>AuthGuard</name>
+        <location>apps/api/src/common/guards/auth.guard.ts</location>
+        <purpose>JWT token validation for authenticated users</purpose>
+        <usage>Validates tokens against sessions table, attaches user to request.user</usage>
+      </guard>
+      <guard>
+        <name>TenantGuard</name>
+        <location>apps/api/src/common/guards/tenant.guard.ts</location>
+        <purpose>Workspace membership validation</purpose>
+        <usage>Extracts workspaceId from params/body/query/session, verifies membership, attaches workspace context</usage>
+      </guard>
+    </existing-guards>
+
+    <existing-decorators>
+      <decorator>
+        <name>CurrentUser</name>
+        <location>apps/api/src/common/decorators/current-user.decorator.ts</location>
+        <usage>Extracts user from request.user (set by AuthGuard)</usage>
+      </decorator>
+      <decorator>
+        <name>CurrentWorkspace</name>
+        <location>apps/api/src/common/decorators/current-workspace.decorator.ts</location>
+        <usage>Extracts workspaceId from request.workspaceId (set by TenantGuard)</usage>
+      </decorator>
+      <decorator>
+        <name>Public</name>
+        <location>apps/api/src/common/decorators/public.decorator.ts</location>
+        <usage>Marks routes as public (bypasses AuthGuard)</usage>
+      </decorator>
+    </existing-decorators>
+
+    <api-scopes>
+      <location>packages/shared/src/types/api-scopes.ts</location>
+      <scopes>
+        <![CDATA[
+export const API_SCOPES = {
+  // PM Scopes
+  PM_READ: 'pm:read',
+  PM_WRITE: 'pm:write',
+  PM_ADMIN: 'pm:admin',
+
+  // KB Scopes
+  KB_READ: 'kb:read',
+  KB_WRITE: 'kb:write',
+  KB_ADMIN: 'kb:admin',
+
+  // Webhook Scopes
+  WEBHOOK_READ: 'webhook:read',
+  WEBHOOK_WRITE: 'webhook:write',
+} as const
+
+export type ApiScope = (typeof API_SCOPES)[keyof typeof API_SCOPES]
+
+export interface ApiKeyPermissions {
+  scopes: ApiScope[]
+  rateLimit?: number // Requests per hour (default: 10000)
+}
+        ]]>
+      </scopes>
+      <notes>
+        <note>Already created in PM-11.1 - no changes needed</note>
+        <note>Scopes use OR logic - API key needs ANY of the required scopes</note>
+      </notes>
+    </api-scopes>
+
+    <settings-pages>
+      <structure>
+        <location>apps/web/src/app/(dashboard)/settings/</location>
+        <existing-pages>
+          <page>ai-config/ - AI provider configuration</page>
+          <page>api-keys/ - Currently shows AI provider API keys (BYOAI)</page>
+          <page>appearance/ - Theme settings</page>
+          <page>linked-accounts/ - OAuth accounts</page>
+          <page>mcp/ - MCP server integrations</page>
+          <page>modules/ - Workspace modules</page>
+          <page>security/ - Password, 2FA</page>
+          <page>sessions/ - Active sessions</page>
+          <page>workspace/ - Workspace settings</page>
+        </existing-pages>
+        <note>
+          IMPORTANT: The /settings/api-keys/ directory currently contains BYOAI provider key management.
+          This story needs to REPLACE that page with external API key management for the PM/KB API.
+          The BYOAI functionality should be moved to /settings/ai-config/ or kept as a separate subtab.
+        </note>
+      </structure>
+    </settings-pages>
+  </existing-infrastructure>
+
+  <pm-11-1-controllers-to-update>
+    <overview>
+      PM-11.1 created API controllers with placeholder authentication.
+      PM-11.2 must update these controllers to use ApiKeyGuard, ScopeGuard, and extract context from API keys.
+    </overview>
+    <controllers>
+      <controller>
+        <name>ProjectsApiController</name>
+        <location>apps/api/src/pm/api/projects-api.controller.ts</location>
+        <placeholder-pattern>
+          <![CDATA[
+// TODO: Get workspaceId from API key context (PM-11.2)
+const workspaceId = 'placeholder'
+const actorId = 'placeholder'
+          ]]>
+        </placeholder-pattern>
+        <required-updates>
+          <update>Add @UseGuards(ApiKeyGuard, ScopeGuard) to controller</update>
+          <update>Add @ApiSecurity('api-key') for OpenAPI spec</update>
+          <update>Add @Scopes() decorator to each endpoint with appropriate scopes</update>
+          <update>Replace placeholders with @CurrentWorkspace() and request.apiKey.createdById</update>
+        </required-updates>
+        <scopes-mapping>
+          <endpoint method="GET" path="/api/v1/pm/projects" scope="pm:read" />
+          <endpoint method="POST" path="/api/v1/pm/projects" scope="pm:write" />
+          <endpoint method="GET" path="/api/v1/pm/projects/:id" scope="pm:read" />
+          <endpoint method="PUT" path="/api/v1/pm/projects/:id" scope="pm:write" />
+          <endpoint method="DELETE" path="/api/v1/pm/projects/:id" scope="pm:admin" />
+        </scopes-mapping>
+      </controller>
+
+      <controller>
+        <name>PhasesApiController</name>
+        <location>apps/api/src/pm/api/phases-api.controller.ts</location>
+        <scopes-mapping>
+          <endpoint method="GET" scope="pm:read" />
+          <endpoint method="POST" scope="pm:write" />
+          <endpoint method="PUT" scope="pm:write" />
+          <endpoint method="POST" path="*/start" scope="pm:write" />
+          <endpoint method="POST" path="*/complete" scope="pm:write" />
+        </scopes-mapping>
+      </controller>
+
+      <controller>
+        <name>TasksApiController</name>
+        <location>apps/api/src/pm/api/tasks-api.controller.ts</location>
+        <scopes-mapping>
+          <endpoint method="GET" scope="pm:read" />
+          <endpoint method="POST" scope="pm:write" />
+          <endpoint method="PUT" scope="pm:write" />
+          <endpoint method="POST" path="*/assign" scope="pm:write" />
+          <endpoint method="POST" path="*/transition" scope="pm:write" />
+          <endpoint method="GET" path="*/activities" scope="pm:read" />
+          <endpoint method="DELETE" scope="pm:admin" />
+        </scopes-mapping>
+      </controller>
+
+      <controller>
+        <name>ViewsApiController</name>
+        <location>apps/api/src/pm/api/views-api.controller.ts</location>
+        <scopes-mapping>
+          <endpoint method="GET" scope="pm:read" />
+          <endpoint method="POST" scope="pm:write" />
+          <endpoint method="PUT" scope="pm:write" />
+          <endpoint method="DELETE" scope="pm:write" />
+        </scopes-mapping>
+      </controller>
+
+      <controller>
+        <name>SearchApiController</name>
+        <location>apps/api/src/pm/api/search-api.controller.ts</location>
+        <scopes-mapping>
+          <endpoint method="GET" scope="pm:read" />
+        </scopes-mapping>
+      </controller>
+    </controllers>
+  </pm-11-1-controllers-to-update>
+
+  <implementation-approach>
+    <phase-1>
+      <title>Backend: Guards and Services</title>
+      <tasks>
+        <task>Create ApiKeyGuard in apps/api/src/common/guards/api-key.guard.ts</task>
+        <task>Create ScopeGuard in apps/api/src/common/guards/scope.guard.ts</task>
+        <task>Create Scopes decorator in apps/api/src/common/decorators/scopes.decorator.ts</task>
+        <task>Create ApiKeysService in apps/api/src/settings/api-keys.service.ts</task>
+        <task>Create ApiKeysController in apps/api/src/settings/api-keys.controller.ts</task>
+        <task>Create CreateApiKeyDto in apps/api/src/settings/dto/create-api-key.dto.ts</task>
+      </tasks>
+    </phase-1>
+
+    <phase-2>
+      <title>Backend: Update PM-11.1 Controllers</title>
+      <tasks>
+        <task>Update ProjectsApiController with guards and scopes</task>
+        <task>Update PhasesApiController with guards and scopes</task>
+        <task>Update TasksApiController with guards and scopes</task>
+        <task>Update ViewsApiController with guards and scopes</task>
+        <task>Update SearchApiController with guards and scopes</task>
+        <task>Replace all placeholder workspaceId/actorId with API key context</task>
+      </tasks>
+    </phase-2>
+
+    <phase-3>
+      <title>Frontend: API Keys Management UI</title>
+      <tasks>
+        <task>Update or replace apps/web/src/app/(dashboard)/settings/api-keys/page.tsx</task>
+        <task>Create API keys list component with last used timestamps</task>
+        <task>Create CreateApiKeyDialog with scope selection checkboxes</task>
+        <task>Implement copy-to-clipboard for new API keys</task>
+        <task>Implement revoke API key functionality</task>
+        <task>Create useApiKeys hook in apps/web/src/hooks/use-api-keys.ts</task>
+      </tasks>
+    </phase-3>
+
+    <phase-4>
+      <title>Testing</title>
+      <tasks>
+        <task>Unit tests for ApiKeyGuard (valid/invalid/expired/revoked keys)</task>
+        <task>Unit tests for ScopeGuard (scope matching logic)</task>
+        <task>Unit tests for ApiKeysService (key generation, hashing, CRUD)</task>
+        <task>Integration tests for API authentication flow</task>
+        <task>E2E tests for API key management UI</task>
+      </tasks>
+    </phase-4>
+  </implementation-approach>
+
+  <security-considerations>
+    <key-hashing>
+      <algorithm>SHA-256</algorithm>
+      <implementation>crypto.createHash('sha256').update(apiKey).digest('hex')</implementation>
+      <note>API key never stored in plaintext - only hash is persisted</note>
+    </key-hashing>
+
+    <key-format>
+      <pattern>sk_prod_{64_hex_characters}</pattern>
+      <prefix>sk_prod_</prefix>
+      <entropy>32 bytes (256 bits) of randomness</entropy>
+      <prefix-storage>First 16 characters stored in keyPrefix for display</prefix-storage>
+    </key-format>
+
+    <key-display>
+      <creation>Full key shown once in dialog after creation</creation>
+      <list-view>Only prefix shown (sk_prod_xxxxxxx***)</list-view>
+      <copy-clipboard>Copy button available immediately after creation</copy-clipboard>
+    </key-display>
+
+    <validation>
+      <check>Key not revoked (revokedAt is null)</check>
+      <check>Key not expired (expiresAt is null or in future)</check>
+      <check>Workspace exists and not deleted</check>
+      <check>Required scope present in permissions.scopes array</check>
+    </validation>
+
+    <async-updates>
+      <note>lastUsedAt timestamp updated asynchronously to avoid blocking requests</note>
+      <implementation>this.updateLastUsed(apiKeyId).catch(() => {})</implementation>
+    </async-updates>
+  </security-considerations>
+
+  <api-key-authentication-flow>
+    <![CDATA[
+1. Client sends request with X-API-Key header or Authorization: Bearer header
+   └─> X-API-Key: sk_prod_a1b2c3d4...
+   └─> Authorization: Bearer sk_prod_a1b2c3d4...
+
+2. ApiKeyGuard.canActivate() executes
+   ├─> Extract API key from header
+   ├─> Hash key with SHA-256
+   ├─> Query ApiKey table by keyHash
+   ├─> Validate not revoked/expired
+   ├─> Attach to request:
+   │   ├─> request.workspaceId = apiKeyRecord.workspaceId
+   │   ├─> request.apiKey = apiKeyRecord
+   │   └─> request.apiKeyId = apiKeyRecord.id
+   └─> Update lastUsedAt (async, non-blocking)
+
+3. ScopeGuard.canActivate() executes
+   ├─> Read required scopes from @Scopes() decorator
+   ├─> Read API key scopes from request.apiKey.permissions.scopes
+   ├─> Check if ANY required scope is present (OR logic)
+   └─> Allow or reject based on scope match
+
+4. Controller executes
+   ├─> Access workspaceId via @CurrentWorkspace() decorator
+   ├─> Access API key via request.apiKey
+   ├─> Use API key creator as actorId: request.apiKey.createdById
+   └─> Process request with workspace context
+    ]]>
+  </api-key-authentication-flow>
+
+  <scope-enforcement-examples>
+    <example>
+      <endpoint>GET /api/v1/pm/tasks</endpoint>
+      <required-scope>pm:read</required-scope>
+      <api-key-scopes>["pm:read", "pm:write"]</api-key-scopes>
+      <result>Allowed (has pm:read)</result>
+    </example>
+
+    <example>
+      <endpoint>POST /api/v1/pm/tasks</endpoint>
+      <required-scope>pm:write</required-scope>
+      <api-key-scopes>["pm:read"]</api-key-scopes>
+      <result>Forbidden 403 (missing pm:write)</result>
+    </example>
+
+    <example>
+      <endpoint>DELETE /api/v1/pm/tasks/:id</endpoint>
+      <required-scope>pm:admin</required-scope>
+      <api-key-scopes>["pm:read", "pm:write"]</api-key-scopes>
+      <result>Forbidden 403 (missing pm:admin)</result>
+    </example>
+
+    <example>
+      <endpoint>DELETE /api/v1/pm/tasks/:id</endpoint>
+      <required-scope>pm:admin</required-scope>
+      <api-key-scopes>["pm:admin"]</api-key-scopes>
+      <result>Allowed (has pm:admin)</result>
+    </example>
+  </scope-enforcement-examples>
+
+  <ui-components>
+    <page>
+      <path>apps/web/src/app/(dashboard)/settings/api-keys/page.tsx</path>
+      <components>
+        <component>API keys list with cards showing name, prefix, scopes, last used</component>
+        <component>Create API Key button opens dialog</component>
+        <component>Revoke button for each key</component>
+      </components>
+    </page>
+
+    <dialog>
+      <path>apps/web/src/app/(dashboard)/settings/api-keys/create-api-key-dialog.tsx</path>
+      <states>
+        <state name="form">
+          <fields>
+            <field>Name input (required)</field>
+            <field>Scopes checkboxes (at least one required)</field>
+            <field>Optional expiration date picker</field>
+          </fields>
+        </state>
+        <state name="created">
+          <display>Full API key in alert box</display>
+          <actions>
+            <action>Copy to Clipboard button</action>
+            <action>Done button (closes dialog)</action>
+          </actions>
+          <warning>Key shown only once - copy now!</warning>
+        </state>
+      </states>
+    </dialog>
+
+    <hooks>
+      <hook>
+        <name>useApiKeys</name>
+        <path>apps/web/src/hooks/use-api-keys.ts</path>
+        <methods>
+          <method>useApiKeys() - Query for API keys list</method>
+          <method>useCreateApiKey() - Mutation for creating API key</method>
+          <method>revokeApiKey(id) - Mutation for revoking API key</method>
+        </methods>
+      </hook>
+    </hooks>
+  </ui-components>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-suite name="ApiKeyGuard">
+        <test>should validate API key hash correctly</test>
+        <test>should reject expired API keys</test>
+        <test>should reject revoked API keys</test>
+        <test>should attach workspaceId to request</test>
+        <test>should update lastUsedAt timestamp</test>
+        <test>should accept X-API-Key header</test>
+        <test>should accept Authorization: Bearer header</test>
+        <test>should reject request without API key</test>
+        <test>should reject request with invalid API key</test>
+      </test-suite>
+
+      <test-suite name="ScopeGuard">
+        <test>should allow request with required scope</test>
+        <test>should reject request without required scope</test>
+        <test>should handle multiple scopes (OR logic)</test>
+        <test>should allow request when no scopes required</test>
+        <test>should reject request without API key in context</test>
+      </test-suite>
+
+      <test-suite name="ApiKeysService">
+        <test>should generate API key with correct format (sk_prod_...)</test>
+        <test>should hash API key with SHA-256</test>
+        <test>should create API key with permissions JSON</test>
+        <test>should list API keys for workspace</test>
+        <test>should revoke API key</test>
+        <test>should not list revoked API keys</test>
+        <test>should set default rate limit (10000 req/hour)</test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test-suite name="API Authentication E2E">
+        <test>should authenticate with valid API key in X-API-Key header</test>
+        <test>should authenticate with valid API key in Authorization: Bearer header</test>
+        <test>should reject request with invalid API key</test>
+        <test>should reject request with expired API key</test>
+        <test>should reject request with revoked API key</test>
+        <test>should reject request without API key</test>
+        <test>should update lastUsedAt on successful request</test>
+      </test-suite>
+
+      <test-suite name="Scope Enforcement">
+        <test>should allow pm:read scope to GET /api/v1/pm/tasks</test>
+        <test>should reject pm:read scope from POST /api/v1/pm/tasks</test>
+        <test>should allow pm:write scope to POST /api/v1/pm/tasks</test>
+        <test>should reject pm:write scope from DELETE /api/v1/pm/tasks/:id</test>
+        <test>should allow pm:admin scope to DELETE /api/v1/pm/tasks/:id</test>
+        <test>should reject API key without required scope</test>
+      </test-suite>
+
+      <test-suite name="Key Management UI">
+        <test>should display list of API keys</test>
+        <test>should create new API key with selected scopes</test>
+        <test>should show full API key only once after creation</test>
+        <test>should copy API key to clipboard</test>
+        <test>should revoke API key</test>
+        <test>should show last used timestamp</test>
+        <test>should show key prefix (sk_prod_xxx***)</test>
+      </test-suite>
+    </integration-tests>
+  </testing-requirements>
+
+  <dependencies>
+    <prerequisite story="PM-11.1">REST API controllers created with placeholder authentication</prerequisite>
+    <blocks story="PM-11.3">Webhook subscriptions need API key authentication</blocks>
+    <blocks story="PM-11.4">API documentation portal needs authentication guide</blocks>
+    <blocks story="PM-11.5">Rate limiting uses API key context</blocks>
+  </dependencies>
+
+  <technical-notes>
+    <note priority="high">
+      No Prisma schema changes required - existing ApiKey model has all necessary fields.
+      The permissions field is JSON and supports the { scopes: string[], rateLimit?: number } structure.
+    </note>
+
+    <note priority="high">
+      PM-11.1 controllers have TODOs marking placeholder values:
+      - "// TODO: Get workspaceId from API key context (PM-11.2)"
+      - "const workspaceId = 'placeholder'"
+      - "const actorId = 'placeholder'"
+
+      These must be replaced with:
+      - @CurrentWorkspace() workspaceId: string parameter
+      - request.apiKey.createdById for actorId
+    </note>
+
+    <note priority="medium">
+      The existing /settings/api-keys/ page is for BYOAI provider keys (Claude, OpenAI, etc.).
+      This story should either:
+      1. Replace that page with external API key management, OR
+      2. Create a subtab structure: "AI Provider Keys" and "External API Keys"
+
+      Recommended: Create subtabs to avoid confusion between BYOAI keys and platform API keys.
+    </note>
+
+    <note priority="medium">
+      ApiKeyGuard should run independently from AuthGuard - they are mutually exclusive:
+      - Web UI routes: Use AuthGuard + TenantGuard (session-based auth)
+      - API routes: Use ApiKeyGuard + ScopeGuard (API key auth)
+
+      API routes should NOT require session authentication.
+    </note>
+
+    <note priority="low">
+      lastUsedAt update is async and non-blocking:
+      this.updateLastUsed(apiKeyId).catch(() => {})
+
+      This prevents API request latency from database writes.
+      If the update fails, it's not critical - we just won't have an accurate timestamp.
+    </note>
+
+    <note priority="low">
+      Scope logic is OR-based: If an endpoint requires [pm:read, pm:write], the API key needs ANY one of them.
+      Future enhancement: Add AND logic for compound permissions.
+    </note>
+  </technical-notes>
+
+  <file-checklist>
+    <backend>
+      <file>apps/api/src/common/guards/api-key.guard.ts</file>
+      <file>apps/api/src/common/guards/scope.guard.ts</file>
+      <file>apps/api/src/common/decorators/scopes.decorator.ts</file>
+      <file>apps/api/src/settings/api-keys.service.ts</file>
+      <file>apps/api/src/settings/api-keys.controller.ts</file>
+      <file>apps/api/src/settings/dto/create-api-key.dto.ts</file>
+      <file>apps/api/src/pm/api/projects-api.controller.ts (update)</file>
+      <file>apps/api/src/pm/api/phases-api.controller.ts (update)</file>
+      <file>apps/api/src/pm/api/tasks-api.controller.ts (update)</file>
+      <file>apps/api/src/pm/api/views-api.controller.ts (update)</file>
+      <file>apps/api/src/pm/api/search-api.controller.ts (update)</file>
+    </backend>
+
+    <frontend>
+      <file>apps/web/src/app/(dashboard)/settings/api-keys/page.tsx (update or replace)</file>
+      <file>apps/web/src/app/(dashboard)/settings/api-keys/create-api-key-dialog.tsx</file>
+      <file>apps/web/src/hooks/use-api-keys.ts</file>
+    </frontend>
+
+    <shared-types>
+      <file>packages/shared/src/types/api-scopes.ts (already exists from PM-11.1)</file>
+    </shared-types>
+
+    <tests>
+      <file>apps/api/src/common/guards/api-key.guard.spec.ts</file>
+      <file>apps/api/src/common/guards/scope.guard.spec.ts</file>
+      <file>apps/api/src/settings/api-keys.service.spec.ts</file>
+      <file>apps/api/test/api-authentication.e2e-spec.ts</file>
+      <file>apps/web/src/app/(dashboard)/settings/api-keys/page.test.tsx</file>
+    </tests>
+  </file-checklist>
+
+  <definition-of-done>
+    <item>ApiKeyGuard implemented and validates API keys correctly</item>
+    <item>ScopeGuard implemented and enforces permissions</item>
+    <item>Scopes decorator created for setting required scopes</item>
+    <item>ApiKeysService implemented with key generation, hashing, CRUD</item>
+    <item>ApiKeysController implemented with endpoints for create/list/revoke</item>
+    <item>All PM-11.1 API controllers updated with guards and scopes</item>
+    <item>Placeholder workspaceId/actorId replaced with API key context</item>
+    <item>API Keys settings page UI implemented</item>
+    <item>Create API Key dialog with scope selection working</item>
+    <item>API key shown once after creation with copy-to-clipboard</item>
+    <item>API keys list shows prefix, scopes, last used, expiration</item>
+    <item>Revoke API key functionality working</item>
+    <item>Unit tests passing (guards, service)</item>
+    <item>Integration tests passing (authentication flow, scope enforcement)</item>
+    <item>E2E tests passing (UI functionality)</item>
+    <item>Code reviewed and approved</item>
+    <item>Documentation updated with authentication guide</item>
+  </definition-of-done>
+</story-context>

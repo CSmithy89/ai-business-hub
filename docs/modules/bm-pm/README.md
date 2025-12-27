@@ -89,3 +89,38 @@ Core-PM includes three specialized AI agents built on the Agno framework:
 **Limitations**
 - Critical path calculation uses dependency relations (`BLOCKS`, `BLOCKED_BY`, `DEPENDS_ON`, `DEPENDENCY_OF`).
 - Dependencies list defaults to the first page (use pagination for large datasets).
+
+## PM-11 External API & Governance (Implemented)
+
+**Capabilities**
+- **REST API**: Full CRUD for projects, phases, tasks, views at `/api/v1/pm/*`
+- **API Key Authentication**: SHA-256 hashed keys with scoped permissions
+- **Webhook Subscriptions**: Real-time event delivery with HMAC-SHA256 signatures
+- **API Documentation**: Swagger UI at `/api/docs`, developer portal at `/developers`
+- **Rate Limiting**: Per-API-key limits with sliding window algorithm
+
+**API Endpoints**
+- `GET/POST /api/v1/pm/projects` - List and create projects
+- `GET/PUT/DELETE /api/v1/pm/projects/:id` - Project CRUD
+- `GET/POST /api/v1/pm/projects/:projectId/phases` - Phases management
+- `GET/POST /api/v1/pm/tasks` - Task listing and creation
+- `GET/PUT/DELETE /api/v1/pm/tasks/:id` - Task CRUD
+- `POST /api/v1/pm/tasks/:id/assign` - Task assignment
+- `POST /api/v1/pm/tasks/:id/transition` - Status transitions
+- `GET /api/v1/pm/search` - Full-text search
+- `GET/POST/DELETE /api/v1/webhooks` - Webhook management
+
+**Authentication**
+- API key in `X-API-Key` header or `Authorization: Bearer` header
+- Scopes: `pm:read`, `pm:write`, `pm:admin`, `webhook:read`, `webhook:write`
+- Keys managed at `/settings/api-keys`
+
+**Webhook Events**
+- Task: `task.created`, `task.updated`, `task.deleted`
+- Project: `project.created`, `project.updated`, `project.deleted`
+- Phase: `phase.created`, `phase.updated`, `phase.completed`
+
+**Rate Limiting**
+- Default: 1000 requests/hour per API key
+- Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- Returns `429 Too Many Requests` when exceeded

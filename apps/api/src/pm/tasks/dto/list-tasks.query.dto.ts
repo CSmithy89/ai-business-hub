@@ -1,6 +1,6 @@
 import { AssignmentType, TaskPriority, TaskStatus, TaskType } from '@prisma/client'
 import { Type } from 'class-transformer'
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator'
+import { IsEnum, IsIn, IsInt, IsISO8601, IsOptional, IsString, Max, Min } from 'class-validator'
 
 export class ListTasksQueryDto {
   @IsOptional()
@@ -55,4 +55,20 @@ export class ListTasksQueryDto {
   @Min(1)
   @Max(100)
   limit?: number
+
+  @IsOptional()
+  @IsISO8601()
+  dueAfter?: string
+
+  @IsOptional()
+  @IsISO8601()
+  dueBefore?: string
+
+  @IsOptional()
+  @IsIn(['createdAt', 'dueDate', 'priority', 'status'])
+  sortBy?: 'createdAt' | 'dueDate' | 'priority' | 'status' = 'createdAt'
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc' = 'desc'
 }

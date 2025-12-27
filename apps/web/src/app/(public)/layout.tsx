@@ -66,6 +66,12 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               © {new Date().getFullYear()} HYVVE. All rights reserved.
             </div>
             <nav className="flex items-center gap-6">
+              <a
+                href="/developers"
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                API Docs
+              </a>
               <Link
                 href="/terms"
                 className="text-sm text-gray-500 hover:text-gray-700"

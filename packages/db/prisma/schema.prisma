@@ -135,6 +135,7 @@ model Workspace {
   importJobs  ImportJob[]
   integrationConnections IntegrationConnection[]
   externalLinks ExternalLink[]
+  webhooks    Webhook[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -307,6 +308,7 @@ model ApiKey {
   keyHash     String @unique @map("key_hash")
   keyPrefix   String @map("key_prefix")
   permissions Json
+  rateLimit   Int    @default(1000) @map("rate_limit") // Requests per hour
 
   lastUsedAt DateTime? @map("last_used_at")
   expiresAt  DateTime? @map("expires_at")
@@ -2450,4 +2452,87 @@ enum WorkflowExecutionStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+// ============================================
+// WEBHOOKS (Story PM-11.3)
+// ============================================
+
+/// Webhook - Webhook subscriptions for external integrations
+model Webhook {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+
+  // Configuration
+  name        String
+  description String? @db.Text
+  url         String
+  secret      String // HMAC secret for signature verification
+  events      String[] // Array of event types to subscribe to
+
+  // Status
+  enabled     Boolean @default(true)
+
+  // Statistics
+  deliveryCount    Int @default(0) @map("delivery_count")
+  lastDeliveredAt  DateTime? @map("last_delivered_at")
+  failureCount     Int @default(0) @map("failure_count")
+
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String @map("created_by")
+
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  deliveries  WebhookDelivery[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, enabled])
+  @@map("webhooks")
+}
+
+/// WebhookDelivery - Webhook delivery log and retry tracking
+model WebhookDelivery {
+  id          String @id @default(cuid())
+  webhookId   String @map("webhook_id")
+  workspaceId String @map("workspace_id")
+
+  // Event details
+  eventType   String @map("event_type")
+  eventId     String @map("event_id")
+  payload     Json
+
+  // Delivery details
+  status      WebhookDeliveryStatus @default(PENDING)
+  attempts    Int @default(0)
+  maxAttempts Int @default(3) @map("max_attempts")
+
+  // Response tracking
+  httpStatus  Int? @map("http_status")
+  responseBody String? @map("response_body") @db.Text
+  errorMessage String? @map("error_message") @db.Text
+
+  // Timing
+  createdAt   DateTime @default(now()) @map("created_at")
+  nextRetryAt DateTime? @map("next_retry_at")
+  deliveredAt DateTime? @map("delivered_at")
+  failedAt    DateTime? @map("failed_at")
+
+  // Relations
+  webhook     Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@unique([webhookId, eventType, eventId]) // Enforce idempotency at DB level
+  @@index([webhookId])
+  @@index([workspaceId])
+  @@index([status])
+  @@index([status, nextRetryAt]) // For retry queue processing
+  @@map("webhook_deliveries")
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  RETRYING
 }

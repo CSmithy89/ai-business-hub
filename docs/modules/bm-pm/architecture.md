@@ -61,7 +61,7 @@ Core-PM is the **platform's foundational infrastructure**, not an optional modul
             ┌───────────────┼────────────────────┼───────────────┐
             │               │                    │               │
       ┌─────┴─────┐   ┌─────┴─────┐        ┌─────┴─────┐   ┌─────┴─────┐
-      │  BM-CRM   │   │BM-Content │        │BM-Finance │   │  BM-...   │
+      │  BM-CRM   │   │  BM-CMS   │        │BM-Finance │   │  BM-...   │
       │ (Module)  │   │ (Module)  │        │ (Module)  │   │ (Module)  │
       └───────────┘   └───────────┘        └───────────┘   └───────────┘
 ```

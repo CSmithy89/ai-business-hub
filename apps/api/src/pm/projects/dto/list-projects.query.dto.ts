@@ -1,6 +1,6 @@
 import { ProjectStatus, ProjectType } from '@prisma/client'
 import { Type } from 'class-transformer'
-import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator'
+import { IsEnum, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator'
 
 export class ListProjectsQueryDto {
   @IsOptional()
@@ -30,4 +30,12 @@ export class ListProjectsQueryDto {
   @IsInt()
   @Min(1)
   limit?: number = 20
+
+  @IsOptional()
+  @IsIn(['name', 'createdAt', 'updatedAt'])
+  sortBy?: 'name' | 'createdAt' | 'updatedAt' = 'updatedAt'
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc' = 'desc'
 }

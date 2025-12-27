@@ -1,0 +1,212 @@
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+
+type RedisClient = Awaited<Queue['client']>;
+
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  reset: number; // Unix timestamp in seconds
+  isLimited: boolean;
+}
+
+/**
+ * RateLimitService
+ *
+ * Provides sliding window rate limiting using Redis.
+ * Tracks API requests per API key and enforces configurable rate limits.
+ *
+ * Story: PM-11.5 - API Rate Limiting & Governance
+ */
+@Injectable()
+export class RateLimitService implements OnModuleInit {
+  private readonly logger = new Logger(RateLimitService.name);
+  private redis: RedisClient | null = null;
+  private readonly keyPrefix = 'hyvve:ratelimit:';
+
+  constructor(@InjectQueue('event-retry') private eventRetryQueue: Queue) {}
+
+  async onModuleInit() {
+    try {
+      this.redis = await this.eventRetryQueue.client;
+      this.logger.log('Rate limit service initialized');
+    } catch (error) {
+      this.logger.error('Failed to initialize rate limit service', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check and increment rate limit for an API key
+   *
+   * Uses sliding window algorithm with Redis sorted sets:
+   * - Store timestamps of requests in a sorted set
+   * - Remove expired entries
+   * - Count remaining entries
+   * - Add new entry if under limit
+   *
+   * @param apiKeyId - API key ID
+   * @param limit - Maximum requests per hour
+   * @returns Rate limit information
+   */
+  async checkRateLimit(apiKeyId: string, limit: number): Promise<RateLimitInfo> {
+    if (!this.redis) {
+      this.logger.error('Redis client not initialized');
+      // Fail open - allow request but log error
+      return {
+        limit,
+        remaining: limit,
+        reset: this.getDefaultResetTimestamp(),
+        isLimited: false,
+      };
+    }
+
+    const now = Date.now();
+    const windowStart = now - 3600000; // 1 hour ago in milliseconds
+    const key = `${this.keyPrefix}${apiKeyId}`;
+
+    try {
+      // Generate unique member suffix for ZSET to prevent same-millisecond request collapse
+      const uniqueSuffix = Math.random().toString(36).substring(2, 10);
+
+      // Lua script for atomic rate limit check and increment
+      // This prevents race conditions when multiple requests arrive simultaneously
+      const luaScript = `
+        local key = KEYS[1]
+        local now = tonumber(ARGV[1])
+        local window_start = tonumber(ARGV[2])
+        local limit = tonumber(ARGV[3])
+        local ttl = tonumber(ARGV[4])
+        local unique_suffix = ARGV[5]
+
+        -- Remove expired entries
+        redis.call('ZREMRANGEBYSCORE', key, 0, window_start)
+
+        -- Count current requests in window
+        local current = redis.call('ZCARD', key)
+
+        -- Calculate reset time based on oldest request + 1 hour (sliding window)
+        -- If no requests, use current time + 1 hour
+        local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+        local reset
+        if #oldest >= 2 then
+          -- oldest[2] is the score (timestamp) of the oldest request
+          reset = tonumber(oldest[2]) + 3600000
+        else
+          reset = now + 3600000
+        end
+
+        if current < limit then
+          -- Add new request with unique member to prevent same-ms collisions
+          -- Member format: timestamp:uniqueSuffix (score is still the timestamp)
+          redis.call('ZADD', key, now, now .. ':' .. unique_suffix)
+          -- Set expiry on the key (2 hours to be safe)
+          redis.call('EXPIRE', key, ttl)
+          return {limit, limit - current - 1, reset, 0}
+        else
+          -- Rate limit exceeded
+          return {limit, 0, reset, 1}
+        end
+      `;
+
+      const result = await this.redis.eval(
+        luaScript,
+        1,
+        key,
+        now.toString(),
+        windowStart.toString(),
+        limit.toString(),
+        '7200', // 2 hours in seconds
+        uniqueSuffix,
+      ) as number[];
+
+      return {
+        limit: result[0],
+        remaining: result[1],
+        reset: Math.floor(result[2] / 1000), // Convert to seconds
+        isLimited: result[3] === 1,
+      };
+    } catch (error) {
+      this.logger.error({
+        message: 'Failed to check rate limit',
+        apiKeyId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Fail open - allow request but log error
+      return {
+        limit,
+        remaining: limit,
+        reset: this.getDefaultResetTimestamp(),
+        isLimited: false,
+      };
+    }
+  }
+
+  /**
+   * Get current usage count for an API key
+   *
+   * @param apiKeyId - API key ID
+   * @returns Number of requests in current window
+   */
+  async getCurrentUsage(apiKeyId: string): Promise<number> {
+    if (!this.redis) {
+      return 0;
+    }
+
+    const now = Date.now();
+    const windowStart = now - 3600000; // 1 hour ago
+    const key = `${this.keyPrefix}${apiKeyId}`;
+
+    try {
+      // Remove expired entries
+      await this.redis.zremrangebyscore(key, 0, windowStart);
+
+      // Count current requests
+      return await this.redis.zcard(key);
+    } catch (error) {
+      this.logger.error({
+        message: 'Failed to get current usage',
+        apiKeyId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Reset rate limit for an API key (admin function)
+   *
+   * @param apiKeyId - API key ID
+   */
+  async resetRateLimit(apiKeyId: string): Promise<void> {
+    if (!this.redis) {
+      return;
+    }
+
+    const key = `${this.keyPrefix}${apiKeyId}`;
+
+    try {
+      await this.redis.del(key);
+      this.logger.log(`Rate limit reset for API key: ${apiKeyId}`);
+    } catch (error) {
+      this.logger.error({
+        message: 'Failed to reset rate limit',
+        apiKeyId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Get a default reset timestamp for fallback scenarios (Redis failure).
+   * Returns the next hour boundary as Unix timestamp in seconds.
+   * Note: The actual sliding window uses oldest request + 1 hour (see Lua script).
+   */
+  private getDefaultResetTimestamp(): number {
+    const now = Date.now();
+    const nextHour = Math.ceil(now / 3600000) * 3600000;
+    return Math.floor(nextHour / 1000);
+  }
+}

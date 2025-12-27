@@ -24,7 +24,7 @@ BM-SEO is a **standalone module** providing comprehensive search engine optimiza
 
 **Enhanced When Installed With:**
 - BM-Marketing (included in multi-channel campaigns)
-- BM-Content (shares keyword research for content optimization)
+- BM-CMS (shares keyword research for page optimization)
 - BM-Ads (shares keyword intelligence for paid campaigns)
 - BM-Analytics (AI-powered ranking recommendations)
 - Core-PM (SEO projects and task tracking)
