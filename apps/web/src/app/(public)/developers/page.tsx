@@ -193,13 +193,18 @@ export default function DevelopersPage() {
               <p className="text-blue-800 mb-4">
                 1000 requests per hour per API key
               </p>
+              <p className="text-blue-700 text-sm mb-3">
+                <strong>Sliding Window:</strong> Rate limits use a sliding window algorithm.
+                If you make 100 requests at 1:00 PM, you can make 900 more requests until 2:00 PM.
+                As time passes, your quota gradually refills as the oldest requests expire from the 1-hour window.
+              </p>
               <p className="text-blue-700 text-sm">
                 Rate limit headers are included in all responses:
               </p>
               <ul className="text-blue-700 text-sm mt-2 space-y-1">
                 <li><code>X-RateLimit-Limit</code> - Maximum requests per window</li>
                 <li><code>X-RateLimit-Remaining</code> - Requests remaining</li>
-                <li><code>X-RateLimit-Reset</code> - Time when limit resets</li>
+                <li><code>X-RateLimit-Reset</code> - Time when oldest request expires (quota refills)</li>
               </ul>
             </div>
           </div>
@@ -339,6 +344,38 @@ const task = await response.json();`}
             <li><code>pm.phase.updated</code> - Phase updated</li>
             <li><code>pm.phase.transitioned</code> - Phase status transitioned</li>
           </ul>
+          <h3>Verifying Webhook Signatures</h3>
+          <p>
+            All webhook deliveries include an <code>X-Webhook-Signature</code> header containing an HMAC-SHA256 signature.
+            Verify this signature to ensure the payload is authentic and unmodified.
+          </p>
+          <p><strong>Signature format:</strong> <code>sha256=&lt;hex-encoded-signature&gt;</code></p>
+          <p><strong>Node.js example:</strong></p>
+          <CodeBlock
+            language="javascript"
+            code={`const crypto = require('crypto');
+
+function verifyWebhookSignature(payload, signature, secret) {
+  const expectedSig = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSig)
+  );
+}
+
+// Usage in Express handler:
+app.post('/webhook', (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  if (!verifyWebhookSignature(req.body, signature, WEBHOOK_SECRET)) {
+    return res.status(401).send('Invalid signature');
+  }
+  // Process webhook...
+});`}
+          />
           <p>
             Configure webhooks via the API endpoints documented in the Swagger UI.
           </p>

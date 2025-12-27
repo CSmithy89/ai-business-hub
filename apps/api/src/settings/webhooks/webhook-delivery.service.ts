@@ -98,18 +98,28 @@ export class WebhookDeliveryService {
         webhook.secret
       )
 
+      // Set up timeout for the request (30 seconds)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
+
       // Make HTTP request
-      const response = await fetch(webhook.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Signature': signature,
-          'X-Webhook-Event': delivery.eventType,
-          'X-Webhook-ID': delivery.id,
-          'X-Webhook-Delivery-Attempt': String(delivery.attempts + 1),
-        },
-        body: JSON.stringify(delivery.payload),
-      })
+      let response: Response
+      try {
+        response = await fetch(webhook.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': signature,
+            'X-Webhook-Event': delivery.eventType,
+            'X-Webhook-ID': delivery.id,
+            'X-Webhook-Delivery-Attempt': String(delivery.attempts + 1),
+          },
+          body: JSON.stringify(delivery.payload),
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(timeoutId)
+      }
 
       // Limit response body size to prevent memory exhaustion (max 64KB)
       const MAX_RESPONSE_SIZE = 64 * 1024
