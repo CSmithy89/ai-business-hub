@@ -1,6 +1,15 @@
 import { ProjectStatus } from '@prisma/client'
 import { Type } from 'class-transformer'
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator'
+import {
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger'
 
 export class ListProjectsQueryDto {
@@ -12,6 +21,7 @@ export class ListProjectsQueryDto {
   @ApiProperty({ required: false, description: 'Search by project name' })
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   search?: string
 
   @ApiProperty({ required: false, default: 50, minimum: 1, maximum: 100 })
@@ -35,11 +45,11 @@ export class ListProjectsQueryDto {
     default: 'createdAt',
   })
   @IsOptional()
-  @IsString()
+  @IsIn(['name', 'createdAt', 'updatedAt'])
   sortBy?: 'name' | 'createdAt' | 'updatedAt' = 'createdAt'
 
   @ApiProperty({ required: false, enum: ['asc', 'desc'], default: 'desc' })
   @IsOptional()
-  @IsString()
+  @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc' = 'desc'
 }

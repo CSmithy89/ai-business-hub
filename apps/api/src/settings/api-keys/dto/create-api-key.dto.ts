@@ -9,9 +9,10 @@ import {
   Length,
   ArrayMinSize,
   MinDate,
+  IsIn,
 } from 'class-validator'
 import { Type } from 'class-transformer'
-import { ApiScope } from '@hyvve/shared'
+import { ApiScope, API_SCOPE_VALUES } from '@hyvve/shared'
 
 export class CreateApiKeyDto {
   @IsString()
@@ -20,7 +21,7 @@ export class CreateApiKeyDto {
 
   @IsArray()
   @ArrayMinSize(1)
-  @IsString({ each: true })
+  @IsIn(API_SCOPE_VALUES as unknown as string[], { each: true })
   scopes!: ApiScope[]
 
   @IsOptional()

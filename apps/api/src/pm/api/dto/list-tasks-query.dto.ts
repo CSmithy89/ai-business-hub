@@ -1,6 +1,16 @@
 import { TaskPriority, TaskStatus, TaskType } from '@prisma/client'
 import { Type } from 'class-transformer'
-import { IsEnum, IsInt, IsISO8601, IsOptional, IsString, Max, Min } from 'class-validator'
+import {
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger'
 
 export class ListTasksQueryDto {
@@ -47,6 +57,7 @@ export class ListTasksQueryDto {
   @ApiProperty({ required: false, description: 'Search by task title or description' })
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   search?: string
 
   @ApiProperty({ required: false, default: 50, minimum: 1, maximum: 100 })
@@ -70,11 +81,11 @@ export class ListTasksQueryDto {
     default: 'createdAt',
   })
   @IsOptional()
-  @IsString()
+  @IsIn(['createdAt', 'dueDate', 'priority', 'status'])
   sortBy?: 'createdAt' | 'dueDate' | 'priority' | 'status' = 'createdAt'
 
   @ApiProperty({ required: false, enum: ['asc', 'desc'], default: 'desc' })
   @IsOptional()
-  @IsString()
+  @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc' = 'desc'
 }

@@ -1,4 +1,14 @@
-import { IsString, IsArray, IsOptional, IsUrl, IsBoolean, MinLength } from 'class-validator'
+import {
+  IsString,
+  IsArray,
+  IsOptional,
+  IsUrl,
+  IsBoolean,
+  MinLength,
+  ArrayMinSize,
+  IsIn,
+} from 'class-validator'
+import { WebhookEventType, WEBHOOK_EVENT_TYPE_VALUES } from '@hyvve/shared'
 
 export class UpdateWebhookDto {
   @IsOptional()
@@ -21,8 +31,9 @@ export class UpdateWebhookDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  events?: string[]
+  @ArrayMinSize(1)
+  @IsIn(WEBHOOK_EVENT_TYPE_VALUES as unknown as string[], { each: true })
+  events?: WebhookEventType[]
 
   @IsOptional()
   @IsBoolean()
