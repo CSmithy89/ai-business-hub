@@ -273,12 +273,14 @@ export class SuggestionFactory {
   /**
    * Cleanup all created suggestions
    * Called automatically by fixture teardown
+   * @param authCookie - Optional authentication cookie for authenticated cleanup
    */
-  async cleanup(): Promise<void> {
+  async cleanup(authCookie?: string): Promise<void> {
     for (const suggestionId of this.createdSuggestionIds) {
       try {
         await fetch(`${this.apiUrl}/test/delete-suggestion/${suggestionId}`, {
           method: 'DELETE',
+          headers: authCookie ? { Cookie: authCookie } : undefined,
         });
       } catch (error) {
         console.warn(`Failed to cleanup suggestion ${suggestionId}:`, error);

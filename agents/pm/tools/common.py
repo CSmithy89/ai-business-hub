@@ -112,8 +112,9 @@ def _cleanup_shared_client() -> None:
 def get_http_client(timeout: float = DEFAULT_TIMEOUT) -> Generator[httpx.Client, None, None]:
     """Get an HTTP client for API calls.
 
-    Uses the shared connection-pooled client by default. Falls back to a
-    temporary client if the shared client is not available.
+    Uses the shared connection-pooled client by default for standard timeouts.
+    Creates a temporary client for custom timeouts to avoid thread-safety issues.
+    Falls back to a temporary client if the shared client is not available.
 
     Args:
         timeout: Request timeout in seconds
@@ -121,15 +122,19 @@ def get_http_client(timeout: float = DEFAULT_TIMEOUT) -> Generator[httpx.Client,
     Yields:
         httpx.Client configured for API calls
     """
+    # Use temporary client for non-default timeouts to avoid thread-safety issues
+    # (mutating shared client timeout creates race conditions in concurrent use)
+    if timeout != DEFAULT_TIMEOUT:
+        with httpx.Client(timeout=httpx.Timeout(timeout)) as temp_client:
+            yield temp_client
+        return
+
     try:
         client = _get_shared_client()
-        # Override timeout for this specific request if different
-        if timeout != DEFAULT_TIMEOUT:
-            client.timeout = httpx.Timeout(timeout)
         yield client
     except Exception:
         # Fallback to temporary client if shared client fails
-        with httpx.Client(timeout=timeout) as temp_client:
+        with httpx.Client(timeout=httpx.Timeout(timeout)) as temp_client:
             yield temp_client
 
 

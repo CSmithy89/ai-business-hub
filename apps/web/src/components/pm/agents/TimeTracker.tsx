@@ -97,17 +97,22 @@ function ManualEntryDialog({
       return;
     }
 
-    await onSubmit({
-      taskId: taskId || undefined,
-      duration: minutes,
-      description: description || undefined,
-    });
+    try {
+      await onSubmit({
+        taskId: taskId || undefined,
+        duration: minutes,
+        description: description || undefined,
+      });
 
-    // Reset form
-    setTaskId('');
-    setDuration('');
-    setDescription('');
-    onOpenChange(false);
+      // Reset form only on success
+      setTaskId('');
+      setDuration('');
+      setDescription('');
+      onOpenChange(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to log time';
+      setError(message);
+    }
   };
 
   return (
