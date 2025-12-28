@@ -1,0 +1,672 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: PM-12.4 - Integration & E2E Tests
+  Generated: 2025-12-28
+  Module: bm-pm
+  Epic: PM-12 - Consolidated Follow-ups from PM-04/PM-05
+-->
+<story-context>
+  <metadata>
+    <story-id>pm-12-4</story-id>
+    <story-name>Integration & E2E Tests</story-name>
+    <points>13</points>
+    <status>ready-for-dev</status>
+    <dependencies>
+      <dependency>PM-04 (Navi, Sage, Chrono agents)</dependency>
+      <dependency>PM-05 (Scope, Pulse, Herald agents)</dependency>
+      <dependency>KB-02 (RAG implementation)</dependency>
+      <dependency>PM-12.1 (Agent UI components)</dependency>
+    </dependencies>
+  </metadata>
+
+  <!-- ============================================ -->
+  <!-- SECTION 1: EXISTING TEST PATTERNS           -->
+  <!-- ============================================ -->
+  <existing-test-patterns>
+    <summary>
+      The project has established test patterns for both backend (NestJS) and frontend (Playwright E2E).
+      Integration tests use NestJS TestingModule with mocked providers.
+      E2E tests use Playwright with custom fixtures for auth, factories, and data cleanup.
+    </summary>
+
+    <!-- Backend Unit Test Pattern -->
+    <pattern name="NestJS Unit Test Pattern">
+      <location>/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/__tests__/health.service.spec.ts</location>
+      <description>
+        Standard NestJS unit test pattern using Test.createTestingModule().
+        Creates mock Prisma service with jest.fn() for each method.
+        Uses beforeEach for fresh module setup, jest.clearAllMocks().
+      </description>
+      <key-patterns>
+        <pattern>Mock Prisma with createMockPrisma() factory function</pattern>
+        <pattern>Mock $transaction to call callback directly</pattern>
+        <pattern>Test edge cases: empty data, NaN values, invalid workspace</pattern>
+        <pattern>Separate describe blocks per method</pattern>
+      </key-patterns>
+    </pattern>
+
+    <!-- Backend Integration Test Pattern -->
+    <pattern name="NestJS Guard Integration Test Pattern">
+      <location>/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/common/guards/guards.integration.spec.ts</location>
+      <description>
+        Tests guard chain (Auth -> Tenant -> Roles) in sequence.
+        Uses createMockExecutionContext() helper for consistent request mocking.
+        Validates request enrichment at each step.
+      </description>
+      <key-patterns>
+        <pattern>Mock session and workspaceMember lookups</pattern>
+        <pattern>Test role-based access (owner, admin, member)</pattern>
+        <pattern>Test cross-workspace access denial</pattern>
+        <pattern>Test @Public() decorator bypass</pattern>
+      </key-patterns>
+    </pattern>
+
+    <!-- E2E Permission Test Pattern -->
+    <pattern name="E2E Permission Test Pattern">
+      <location>/home/chris/projects/work/Ai Bussiness Hub/apps/api/test/permissions.e2e-spec.ts</location>
+      <description>
+        Full permission matrix testing for approval endpoints.
+        Tests owner/admin/member access for each endpoint type.
+      </description>
+      <key-patterns>
+        <pattern>Permission matrix as test data array</pattern>
+        <pattern>Matrix-driven test generation</pattern>
+        <pattern>Helper functions for context creation</pattern>
+      </key-patterns>
+    </pattern>
+
+    <!-- Playwright E2E Pattern -->
+    <pattern name="Playwright E2E with Fixtures">
+      <location>/home/chris/projects/work/Ai Bussiness Hub/apps/web/tests/e2e/agent-integration.spec.ts</location>
+      <description>
+        Comprehensive agent E2E tests using custom fixtures.
+        Tests health endpoints, authenticated runs, workflow handoffs, tenant isolation.
+      </description>
+      <key-patterns>
+        <pattern>Import { test, expect } from '../support/fixtures'</pattern>
+        <pattern>Use auth.loginAsTestUser() in beforeEach</pattern>
+        <pattern>Use page.request.get/post for API calls</pattern>
+        <pattern>Use data-testid selectors for UI elements</pattern>
+        <pattern>Test tenant isolation with multiple users</pattern>
+      </key-patterns>
+    </pattern>
+
+    <!-- RAG Service Unit Test Pattern -->
+    <pattern name="RAG Service Unit Test Pattern">
+      <location>/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/kb/rag/rag.service.spec.ts</location>
+      <description>
+        Simple unit test for RagService with mocked Prisma and EmbeddingsService.
+      </description>
+      <key-patterns>
+        <pattern>Mock $queryRaw for vector search results</pattern>
+        <pattern>Mock embeddings service with getEmbeddingDims()</pattern>
+        <pattern>Verify context formatting and citation generation</pattern>
+      </key-patterns>
+    </pattern>
+  </existing-test-patterns>
+
+  <!-- ============================================ -->
+  <!-- SECTION 2: PM CONTROLLERS TO TEST           -->
+  <!-- ============================================ -->
+  <controllers-to-test>
+    <summary>
+      Three main controllers need integration tests:
+      1. AgentsController - chat, briefing, suggestions, estimation, time tracking
+      2. ReportController - report generation and history
+      3. HealthController - health checks, risks
+    </summary>
+
+    <!-- Agents Controller -->
+    <controller name="AgentsController">
+      <location>/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/agents.controller.ts</location>
+      <routes>
+        <route method="POST" path="/pm/agents/chat" throttle="10/10s" test-priority="high">
+          <description>Send message to an agent</description>
+          <test-cases>
+            <case>Valid request returns agent response</case>
+            <case>401 for unauthenticated request</case>
+            <case>Rate limiting (429) for excessive requests</case>
+          </test-cases>
+        </route>
+        <route method="GET" path="/pm/agents/conversations/:projectId" test-priority="medium">
+          <description>Get conversation history</description>
+        </route>
+        <route method="POST" path="/pm/agents/briefing/generate" throttle="2/1s" test-priority="high">
+          <description>Generate daily briefing manually</description>
+        </route>
+        <route method="GET" path="/pm/agents/briefing/preferences" test-priority="medium">
+          <description>Get briefing preferences</description>
+        </route>
+        <route method="PATCH" path="/pm/agents/briefing/preferences" test-priority="medium">
+          <description>Update briefing preferences</description>
+        </route>
+        <route method="GET" path="/pm/agents/suggestions" test-priority="high">
+          <description>Get pending suggestions for user</description>
+        </route>
+        <route method="POST" path="/pm/agents/suggestions/:id/accept" test-priority="high">
+          <description>Accept and execute suggestion</description>
+          <test-cases>
+            <case>Executes suggestion action</case>
+            <case>Updates suggestion status to ACCEPTED</case>
+            <case>Returns 410 Gone for expired suggestion</case>
+          </test-cases>
+        </route>
+        <route method="POST" path="/pm/agents/suggestions/:id/reject" test-priority="high">
+          <description>Reject suggestion with reason</description>
+        </route>
+        <route method="POST" path="/pm/agents/suggestions/:id/snooze" test-priority="medium">
+          <description>Snooze suggestion for specified hours</description>
+        </route>
+        <route method="POST" path="/pm/agents/estimation/estimate" throttle="10/10s" test-priority="medium">
+          <description>Get task estimation from Sage agent</description>
+        </route>
+        <route method="POST" path="/pm/agents/time/start" test-priority="medium">
+          <description>Start timer for a task</description>
+        </route>
+        <route method="POST" path="/pm/agents/time/stop" test-priority="medium">
+          <description>Stop active timer</description>
+        </route>
+      </routes>
+      <guards>
+        <guard>ThrottlerGuard</guard>
+        <guard>AuthOrServiceGuard</guard>
+        <guard>TenantGuard</guard>
+      </guards>
+      <dependencies>
+        <service>AgentsService</service>
+        <service>BriefingService</service>
+        <service>SuggestionService</service>
+        <service>EstimationService</service>
+        <service>TimeTrackingService</service>
+      </dependencies>
+    </controller>
+
+    <!-- Report Controller -->
+    <controller name="ReportController">
+      <location>/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/report.controller.ts</location>
+      <routes>
+        <route method="POST" path="/pm/agents/reports/:projectId/generate" throttle="5/60s" test-priority="high">
+          <description>Generate a new report</description>
+          <test-cases>
+            <case>Creates report in database</case>
+            <case>Returns report with download URL</case>
+          </test-cases>
+        </route>
+        <route method="GET" path="/pm/agents/reports/:projectId" test-priority="high">
+          <description>Get report history for a project</description>
+          <test-cases>
+            <case>Returns paginated report list</case>
+            <case>Filters by report type</case>
+          </test-cases>
+        </route>
+        <route method="GET" path="/pm/agents/reports/:projectId/:reportId" test-priority="medium">
+          <description>Get specific report by ID</description>
+        </route>
+      </routes>
+      <guards>
+        <guard>ThrottlerGuard</guard>
+        <guard>AuthGuard</guard>
+      </guards>
+    </controller>
+
+    <!-- Health Controller -->
+    <controller name="HealthController">
+      <location>/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/health.controller.ts</location>
+      <routes>
+        <route method="POST" path="/pm/agents/health/:projectId/check" roles="owner,admin,member" test-priority="high">
+          <description>Trigger health check for project</description>
+        </route>
+        <route method="GET" path="/pm/agents/health/:projectId" roles="owner,admin,member" test-priority="high">
+          <description>Get latest health score</description>
+        </route>
+        <route method="GET" path="/pm/agents/health/:projectId/risks" roles="owner,admin,member" test-priority="high">
+          <description>Get active risks for project</description>
+        </route>
+        <route method="POST" path="/pm/agents/health/:projectId/risks/:riskId/acknowledge" roles="owner,admin,member" test-priority="medium">
+          <description>Acknowledge risk (mark as seen)</description>
+        </route>
+        <route method="POST" path="/pm/agents/health/:projectId/risks/:riskId/resolve" roles="owner,admin,member" test-priority="medium">
+          <description>Mark risk as resolved</description>
+        </route>
+        <route method="GET" path="/pm/agents/health/:projectId/team-capacity" roles="owner,admin,member" test-priority="low">
+          <description>Check team capacity (agent tool)</description>
+        </route>
+        <route method="GET" path="/pm/agents/health/:projectId/velocity" roles="owner,admin,member" test-priority="low">
+          <description>Analyze velocity trend (agent tool)</description>
+        </route>
+        <route method="GET" path="/pm/agents/health/:projectId/overdue-tasks" roles="owner,admin,member" test-priority="medium">
+          <description>Get overdue and due-soon tasks</description>
+        </route>
+      </routes>
+      <guards>
+        <guard>AuthGuard</guard>
+        <guard>TenantGuard</guard>
+        <guard>RolesGuard</guard>
+      </guards>
+    </controller>
+  </controllers-to-test>
+
+  <!-- ============================================ -->
+  <!-- SECTION 3: KB RAG SERVICE                   -->
+  <!-- ============================================ -->
+  <kb-rag-service>
+    <location>/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/kb/rag/rag.service.ts</location>
+    <description>
+      RAG (Retrieval Augmented Generation) service for Knowledge Base queries.
+      Uses pgvector for semantic search with embedding similarity.
+      Boosts verified content in search results.
+    </description>
+    <methods>
+      <method name="query">
+        <signature>query(tenantId: string, workspaceId: string, dto: RagQueryDto): Promise&lt;RagQueryResult&gt;</signature>
+        <description>
+          Performs semantic search on KB pages.
+          - Embeds query text using workspace-configured provider
+          - Uses pgvector cosine distance for similarity
+          - Boosts verified pages by 1.5x
+          - Returns chunks with citations and formatted context
+        </description>
+        <test-cases>
+          <case>Returns relevant KB pages for agent query</case>
+          <case>Verified content is boosted higher in results</case>
+          <case>Workspace isolation enforced (no cross-workspace results)</case>
+          <case>Empty query returns graceful empty result</case>
+          <case>Query limits are respected (max results)</case>
+        </test-cases>
+      </method>
+    </methods>
+    <return-type>
+      <field name="chunks">Array of RagChunk with pageId, chunkIndex, chunkText, title, slug, distance, score</field>
+      <field name="citations">Array of citation references</field>
+      <field name="context">Formatted context string for LLM consumption</field>
+    </return-type>
+    <existing-tests>
+      <location>/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/kb/rag/rag.service.spec.ts</location>
+      <coverage>Basic formatting and citation generation</coverage>
+      <gaps>No integration tests with real database or workspace isolation tests</gaps>
+    </existing-tests>
+  </kb-rag-service>
+
+  <!-- ============================================ -->
+  <!-- SECTION 4: E2E TEST FIXTURES                -->
+  <!-- ============================================ -->
+  <e2e-fixtures>
+    <location>/home/chris/projects/work/Ai Bussiness Hub/apps/web/tests/support/fixtures/index.ts</location>
+    <description>
+      Playwright test fixtures using mergeTests pattern.
+      Provides auth, userFactory, workspaceFactory, businessFactory.
+    </description>
+    <available-fixtures>
+      <fixture name="auth">
+        <methods>
+          <method>loginAs(email: string, password: string): Promise&lt;void&gt;</method>
+          <method>loginAsTestUser(): Promise&lt;{ email: string }&gt;</method>
+          <method>logout(): Promise&lt;void&gt;</method>
+        </methods>
+      </fixture>
+      <fixture name="userFactory">
+        <methods>
+          <method>createUser(overrides?): Promise&lt;CreatedUser&gt;</method>
+          <method>createVerifiedUser(overrides?): Promise&lt;CreatedUser&gt;</method>
+          <method>cleanup(): Promise&lt;void&gt; (automatic)</method>
+        </methods>
+      </fixture>
+      <fixture name="workspaceFactory">
+        <methods>
+          <method>createWorkspace(authToken): Promise&lt;Workspace&gt;</method>
+          <method>cleanup(): Promise&lt;void&gt; (automatic)</method>
+        </methods>
+      </fixture>
+      <fixture name="businessFactory">
+        <methods>
+          <method>createBusiness(authToken): Promise&lt;Business&gt;</method>
+          <method>cleanup(): Promise&lt;void&gt; (automatic)</method>
+        </methods>
+      </fixture>
+    </available-fixtures>
+    <usage-pattern>
+      <![CDATA[
+import { test, expect } from '../support/fixtures';
+
+test.describe('My Feature', () => {
+  test.beforeEach(async ({ auth }) => {
+    await auth.loginAsTestUser();
+  });
+
+  test('should do something', async ({ page, userFactory }) => {
+    const user = await userFactory.createVerifiedUser();
+    // test code
+  });
+});
+      ]]>
+    </usage-pattern>
+    <needed-extensions>
+      <extension name="projectFactory">
+        <description>Need to create test projects for PM agent tests</description>
+        <methods>
+          <method>createProject(workspaceId, options?): Promise&lt;Project&gt;</method>
+          <method>createProjectWithTasks(workspaceId, taskCount?): Promise&lt;Project&gt;</method>
+        </methods>
+      </extension>
+      <extension name="suggestionFactory">
+        <description>Need to create test suggestions for suggestion flow tests</description>
+        <methods>
+          <method>createPendingSuggestion(projectId, options?): Promise&lt;Suggestion&gt;</method>
+          <method>createExpiredSuggestion(projectId): Promise&lt;Suggestion&gt;</method>
+        </methods>
+      </extension>
+    </needed-extensions>
+  </e2e-fixtures>
+
+  <!-- ============================================ -->
+  <!-- SECTION 5: CI CONFIGURATION                 -->
+  <!-- ============================================ -->
+  <ci-configuration>
+    <existing-workflow>
+      <location>/home/chris/projects/work/Ai Bussiness Hub/.github/workflows/test.yml</location>
+      <name>E2E Tests</name>
+      <jobs>
+        <job name="typecheck">TypeScript type checking</job>
+        <job name="lint" depends="typecheck">ESLint</job>
+        <job name="build" depends="lint">Build packages</job>
+        <job name="test" depends="build">E2E tests with 4 shards</job>
+        <job name="burn-in" depends="test" condition="PR or schedule">10 iteration flaky detection</job>
+        <job name="report" depends="test,burn-in" condition="always">Test summary</job>
+      </jobs>
+      <features>
+        <feature>Parallel sharding (4 shards)</feature>
+        <feature>Playwright browser caching</feature>
+        <feature>Test artifact upload on failure</feature>
+        <feature>Weekly burn-in for flaky detection</feature>
+      </features>
+    </existing-workflow>
+    <additions-needed>
+      <addition name="integration-tests job">
+        <description>Add job to run backend integration tests with PostgreSQL and Redis services</description>
+        <services>
+          <service>postgres:16 with POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB</service>
+          <service>redis:7</service>
+        </services>
+        <steps>
+          <step>Install dependencies</step>
+          <step>Generate Prisma client</step>
+          <step>Run migrations (prisma migrate deploy)</step>
+          <step>Run integration tests (pnpm --filter api test:integration)</step>
+        </steps>
+        <placement>After lint, before/parallel to build</placement>
+      </addition>
+      <addition name="test:integration script">
+        <description>Add test:integration script to apps/api/package.json</description>
+        <command>jest --config jest.integration.config.js --runInBand</command>
+      </addition>
+    </additions-needed>
+  </ci-configuration>
+
+  <!-- ============================================ -->
+  <!-- SECTION 6: TEST DIRECTORY STRUCTURE         -->
+  <!-- ============================================ -->
+  <test-directory-structure>
+    <integration-tests>
+      <directory>apps/api/src/pm/agents/__tests__/</directory>
+      <files>
+        <file name="test-utils.ts" status="new">
+          <description>Shared test utilities for integration tests</description>
+          <exports>
+            <export>createTestApp(): Promise&lt;TestContext&gt;</export>
+            <export>seedTestData(prisma): Promise&lt;TestData&gt;</export>
+            <export>cleanupTestData(prisma): Promise&lt;void&gt;</export>
+            <export>createMockAgentClient(): MockAgentClient</export>
+            <export>createTestAuthToken(userId): Promise&lt;string&gt;</export>
+          </exports>
+        </file>
+        <file name="agents.controller.integration.ts" status="new">
+          <description>Integration tests for AgentsController</description>
+          <coverage>chat, briefing, suggestions endpoints</coverage>
+        </file>
+        <file name="report.controller.integration.ts" status="new">
+          <description>Integration tests for ReportController</description>
+          <coverage>generate, list, get, delete endpoints</coverage>
+        </file>
+        <file name="health.controller.integration.ts" status="new">
+          <description>Integration tests for HealthController</description>
+          <coverage>health check, risks, acknowledge, resolve endpoints</coverage>
+        </file>
+      </files>
+    </integration-tests>
+    <kb-rag-tests>
+      <directory>apps/api/src/kb/rag/__tests__/</directory>
+      <files>
+        <file name="rag.integration.ts" status="new">
+          <description>Integration tests for RAG service with real database</description>
+          <coverage>relevant page retrieval, verified content boosting, workspace isolation, limits</coverage>
+        </file>
+      </files>
+    </kb-rag-tests>
+    <e2e-tests>
+      <directory>apps/web/tests/e2e/</directory>
+      <files>
+        <file name="pm-agents.spec.ts" status="new">
+          <description>E2E tests for agent chat flow</description>
+          <coverage>panel toggle, chat, agent switching, slash commands, history persistence</coverage>
+        </file>
+        <file name="pm-suggestions.spec.ts" status="new">
+          <description>E2E tests for suggestion flow</description>
+          <coverage>card display, accept, reject, snooze flows</coverage>
+        </file>
+      </files>
+    </e2e-tests>
+    <e2e-factories>
+      <directory>apps/web/tests/support/fixtures/factories/</directory>
+      <files>
+        <file name="project-factory.ts" status="new">
+          <description>Factory for creating test projects</description>
+        </file>
+        <file name="suggestion-factory.ts" status="new">
+          <description>Factory for creating test suggestions</description>
+        </file>
+      </files>
+    </e2e-factories>
+  </test-directory-structure>
+
+  <!-- ============================================ -->
+  <!-- SECTION 7: DATA-TESTID CONVENTIONS          -->
+  <!-- ============================================ -->
+  <data-testid-conventions>
+    <summary>
+      Use data-testid attributes for E2E test selectors.
+      Follow kebab-case naming convention.
+    </summary>
+    <agent-panel>
+      <testid name="agent-panel-toggle">Button to open/close agent panel</testid>
+      <testid name="agent-panel">The agent panel container</testid>
+      <testid name="agent-input">Text input for agent messages</testid>
+      <testid name="agent-send">Send button for agent messages</testid>
+      <testid name="agent-response">Container for agent response message</testid>
+      <testid name="agent-selector">Dropdown to select agent (navi, sage, etc.)</testid>
+      <testid name="agent-name">Display of current agent name</testid>
+      <testid name="chat-message">Individual chat message in history</testid>
+    </agent-panel>
+    <suggestion-cards>
+      <testid name="suggestion-card">Individual suggestion card container</testid>
+      <testid name="suggestion-title">Suggestion title text</testid>
+      <testid name="suggestion-confidence">Confidence score display</testid>
+      <testid name="suggestion-accept">Accept button</testid>
+      <testid name="suggestion-reject">Reject button</testid>
+      <testid name="suggestion-snooze">Snooze button</testid>
+      <testid name="reject-dialog">Rejection reason dialog</testid>
+      <testid name="reject-reason">Rejection reason input</testid>
+      <testid name="reject-confirm">Confirm rejection button</testid>
+      <testid name="snooze-options">Snooze duration options</testid>
+      <testid name="snooze-1h">Snooze for 1 hour option</testid>
+    </suggestion-cards>
+    <toasts>
+      <testid name="toast-success">Success toast notification</testid>
+      <testid name="toast-error">Error toast notification</testid>
+    </toasts>
+  </data-testid-conventions>
+
+  <!-- ============================================ -->
+  <!-- SECTION 8: MOCKING STRATEGY                 -->
+  <!-- ============================================ -->
+  <mocking-strategy>
+    <summary>
+      Integration tests use real database but mock external services.
+      E2E tests use seeded test data with auto-cleanup.
+    </summary>
+    <integration-mocks>
+      <mock name="PythonAgentClient">
+        <reason>Agent calls are expensive and external</reason>
+        <approach>Full mock with jest.fn() returning expected structures</approach>
+        <example>
+          <![CDATA[
+{
+  chat: jest.fn().mockResolvedValue({
+    response: 'Mock agent response',
+    suggestions: [],
+  }),
+  getBriefing: jest.fn().mockResolvedValue({
+    summary: 'Today you have 3 tasks to complete.',
+    tasks: [],
+    highlights: [],
+  }),
+  generateReport: jest.fn().mockResolvedValue({
+    id: 'report-001',
+    content: 'Mock report content',
+  }),
+}
+          ]]>
+        </example>
+      </mock>
+      <mock name="EmailService">
+        <reason>No actual emails should be sent in tests</reason>
+        <approach>Mock to verify calls without sending</approach>
+      </mock>
+      <mock name="EmbeddingsService">
+        <reason>External API calls, deterministic results needed</reason>
+        <approach>Return fixed embedding vectors for consistent tests</approach>
+      </mock>
+    </integration-mocks>
+    <real-services>
+      <service name="Database (PostgreSQL)">Use test database with migrations</service>
+      <service name="Redis">Use ephemeral Redis for queue tests</service>
+      <service name="PrismaService">Real Prisma with test database</service>
+    </real-services>
+    <test-data-strategy>
+      <strategy name="Prefix convention">All test data IDs start with 'test-' for easy cleanup</strategy>
+      <strategy name="Transaction rollback">Consider wrapping tests in transactions for isolation</strategy>
+      <strategy name="Cleanup order">Delete in foreign key order: tasks -> phases -> projects -> workspaces</strategy>
+    </test-data-strategy>
+  </mocking-strategy>
+
+  <!-- ============================================ -->
+  <!-- SECTION 9: ACCEPTANCE CRITERIA MAPPING      -->
+  <!-- ============================================ -->
+  <acceptance-criteria-mapping>
+    <ac id="1" name="Test Utilities & Setup">
+      <deliverables>
+        <file>apps/api/src/pm/agents/__tests__/test-utils.ts</file>
+      </deliverables>
+      <verification>
+        <check>createTestApp() initializes NestJS app with mocked external services</check>
+        <check>seedTestData() creates workspace, project, phases, tasks</check>
+        <check>cleanupTestData() removes all test data in FK order</check>
+        <check>Authentication helper generates valid test tokens</check>
+        <check>PythonAgentClient mock is properly injected</check>
+      </verification>
+    </ac>
+    <ac id="2" name="Agent Endpoint Integration Tests">
+      <deliverables>
+        <file>apps/api/src/pm/agents/__tests__/agents.controller.integration.ts</file>
+      </deliverables>
+      <test-count>10+ test cases</test-count>
+    </ac>
+    <ac id="3" name="Report Endpoint Integration Tests">
+      <deliverables>
+        <file>apps/api/src/pm/agents/__tests__/report.controller.integration.ts</file>
+      </deliverables>
+      <test-count>6+ test cases</test-count>
+    </ac>
+    <ac id="4" name="Health Endpoint Integration Tests">
+      <deliverables>
+        <file>apps/api/src/pm/agents/__tests__/health.controller.integration.ts</file>
+      </deliverables>
+      <test-count>6+ test cases</test-count>
+    </ac>
+    <ac id="5" name="KB RAG Integration Tests">
+      <deliverables>
+        <file>apps/api/src/kb/rag/__tests__/rag.integration.ts</file>
+      </deliverables>
+      <test-count>5+ test cases</test-count>
+    </ac>
+    <ac id="6" name="E2E Agent Chat Flow (Playwright)">
+      <deliverables>
+        <file>apps/web/tests/e2e/pm-agents.spec.ts</file>
+      </deliverables>
+      <test-count>6+ test cases</test-count>
+    </ac>
+    <ac id="7" name="E2E Suggestion Flow (Playwright)">
+      <deliverables>
+        <file>apps/web/tests/e2e/pm-suggestions.spec.ts</file>
+      </deliverables>
+      <test-count>6+ test cases</test-count>
+    </ac>
+    <ac id="8" name="CI Integration">
+      <deliverables>
+        <file>.github/workflows/test.yml (updated)</file>
+        <file>apps/api/package.json (test:integration script)</file>
+      </deliverables>
+      <verification>
+        <check>Integration tests run as part of CI pipeline</check>
+        <check>Test results reported in PR checks</check>
+        <check>Failed tests block merge to main</check>
+      </verification>
+    </ac>
+  </acceptance-criteria-mapping>
+
+  <!-- ============================================ -->
+  <!-- SECTION 10: IMPLEMENTATION NOTES            -->
+  <!-- ============================================ -->
+  <implementation-notes>
+    <note category="test-database">
+      Use separate test database (not production).
+      Run migrations before tests with prisma migrate deploy.
+      Use test data prefixes ('test-*') for easy cleanup.
+    </note>
+    <note category="retry-strategy">
+      Integration tests: No retry (must pass first time).
+      E2E tests: 2 retries for flaky network/timing issues.
+      CI timeout: 10 minutes for integration, 15 minutes for E2E.
+    </note>
+    <note category="parallelism">
+      Integration tests should run with --runInBand to avoid database conflicts.
+      E2E tests can run in parallel with sharding (4 shards).
+    </note>
+    <note category="environment-variables">
+      TEST_DATABASE_URL - Separate test database connection
+      TEST_REDIS_URL - Ephemeral Redis for tests
+      TEST_USER_EMAIL - Default test user email
+      TEST_USER_PASSWORD - Default test user password
+    </note>
+    <note category="fixtures-extension">
+      Add projectFactory and suggestionFactory to E2E fixtures.
+      Update apps/web/tests/support/fixtures/index.ts to include new factories.
+    </note>
+  </implementation-notes>
+
+  <!-- ============================================ -->
+  <!-- SECTION 11: REFERENCES                      -->
+  <!-- ============================================ -->
+  <references>
+    <reference type="story">/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/stories/pm-12-4-integration-e2e-tests.md</reference>
+    <reference type="epic">/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/epics/epic-pm-12-consolidated-followups.md</reference>
+    <reference type="existing-test">/home/chris/projects/work/Ai Bussiness Hub/apps/api/test/permissions.e2e-spec.ts</reference>
+    <reference type="existing-test">/home/chris/projects/work/Ai Bussiness Hub/apps/web/tests/e2e/agent-integration.spec.ts</reference>
+    <reference type="existing-test">/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/__tests__/health.service.spec.ts</reference>
+    <reference type="fixtures">/home/chris/projects/work/Ai Bussiness Hub/apps/web/tests/support/fixtures/index.ts</reference>
+    <reference type="ci">/home/chris/projects/work/Ai Bussiness Hub/.github/workflows/test.yml</reference>
+    <reference type="controller">/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/agents.controller.ts</reference>
+    <reference type="controller">/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/report.controller.ts</reference>
+    <reference type="controller">/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/health.controller.ts</reference>
+    <reference type="service">/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/kb/rag/rag.service.ts</reference>
+  </references>
+</story-context>
