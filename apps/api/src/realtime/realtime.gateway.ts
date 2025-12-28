@@ -38,6 +38,14 @@ import {
   PresencePayload,
   PMHealthEventPayload,
   PMRiskEventPayload,
+  // PM-12.6: Agent Streaming, Suggestions, Health Updates
+  PMAgentStreamStartPayload,
+  PMAgentStreamChunkPayload,
+  PMAgentStreamEndPayload,
+  PMAgentTypingPayload,
+  PMSuggestionEventPayload,
+  PMSuggestionActionPayload,
+  PMHealthUpdatePayload,
   WS_EVENTS,
   getWorkspaceRoom,
   getUserRoom,
@@ -1137,6 +1145,195 @@ export class RealtimeGateway
       projectId: payload.projectId,
       riskId: payload.riskId,
       severity: payload.severity,
+    });
+  }
+
+  // ============================================
+  // PM Agent Streaming Events (PM-12.6)
+  // ============================================
+
+  /**
+   * Broadcast agent stream start to project room
+   */
+  broadcastPMAgentStreamStart(projectId: string, payload: PMAgentStreamStartPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_AGENT_STREAM_START,
+      payload,
+    );
+
+    this.logger.debug({
+      message: 'PM agent stream start emitted',
+      projectId,
+      agentId: payload.agentId,
+      streamId: payload.streamId,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast agent stream chunk to project room
+   */
+  broadcastPMAgentStreamChunk(projectId: string, payload: PMAgentStreamChunkPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_AGENT_STREAM_CHUNK,
+      payload,
+    );
+    // No logging for chunks to avoid noise
+  }
+
+  /**
+   * Broadcast agent stream end to project room
+   */
+  broadcastPMAgentStreamEnd(projectId: string, payload: PMAgentStreamEndPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_AGENT_STREAM_END,
+      payload,
+    );
+
+    this.logger.debug({
+      message: 'PM agent stream end emitted',
+      projectId,
+      agentId: payload.agentId,
+      streamId: payload.streamId,
+      durationMs: payload.durationMs,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast agent typing indicator to project room
+   */
+  broadcastPMAgentTyping(projectId: string, payload: PMAgentTypingPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_AGENT_TYPING,
+      payload,
+    );
+  }
+
+  // ============================================
+  // PM Suggestion Events (PM-12.6)
+  // ============================================
+
+  /**
+   * Broadcast suggestion created event to project room
+   */
+  broadcastPMSuggestionCreated(projectId: string, payload: PMSuggestionEventPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_SUGGESTION_CREATED,
+      payload,
+    );
+
+    this.logger.debug({
+      message: 'PM suggestion created emitted',
+      projectId,
+      suggestionId: payload.id,
+      type: payload.type,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast suggestion updated event to project room
+   */
+  broadcastPMSuggestionUpdated(projectId: string, payload: PMSuggestionEventPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_SUGGESTION_UPDATED,
+      payload,
+    );
+
+    this.logger.debug({
+      message: 'PM suggestion updated emitted',
+      projectId,
+      suggestionId: payload.id,
+      status: payload.status,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast suggestion accepted event to project room
+   */
+  broadcastPMSuggestionAccepted(projectId: string, payload: PMSuggestionActionPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_SUGGESTION_ACCEPTED,
+      payload,
+    );
+
+    this.logger.debug({
+      message: 'PM suggestion accepted emitted',
+      projectId,
+      suggestionId: payload.id,
+      actionBy: payload.actionBy,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast suggestion rejected event to project room
+   */
+  broadcastPMSuggestionRejected(projectId: string, payload: PMSuggestionActionPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_SUGGESTION_REJECTED,
+      payload,
+    );
+
+    this.logger.debug({
+      message: 'PM suggestion rejected emitted',
+      projectId,
+      suggestionId: payload.id,
+      actionBy: payload.actionBy,
+      room,
+    });
+  }
+
+  /**
+   * Broadcast suggestion snoozed event to project room
+   */
+  broadcastPMSuggestionSnoozed(projectId: string, payload: PMSuggestionActionPayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_SUGGESTION_SNOOZED,
+      payload,
+    );
+
+    this.logger.debug({
+      message: 'PM suggestion snoozed emitted',
+      projectId,
+      suggestionId: payload.id,
+      snoozeUntil: payload.snoozeUntil,
+      room,
+    });
+  }
+
+  // ============================================
+  // PM Health Live Update Events (PM-12.6)
+  // ============================================
+
+  /**
+   * Broadcast health score update to project room
+   */
+  broadcastPMHealthUpdated(projectId: string, payload: PMHealthUpdatePayload): void {
+    const room = getProjectRoom(projectId);
+    (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.PM_HEALTH_UPDATED,
+      payload,
+    );
+
+    this.logger.debug({
+      message: 'PM health updated emitted',
+      projectId,
+      score: payload.score,
+      previousScore: payload.previousScore,
+      trend: payload.trend,
+      room,
     });
   }
 
