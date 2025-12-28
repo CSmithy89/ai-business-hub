@@ -60,6 +60,27 @@ Notes:
 - The script processes rows in transactional batches.
 - If a rotation attempt is interrupted, re-run the script with the same `OLD`/`NEW` keys. Rows already encrypted with the new key are detected and skipped.
 
+#### AGENT_SERVICE_TOKEN (Agent-to-API Authentication)
+
+The `AGENT_SERVICE_TOKEN` is used for service-to-service authentication between Python agents and the NestJS API. It's validated using timing-safe comparison in `ServiceAuthGuard`.
+
+Rotation steps:
+1. Generate a new secure token:
+   ```bash
+   openssl rand -hex 32
+   ```
+2. Update `AGENT_SERVICE_TOKEN` in both:
+   - NestJS API environment (`apps/api/.env`)
+   - Python agents environment (`apps/agents/.env`)
+3. Deploy API first (it will accept both old connections briefly)
+4. Deploy agents to pick up the new token
+5. Verify agent health checks succeed in logs
+
+Notes:
+- Both services must be updated within a short window
+- The token is checked on every agent-to-API call
+- Monitor for `401 Unauthorized` errors in agent logs during rotation
+
 ### 4. Decommission old secrets
 - After you verify stability, revoke old keys from provider.
 - Remove old secret versions from deployment config.
