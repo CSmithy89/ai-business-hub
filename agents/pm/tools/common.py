@@ -35,11 +35,18 @@ OPENAI_API_KEY:
 
 import os
 import logging
-from typing import Any, Dict, Optional, TypeVar, Type
+import atexit
+from contextlib import contextmanager
+from typing import Any, Dict, Optional, TypeVar, Type, Generator
 
 import httpx
 from pydantic import BaseModel, ValidationError
 
+# Configure structured logging for agent operations
+logging.basicConfig(
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S%z",
+)
 logger = logging.getLogger(__name__)
 
 # Get API base URL from environment
@@ -56,6 +63,74 @@ AGENT_SERVICE_TOKEN = os.getenv("AGENT_SERVICE_TOKEN")
 
 # Default timeout for API requests (seconds)
 DEFAULT_TIMEOUT = 30.0
+
+# Connection pool configuration for performance
+# These settings optimize HTTP connection reuse across agent tool calls
+_HTTP_POOL_LIMITS = httpx.Limits(
+    max_keepalive_connections=10,  # Max idle connections to keep
+    max_connections=20,  # Max total connections
+    keepalive_expiry=30.0,  # Keep idle connections for 30 seconds
+)
+
+# Shared HTTP client with connection pooling (lazy initialization)
+_shared_client: Optional[httpx.Client] = None
+
+
+def _get_shared_client() -> httpx.Client:
+    """Get or create the shared HTTP client with connection pooling.
+
+    This client maintains a connection pool for efficient HTTP/1.1 keep-alive
+    connections to the API server. Using a shared client significantly reduces
+    connection overhead for sequential agent tool calls.
+    """
+    global _shared_client
+    if _shared_client is None:
+        _shared_client = httpx.Client(
+            timeout=DEFAULT_TIMEOUT,
+            limits=_HTTP_POOL_LIMITS,
+            http2=False,  # API is HTTP/1.1
+        )
+        # Register cleanup on interpreter shutdown
+        atexit.register(_cleanup_shared_client)
+        logger.debug("Initialized shared HTTP client with connection pool")
+    return _shared_client
+
+
+def _cleanup_shared_client() -> None:
+    """Clean up the shared HTTP client on shutdown."""
+    global _shared_client
+    if _shared_client is not None:
+        try:
+            _shared_client.close()
+            logger.debug("Closed shared HTTP client")
+        except Exception as e:
+            logger.warning(f"Error closing HTTP client: {e}")
+        _shared_client = None
+
+
+@contextmanager
+def get_http_client(timeout: float = DEFAULT_TIMEOUT) -> Generator[httpx.Client, None, None]:
+    """Get an HTTP client for API calls.
+
+    Uses the shared connection-pooled client by default. Falls back to a
+    temporary client if the shared client is not available.
+
+    Args:
+        timeout: Request timeout in seconds
+
+    Yields:
+        httpx.Client configured for API calls
+    """
+    try:
+        client = _get_shared_client()
+        # Override timeout for this specific request if different
+        if timeout != DEFAULT_TIMEOUT:
+            client.timeout = httpx.Timeout(timeout)
+        yield client
+    except Exception:
+        # Fallback to temporary client if shared client fails
+        with httpx.Client(timeout=timeout) as temp_client:
+            yield temp_client
 
 
 def get_auth_headers(workspace_id: str) -> Dict[str, str]:
@@ -172,7 +247,15 @@ def api_request_strict(
     headers = get_auth_headers(workspace_id)
 
     try:
-        with httpx.Client(timeout=timeout) as client:
+        with get_http_client(timeout=timeout) as client:
+            logger.debug(
+                "API request",
+                extra={
+                    "method": method.upper(),
+                    "endpoint": endpoint,
+                    "workspace_id": workspace_id,
+                }
+            )
             response = client.request(
                 method=method.upper(),
                 url=url,
@@ -187,28 +270,45 @@ def api_request_strict(
             return response_model.model_validate(data)
 
     except httpx.HTTPStatusError as e:
-        logger.error(f"API request failed: {method} {endpoint} - {e.response.status_code}")
+        # Don't log response body to avoid leaking sensitive data
+        logger.error(
+            "API request failed",
+            extra={
+                "method": method.upper(),
+                "endpoint": endpoint,
+                "status_code": e.response.status_code,
+            }
+        )
         raise AgentToolError(
-            message=f"API request failed: {str(e)}",
+            message=f"API request failed with status {e.response.status_code}",
             status_code=e.response.status_code,
             tool_name=endpoint,
         )
     except httpx.RequestError as e:
-        logger.error(f"API request error: {method} {endpoint} - {str(e)}")
+        logger.error(
+            "API network error",
+            extra={"method": method.upper(), "endpoint": endpoint, "error_type": type(e).__name__}
+        )
         raise AgentToolError(
-            message=f"Network error: {str(e)}",
+            message="Network error occurred",
             tool_name=endpoint,
         )
     except ValidationError as e:
-        logger.error(f"Response validation failed: {method} {endpoint} - {str(e)}")
+        logger.error(
+            "Response validation failed",
+            extra={"method": method.upper(), "endpoint": endpoint, "error_count": len(e.errors())}
+        )
         raise AgentToolError(
-            message=f"Invalid response format: {str(e)}",
+            message="Invalid response format from API",
             tool_name=endpoint,
         )
     except Exception as e:
-        logger.error(f"Unexpected error: {method} {endpoint} - {str(e)}")
+        logger.error(
+            "Unexpected error in API call",
+            extra={"method": method.upper(), "endpoint": endpoint, "error_type": type(e).__name__}
+        )
         raise AgentToolError(
-            message=f"Unexpected error: {str(e)}",
+            message="An unexpected error occurred",
             tool_name=endpoint,
         )
 
@@ -254,7 +354,15 @@ def api_request(
     headers = get_auth_headers(workspace_id)
 
     try:
-        with httpx.Client(timeout=timeout) as client:
+        with get_http_client(timeout=timeout) as client:
+            logger.debug(
+                "API request",
+                extra={
+                    "method": method.upper(),
+                    "endpoint": endpoint,
+                    "workspace_id": workspace_id,
+                }
+            )
             response = client.request(
                 method=method.upper(),
                 url=url,
@@ -265,23 +373,37 @@ def api_request(
             response.raise_for_status()
             return response.json()
     except httpx.HTTPStatusError as e:
-        logger.error(f"API request failed: {method} {endpoint} - {e.response.status_code}")
+        # Don't log response body to avoid leaking sensitive data
+        logger.error(
+            "API request failed",
+            extra={
+                "method": method.upper(),
+                "endpoint": endpoint,
+                "status_code": e.response.status_code,
+            }
+        )
         return ApiError(
             status_code=e.response.status_code,
-            message=str(e),
+            message=f"Request failed with status {e.response.status_code}",
             fallback_data=fallback_data,
         ).to_dict()
-    except httpx.RequestError as e:
-        logger.error(f"API request error: {method} {endpoint} - {str(e)}")
+    except httpx.RequestError:
+        logger.error(
+            "API network error",
+            extra={"method": method.upper(), "endpoint": endpoint}
+        )
         return ApiError(
             status_code=None,
-            message=str(e),
+            message="Network error occurred",
             fallback_data=fallback_data,
         ).to_dict()
-    except Exception as e:
-        logger.error(f"Unexpected error: {method} {endpoint} - {str(e)}")
+    except Exception:
+        logger.error(
+            "Unexpected error in API call",
+            extra={"method": method.upper(), "endpoint": endpoint}
+        )
         return ApiError(
             status_code=None,
-            message=str(e),
+            message="An unexpected error occurred",
             fallback_data=fallback_data,
         ).to_dict()
