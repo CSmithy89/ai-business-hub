@@ -287,7 +287,7 @@ development_status:
   # Phase 3 | 7 stories | UI, parsing, tests, real-time
   # Deferred items from PM-04/PM-05 retrospectives
   # ===========================================
-  pm-12: backlog
+  pm-12: contexted
   pm-12-1-agent-ui-components: backlog
   pm-12-2-agent-response-parsing: backlog
   pm-12-3-notification-integration: backlog
