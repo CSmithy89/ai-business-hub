@@ -680,10 +680,20 @@ curl https://api.your-domain.com/health
 # AgentOS health
 curl https://agents.your-domain.com/health
 
-# Agent team health checks
+# Foundation agent team health checks
 curl https://agents.your-domain.com/agents/validation/health
 curl https://agents.your-domain.com/agents/planning/health
 curl https://agents.your-domain.com/agents/branding/health
+
+# Core-PM agent team health checks
+curl https://agents.your-domain.com/agents/pm/health       # PM orchestrator
+curl https://agents.your-domain.com/agents/pm/navi/health  # Project Navigator
+curl https://agents.your-domain.com/agents/pm/sage/health  # Estimation Specialist
+curl https://agents.your-domain.com/agents/pm/chrono/health # Time Intelligence
+
+# Knowledge Base agent health checks
+curl https://agents.your-domain.com/agents/knowledge/health
+curl https://agents.your-domain.com/agents/knowledge/scribe/health  # KB verification agent
 ```
 
 ### Prometheus Metrics Endpoint
@@ -708,6 +718,10 @@ curl https://api.your-domain.com/api/metrics
 | `active_websocket_connections` | Gauge | Active WebSocket connections |
 | `agent_api_requests_total` | Counter | Agent API calls by team |
 | `agent_api_rate_limit_hits` | Counter | Rate limit blocks on agent APIs |
+| `pm_agent_requests_total` | Counter | PM agent API calls (Navi, Sage, Chrono) |
+| `pm_agent_response_time_seconds` | Histogram | PM agent response latency |
+| `kb_embedding_requests_total` | Counter | Knowledge Base embedding API calls |
+| `kb_search_latency_seconds` | Histogram | Knowledge Base search response time |
 
 ### Grafana Dashboard Setup
 
@@ -762,7 +776,8 @@ Runbooks are available in `docs/runbooks/`:
 | `dlq-management.md` | View, retry, and purge failed events |
 | `database-recovery.md` | Backup and restore procedures |
 | `incident-response.md` | General incident handling |
-| `key-rotation.md` | Encryption key rotation |
+| `key-rotation.md` | Encryption key rotation (includes AGENT_SERVICE_TOKEN) |
+| `knowledge-base-maintenance.md` | KB embedding and search maintenance |
 
 ---
 
@@ -791,5 +806,5 @@ See [Event Bus Runbook](runbooks/event-bus.md) for DLQ management and recovery p
 
 ---
 
-*Last updated: 2025-12-13*
-*Foundation Phase Complete - Ready for Production Deployment*
+*Last updated: 2025-12-28*
+*Foundation (17 Epics) + Core-PM (16 Epics) Complete - Ready for Production Deployment*

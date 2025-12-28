@@ -8,8 +8,8 @@ This file provides context for Claude Code when working on this project.
 
 **HYVVE** is an AI-powered business orchestration platform designed to enable **high automation with explicit human oversight** for SMB businesses.
 
-**Current Phase:** Foundation Complete - Ready for Production & Module Development
-**Status:** All 17 epics complete (190 stories, 541 points). Platform foundation ready for deployment.
+**Current Phase:** Core-PM Complete - Ready for Production & bm-dm Development
+**Status:** Foundation (17 epics, 190 stories) + Core-PM (16 epics, 61 stories) complete. Ready for bm-dm sprint.
 
 ### Key Reference Docs
 
@@ -174,18 +174,23 @@ Structured problem-solving through step-by-step thinking.
 /
 ├── apps/
 │   ├── web/                 # Next.js 15 frontend
-│   ├── api/                 # NestJS backend
-│   └── agents/              # Python AgentOS
+│   └── api/                 # NestJS backend
+│
+├── agents/                  # Python AgentOS (Agno framework)
+│   ├── main.py              # FastAPI entry point
+│   ├── platform/            # Core orchestration agents
+│   ├── pm/                  # Project Management agents (Navi, Sage, Chrono)
+│   ├── knowledge/           # Knowledge Base agents (Scribe)
+│   ├── crm/                 # CRM module agents
+│   ├── branding/            # Brand module agents
+│   ├── planning/            # Planning module agents
+│   └── validation/          # Validation agents
 │
 ├── packages/
 │   ├── db/                  # Prisma schema + migrations
 │   ├── ui/                  # Shared React components
 │   ├── shared/              # Shared TypeScript types
 │   └── config/              # Shared configuration
-│
-├── agents/                  # Agno agent implementations
-│   ├── platform/            # Core orchestration agents
-│   └── crm/                 # CRM module agents
 │
 ├── .bmad/                   # BMAD module definitions
 │   ├── core/                # Core BMAD workflows
@@ -198,15 +203,10 @@ Structured problem-solving through step-by-step thinking.
 │   ├── prd.md               # Product Requirements
 │   ├── architecture.md      # Technical Architecture
 │   ├── ux-design.md         # UX Design Document
-│   ├── epics/               # Epic breakdown
-│   │   ├── EPIC-INDEX.md
-│   │   └── EPIC-00 to 07/
-│   ├── sprint-artifacts/
-│   │   ├── sprint-status.yaml
-│   │   └── tech-spec-*.md
+│   ├── modules/             # Module documentation (bm-pm, bm-dm, etc.)
+│   ├── epics/               # Foundation epic breakdown
 │   └── research/            # Research documents
 │
-├── src/                     # Legacy/shared source
 └── docker/                  # Docker configuration
 ```
 
@@ -221,12 +221,11 @@ When starting work, reference these files:
 | `docs/prd.md` | Product requirements and scope |
 | `docs/architecture.md` | Technical decisions, ADRs |
 | `docs/ux-design.md` | User flows and design patterns |
-| `docs/epics/EPIC-INDEX.md` | Development roadmap |
-| `docs/sprint-artifacts/sprint-status.yaml` | Current sprint status |
-| `docs/sprint-artifacts/tech-spec-epic-00.md` | Current epic tech spec |
+| `docs/bmm-workflow-status.yaml` | Current workflow and sprint status |
+| `docs/modules/bm-pm/README.md` | Core-PM module documentation |
+| `docs/modules/bm-dm/README.md` | Dynamic Module System (next sprint) |
 | `docs/MASTER-PLAN.md` | Overall vision and strategy |
-| `docs/archive/foundation-phase/MODULE-RESEARCH.md` | Module specifications |
-| `docs/bmm-workflow-status.yaml` | BMM workflow progress |
+| `docs/archive/foundation-phase/` | Foundation phase artifacts |
 
 ---
 
@@ -504,33 +503,37 @@ Users provide their own AI API keys. Supported providers:
 
 ---
 
-## Foundation Status
+## Development Status
 
-**Phase:** Foundation Complete
-**Epics:** 17/17 delivered
-**Stories:** 190/190 complete (100%)
-**Points:** 541 total
-
-### Completed Epics
-| Epic | Stories | Status |
-|------|---------|--------|
-| EPIC-00 to EPIC-16 | 190/190 | ✅ All Complete |
+### Foundation Phase (Complete)
+**Epics:** 17/17 delivered | **Stories:** 190/190 | **Points:** 541
 
 **Key Deliverables:**
 - Multi-tenant platform with RLS
 - Multi-provider OAuth (Google, Microsoft, GitHub, Magic Link)
-- 2FA/TOTP authentication
-- Comprehensive RBAC
+- 2FA/TOTP authentication and comprehensive RBAC
 - Approval queue with confidence routing
-- Event bus infrastructure
-- BYOAI configuration
+- Event bus infrastructure with BYOAI configuration
 - Business onboarding with AI agent teams
-- Responsive design (mobile, tablet, desktop)
-- WebSocket real-time updates
-- Premium UI polish
+- Responsive design and WebSocket real-time updates
 
-Check `docs/sprint-artifacts/sprint-status.yaml` for detailed status.
-Check `CHANGELOG.md` for feature history by epic.
+### Core-PM Phase (Complete)
+**Epics:** 16/16 delivered (PM-01 to PM-12, KB-01 to KB-04) | **Stories:** 61
+
+**Key Deliverables:**
+- Project Management (projects, phases, tasks, views)
+- Knowledge Base with versioning and full-text search
+- Real-time collaboration (Yjs/Hocuspocus)
+- RAG infrastructure with pgvector embeddings
+- PM Agent Team (Navi, Sage, Chrono)
+- KB Agent (Scribe) for content verification
+- External API with webhook subscriptions
+
+### Next Sprint: bm-dm (Dynamic Module System)
+**Epics:** 6 planned | **Stories:** 38 | **Points:** 231
+
+Check `docs/bmm-workflow-status.yaml` for current status.
+Check `docs/modules/bm-dm/README.md` for next sprint details.
 
 ---
 

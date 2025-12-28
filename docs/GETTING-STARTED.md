@@ -212,7 +212,7 @@ pnpm --filter @hyvve/web dev
 # Terminal 2: Backend API
 pnpm --filter @hyvve/api dev
 
-# Terminal 3: AgentOS (Python)
+# Terminal 3: AgentOS (Python) - from project root
 cd agents && python -m uvicorn main:app --reload --port 8000
 ```
 
@@ -293,12 +293,19 @@ pnpm clean
 │   │   ├── src/app/         # App Router pages
 │   │   ├── src/components/  # React components
 │   │   └── src/lib/         # Utilities and hooks
-│   ├── api/                 # NestJS backend
-│   │   ├── src/modules/     # Feature modules
-│   │   └── src/common/      # Shared utilities
-│   └── agents/              # Python AgentOS
-│       ├── agents/          # Agno agent definitions
-│       └── main.py          # FastAPI entry point
+│   └── api/                 # NestJS backend
+│       ├── src/modules/     # Feature modules
+│       └── src/common/      # Shared utilities
+│
+├── agents/                  # Python AgentOS (Agno framework)
+│   ├── main.py              # FastAPI entry point
+│   ├── platform/            # Core orchestration agents
+│   ├── pm/                  # Project Management agents (Navi, Sage, Chrono)
+│   ├── knowledge/           # Knowledge Base agents (Scribe)
+│   ├── crm/                 # CRM module agents
+│   ├── branding/            # Brand module agents
+│   ├── planning/            # Planning module agents
+│   └── validation/          # Validation agents
 │
 ├── packages/
 │   ├── db/                  # Prisma schema + migrations
@@ -307,6 +314,10 @@ pnpm clean
 │   └── config/              # Shared configuration
 │
 ├── docs/                    # Documentation
+│   └── modules/             # Module-specific documentation
+│       ├── bm-pm/           # Project Management (Core-PM)
+│       ├── bm-dm/           # Dynamic Module System
+│       └── ...              # Other modules
 ├── docker/                  # Docker configuration
 └── .github/                 # GitHub workflows
 ```
@@ -442,9 +453,20 @@ Once your development environment is set up:
 
 1. **Explore the codebase** - Start with `apps/web/src/app/page.tsx`
 2. **Read the architecture** - See [architecture.md](architecture.md)
-3. **Check current sprint** - See `docs/archive/foundation-phase/sprint-artifacts/sprint-status.yaml`
-4. **Review runbooks** - See `docs/runbooks/` for operational procedures
-5. **Contribute** - Follow [CONTRIBUTING.md](../CONTRIBUTING.md)
+3. **Check workflow status** - See `docs/bmm-workflow-status.yaml` for current development status
+4. **Review module docs** - See `docs/modules/` for module-specific documentation
+5. **Review runbooks** - See `docs/runbooks/` for operational procedures
+6. **Contribute** - Follow [CONTRIBUTING.md](../CONTRIBUTING.md)
+
+### Current Development Status
+
+| Phase | Status | Details |
+|-------|--------|---------|
+| Foundation | Complete | 17 epics, 190 stories, 541 points |
+| Core-PM | Complete | 16 epics (PM-01 to PM-12, KB-01 to KB-04), 61 stories |
+| bm-dm | Ready | Dynamic Module System, 6 epics, 38 stories |
+
+See `docs/modules/bm-pm/README.md` for Core-PM documentation and `docs/modules/bm-dm/README.md` for the next sprint.
 
 ---
 
@@ -456,5 +478,5 @@ Once your development environment is set up:
 
 ---
 
-*Last updated: 2025-12-13*
-*Foundation Phase Complete - All 17 Epics Delivered*
+*Last updated: 2025-12-28*
+*Foundation Phase Complete (17 Epics) | Core-PM Complete (16 Epics) | Ready for bm-dm*
