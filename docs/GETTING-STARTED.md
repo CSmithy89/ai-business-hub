@@ -137,7 +137,7 @@ node scripts/validate-env.js
 
 ```bash
 # Start PostgreSQL and Redis
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 This starts:
@@ -148,13 +148,13 @@ This starts:
 
 ```bash
 # Check containers are running
-docker compose ps
+docker compose -f docker/docker-compose.yml ps
 
 # Test PostgreSQL connection
-docker compose exec postgres pg_isready
+docker compose -f docker/docker-compose.yml exec postgres pg_isready
 
 # Test Redis connection
-docker compose exec redis redis-cli ping
+docker compose -f docker/docker-compose.yml exec redis redis-cli ping
 ```
 
 ---
@@ -164,13 +164,13 @@ docker compose exec redis redis-cli ping
 ### Generate Prisma Client
 
 ```bash
-pnpm --filter @hyvve/db generate
+pnpm --filter @hyvve/db db:generate
 ```
 
 ### Run Migrations
 
 ```bash
-pnpm --filter @hyvve/db migrate:dev
+pnpm --filter @hyvve/db db:migrate
 ```
 
 ### Seed Database (Optional)
@@ -267,13 +267,13 @@ pnpm test
 
 ```bash
 # Create new migration
-pnpm --filter @hyvve/db migrate:dev --name your_migration_name
+pnpm --filter @hyvve/db db:migrate --name your_migration_name
 
 # Reset database
-pnpm --filter @hyvve/db migrate:reset
+pnpm --filter @hyvve/db db:reset
 
 # Open Prisma Studio
-pnpm --filter @hyvve/db studio
+pnpm --filter @hyvve/db db:studio
 ```
 
 ### Clean Build Artifacts
@@ -330,10 +330,10 @@ pnpm clean
 
 ```bash
 # Check PostgreSQL is running
-docker compose ps
+docker compose -f docker/docker-compose.yml ps
 
 # Restart if needed
-docker compose restart postgres
+docker compose -f docker/docker-compose.yml restart postgres
 
 # Check connection string in .env.local
 ```
@@ -342,7 +342,7 @@ docker compose restart postgres
 
 ```bash
 # Regenerate Prisma client
-pnpm --filter @hyvve/db generate
+pnpm --filter @hyvve/db db:generate
 ```
 
 ### Port Already in Use
@@ -359,10 +359,10 @@ kill -9 <PID>
 
 ```bash
 # Check Redis is running
-docker compose ps
+docker compose -f docker/docker-compose.yml ps
 
 # Test connection
-docker compose exec redis redis-cli ping
+docker compose -f docker/docker-compose.yml exec redis redis-cli ping
 ```
 
 ### Python Dependencies (AgentOS)
