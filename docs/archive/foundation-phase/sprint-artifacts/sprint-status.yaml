@@ -75,7 +75,7 @@ development_status:
   02-5-implement-member-management: done
   02-6-create-workspace-settings-page: done
   02-7-implement-workspace-deletion: done
-  02-8-implement-ownership-transfer: backlog  # Added from Epic 02/03 retro - deferred tech debt
+  02-8-implement-ownership-transfer: deferred  # FORMALLY DEFERRED - See docs/TECH-DEBT-REGISTER.md#td-001
   epic-02-retrospective: completed
 
   # ===========================================

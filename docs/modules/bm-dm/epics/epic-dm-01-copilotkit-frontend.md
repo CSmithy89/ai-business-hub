@@ -193,11 +193,135 @@ apps/web/src/
 NEXT_PUBLIC_AGNO_URL=http://localhost:8000
 ```
 
+## Technical Requirements (Lessons from PM-08/PM-16)
+
+### Constants (Define Before Implementation)
+
+All magic numbers MUST be defined as constants in a dedicated file:
+
+```typescript
+// apps/web/src/lib/dm-constants.ts
+
+export const DM_CONSTANTS = {
+  // CopilotKit Configuration
+  COPILOTKIT: {
+    RECONNECT_DELAY_MS: 1000,
+    MAX_RECONNECT_ATTEMPTS: 5,
+    CONNECTION_TIMEOUT_MS: 30000,
+    HEARTBEAT_INTERVAL_MS: 15000,
+  },
+
+  // Widget Rendering
+  WIDGETS: {
+    MAX_WIDGETS_PER_PAGE: 12,
+    WIDGET_MIN_HEIGHT_PX: 100,
+    WIDGET_MAX_HEIGHT_PX: 600,
+    ANIMATION_DURATION_MS: 200,
+    SKELETON_PULSE_DURATION_MS: 1500,
+    DEBOUNCE_RESIZE_MS: 150,
+  },
+
+  // Chat UI
+  CHAT: {
+    MAX_MESSAGE_LENGTH: 10000,
+    MAX_HISTORY_MESSAGES: 100,
+    TYPING_INDICATOR_DELAY_MS: 500,
+    AUTO_SCROLL_THRESHOLD_PX: 100,
+  },
+
+  // CCR Configuration
+  CCR: {
+    DEFAULT_QUOTA_WARNING_THRESHOLD: 0.8,  // 80%
+    DEFAULT_QUOTA_CRITICAL_THRESHOLD: 0.95, // 95%
+    STATUS_POLL_INTERVAL_MS: 30000,
+    RECONNECT_BACKOFF_MULTIPLIER: 1.5,
+    MAX_RECONNECT_BACKOFF_MS: 60000,
+  },
+
+  // Performance
+  PERFORMANCE: {
+    INITIAL_RENDER_BUDGET_MS: 100,
+    INTERACTION_BUDGET_MS: 50,
+    BUNDLE_SIZE_WARNING_KB: 500,
+  },
+};
+```
+
+### Rate Limiting Requirements
+
+AG-UI endpoints are compute-intensive (streaming, real-time). Apply rate limiting by design:
+
+| Endpoint | Rate Limit | Burst | Rationale |
+|----------|------------|-------|-----------|
+| `/api/copilotkit` | 30/min | 10 | Streaming is expensive |
+| Widget render | 60/min | 20 | Prevents UI spam |
+| Chat message | 20/min | 5 | Prevents abuse |
+| CCR routing changes | 10/min | 3 | Config changes are rare |
+| CCR status poll | 60/min | 30 | Background polling |
+
+**Implementation Pattern:**
+```typescript
+// Use existing @nestjs/throttler pattern from PM-08
+@Throttle({ default: { limit: 30, ttl: 60000 } })
+@Controller('copilotkit')
+export class CopilotKitController { ... }
+```
+
+### Performance Budgets
+
+| Metric | Target | Critical | Measurement |
+|--------|--------|----------|-------------|
+| **Initial Widget Render** | <100ms | <200ms | First Contentful Paint |
+| **Widget Update** | <50ms | <100ms | Re-render after data change |
+| **Chat Response Start** | <500ms | <1000ms | Time to first token |
+| **Bundle Size (CopilotKit)** | <200KB | <300KB | Gzipped |
+| **Memory (10 widgets)** | <50MB | <100MB | Heap snapshot |
+| **Lighthouse Score** | >90 | >80 | Performance audit |
+
+**Monitoring:**
+- Add Lighthouse CI to PR checks
+- Use `@next/bundle-analyzer` for bundle monitoring
+- Add Web Vitals tracking (CLS, LCP, FID)
+
+### Accessibility Requirements
+
+- All widgets must be keyboard navigable
+- Screen reader support for dynamic content updates (aria-live)
+- Respect `prefers-reduced-motion` (from EPIC-16 lessons)
+- Focus management when widgets appear/disappear
+- Color contrast ratios per WCAG 2.1 AA
+
+### Error Handling Standards
+
+```typescript
+// Standard error boundary pattern for widgets
+class WidgetErrorBoundary extends React.Component {
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return <WidgetErrorFallback error={this.state.error} />;
+    }
+    return this.props.children;
+  }
+}
+```
+
+### Testing Requirements
+
+- Unit tests for all widget components
+- Integration tests for CopilotKit provider
+- E2E tests for chat flow (Playwright)
+- Performance tests for widget rendering
+- Accessibility tests with axe-core
+
 ## Risks
 
 1. **AG-UI Protocol Maturity** - Protocol is relatively new, may have edge cases
 2. **Bundle Size** - CopilotKit adds significant JS, monitor bundle impact
 3. **SSR Compatibility** - Ensure proper client-side only rendering
+4. **Rate Limiting Bypass** - Ensure rate limits apply to authenticated routes
 
 ## Success Criteria
 

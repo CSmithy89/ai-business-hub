@@ -51,16 +51,61 @@ This repo uses a consistent artifact ladder. A module can be “done” in docs 
 
 ---
 
+## Documentation Standards
+
+**Standardized in December 2025** to ensure consistency across all modules.
+
+### Naming Conventions
+
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| `README.md` | **Required** - Landing page for module | Always present |
+| `MODULE-BRIEF.md` | Initial planning artifact | Brief phase only |
+| `PRD.md` | Product requirements | After Brief phase |
+| `architecture.md` | Technical architecture | After PRD phase |
+| `sprint-status.yaml` | Sprint tracking | During execution |
+
+### DO NOT Use
+
+- ~~`BM-*-MODULE-BRIEF.md`~~ - Use `MODULE-BRIEF.md` (standardized)
+- ~~`MODULE-PLAN.md`~~ - Use `PRD.md` or `architecture.md` instead
+
+### Standard Module Structure
+
+```
+docs/modules/{module-id}/
+├── README.md              # REQUIRED: Landing page
+├── MODULE-BRIEF.md        # Optional: Initial planning
+├── PRD.md                 # After Brief phase
+├── architecture.md        # After PRD phase
+├── research/              # Research findings
+├── epics/                 # Epic definitions
+├── stories/               # Story files
+├── tech-specs/            # Technical specifications
+├── sprint-status.yaml     # Sprint tracking
+└── retrospectives/        # Sprint retrospectives
+```
+
+---
+
 ## Folder Layout
 
 ```
 docs/modules/
+  bm-ads/         # OPERATE: Paid Advertising (brief; coordinated by bm-marketing)
+  bm-analytics/   # OPERATE: Analytics (brief)
   bm-brand/       # BUILD: Branding (docs complete; AgentOS active)
+  bm-cms/         # OPERATE: Website/Blog (brief; coordinated by bm-marketing)
   bm-crm/         # OPERATE: CRM (PRD+arch+epics+research; partial AgentOS scaffold)
+  bm-dm/          # INFRASTRUCTURE: Dynamic Module System (architecture+epics; implementation backlog)
+  bm-email/       # OPERATE: Email Marketing (brief; coordinated by bm-marketing)
   bm-finance/     # OPERATE: Finance (brief)
   bm-hr/          # OPERATE: HR (brief)
+  bm-marketing/   # BUILD: Marketing Strategy (architecture plan)
   bm-pm/          # PLATFORM CORE: Project Mgmt + Knowledge Base (PRD+epics+stories+sprint status)
   bm-pr/          # OPERATE: Public Relations (brief)
+  bm-sales/       # OPERATE: Sales (architecture plan; extends bm-crm)
+  bm-seo/         # OPERATE: SEO (brief; coordinated by bm-marketing)
   bm-social/      # OPERATE: Social (research complete; PRD pending)
   bm-support/     # OPERATE: Support (research complete; PRD pending)
   bmp/            # BUILD: Planning (docs complete; AgentOS active)
@@ -79,13 +124,16 @@ docs/modules/
 | **BMV (Validation)** | `bmv` | BUILD | Complete docs | **AgentOS active** (`agents/validation/`) | `docs/modules/bmv/README.md` |
 | **BMP (Planning)** | `bmp` | BUILD | Complete docs | **AgentOS active** (`agents/planning/`) | `docs/modules/bmp/README.md` |
 | **BM-Brand (Branding)** | `bm-brand` | BUILD | Complete docs | **AgentOS active** (`agents/branding/`) | `docs/modules/bm-brand/README.md` |
-| **Core-PM (PM + KB)** | `bm-pm` | Platform Core | PRD/Architecture/Epics/Stories + sprint status | **In progress** (see `docs/modules/bm-pm/sprint-status.yaml`) | `docs/modules/bm-pm/PRD.md` |
+| **BM-Marketing** | `bm-marketing` | BUILD | Architecture plan | Not implemented | `docs/modules/bm-marketing/README.md` |
+| **Core-PM (PM + KB)** | `bm-pm` | Platform Core | PRD/Architecture/Epics/Stories + sprint status | **Complete** (16 epics delivered) | `docs/modules/bm-pm/PRD.md` |
+| **BM-DM (Dynamic Module)** | `bm-dm` | Infrastructure | Architecture/Epics + sprint status | **Backlog** (6 epics, 38 stories, 231 pts) | `docs/modules/bm-dm/README.md` |
 | **BM-CRM** | `bm-crm` | OPERATE | PRD/Architecture/Epics/Research | **Partial AgentOS scaffold** (`agents/crm/`) | `docs/modules/bm-crm/PRD.md` |
-| **BM-Social** | `bm-social` | OPERATE | Research complete (PRD pending) + expanded brief | Not implemented | `docs/modules/bm-social/README.md` |
+| **BM-Sales** | `bm-sales` | OPERATE | Architecture plan | Not implemented | `docs/modules/bm-sales/README.md` |
+| **BM-Social** | `bm-social` | OPERATE | Research complete (PRD pending) | Not implemented | `docs/modules/bm-social/README.md` |
 | **BM-Support** | `bm-support` | OPERATE | Research complete (PRD pending) | Not implemented | `docs/modules/bm-support/README.md` |
-| **BM-HR** | `bm-hr` | OPERATE | Brief | Not implemented | `docs/modules/bm-hr/BM-HR-MODULE-BRIEF.md` |
-| **BM-Finance** | `bm-finance` | OPERATE | Brief | Not implemented | `docs/modules/bm-finance/BM-FINANCE-MODULE-BRIEF.md` |
-| **BM-PR** | `bm-pr` | OPERATE | Brief | Not implemented | `docs/modules/bm-pr/BM-PR-MODULE-BRIEF.md` |
+| **BM-HR** | `bm-hr` | OPERATE | Brief | Not implemented | `docs/modules/bm-hr/MODULE-BRIEF.md` |
+| **BM-Finance** | `bm-finance` | OPERATE | Brief | Not implemented | `docs/modules/bm-finance/MODULE-BRIEF.md` |
+| **BM-PR** | `bm-pr` | OPERATE | Brief | Not implemented | `docs/modules/bm-pr/MODULE-BRIEF.md` |
 
 Operational build priorities (from foundation wrap-up):
 - `docs/archive/foundation-phase/FOUNDATION-COMPLETE.md`
@@ -104,13 +152,16 @@ Legend:
 | `bmv` | ✅ | ✅ | ✅ (in README) | ⏳ | ⏳ | ⏳ | ⏳ | ✅ AgentOS team (`agents/validation/`) |
 | `bmp` | ✅ | ✅ | ✅ (in README) | ⏳ | ⏳ | ⏳ | ⏳ | ✅ AgentOS team (`agents/planning/`) |
 | `bm-brand` | ✅ | ⏳ (not in module folder) | ✅ (in README) | ⏳ | ⏳ | ⏳ | ⏳ | ✅ AgentOS team (`agents/branding/`) |
-| `bm-pm` | ✅ (`README.md`) | ✅ (`research/`) | ✅ | ✅ | ✅ | ✅ | ✅ | In progress (track via `docs/modules/bm-pm/sprint-status.yaml`) |
+| `bm-marketing` | ✅ (`README.md`) | ⏳ | ⏳ | ✅ (`MODULE-PLAN.md`) | ⏳ | ⏳ | ⏳ | Not implemented |
+| `bm-pm` | ✅ (`README.md`) | ✅ (`research/`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ Complete (16 epics delivered) |
+| `bm-dm` | ✅ (`README.md`) | ✅ (arch docs) | ✅ (arch docs) | ✅ | ✅ | ✅ | ✅ | Backlog (6 epics, 231 pts) |
 | `bm-crm` | ⏳ (PRD acts as brief) | ✅ (`research/`) | ✅ | ✅ | ✅ | ⏳ | ⏳ | Partial AgentOS scaffold (`agents/crm/`) |
+| `bm-sales` | ✅ (`README.md`) | ⏳ | ⏳ | ✅ (`MODULE-PLAN.md`) | ⏳ | ⏳ | ⏳ | Not implemented |
 | `bm-social` | ✅ | ✅ (`research/`) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | Not implemented |
 | `bm-support` | ✅ | ✅ (`research/`) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | Not implemented |
-| `bm-hr` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | Not implemented |
-| `bm-finance` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | Not implemented |
-| `bm-pr` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | Not implemented |
+| `bm-hr` | ✅ (`MODULE-BRIEF.md`) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | Not implemented |
+| `bm-finance` | ✅ (`MODULE-BRIEF.md`) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | Not implemented |
+| `bm-pr` | ✅ (`MODULE-BRIEF.md`) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | Not implemented |
 
 ---
 
@@ -199,7 +250,7 @@ These are currently duplicated *as human-facing names* across multiple modules. 
 2) we rename personas globally so every display name is unique.
 
 Current collisions visible in module docs:
-- `Sentinel` (reserved for platform approvals) vs BM-Social “Sentinel” listening agent (`docs/modules/bm-social/BM-SOCIAL-MODULE-BRIEF.md`)
+- `Sentinel` (reserved for platform approvals) vs BM-Social "Sentinel" listening agent (`docs/modules/bm-social/MODULE-BRIEF.md`)
 - `Scout` (BM-CRM lead scoring) vs BM-Social trend scout (`docs/modules/bm-social/README.md`)
 - `Echo` (BM-CRM activity tracker) vs BM-Social engagement agent (`docs/modules/bm-social/README.md`)
 - `Pulse` (Core-PM risk) vs BM-Social analytics (`docs/modules/bm-social/README.md`)
@@ -351,7 +402,7 @@ Source: `docs/modules/bm-pm/PRD.md`
 **Covers:** scheduling, multi-platform publishing, content creation, analytics, listening, engagement, approvals.  
 **Agents (research):** core + platform specialists; expanded brief defines 18-agent model. 
 
-**Important:** `docs/modules/bm-social/README.md` describes a 16-agent team, while `docs/modules/bm-social/BM-SOCIAL-MODULE-BRIEF.md` expands this to 18 and changes several code-name conventions. Standardize before implementation.
+**Important:** `docs/modules/bm-social/README.md` describes a 16-agent team, while `docs/modules/bm-social/MODULE-BRIEF.md` expands this to 18 and changes several code-name conventions. Standardize before implementation.
 
 **Research**
 - Open-source: Postiz (`docs/modules/bm-social/README.md`)
@@ -379,8 +430,8 @@ Source: `docs/modules/bm-pm/PRD.md`
 
 ### BM-HR — Recruiting & People Ops (`docs/modules/bm-hr/`)
 
-**Covers:** sourcing → screening → scheduling → interviewing → onboarding, with Core-PM task integration.  
-**Agents (brief):** Headhunter, Gatekeeper, Coordinator, Interviewer, Culture Keep (`docs/modules/bm-hr/BM-HR-MODULE-BRIEF.md`).  
+**Covers:** sourcing → screening → scheduling → interviewing → onboarding, with Core-PM task integration.
+**Agents (brief):** Headhunter, Gatekeeper, Coordinator, Interviewer, Culture Keep (`docs/modules/bm-hr/MODULE-BRIEF.md`).  
 
 **Research (to complete)**
 - Open-source: identify OSS ATS/workflows worth copying (not yet captured as checklist in this module folder)
@@ -392,8 +443,8 @@ Source: `docs/modules/bm-pm/PRD.md`
 
 ### BM-Finance — Fractional CFO & Bookkeeping (`docs/modules/bm-finance/`)
 
-**Covers:** transaction categorization, invoicing/collections, cashflow forecasting, expense/policy audits; integrates with CRM + HR + BMP plan-vs-actual.  
-**Agents (brief):** Bookkeeper, Controller, CFO, Auditor (`docs/modules/bm-finance/BM-FINANCE-MODULE-BRIEF.md`).  
+**Covers:** transaction categorization, invoicing/collections, cashflow forecasting, expense/policy audits; integrates with CRM + HR + BMP plan-vs-actual.
+**Agents (brief):** Bookkeeper, Controller, CFO, Auditor (`docs/modules/bm-finance/MODULE-BRIEF.md`).  
 
 **Research (to complete)**
 - Open-source: identify OSS accounting/bookkeeping patterns worth copying (not yet captured as checklist in this module folder)
@@ -405,8 +456,8 @@ Source: `docs/modules/bm-pm/PRD.md`
 
 ### BM-PR — Public Relations (`docs/modules/bm-pr/`)
 
-**Covers:** media relations, press releases, newsroom, monitoring, journalist relationship management; integrates with CRM + Social + Brand.  
-**Agents (brief):** Chief Comms Officer, Pitch Perfect, Newswire, Newshound, Rolodex (`docs/modules/bm-pr/BM-PR-MODULE-BRIEF.md`).  
+**Covers:** media relations, press releases, newsroom, monitoring, journalist relationship management; integrates with CRM + Social + Brand.
+**Agents (brief):** Chief Comms Officer, Pitch Perfect, Newswire, Newshound, Rolodex (`docs/modules/bm-pr/MODULE-BRIEF.md`).  
 
 **Research (to complete)**
 - Open-source: identify OSS PR/newsroom/monitoring patterns worth copying (not yet captured as checklist in this module folder)

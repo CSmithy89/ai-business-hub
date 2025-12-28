@@ -210,11 +210,215 @@ agent_os = AgentOS(
 )
 ```
 
+## Technical Requirements (Lessons from PM-08/PM-12)
+
+### Constants (Define Before Implementation)
+
+All magic numbers MUST be defined as constants in a dedicated file:
+
+```python
+# agents/constants/dm_constants.py
+
+class DMConstants:
+    """Dynamic Module System constants - no magic numbers in code."""
+
+    # AgentOS Configuration
+    class AGENTCOS:
+        DEFAULT_PORT = 8000
+        WORKER_COUNT = 4
+        REQUEST_TIMEOUT_SECONDS = 30
+        KEEP_ALIVE_SECONDS = 65
+        MAX_CONCURRENT_TASKS = 100
+
+    # A2A Protocol
+    class A2A:
+        TASK_TIMEOUT_SECONDS = 300
+        MAX_TASK_QUEUE_SIZE = 1000
+        AGENT_DISCOVERY_CACHE_TTL_SECONDS = 300
+        HEARTBEAT_INTERVAL_SECONDS = 30
+        MAX_MESSAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+    # AG-UI Protocol
+    class AGUI:
+        STREAM_CHUNK_SIZE_BYTES = 4096
+        MAX_STREAM_DURATION_SECONDS = 600
+        TOOL_CALL_TIMEOUT_SECONDS = 60
+        MAX_TOOL_CALLS_PER_REQUEST = 50
+
+    # CCR Configuration
+    class CCR:
+        DEFAULT_PORT = 3456
+        HEALTH_CHECK_INTERVAL_SECONDS = 30
+        PROVIDER_TIMEOUT_SECONDS = 60
+        MAX_RETRIES = 3
+        RETRY_BACKOFF_MULTIPLIER = 2.0
+        QUOTA_WARNING_THRESHOLD = 0.8
+        QUOTA_CRITICAL_THRESHOLD = 0.95
+
+    # Dashboard Agent
+    class DASHBOARD:
+        MAX_WIDGETS_PER_REQUEST = 12
+        WIDGET_DATA_TTL_SECONDS = 60
+        CACHE_SIZE_MB = 100
+        CONCURRENT_AGENT_CALLS = 5
+
+    # Performance
+    class PERFORMANCE:
+        P50_RESPONSE_TARGET_MS = 200
+        P95_RESPONSE_TARGET_MS = 500
+        P99_RESPONSE_TARGET_MS = 1000
+        MAX_MEMORY_MB = 512
+```
+
+### Rate Limiting Requirements
+
+Backend endpoints need rate limiting for compute-intensive operations:
+
+| Endpoint | Rate Limit | Burst | Rationale |
+|----------|------------|-------|-----------|
+| `/agui` | 100/min | 30 | Streaming is expensive |
+| `/a2a` | 200/min | 50 | Inter-agent communication |
+| `/.well-known/agent.json` | 60/min | 20 | Discovery polling |
+| CCR proxy | 1000/min | 200 | High-volume model calls |
+| Dashboard agent | 60/min | 20 | Orchestration overhead |
+
+**Implementation Pattern:**
+```python
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
+@app.post("/agui")
+@limiter.limit("100/minute")
+async def agui_endpoint(request: Request):
+    ...
+```
+
+### Performance Budgets
+
+| Metric | Target | Critical | Measurement |
+|--------|--------|----------|-------------|
+| **A2A Task Latency (P50)** | <200ms | <500ms | Task completion time |
+| **A2A Task Latency (P95)** | <500ms | <1000ms | Task completion time |
+| **AG-UI Time to First Token** | <100ms | <300ms | Stream start |
+| **AgentCard Discovery** | <50ms | <100ms | JSON response time |
+| **Memory per Agent** | <100MB | <200MB | Heap measurement |
+| **Concurrent Tasks** | >50 | >20 | Load test |
+
+**Monitoring:**
+- Prometheus metrics for all endpoints
+- Grafana dashboards for latency percentiles
+- Alert on P95 > critical threshold
+
+### Agent Naming Conventions (Finalized)
+
+To avoid PM-12's mid-flight rename scenario, agent names are finalized HERE:
+
+| Agent | Internal Name | Display Name | A2A Endpoint |
+|-------|--------------|--------------|--------------|
+| Dashboard Gateway | `dashboard_gateway` | Gateway | `/a2a/dashboard` |
+| Orchestrator | `dm_orchestrator` | Conductor | `/a2a/conductor` |
+| Widget Renderer | `widget_renderer` | Canvas | `/a2a/canvas` |
+
+**DO NOT rename these after implementation begins.**
+
+### N+1 Query Prevention
+
+From PM-08 lessons, prevent N+1 patterns:
+
+```python
+# BAD - N+1 query in loop
+for widget in widgets:
+    data = await fetch_widget_data(widget.id)  # N queries
+
+# GOOD - Batch fetch
+widget_ids = [w.id for w in widgets]
+data_map = await fetch_widget_data_batch(widget_ids)  # 1 query
+for widget in widgets:
+    data = data_map.get(widget.id)
+```
+
+**Code Review Checklist Item:** Verify no database calls inside loops.
+
+### Authentication & Authorization
+
+- All A2A endpoints require service-to-service auth tokens
+- AG-UI endpoints inherit existing BYOAI authentication
+- CCR proxy validates per-agent permissions
+- Dashboard agent verifies workspace membership before data access
+
+### Error Handling Standards
+
+```python
+from agno.errors import AgentError, TaskError
+
+class DMError(AgentError):
+    """Base error for DM module."""
+    pass
+
+class WidgetRenderError(DMError):
+    """Widget rendering failed."""
+    code = "DM_WIDGET_RENDER_ERROR"
+
+class A2ATimeoutError(DMError):
+    """A2A task timed out."""
+    code = "DM_A2A_TIMEOUT"
+
+# Always include error codes for debugging
+try:
+    result = await agent.run(task)
+except TaskError as e:
+    logger.error(f"Task failed: {e.code}", extra={"task_id": task.id})
+    raise DMError(f"Agent task failed: {e.code}")
+```
+
+### Testing Requirements
+
+- Unit tests for all agent tools (pytest)
+- Integration tests for A2A protocol flows
+- Load tests for concurrent task handling
+- Contract tests for AgentCard schema
+- Mock CCR for unit tests
+
+### Observability Requirements
+
+```python
+# Structured logging
+import structlog
+logger = structlog.get_logger()
+
+# Required log fields
+logger.info(
+    "a2a_task_completed",
+    task_id=task.id,
+    agent=agent.name,
+    duration_ms=duration,
+    status="success",
+)
+
+# Metrics
+from prometheus_client import Counter, Histogram
+
+a2a_tasks_total = Counter(
+    "dm_a2a_tasks_total",
+    "Total A2A tasks",
+    ["agent", "status"]
+)
+a2a_task_duration = Histogram(
+    "dm_a2a_task_duration_seconds",
+    "A2A task duration",
+    ["agent"]
+)
+```
+
 ## Risks
 
 1. **Protocol Version Compatibility** - Agno, AG-UI, A2A versions must align
 2. **Performance Overhead** - Multiple interfaces may add latency
 3. **Authentication** - Must integrate with existing BYOAI auth
+4. **N+1 Queries** - Dashboard aggregation must batch database calls
+5. **Memory Pressure** - Multiple agents running simultaneously
 
 ## Success Criteria
 
