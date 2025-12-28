@@ -127,14 +127,25 @@ export class HealthService {
         isBlocked: t.relations.length > 0,
       }));
 
-      // 3. Calculate health score
-      const healthScore = this.calculateHealthScore(tasks, project);
+      // 3. Get previous health score for trend calculation
+      const previousHealthScore = await this.prisma.healthScore.findFirst({
+        where: { projectId },
+        orderBy: { calculatedAt: 'desc' },
+        select: { score: true },
+      });
+
+      // 4. Calculate health score (with trend based on previous score)
+      const healthScore = this.calculateHealthScore(
+        tasks,
+        project,
+        previousHealthScore?.score,
+      );
       const risks = this.detectRisks(tasks, project);
 
       // Limit risks per check to prevent excessive DB writes
       const limitedRisks = risks.slice(0, HEALTH_CHECK_LIMITS.MAX_RISKS_PER_CHECK);
 
-      // 4. Store health score and risks in a transaction
+      // 5. Store health score and risks in a transaction
       await this.prisma.$transaction(async (tx) => {
         // Create health score record
         await tx.healthScore.create({
@@ -231,7 +242,11 @@ export class HealthService {
     }
   }
 
-  private calculateHealthScore(tasks: HealthCheckTask[], _project: ProjectWithTeam): HealthScore {
+  private calculateHealthScore(
+    tasks: HealthCheckTask[],
+    _project: ProjectWithTeam,
+    previousScore?: number | null,
+  ): HealthScore {
     const totalTasks = tasks.length;
     const now = new Date();
 
@@ -338,8 +353,21 @@ export class HealthService {
             ? HealthLevel.WARNING
             : HealthLevel.CRITICAL;
 
-    // Determine trend (simplified - compare to previous score if available)
-    const trend = HealthTrend.STABLE; // TODO: Compare with previous score
+    // Determine trend by comparing with previous score
+    let trend: HealthTrend;
+    if (previousScore === null || previousScore === undefined) {
+      trend = HealthTrend.STABLE; // No previous score to compare
+    } else {
+      const scoreDiff = score - previousScore;
+      // Use 5-point threshold to determine significant change
+      if (scoreDiff >= 5) {
+        trend = HealthTrend.IMPROVING;
+      } else if (scoreDiff <= -5) {
+        trend = HealthTrend.DECLINING;
+      } else {
+        trend = HealthTrend.STABLE;
+      }
+    }
 
     // Generate explanation
     const explanationParts: string[] = [
