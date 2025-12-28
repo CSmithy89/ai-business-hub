@@ -362,57 +362,57 @@ Epic PM-06 (Real-Time & Notifications) builds on PM-05:
 
 | ID | Action | Owner | Priority | Status |
 |----|--------|-------|----------|--------|
-| PM-05-TEST-1 | Add unit tests for health services | Dev | High | Pending |
-| PM-05-TEST-2 | Add integration tests for report endpoints | Dev | High | Pending |
-| PM-05-TEST-3 | Add Python tests for all PM agents | Dev | High | Pending |
+| PM-05-TEST-1 | Add unit tests for health services | Dev | High | ✅ Done |
+| PM-05-TEST-2 | Add integration tests for report endpoints | Dev | High | → PM-12 |
+| PM-05-TEST-3 | Add Python tests for all PM agents | Dev | High | → PM-12 |
 
 ### Backlog (Future Sprint)
 
 | ID | Action | Owner | Priority | Status |
 |----|--------|-------|----------|--------|
-| PM-05-PARSE-1 | Implement agent response parsing | Dev | Medium | Pending |
-| PM-05-NOTIF-1 | Complete notification integration | Dev | High | Pending |
-| PM-05-UI-1 | Add health dashboard to project overview | Dev | Medium | Pending |
+| PM-05-PARSE-1 | Implement agent response parsing | Dev | Medium | → PM-12 |
+| PM-05-NOTIF-1 | Complete notification integration | Dev | High | → PM-12 |
+| PM-05-UI-1 | Add health dashboard to project overview | Dev | Medium | → PM-12 |
 
 ### Technical Debt
 
 | ID | Issue | Files | Effort | Status |
 |----|-------|-------|--------|--------|
-| TD-PM05-1 | Agent response parsing uses defaults | phase.service.ts, health.service.ts | Medium | Pending |
-| TD-PM05-2 | Notification sending not implemented | health.service.ts | Medium | Pending |
-| TD-PM05-3 | Trend calculation hardcoded as STABLE | health.service.ts | Low | Pending |
-| TD-PM05-4 | Cron parallel processing with concurrency limits | health.cron.ts, scheduled-report.cron.ts | Medium | Pending |
-| TD-PM05-5 | Task query has no limit (could fetch thousands) | health.service.ts:95-100 | Medium | Pending |
-| TD-PM05-6 | Sequential DB writes without transaction | health.service.ts:107-140 | Medium | Pending |
-| TD-PM05-7 | Missing input validation for task_actions | phase_tools.py:108-158 | Low | Pending |
-| TD-PM05-8 | Distributed locking for multi-instance cron | health.cron.ts, checkpoint.cron.ts | High | Pending |
-| TD-PM05-9 | Configurable health check frequency per project | health.cron.ts | Medium | Pending |
-| TD-PM05-10 | SYSTEM_USERS could conflict with real user IDs | constants.ts | Low | Pending |
+| TD-PM05-1 | Agent response parsing uses defaults | phase.service.ts, health.service.ts | Medium | → PM-12 |
+| TD-PM05-2 | Notification sending not implemented | health.service.ts | Medium | → PM-12 |
+| TD-PM05-3 | Trend calculation hardcoded as STABLE | health.service.ts | Low | ✅ Done |
+| TD-PM05-4 | Cron parallel processing with concurrency limits | health.cron.ts, scheduled-report.cron.ts | Medium | ✅ Done |
+| TD-PM05-5 | Task query has no limit (could fetch thousands) | health.service.ts:95-100 | Medium | ✅ Done |
+| TD-PM05-6 | Sequential DB writes without transaction | health.service.ts:107-140 | Medium | ✅ Done |
+| TD-PM05-7 | Missing input validation for task_actions | phase_tools.py:108-158 | Low | → PM-12 |
+| TD-PM05-8 | Distributed locking for multi-instance cron | health.cron.ts, checkpoint.cron.ts | High | ✅ Done |
+| TD-PM05-9 | Configurable health check frequency per project | health.cron.ts | Medium | → PM-12 |
+| TD-PM05-10 | SYSTEM_USERS could conflict with real user IDs | constants.ts | Low | → PM-12 |
 
 ### Performance Considerations
 
-| ID | Issue | Recommendation | Priority |
-|----|-------|----------------|----------|
-| PERF-01 | Health checks every 15 min for ALL projects | Add per-project frequency config, feature flags | Medium |
-| PERF-02 | Sequential project processing in crons | Use p-limit for parallel with concurrency limit | Medium |
-| PERF-03 | Unbounded task query in health checks | Add pagination or lookback period limit | Medium |
-| PERF-04 | N+1 potential when fetching team members | Profile with large number of projects | Low |
+| ID | Issue | Recommendation | Priority | Status |
+|----|-------|----------------|----------|--------|
+| PERF-01 | Health checks every 15 min for ALL projects | Add per-project frequency config, feature flags | Medium | → PM-12 |
+| PERF-02 | Sequential project processing in crons | Use p-limit for parallel with concurrency limit | Medium | ✅ Done |
+| PERF-03 | Unbounded task query in health checks | Add pagination or lookback period limit | Medium | ✅ Done |
+| PERF-04 | N+1 potential when fetching team members | Profile with large number of projects | Low | → PM-12 |
 
 ### Security Considerations
 
-| ID | Issue | Recommendation | Priority |
-|----|-------|----------------|----------|
-| SEC-01 | SYSTEM_USERS hardcoded IDs | Use reserved prefix (e.g., '__system__') | Low |
-| SEC-02 | AGENT_SERVICE_TOKEN rotation | Add to key-rotation.md runbook | Medium |
-| SEC-03 | No distributed locking for cron jobs | Add Redis-based locking for multi-instance | High |
+| ID | Issue | Recommendation | Priority | Status |
+|----|-------|----------------|----------|--------|
+| SEC-01 | SYSTEM_USERS hardcoded IDs | Use reserved prefix (e.g., '__system__') | Low | → PM-12 |
+| SEC-02 | AGENT_SERVICE_TOKEN rotation | Add to key-rotation.md runbook | Medium | ✅ Done |
+| SEC-03 | No distributed locking for cron jobs | Add Redis-based locking for multi-instance | High | ✅ Done |
 
 ### Documentation Gaps
 
-| ID | Issue | Recommendation |
-|----|-------|----------------|
-| DOC-01 | Health score weighting algorithm | Add ADR documenting the algorithm |
-| DOC-02 | Cron job scheduling strategy | Document in architecture.md |
-| DOC-03 | Health check troubleshooting | Add runbook for failures |
+| ID | Issue | Recommendation | Status |
+|----|-------|----------------|--------|
+| DOC-01 | Health score weighting algorithm | Add ADR documenting the algorithm | ✅ Done |
+| DOC-02 | Cron job scheduling strategy | Document in architecture.md | ✅ Done |
+| DOC-03 | Health check troubleshooting | Add runbook for failures | ✅ Done |
 
 ---
 

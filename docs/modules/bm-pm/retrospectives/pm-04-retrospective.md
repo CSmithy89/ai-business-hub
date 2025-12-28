@@ -380,28 +380,28 @@ Epic PM-05 (AI Team - Scope, Pulse, Herald) builds on PM-04:
 
 | ID | Action | Owner | Priority | Status |
 |----|--------|-------|----------|--------|
-| PM-04-TEST-1 | Add unit tests for agent services | Dev | High | Pending |
-| PM-04-TEST-2 | Add integration tests for agent endpoints | Dev | High | Pending |
-| PM-04-TEST-3 | Add Python tests for agent tools | Dev | Medium | Pending |
+| PM-04-TEST-1 | Add unit tests for agent services | Dev | High | ✅ Done |
+| PM-04-TEST-2 | Add integration tests for agent endpoints | Dev | High | → PM-12 |
+| PM-04-TEST-3 | Add Python tests for agent tools | Dev | Medium | → PM-12 |
 
 ### Backlog (Future Sprint)
 
 | ID | Action | Owner | Priority | Status |
 |----|--------|-------|----------|--------|
-| PM-04-UI-1 | Implement AgentPanel component | Dev | High | Pending |
-| PM-04-UI-2 | Implement SuggestionCard component | Dev | High | Pending |
-| PM-04-UI-3 | Implement TimeTracker component | Dev | Medium | Pending |
-| PM-04-UI-4 | Implement EstimationDisplay component | Dev | Medium | Pending |
-| PROCESS-2 | Update story files with implementation details | Dev | Low | Pending |
+| PM-04-UI-1 | Implement AgentPanel component | Dev | High | → PM-12 |
+| PM-04-UI-2 | Implement SuggestionCard component | Dev | High | → PM-12 |
+| PM-04-UI-3 | Implement TimeTracker component | Dev | Medium | → PM-12 |
+| PM-04-UI-4 | Implement EstimationDisplay component | Dev | Medium | → PM-12 |
+| PROCESS-2 | Update story files with implementation details | Dev | Low | Deferred |
 
 ### Technical Debt
 
 | ID | Issue | Files | Effort | Status |
 |----|-------|-------|--------|--------|
-| TD-PM04-1 | Add E2E tests for agent flows | New files | High | Pending |
-| TD-PM04-2 | Implement WebSocket agent responses | realtime.gateway.ts | Medium | Pending |
-| TD-PM04-3 | Add agent response streaming | agents.service.ts | Medium | Pending |
-| TD-PM04-4 | Implement KB RAG integration tests | agents.service.ts | Medium | Pending |
+| TD-PM04-1 | Add E2E tests for agent flows | New files | High | → PM-12 |
+| TD-PM04-2 | Implement WebSocket agent responses | realtime.gateway.ts | Medium | → PM-12 |
+| TD-PM04-3 | Add agent response streaming | agents.service.ts | Medium | → PM-12 |
+| TD-PM04-4 | Implement KB RAG integration tests | agents.service.ts | Medium | → PM-12 |
 
 ---
 
