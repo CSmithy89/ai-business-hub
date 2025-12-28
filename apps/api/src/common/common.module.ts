@@ -5,6 +5,7 @@ import { TenantGuard } from './guards/tenant.guard'
 import { RolesGuard } from './guards/roles.guard'
 import { PrismaService } from './services/prisma.service'
 import { EmailService } from './services/email.service'
+import { DistributedLockService } from './services/distributed-lock.service'
 
 /**
  * CommonModule provides shared utilities, guards, interceptors, and filters
@@ -38,6 +39,7 @@ import { EmailService } from './services/email.service'
     // Services
     PrismaService,
     EmailService,
+    DistributedLockService,
 
     // Guards
     AuthGuard,
@@ -48,6 +50,7 @@ import { EmailService } from './services/email.service'
     // Services
     PrismaService,
     EmailService,
+    DistributedLockService,
 
     // Guards
     AuthGuard,

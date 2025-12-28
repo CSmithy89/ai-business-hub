@@ -94,6 +94,84 @@ export class TasksService {
     }
   }
 
+  /**
+   * Create a task within an existing Prisma transaction.
+   * Used by import services to ensure atomicity with external link creation.
+   *
+   * Note: This method does NOT publish events. Events should be published
+   * after the outer transaction commits if needed.
+   */
+  async createWithTransaction(
+    tx: Prisma.TransactionClient,
+    workspaceId: string,
+    actorId: string,
+    dto: CreateTaskDto,
+  ) {
+    // Validate project/phase/parent exist
+    const project = await tx.project.findFirst({
+      where: { id: dto.projectId, workspaceId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!project) throw new NotFoundException('Project not found')
+
+    const phase = await tx.phase.findFirst({
+      where: { id: dto.phaseId, projectId: dto.projectId },
+      select: { id: true },
+    })
+    if (!phase) throw new BadRequestException('phaseId is not valid for this project')
+
+    if (dto.parentId) {
+      const parent = await tx.task.findFirst({
+        where: { id: dto.parentId, workspaceId, deletedAt: null },
+        select: { id: true, projectId: true },
+      })
+      if (!parent) throw new BadRequestException('parentId is not a valid task')
+      if (parent.projectId !== dto.projectId) throw new BadRequestException('parentId must be in the same project')
+    }
+
+    // Get next task number
+    const last = await tx.task.findFirst({
+      where: { projectId: dto.projectId },
+      orderBy: { taskNumber: 'desc' },
+      select: { taskNumber: true },
+    })
+    const taskNumber = (last?.taskNumber ?? 0) + 1
+
+    // Create the task
+    const task = await tx.task.create({
+      data: {
+        workspaceId,
+        projectId: dto.projectId,
+        phaseId: dto.phaseId,
+        taskNumber,
+        title: dto.title,
+        description: dto.description,
+        type: dto.type,
+        priority: dto.priority,
+        assignmentType: dto.assignmentType,
+        assigneeId: dto.assigneeId ?? null,
+        agentId: dto.agentId ?? null,
+        storyPoints: dto.storyPoints ?? null,
+        dueDate: dto.dueDate ?? null,
+        parentId: dto.parentId ?? null,
+        status: dto.status ?? undefined,
+        createdBy: actorId,
+      },
+    })
+
+    // Create activity record
+    await tx.taskActivity.create({
+      data: {
+        taskId: task.id,
+        userId: actorId,
+        type: TaskActivityType.CREATED,
+        data: { taskNumber },
+      },
+    })
+
+    return { data: task }
+  }
+
   async create(workspaceId: string, actorId: string, dto: CreateTaskDto, correlationId?: string) {
     await this.assertProjectInWorkspace(workspaceId, dto.projectId)
     await this.assertPhaseInProject(dto.projectId, dto.phaseId)

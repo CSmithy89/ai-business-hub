@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import pLimit from 'p-limit';
 import { ScheduledReportService } from './scheduled-report.service';
 import { ReportService } from './report.service';
+import { DistributedLockService } from '../../common/services/distributed-lock.service';
 import { SYSTEM_USERS, CRON_SETTINGS, RETRY_SETTINGS } from './constants';
 
 /**
@@ -42,10 +43,13 @@ async function withRetry<T>(
 @Injectable()
 export class ScheduledReportCron {
   private readonly logger = new Logger(ScheduledReportCron.name);
+  private readonly LOCK_KEY = 'cron:scheduled-report';
+  private readonly LOCK_TTL_MS = 23 * 60 * 60 * 1000; // 23 hours (less than 24 hour interval)
 
   constructor(
     private readonly scheduledReportService: ScheduledReportService,
     private readonly reportService: ReportService,
+    private readonly lockService: DistributedLockService,
   ) {}
 
   /**
@@ -53,6 +57,16 @@ export class ScheduledReportCron {
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runScheduledReports(): Promise<void> {
+    // Acquire distributed lock to prevent multiple instances running simultaneously
+    const lock = await this.lockService.acquireLock(this.LOCK_KEY, {
+      ttl: this.LOCK_TTL_MS,
+    });
+
+    if (!lock.acquired) {
+      this.logger.debug('Scheduled report generation already running on another instance, skipping');
+      return;
+    }
+
     const startTime = Date.now();
     this.logger.log('Running scheduled report generation job...');
 
@@ -138,6 +152,9 @@ export class ScheduledReportCron {
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(`Scheduled report cron job failed after ${duration}ms:`, error);
+    } finally {
+      // Always release the lock when done
+      await lock.release();
     }
   }
 }

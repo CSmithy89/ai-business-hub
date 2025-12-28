@@ -125,6 +125,9 @@ importers:
       handlebars:
         specifier: ^4.7.8
         version: 4.7.8
+      ioredis:
+        specifier: ^5.4.1
+        version: 5.8.2
       luxon:
         specifier: ^3.7.2
         version: 3.7.2
@@ -140,6 +143,9 @@ importers:
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
+      resend:
+        specifier: ^6.5.2
+        version: 6.5.2(@react-email/render@2.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2

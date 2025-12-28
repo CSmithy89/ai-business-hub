@@ -277,59 +277,53 @@ export class ImportsService {
       errorsPersisted = true
     }
 
-    try {
-      for (let index = 0; index < issues.length; index += 1) {
-        const issue = issues[index]
-        const rowNumber = index + 1
-        const summary = issue.fields.summary?.trim()
-        if (!summary) {
-          errors.push({ rowNumber, field: 'summary', message: 'Missing summary' })
-          processedRows += 1
-          continue
-        }
-
-        const status = mapJiraStatus(issue)
-        const description = buildJiraDescription(issue, jiraBaseUrl)
-
-        const task = await this.tasksService.create(workspaceId, actorId, {
-          projectId: dto.projectId,
-          phaseId: defaultPhaseId,
-          title: summary,
-          description,
-          status,
-          priority: TaskPriority.MEDIUM,
-          type: TaskType.TASK,
-        })
-
-        await this.prisma.externalLink.create({
-          data: {
-            workspaceId,
-            taskId: task.data.id,
-            provider: IntegrationProvider.JIRA,
-            linkType: ExternalLinkType.TICKET,
-            externalId: issue.key,
-            externalUrl: `${jiraBaseUrl}/browse/${issue.key}`,
-            metadata: {
-              status: issue.fields.status?.name,
-              issueType: issue.fields.issuetype?.name,
-            },
-          },
-        })
-
+    for (let index = 0; index < issues.length; index += 1) {
+      const issue = issues[index]
+      const rowNumber = index + 1
+      const summary = issue.fields.summary?.trim()
+      if (!summary) {
+        errors.push({ rowNumber, field: 'summary', message: 'Missing summary' })
         processedRows += 1
+        continue
       }
-    } catch (error) {
-      await persistErrors()
-      await this.prisma.importJob.update({
-        where: { id: job.id },
-        data: {
-          status: ImportStatus.FAILED,
-          processedRows,
-          errorCount: errors.length,
-          totalRows: issues.length,
-        },
-      })
-      throw error
+
+      const status = mapJiraStatus(issue)
+      const description = buildJiraDescription(issue, jiraBaseUrl)
+
+      try {
+        // Use transaction to ensure task and external link are created atomically
+        await this.prisma.$transaction(async (tx) => {
+          const task = await this.tasksService.createWithTransaction(tx, workspaceId, actorId, {
+            projectId: dto.projectId,
+            phaseId: defaultPhaseId,
+            title: summary,
+            description,
+            status,
+            priority: TaskPriority.MEDIUM,
+            type: TaskType.TASK,
+          })
+
+          await tx.externalLink.create({
+            data: {
+              workspaceId,
+              taskId: task.data.id,
+              provider: IntegrationProvider.JIRA,
+              linkType: ExternalLinkType.TICKET,
+              externalId: issue.key,
+              externalUrl: `${jiraBaseUrl}/browse/${issue.key}`,
+              metadata: {
+                status: issue.fields.status?.name,
+                issueType: issue.fields.issuetype?.name,
+              },
+            },
+          })
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to create task'
+        errors.push({ rowNumber, message, rawRow: { key: issue.key, summary } })
+      }
+
+      processedRows += 1
     }
 
     await persistErrors()
@@ -405,58 +399,52 @@ export class ImportsService {
       errorsPersisted = true
     }
 
-    try {
-      for (let index = 0; index < tasks.length; index += 1) {
-        const item = tasks[index]
-        const rowNumber = index + 1
-        const title = item.name?.trim()
-        if (!title) {
-          errors.push({ rowNumber, field: 'name', message: 'Missing task name' })
-          processedRows += 1
-          continue
-        }
-
-        const status = item.completed ? TaskStatus.DONE : TaskStatus.TODO
-        const description = item.notes || 'Imported from Asana.'
-
-        const task = await this.tasksService.create(workspaceId, actorId, {
-          projectId: dto.projectId,
-          phaseId: defaultPhaseId,
-          title,
-          description,
-          status,
-          priority: TaskPriority.MEDIUM,
-          type: TaskType.TASK,
-        })
-
-        await this.prisma.externalLink.create({
-          data: {
-            workspaceId,
-            taskId: task.data.id,
-            provider: IntegrationProvider.ASANA,
-            linkType: ExternalLinkType.TICKET,
-            externalId: item.gid,
-            externalUrl: `https://app.asana.com/0/${dto.projectGid}/${item.gid}`,
-            metadata: {
-              completed: item.completed,
-            },
-          },
-        })
-
+    for (let index = 0; index < tasks.length; index += 1) {
+      const item = tasks[index]
+      const rowNumber = index + 1
+      const title = item.name?.trim()
+      if (!title) {
+        errors.push({ rowNumber, field: 'name', message: 'Missing task name' })
         processedRows += 1
+        continue
       }
-    } catch (error) {
-      await persistErrors()
-      await this.prisma.importJob.update({
-        where: { id: job.id },
-        data: {
-          status: ImportStatus.FAILED,
-          processedRows,
-          errorCount: errors.length,
-          totalRows: tasks.length,
-        },
-      })
-      throw error
+
+      const status = item.completed ? TaskStatus.DONE : TaskStatus.TODO
+      const description = item.notes || 'Imported from Asana.'
+
+      try {
+        // Use transaction to ensure task and external link are created atomically
+        await this.prisma.$transaction(async (tx) => {
+          const task = await this.tasksService.createWithTransaction(tx, workspaceId, actorId, {
+            projectId: dto.projectId,
+            phaseId: defaultPhaseId,
+            title,
+            description,
+            status,
+            priority: TaskPriority.MEDIUM,
+            type: TaskType.TASK,
+          })
+
+          await tx.externalLink.create({
+            data: {
+              workspaceId,
+              taskId: task.data.id,
+              provider: IntegrationProvider.ASANA,
+              linkType: ExternalLinkType.TICKET,
+              externalId: item.gid,
+              externalUrl: `https://app.asana.com/0/${dto.projectGid}/${item.gid}`,
+              metadata: {
+                completed: item.completed,
+              },
+            },
+          })
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to create task'
+        errors.push({ rowNumber, message, rawRow: { gid: item.gid, name: title } })
+      }
+
+      processedRows += 1
     }
 
     await persistErrors()
@@ -533,59 +521,53 @@ export class ImportsService {
       errorsPersisted = true
     }
 
-    try {
-      for (let index = 0; index < cards.length; index += 1) {
-        const card = cards[index]
-        const rowNumber = index + 1
-        const title = card.name?.trim()
-        if (!title) {
-          errors.push({ rowNumber, field: 'name', message: 'Missing card name' })
-          processedRows += 1
-          continue
-        }
-
-        const status = card.closed ? TaskStatus.DONE : TaskStatus.TODO
-        const description = card.desc || 'Imported from Trello.'
-
-        const task = await this.tasksService.create(workspaceId, actorId, {
-          projectId: dto.projectId,
-          phaseId: defaultPhaseId,
-          title,
-          description,
-          status,
-          priority: TaskPriority.MEDIUM,
-          type: TaskType.TASK,
-        })
-
-        await this.prisma.externalLink.create({
-          data: {
-            workspaceId,
-            taskId: task.data.id,
-            provider: IntegrationProvider.TRELLO,
-            linkType: ExternalLinkType.TICKET,
-            externalId: card.id,
-            externalUrl: card.url,
-            metadata: {
-              closed: card.closed,
-              listId: card.idList,
-            },
-          },
-        })
-
+    for (let index = 0; index < cards.length; index += 1) {
+      const card = cards[index]
+      const rowNumber = index + 1
+      const title = card.name?.trim()
+      if (!title) {
+        errors.push({ rowNumber, field: 'name', message: 'Missing card name' })
         processedRows += 1
+        continue
       }
-    } catch (error) {
-      await persistErrors()
-      await this.prisma.importJob.update({
-        where: { id: job.id },
-        data: {
-          status: ImportStatus.FAILED,
-          processedRows,
-          errorCount: errors.length,
-          totalRows: cards.length,
-        },
-      })
-      throw error
+
+      const status = card.closed ? TaskStatus.DONE : TaskStatus.TODO
+      const description = card.desc || 'Imported from Trello.'
+
+      try {
+        // Use transaction to ensure task and external link are created atomically
+        await this.prisma.$transaction(async (tx) => {
+          const task = await this.tasksService.createWithTransaction(tx, workspaceId, actorId, {
+            projectId: dto.projectId,
+            phaseId: defaultPhaseId,
+            title,
+            description,
+            status,
+            priority: TaskPriority.MEDIUM,
+            type: TaskType.TASK,
+          })
+
+          await tx.externalLink.create({
+            data: {
+              workspaceId,
+              taskId: task.data.id,
+              provider: IntegrationProvider.TRELLO,
+              linkType: ExternalLinkType.TICKET,
+              externalId: card.id,
+              externalUrl: card.url,
+              metadata: {
+                closed: card.closed,
+                listId: card.idList,
+              },
+            },
+          })
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to create task'
+        errors.push({ rowNumber, message, rawRow: { id: card.id, name: title } })
+      }
+
+      processedRows += 1
     }
 
     await persistErrors()

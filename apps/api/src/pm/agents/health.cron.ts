@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import pLimit from 'p-limit';
 import { PrismaService } from '../../common/services/prisma.service';
+import { DistributedLockService } from '../../common/services/distributed-lock.service';
 import { HealthService } from './health.service';
 import { SYSTEM_USERS, CRON_SETTINGS, RETRY_SETTINGS } from './constants';
 
@@ -42,14 +43,27 @@ async function withRetry<T>(
 @Injectable()
 export class HealthCheckCron {
   private readonly logger = new Logger(HealthCheckCron.name);
+  private readonly LOCK_KEY = 'cron:health-check';
+  private readonly LOCK_TTL_MS = 14 * 60 * 1000; // 14 minutes (less than 15 min interval)
 
   constructor(
     private prisma: PrismaService,
     private healthService: HealthService,
+    private lockService: DistributedLockService,
   ) {}
 
   @Cron('*/15 * * * *') // Every 15 minutes
   async runHealthChecks() {
+    // Acquire distributed lock to prevent multiple instances running simultaneously
+    const lock = await this.lockService.acquireLock(this.LOCK_KEY, {
+      ttl: this.LOCK_TTL_MS,
+    });
+
+    if (!lock.acquired) {
+      this.logger.debug('Health check already running on another instance, skipping');
+      return;
+    }
+
     const startTime = Date.now();
     this.logger.log('Starting scheduled health checks');
 
@@ -134,6 +148,9 @@ export class HealthCheckCron {
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(`Health check cron job failed after ${duration}ms:`, error);
+    } finally {
+      // Always release the lock when done
+      await lock.release();
     }
   }
 }
