@@ -18,7 +18,7 @@ import { DigestProcessor } from './queues/digest.processor';
     RealtimeModule,
     // BullMQ queue for digest jobs
     BullModule.registerQueue({
-      name: 'pm:digest',
+      name: 'pm-digest',
       defaultJobOptions: {
         attempts: 3,
         backoff: {

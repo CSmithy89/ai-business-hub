@@ -7,12 +7,12 @@ import { DigestService } from '../digest.service';
  * DigestProcessor handles processing of digest jobs from BullMQ
  *
  * This processor:
- * - Receives digest jobs from the pm:digest queue
+ * - Receives digest jobs from the pm-digest queue
  * - Calls DigestService to generate and send digest emails
  * - Handles job failures and retries
  */
 @Injectable()
-@Processor('pm:digest')
+@Processor('pm-digest')
 export class DigestProcessor extends WorkerHost {
   private readonly logger = new Logger(DigestProcessor.name);
 

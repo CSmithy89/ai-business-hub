@@ -19,7 +19,7 @@ export class DigestSchedulerService implements OnModuleInit {
 
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue('pm:digest') private digestQueue: Queue,
+    @InjectQueue('pm-digest') private digestQueue: Queue,
   ) {}
 
   /**
