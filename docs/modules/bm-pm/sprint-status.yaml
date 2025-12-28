@@ -288,7 +288,7 @@ development_status:
   # Deferred items from PM-04/PM-05 retrospectives
   # ===========================================
   pm-12: contexted
-  pm-12-1-agent-ui-components: backlog
+  pm-12-1-agent-ui-components: ready-for-dev
   pm-12-2-agent-response-parsing: backlog
   pm-12-3-notification-integration: backlog
   pm-12-4-integration-e2e-tests: backlog

@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="pm-12-1">
+  <metadata>
+    <generated>2025-12-28</generated>
+    <story-title>Agent UI Components</story-title>
+    <points>13</points>
+    <epic>PM-12 - Consolidated Follow-ups from PM-04/PM-05</epic>
+  </metadata>
+
+  <relevant-files>
+    <!-- ========================================= -->
+    <!-- PATTERN REFERENCE: Health Components -->
+    <!-- ========================================= -->
+    <file path="apps/web/src/components/pm/health/RiskCard.tsx" relevance="pattern-reference">
+      <purpose>Card component pattern for displaying individual items with actions</purpose>
+      <key-patterns>
+        <pattern name="card-structure">Uses shadcn Card, CardHeader, CardContent, CardFooter</pattern>
+        <pattern name="expandable-details">useState for expanded state, ChevronUp/ChevronDown toggle</pattern>
+        <pattern name="action-buttons">onAcknowledge/onResolve handlers with isLoading state</pattern>
+        <pattern name="severity-styling">getSeverityConfig() for color-coded badges and backgrounds</pattern>
+        <pattern name="responsive-design">grid-cols-1 sm:grid-cols-2, flex-col sm:flex-row for mobile</pattern>
+        <pattern name="date-formatting">formatDateSafe() helper with fallback for invalid dates</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/components/pm/health/RiskListPanel.tsx" relevance="pattern-reference">
+      <purpose>Slide-out panel pattern with tabbed list interface</purpose>
+      <key-patterns>
+        <pattern name="sheet-panel">Uses shadcn Sheet, SheetContent for slide-out panel</pattern>
+        <pattern name="tabbed-interface">Tabs, TabsList, TabsContent for Active/Resolved filtering</pattern>
+        <pattern name="loading-state">Loader2 spinner with animate-spin</pattern>
+        <pattern name="empty-state">Centered text-muted-foreground for no results</pattern>
+        <pattern name="hook-integration">usePmRisks hook for data + mutations</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/components/pm/health/constants.ts" relevance="pattern-reference">
+      <purpose>Shared constants for styling and labels</purpose>
+      <key-patterns>
+        <pattern name="severity-config">Object with bg, badge, icon, text color classes per severity</pattern>
+        <pattern name="type-labels">Record for human-readable labels</pattern>
+        <pattern name="helper-function">getSeverityConfig() with fallback to default</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/components/pm/health/index.ts" relevance="pattern-reference">
+      <purpose>Barrel exports pattern for component module</purpose>
+      <key-patterns>
+        <pattern name="named-exports">Export each component individually</pattern>
+        <pattern name="re-exports">Re-export related utilities and hooks</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/components/pm/health/EXAMPLE.tsx" relevance="pattern-reference">
+      <purpose>Integration example showing component usage in pages</purpose>
+      <key-patterns>
+        <pattern name="error-boundary">Wrap components with HealthErrorBoundary</pattern>
+        <pattern name="custom-hook">useProjectRisks pattern for encapsulating data logic</pattern>
+        <pattern name="realtime-subscription">useRiskSubscription for WebSocket updates</pattern>
+      </key-patterns>
+    </file>
+
+    <!-- ========================================= -->
+    <!-- EXISTING AGENT HOOKS -->
+    <!-- ========================================= -->
+    <file path="apps/web/src/hooks/use-agents.ts" relevance="existing-code">
+      <purpose>Hook for fetching agent list with React Query</purpose>
+      <key-patterns>
+        <pattern name="query-pattern">useQuery with queryKey, queryFn, staleTime</pattern>
+        <pattern name="safe-json">Uses safeJson helper for response parsing</pattern>
+        <pattern name="params-filtering">AgentsQueryParams for team/status/search filters</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/hooks/use-agent-stream.ts" relevance="existing-code">
+      <purpose>SSE streaming hook for AG-UI protocol agent responses</purpose>
+      <key-patterns>
+        <pattern name="sse-streaming">ReadableStream processing with TextDecoder</pattern>
+        <pattern name="ag-ui-events">AGUIEventType enum: RUN_STARTED, TEXT_MESSAGE_CHUNK, etc.</pattern>
+        <pattern name="zod-validation">Zod schemas for runtime event validation</pattern>
+        <pattern name="abort-controller">AbortController for stream cancellation</pattern>
+        <pattern name="tool-call-state">ToolCallState tracking for in-progress tool calls</pattern>
+        <pattern name="callbacks">onEvent, onComplete, onError callback pattern</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/hooks/use-realtime-agents.ts" relevance="existing-code">
+      <purpose>WebSocket subscription for agent status updates</purpose>
+      <key-patterns>
+        <pattern name="ws-subscription">useRealtime().subscribe with WS_EVENTS</pattern>
+        <pattern name="cache-update">queryClient.setQueriesData for optimistic updates</pattern>
+        <pattern name="cleanup">Return unsubscribe functions in useEffect</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/hooks/use-pm-risks.ts" relevance="existing-code">
+      <purpose>Hook for PM risk data with mutations (pattern for suggestions hook)</purpose>
+      <key-patterns>
+        <pattern name="auth-token">getSessionToken(session) pattern</pattern>
+        <pattern name="derived-data">Compute activeRisks, resolvedRisks from query data</pattern>
+        <pattern name="mutations">useMutation with onSuccess/onError, toast notifications</pattern>
+        <pattern name="cache-invalidation">invalidateQueries on mutation success</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/hooks/use-chat-messages.ts" relevance="existing-code">
+      <purpose>Chat messaging with streaming and optimistic updates</purpose>
+      <key-patterns>
+        <pattern name="local-storage">Persist chat history to localStorage</pattern>
+        <pattern name="streaming-message">isStreaming flag for in-progress responses</pattern>
+        <pattern name="optimistic-update">Add user message immediately before API call</pattern>
+        <pattern name="error-rollback">Add error message to chat on failure</pattern>
+        <pattern name="retry-mechanism">retryLastMessage for failed messages</pattern>
+      </key-patterns>
+    </file>
+
+    <!-- ========================================= -->
+    <!-- REALTIME INFRASTRUCTURE -->
+    <!-- ========================================= -->
+    <file path="apps/web/src/lib/realtime/types.ts" relevance="existing-code">
+      <purpose>WebSocket event types and payloads</purpose>
+      <key-patterns>
+        <pattern name="event-payloads">AgentStatusPayload, AgentRunPayload interfaces</pattern>
+        <pattern name="ws-events-enum">WS_EVENTS constant for type-safe event names</pattern>
+        <pattern name="pm-events">PM-specific events: pm.task.*, pm.presence.*</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/lib/realtime/index.ts" relevance="existing-code">
+      <purpose>Realtime module exports</purpose>
+      <key-patterns>
+        <pattern name="provider-export">RealtimeProvider, useRealtime, useRealtimeAvailable</pattern>
+      </key-patterns>
+    </file>
+
+    <!-- ========================================= -->
+    <!-- BACKEND API ENDPOINTS -->
+    <!-- ========================================= -->
+    <file path="apps/api/src/pm/agents/agents.controller.ts" relevance="api-reference">
+      <purpose>NestJS controller with all PM agent endpoints</purpose>
+      <key-patterns>
+        <pattern name="chat-endpoint">POST /pm/agents/chat for agent messages</pattern>
+        <pattern name="suggestions">GET/POST /pm/agents/suggestions for CRUD</pattern>
+        <pattern name="time-tracking">POST /pm/agents/time/start, /stop, /log</pattern>
+        <pattern name="estimation">POST /pm/agents/estimation/estimate</pattern>
+        <pattern name="velocity">GET /pm/agents/time/velocity/:projectId</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/pm/agents/health.controller.ts" relevance="api-reference">
+      <purpose>Health API endpoints for HealthDashboard integration</purpose>
+      <key-patterns>
+        <pattern name="health-score">GET /pm/agents/health/:projectId</pattern>
+        <pattern name="risks">GET /pm/agents/health/:projectId/risks</pattern>
+        <pattern name="velocity">GET /pm/agents/health/:projectId/velocity</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/pm/agents/suggestion.service.ts" relevance="api-reference">
+      <purpose>Backend suggestion service with WebSocket emission</purpose>
+      <key-patterns>
+        <pattern name="suggestion-creation">Creates with expiresAt timestamp</pattern>
+        <pattern name="status-values">PENDING, ACCEPTED, REJECTED, SNOOZED, EXPIRED</pattern>
+        <pattern name="ws-emit">realtimeGateway.server.to(project:...).emit()</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/pm/agents/dto/suggestion.dto.ts" relevance="type-reference">
+      <purpose>Suggestion DTOs for API request/response typing</purpose>
+      <key-patterns>
+        <pattern name="suggestion-type">SuggestionType enum from Prisma</pattern>
+        <pattern name="response-dto">SuggestionResponseDto with all fields</pattern>
+        <pattern name="action-dtos">AcceptSuggestionDto, RejectSuggestionDto, SnoozeSuggestionDto</pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/pm/agents/constants.ts" relevance="config-reference">
+      <purpose>Backend constants for suggestions and time limits</purpose>
+      <key-patterns>
+        <pattern name="suggestion-expiry">SUGGESTION_SETTINGS.EXPIRY_HOURS = 24</pattern>
+        <pattern name="snooze-limits">DEFAULT_SNOOZE_HOURS = 4, MAX_SNOOZE_HOURS = 168</pattern>
+      </key-patterns>
+    </file>
+
+    <!-- ========================================= -->
+    <!-- SHARED TYPES -->
+    <!-- ========================================= -->
+    <file path="packages/shared/src/types/agent.ts" relevance="type-reference">
+      <purpose>Agent type definitions used across frontend/backend</purpose>
+      <key-patterns>
+        <pattern name="agent-team">AgentTeam type for team classification</pattern>
+        <pattern name="agent-status">AgentStatus: online, busy, offline, error</pattern>
+        <pattern name="agent-interface">Full Agent interface with config, metrics, permissions</pattern>
+      </key-patterns>
+    </file>
+
+    <!-- ========================================= -->
+    <!-- SHADCN UI COMPONENTS -->
+    <!-- ========================================= -->
+    <file path="apps/web/src/components/ui/card.tsx" relevance="ui-reference">
+      <purpose>Card component with interactive variant</purpose>
+      <key-patterns>
+        <pattern name="premium-styling">rounded-[16px], subtle shadows, warm borders</pattern>
+        <pattern name="interactive-variant">interactive prop for hover/focus states</pattern>
+        <pattern name="dark-mode">Conditional dark: classes</pattern>
+      </key-patterns>
+    </file>
+  </relevant-files>
+
+  <existing-patterns>
+    <!-- Data fetching pattern from usePmRisks -->
+    <pattern name="react-query-hook">
+      <description>Standard hook pattern for data fetching with React Query</description>
+      <code-example><![CDATA[
+export function useExampleData(projectId: string) {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const token = getSessionToken(session);
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['example-data', projectId],
+    queryFn: () => fetchData({ projectId, token }),
+    enabled: !!token && !!projectId,
+  });
+
+  const mutation = useMutation({
+    mutationFn: (params) => updateData(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['example-data', projectId] });
+      toast.success('Updated successfully');
+    },
+    onError: (err) => {
+      toast.error('Failed to update', { description: err.message });
+    },
+  });
+
+  return { data, isLoading, isError, error, mutation };
+}
+      ]]></code-example>
+    </pattern>
+
+    <!-- Component structure from RiskCard -->
+    <pattern name="action-card-component">
+      <description>Card component with expandable details and action buttons</description>
+      <code-example><![CDATA[
+interface ExampleCardProps {
+  item: ItemType;
+  onAction1: () => void;
+  onAction2: () => void;
+  isLoading?: boolean;
+  readOnly?: boolean;
+}
+
+export function ExampleCard({ item, onAction1, onAction2, isLoading, readOnly }: ExampleCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const config = getStyleConfig(item.type);
+
+  return (
+    <Card className={cn(config.bg, readOnly && 'opacity-60')}>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 flex-1">
+            <Icon className={cn('w-5 h-5 mt-0.5 shrink-0', config.icon)} />
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge className={config.badge}>{item.type}</Badge>
+              </div>
+              <CardTitle className="text-base">{item.title}</CardTitle>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)}>
+            {expanded ? <ChevronUp /> : <ChevronDown />}
+          </Button>
+        </div>
+      </CardHeader>
+
+      {expanded && (
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">{item.description}</p>
+        </CardContent>
+      )}
+
+      {!readOnly && (
+        <CardFooter className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" size="sm" onClick={onAction1} disabled={isLoading}>
+            Action 1
+          </Button>
+          <Button variant="default" size="sm" onClick={onAction2} disabled={isLoading}>
+            Action 2
+          </Button>
+        </CardFooter>
+      )}
+    </Card>
+  );
+}
+      ]]></code-example>
+    </pattern>
+
+    <!-- Confidence color pattern -->
+    <pattern name="confidence-colors">
+      <description>Color mapping for confidence scores (from story spec)</description>
+      <code-example><![CDATA[
+export function getConfidenceColor(confidence: number): string {
+  if (confidence >= 0.85) return 'text-green-500';
+  if (confidence >= 0.60) return 'text-yellow-500';
+  return 'text-red-500';
+}
+
+export function getConfidenceBadge(confidence: number): { bg: string; text: string } {
+  if (confidence >= 0.85) return { bg: 'bg-green-100', text: 'text-green-800' };
+  if (confidence >= 0.60) return { bg: 'bg-yellow-100', text: 'text-yellow-800' };
+  return { bg: 'bg-red-100', text: 'text-red-800' };
+}
+      ]]></code-example>
+    </pattern>
+  </existing-patterns>
+
+  <dependencies>
+    <!-- External Libraries (already in project) -->
+    <dependency name="@tanstack/react-query" purpose="Data fetching and caching" />
+    <dependency name="lucide-react" purpose="Icons (Clock, Calculator, Compass, Heart, Target, FileText)" />
+    <dependency name="date-fns" purpose="Date formatting (format, isValid, formatDistanceToNow)" />
+    <dependency name="sonner" purpose="Toast notifications" />
+    <dependency name="zod" purpose="Runtime validation for events" />
+
+    <!-- Internal Dependencies -->
+    <dependency name="@/components/ui/*" purpose="shadcn/ui primitives (Card, Badge, Button, Sheet, Tabs)" />
+    <dependency name="@/lib/realtime" purpose="WebSocket hooks (useRealtime, WS_EVENTS)" />
+    <dependency name="@/lib/auth-client" purpose="Session and token management" />
+    <dependency name="@/lib/api-config" purpose="NESTJS_API_URL constant" />
+    <dependency name="@/lib/utils" purpose="cn() for className merging" />
+    <dependency name="@/lib/utils/safe-json" purpose="Safe JSON parsing" />
+
+    <!-- Existing PM Hooks -->
+    <dependency name="@/hooks/use-pm-risks" purpose="Pattern reference for suggestion hook" />
+    <dependency name="@/hooks/use-agent-stream" purpose="SSE streaming for chat responses" />
+    <dependency name="@/hooks/use-realtime-agents" purpose="WebSocket agent status updates" />
+  </dependencies>
+
+  <implementation-notes>
+    <!-- Time Boxing -->
+    <note priority="high">
+      <title>Component Time Boxing</title>
+      <content>Each component should be time-boxed to maximum 2 days per tech spec ADR-PM12-001. Focus on MVP features only - defer advanced features to future iterations.</content>
+    </note>
+
+    <!-- Agent Configuration -->
+    <note priority="high">
+      <title>Agent Configuration Constants</title>
+      <content>Create apps/web/src/components/pm/agents/constants.ts with AGENT_CONFIG defining name, role, color, and icon for each agent (navi, sage, chrono, scope, pulse, herald). Use Lucide icons: Compass, Calculator, Clock, Target, Heart, FileText.</content>
+    </note>
+
+    <!-- Suggestion Expiration -->
+    <note priority="medium">
+      <title>Suggestion Expiration Handling</title>
+      <content>SuggestionCard must show countdown timer for expiresAt field. Use formatDistanceToNow from date-fns. Visually indicate when suggestion is about to expire (&lt;1 hour). Filter expired suggestions in useSuggestions hook.</content>
+    </note>
+
+    <!-- Timer Persistence -->
+    <note priority="medium">
+      <title>TimeTracker localStorage Persistence</title>
+      <content>Active timer state should persist to localStorage to survive page refreshes. Only create actual TimeEntry when timer is stopped. Pattern: store { taskId, projectId, startTime } in localStorage.</content>
+    </note>
+
+    <!-- HealthDashboard Integration -->
+    <note priority="medium">
+      <title>HealthDashboard WebSocket Events</title>
+      <content>Listen for pm.health.updated events to refresh data in real-time. Use existing useRealtime().subscribe pattern from use-realtime-agents.ts.</content>
+    </note>
+
+    <!-- Mobile Responsiveness -->
+    <note priority="medium">
+      <title>Mobile-First Design</title>
+      <content>Follow RiskCard patterns: flex-col sm:flex-row for buttons, grid-cols-1 sm:grid-cols-2 for info grids. Test on mobile breakpoints. AgentPanel should be collapsible on mobile.</content>
+    </note>
+
+    <!-- API Base URL -->
+    <note priority="low">
+      <title>API URL Configuration</title>
+      <content>Use NESTJS_API_URL from @/lib/api-config for backend calls. Ensure token is passed in Authorization header.</content>
+    </note>
+
+    <!-- Suggestion Types -->
+    <note priority="low">
+      <title>SuggestionType Enum Values</title>
+      <content>From Prisma: CREATE_TASK, UPDATE_TASK, ASSIGN_TASK, MOVE_PHASE, SET_PRIORITY. Map to human-readable labels and appropriate icons in constants.</content>
+    </note>
+  </implementation-notes>
+
+  <file-structure>
+    <description>Files to be created for this story</description>
+    <files>
+      <!-- Components -->
+      <file>apps/web/src/components/pm/agents/constants.ts</file>
+      <file>apps/web/src/components/pm/agents/AgentPanel.tsx</file>
+      <file>apps/web/src/components/pm/agents/SuggestionCard.tsx</file>
+      <file>apps/web/src/components/pm/agents/SuggestionList.tsx</file>
+      <file>apps/web/src/components/pm/agents/TimeTracker.tsx</file>
+      <file>apps/web/src/components/pm/agents/EstimationDisplay.tsx</file>
+      <file>apps/web/src/components/pm/agents/HealthDashboard.tsx</file>
+      <file>apps/web/src/components/pm/agents/index.ts</file>
+      <!-- Hooks -->
+      <file>apps/web/src/hooks/use-agent-chat.ts</file>
+      <file>apps/web/src/hooks/use-suggestions.ts</file>
+      <file>apps/web/src/hooks/use-time-tracking.ts</file>
+    </files>
+  </file-structure>
+
+  <acceptance-criteria>
+    <criterion id="ac1">AgentPanel renders with agent selector (tabs/dropdown) and message input field, collapsible interface</criterion>
+    <criterion id="ac2">SuggestionCard displays type, title, confidence (color-coded), Accept/Reject/Snooze actions with loading states</criterion>
+    <criterion id="ac3">TimeTracker supports start/stop timer and manual time entry with task selector</criterion>
+    <criterion id="ac4">EstimationDisplay shows Fibonacci points with confidence meter and similar tasks comparison</criterion>
+    <criterion id="ac5">HealthDashboard integrates health score gauge, factor breakdown, trend indicator, and links to RiskListPanel</criterion>
+    <criterion id="ac6">All components are mobile-responsive using existing responsive patterns</criterion>
+    <criterion id="ac7">Components follow existing shadcn/ui patterns and design conventions</criterion>
+  </acceptance-criteria>
+</story-context>
