@@ -1,5 +1,6 @@
 import { IsString, IsOptional, IsEnum, IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum WorkflowTriggerType {
   TASK_CREATED = 'TASK_CREATED',
@@ -12,6 +13,18 @@ export enum WorkflowTriggerType {
 }
 
 export class WorkflowDefinitionDto {
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        type: { type: 'string' },
+        position: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } },
+        data: { type: 'object', additionalProperties: true },
+      },
+    },
+  })
   nodes!: Array<{
     id: string;
     type: string;
@@ -19,6 +32,18 @@ export class WorkflowDefinitionDto {
     data: Record<string, any>;
   }>;
 
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        source: { type: 'string' },
+        target: { type: 'string' },
+        label: { type: 'string' },
+      },
+    },
+  })
   edges!: Array<{
     id: string;
     source: string;
@@ -26,7 +51,10 @@ export class WorkflowDefinitionDto {
     label?: string;
   }>;
 
+  @ApiProperty({ type: 'array', items: { type: 'object', additionalProperties: true } })
   triggers!: Array<Record<string, any>>;
+
+  @ApiProperty({ type: 'object', additionalProperties: true })
   variables!: Record<string, any>;
 }
 

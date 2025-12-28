@@ -21,7 +21,7 @@ import { PresenceUser, PresenceLocation } from '@hyvve/shared';
 @Injectable()
 export class PresenceService {
   private readonly logger = new Logger(PresenceService.name);
-  private redis: RedisClient;
+  private _redis: RedisClient | null = null;
 
   // Presence TTL configuration (configurable via environment)
   private readonly PRESENCE_TTL_SECONDS: number;
@@ -31,10 +31,21 @@ export class PresenceService {
     private readonly redisProvider: RedisProvider,
     private readonly prisma: PrismaService,
   ) {
-    this.redis = this.redisProvider.getClient();
     // Initialize TTL from environment (default: 5 minutes)
     this.PRESENCE_TTL_SECONDS = parseInt(process.env.PRESENCE_TTL_SECONDS || '300', 10);
     this.PRESENCE_TTL_MS = this.PRESENCE_TTL_SECONDS * 1000;
+  }
+
+  /**
+   * Get Redis client lazily - avoids initialization timing issues
+   * The client is obtained on first use when RedisProvider is guaranteed to be ready
+   */
+  private get redis(): RedisClient {
+    if (!this._redis) {
+      this._redis = this.redisProvider.getClient();
+      this.logger.log('PresenceService connected to Redis client');
+    }
+    return this._redis;
   }
 
   /**
