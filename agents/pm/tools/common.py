@@ -35,9 +35,10 @@ OPENAI_API_KEY:
 
 import os
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TypeVar, Type
 
 import httpx
+from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,115 @@ class ApiError:
         }
         result.update(self.fallback_data)
         return result
+
+
+class AgentToolError(Exception):
+    """Exception raised when an agent tool fails.
+
+    This provides explicit error handling instead of silent fallback defaults.
+    Use this to propagate errors up to the agent for proper handling.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        tool_name: Optional[str] = None,
+    ):
+        self.message = message
+        self.status_code = status_code
+        self.tool_name = tool_name
+        super().__init__(message)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for error reporting."""
+        return {
+            "error": True,
+            "message": self.message,
+            "status_code": self.status_code,
+            "tool_name": self.tool_name,
+        }
+
+
+# Type variable for Pydantic model responses
+T = TypeVar("T", bound=BaseModel)
+
+
+def api_request_strict(
+    method: str,
+    endpoint: str,
+    workspace_id: str,
+    response_model: Type[T],
+    *,
+    json: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
+    timeout: float = DEFAULT_TIMEOUT,
+) -> T:
+    """Make an authenticated API request with strict validation.
+
+    Unlike api_request(), this function:
+    - Raises AgentToolError on HTTP failures (no silent fallbacks)
+    - Validates response against a Pydantic model
+    - Returns typed, validated data
+
+    Args:
+        method: HTTP method (GET, POST, PUT, DELETE, PATCH)
+        endpoint: API endpoint path (will be prefixed with API_BASE_URL)
+        workspace_id: Workspace/tenant identifier for auth
+        response_model: Pydantic model class to validate response against
+        json: Optional JSON body for POST/PUT requests
+        params: Optional query parameters
+        timeout: Request timeout in seconds (default: 30)
+
+    Returns:
+        Validated Pydantic model instance
+
+    Raises:
+        AgentToolError: On HTTP errors or validation failures
+    """
+    url = f"{API_BASE_URL}{endpoint}"
+    headers = get_auth_headers(workspace_id)
+
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            response = client.request(
+                method=method.upper(),
+                url=url,
+                headers=headers,
+                json=json,
+                params=params,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            # Validate response against Pydantic model
+            return response_model.model_validate(data)
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"API request failed: {method} {endpoint} - {e.response.status_code}")
+        raise AgentToolError(
+            message=f"API request failed: {str(e)}",
+            status_code=e.response.status_code,
+            tool_name=endpoint,
+        )
+    except httpx.RequestError as e:
+        logger.error(f"API request error: {method} {endpoint} - {str(e)}")
+        raise AgentToolError(
+            message=f"Network error: {str(e)}",
+            tool_name=endpoint,
+        )
+    except ValidationError as e:
+        logger.error(f"Response validation failed: {method} {endpoint} - {str(e)}")
+        raise AgentToolError(
+            message=f"Invalid response format: {str(e)}",
+            tool_name=endpoint,
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error: {method} {endpoint} - {str(e)}")
+        raise AgentToolError(
+            message=f"Unexpected error: {str(e)}",
+            tool_name=endpoint,
+        )
 
 
 def api_request(

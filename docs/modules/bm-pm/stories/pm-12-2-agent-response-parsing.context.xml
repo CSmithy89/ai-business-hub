@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="PM-12.2" title="Agent Response Parsing">
+  <overview>
+    <summary>
+      Replace regex-based string parsing and hardcoded fallback defaults with structured
+      Pydantic/Zod validation for agent responses. This story addresses technical debt
+      TD-PM05-1 from PM-05 retrospective where silent parsing failures mask real issues.
+    </summary>
+    <points>8</points>
+    <epic>PM-12 - Consolidated Follow-ups from PM-04/PM-05</epic>
+  </overview>
+
+  <problem-statement>
+    <current-issues>
+      <issue type="silent-failure">
+        Current implementation uses fallback_data pattern in Python tools that returns
+        default values when API calls fail or data is invalid, masking real errors.
+      </issue>
+      <issue type="unvalidated-responses">
+        NestJS services return interface types but don't validate incoming JSON against
+        schemas at runtime, relying on TypeScript compile-time checks only.
+      </issue>
+      <issue type="no-structured-output">
+        Python agents return Dict[str, Any] from tools instead of validated Pydantic
+        models, losing type safety at the agent boundary.
+      </issue>
+    </current-issues>
+  </problem-statement>
+
+  <python-agent-analysis>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/agents/pm/tools/common.py">
+      <pattern name="api_request-with-fallback">
+        <description>
+          The api_request function accepts fallback_data parameter that returns default
+          values on failure instead of raising exceptions. This is the root cause of
+          silent failures.
+        </description>
+        <location lines="106-171"/>
+        <change-needed>
+          Consider adding optional strict_mode parameter that throws on failure instead
+          of returning fallback_data. Or remove fallback_data pattern entirely and let
+          callers handle exceptions.
+        </change-needed>
+      </pattern>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/agents/pm/tools/phase_tools.py">
+      <current-pattern>
+        <description>Tools return Dict[str, Any] with unvalidated structure</description>
+        <code><![CDATA[
+@tool
+def analyze_phase_completion(
+    project_id: str,
+    phase_id: str,
+    workspace_id: str
+) -> Dict[str, Any]:
+    """..."""
+    return api_request(
+        "POST",
+        f"/api/pm/phases/{phase_id}/analyze-completion",
+        workspace_id,
+        json={"projectId": project_id},
+        fallback_data={"error": "Failed to analyze phase"},
+    )
+        ]]></code>
+      </current-pattern>
+      <change-needed>
+        Return Pydantic model PhaseAnalysisOutput instead of Dict[str, Any].
+        Remove fallback_data usage - throw explicit errors on failure.
+      </change-needed>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/agents/pm/tools/health_tools.py">
+      <current-pattern>
+        <description>Uses fallback_data with hardcoded defaults</description>
+        <code><![CDATA[
+@tool
+def calculate_health_score(
+    workspace_id: str,
+    project_id: str
+) -> Dict[str, Any]:
+    """..."""
+    return api_request(
+        "POST",
+        f"/api/pm/agents/health/{project_id}/calculate-score",
+        workspace_id,
+        fallback_data={
+            "score": 50,
+            "level": "warning",
+            "trend": "stable",
+        },
+    )
+        ]]></code>
+      </current-pattern>
+      <change-needed>
+        Return Pydantic model HealthInsightOutput. Remove fallback_data - if health
+        check fails, throw explicit error so caller knows the result is unavailable.
+      </change-needed>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/agents/pm/tools/estimation_tools.py">
+      <current-pattern>
+        <description>Returns hardcoded estimate on error</description>
+        <code><![CDATA[
+@tool
+def estimate_task(...) -> Dict[str, Any]:
+    except httpx.HTTPStatusError as e:
+        return {
+            "storyPoints": 3,
+            "estimatedHours": 8.0,
+            "confidenceLevel": "low",
+            "confidenceScore": 0.3,
+            "basis": f"Error occurred (HTTP {e.response.status_code}), using default estimate",
+            "coldStart": True,
+            ...
+        }
+        ]]></code>
+      </current-pattern>
+      <change-needed>
+        Return Pydantic model EstimationOutput. On error, throw exception with error
+        details rather than returning fake estimate that user might trust.
+      </change-needed>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/agents/pm/tools/time_tracking_tools.py">
+      <current-pattern>
+        <description>Returns hardcoded velocity on error</description>
+        <code><![CDATA[
+@tool
+def get_velocity(...) -> Dict[str, Any]:
+    except httpx.HTTPStatusError as e:
+        return {
+            "currentVelocity": 0,
+            "avgVelocity": 0,
+            "avgHoursPerPoint": 0,
+            "periods": [],
+            "error": f"HTTP {e.response.status_code}",
+        }
+        ]]></code>
+      </current-pattern>
+      <change-needed>
+        Return Pydantic model TimeAnalysisOutput. Throw on error instead of returning
+        zeros that could mislead velocity analysis.
+      </change-needed>
+    </file>
+
+    <agent-files>
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/agents/pm/scope.py">
+        <description>Scope agent for phase management</description>
+        <change-needed>Configure structured output via tool_use/response_format</change-needed>
+      </file>
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/agents/pm/pulse.py">
+        <description>Pulse agent for health monitoring</description>
+        <change-needed>Configure structured output via tool_use/response_format</change-needed>
+      </file>
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/agents/pm/sage.py">
+        <description>Sage agent for estimation</description>
+        <change-needed>Configure structured output for estimation results</change-needed>
+      </file>
+      <file path="/home/chris/projects/work/Ai Bussiness Hub/agents/pm/chrono.py">
+        <description>Chrono agent for time tracking</description>
+        <change-needed>Configure structured output for velocity/time analysis</change-needed>
+      </file>
+    </agent-files>
+  </python-agent-analysis>
+
+  <nestjs-service-analysis>
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/phase.service.ts">
+      <description>
+        Phase service handles phase completion analysis. Currently uses TypeScript
+        interfaces but no runtime Zod validation.
+      </description>
+      <current-interfaces>
+        <interface name="PhaseCompletionAnalysis" lines="12-35">
+          Defines structure but not validated at runtime
+        </interface>
+      </current-interfaces>
+      <change-needed>
+        Add Zod schema for PhaseAnalysisResponseSchema that validates agent responses.
+        Replace any fallback patterns with explicit error throwing.
+      </change-needed>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/health.service.ts">
+      <description>
+        Health service calculates project health scores. Already uses Prisma enums
+        (HealthLevel, HealthTrend) but no Zod validation on incoming data.
+      </description>
+      <current-interfaces>
+        <interface name="HealthScore" lines="17-30">
+          Uses HealthLevel/HealthTrend from Prisma, good for alignment
+        </interface>
+        <interface name="RiskEntry" lines="32-39">
+          Risk entry structure for detected risks
+        </interface>
+      </current-interfaces>
+      <note>
+        This service calculates health internally (not from agent response). The Zod
+        schemas should validate responses FROM Python agents, not internal calculations.
+      </note>
+    </file>
+
+    <file path="/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/pm/agents/estimation.service.ts">
+      <description>
+        Estimation service handles Sage agent interactions. Has TypeScript interfaces
+        for SageEstimate but no runtime validation.
+      </description>
+      <current-interfaces>
+        <interface name="SageEstimate" lines="13-22">
+          <code><![CDATA[
+export interface SageEstimate {
+  storyPoints: number;
+  estimatedHours: number;
+  confidenceLevel: 'low' | 'medium' | 'high';
+  confidenceScore: number;
+  basis: string;
+  coldStart: boolean;
+  similarTasks?: string[];
+  complexityFactors: string[];
+}
+          ]]></code>
+        </interface>
+      </current-interfaces>
+      <change-needed>
+        Add Zod schema EstimationResponseSchema that validates agent responses
+        match the expected structure.
+      </change-needed>
+    </file>
+  </nestjs-service-analysis>
+
+  <existing-zod-patterns>
+    <description>
+      The codebase already uses Zod in several places. Follow these patterns.
+    </description>
+
+    <example path="/home/chris/projects/work/Ai Bussiness Hub/apps/api/src/ai-providers/dto/create-provider.dto.ts">
+      <code><![CDATA[
+import { z } from 'zod';
+
+export const providerTypes = [
+  'claude', 'openai', 'gemini', 'deepseek', 'openrouter',
+] as const;
+
+export const createProviderSchema = z.object({
+  provider: z.enum(providerTypes, {
+    errorMap: () => ({
+      message: `Provider must be one of: ${providerTypes.join(', ')}`,
+    }),
+  }),
+  apiKey: z
+    .string()
+    .min(1, { message: 'API key is required' })
+    .max(500, { message: 'API key is too long' }),
+  defaultModel: z
+    .string()
+    .min(1, { message: 'Default model is required' })
+    .max(100, { message: 'Model name is too long' }),
+  maxTokensPerDay: z
+    .number()
+    .int()
+    .min(1000)
+    .max(10_000_000)
+    .optional()
+    .default(100_000),
+});
+
+export type CreateProviderDto = z.infer<typeof createProviderSchema>;
+      ]]></code>
+    </example>
+    <pattern-notes>
+      - Use z.enum for string literal unions
+      - Use z.infer for TypeScript type extraction
+      - Add custom error messages where helpful
+      - Export both schema and inferred type
+    </pattern-notes>
+  </existing-zod-patterns>
+
+  <files-to-create>
+    <file path="agents/pm/tools/structured_outputs.py">
+      <purpose>Pydantic output models for all agent tools</purpose>
+      <models>
+        <model name="TaskAction" type="enum">complete, carry_over, cancel</model>
+        <model name="TaskRecommendation" type="model">task_id, action, reason</model>
+        <model name="PhaseAnalysisOutput" type="model">
+          completion_percentage (0-100), ready_for_transition, blocking_tasks[],
+          recommendations[], summary
+        </model>
+        <model name="HealthLevel" type="enum">EXCELLENT, GOOD, WARNING, CRITICAL</model>
+        <model name="HealthTrend" type="enum">IMPROVING, STABLE, DECLINING</model>
+        <model name="HealthInsightOutput" type="model">
+          score (0-100), level, trend, risk_summary, recommendations[]
+        </model>
+        <model name="EstimationOutput" type="model">
+          story_points (1-21), confidence (0-1), explanation, similar_task_ids[]
+        </model>
+        <model name="TimeAnalysisOutput" type="model">
+          total_logged_hours, remaining_estimate, velocity_trend, recommendations[]
+        </model>
+      </models>
+    </file>
+
+    <file path="apps/api/src/pm/agents/schemas/agent-responses.schema.ts">
+      <purpose>Zod schemas matching Python Pydantic models</purpose>
+      <schemas>
+        <schema name="TaskActionSchema">z.enum(['complete', 'carry_over', 'cancel'])</schema>
+        <schema name="TaskRecommendationSchema">z.object with task_id, action, reason</schema>
+        <schema name="PhaseAnalysisResponseSchema">matching PhaseAnalysisOutput</schema>
+        <schema name="HealthLevelSchema">z.enum for health levels</schema>
+        <schema name="HealthTrendSchema">z.enum for trends</schema>
+        <schema name="HealthInsightResponseSchema">matching HealthInsightOutput</schema>
+        <schema name="EstimationResponseSchema">matching EstimationOutput</schema>
+        <schema name="TimeAnalysisResponseSchema">matching TimeAnalysisOutput</schema>
+      </schemas>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="agents/pm/tools/phase_tools.py">
+      <changes>
+        - Import PhaseAnalysisOutput from structured_outputs
+        - Change return type from Dict[str, Any] to PhaseAnalysisOutput
+        - Remove fallback_data parameter usage
+        - Throw explicit errors on API failures
+      </changes>
+    </file>
+
+    <file path="agents/pm/tools/health_tools.py">
+      <changes>
+        - Import HealthInsightOutput from structured_outputs
+        - Change return type to HealthInsightOutput
+        - Remove fallback_data with hardcoded values
+        - Throw explicit errors instead
+      </changes>
+    </file>
+
+    <file path="agents/pm/tools/estimation_tools.py">
+      <changes>
+        - Import EstimationOutput from structured_outputs
+        - Change return type to EstimationOutput
+        - Remove hardcoded fallback estimates
+        - Throw explicit errors with context
+      </changes>
+    </file>
+
+    <file path="agents/pm/tools/time_tracking_tools.py">
+      <changes>
+        - Import TimeAnalysisOutput from structured_outputs
+        - Update get_velocity, get_velocity_trend return types
+        - Remove hardcoded zero fallbacks
+        - Throw explicit errors
+      </changes>
+    </file>
+
+    <file path="agents/pm/scope.py">
+      <changes>
+        - Add response_format configuration for tool_use
+        - May need to add structured output configuration
+      </changes>
+    </file>
+
+    <file path="agents/pm/pulse.py">
+      <changes>
+        - Add response_format configuration for tool_use
+      </changes>
+    </file>
+
+    <file path="agents/pm/sage.py">
+      <changes>
+        - Add response_format configuration for tool_use
+      </changes>
+    </file>
+
+    <file path="agents/pm/chrono.py">
+      <changes>
+        - Add response_format configuration for tool_use
+      </changes>
+    </file>
+
+    <file path="apps/api/src/pm/agents/phase.service.ts">
+      <changes>
+        - Import PhaseAnalysisResponseSchema from schemas/agent-responses.schema
+        - If receiving agent responses, validate with schema.parse()
+        - Replace any silent fallbacks with explicit error throwing
+      </changes>
+    </file>
+
+    <file path="apps/api/src/pm/agents/estimation.service.ts">
+      <changes>
+        - Import EstimationResponseSchema if validating agent responses
+        - Note: this service mostly calculates internally, may not need schema
+      </changes>
+    </file>
+  </files-to-modify>
+
+  <testing-requirements>
+    <python-tests path="agents/pm/tests/test_structured_outputs.py">
+      <test-cases>
+        <case name="test_valid_phase_analysis_output">Valid PhaseAnalysisOutput parsing</case>
+        <case name="test_percentage_bounds">completion_percentage 0-100 validation</case>
+        <case name="test_recommendation_action_validation">TaskAction enum validation</case>
+        <case name="test_valid_health_insight_output">Valid HealthInsightOutput parsing</case>
+        <case name="test_score_bounds">Health score 0-100 validation</case>
+        <case name="test_valid_estimation_output">Valid EstimationOutput parsing</case>
+        <case name="test_story_points_fibonacci">Story points 1-21 validation</case>
+      </test-cases>
+    </python-tests>
+
+    <nestjs-tests path="apps/api/src/pm/agents/__tests__/agent-responses.schema.spec.ts">
+      <test-cases>
+        <case name="should validate valid PhaseAnalysisResponse">Happy path</case>
+        <case name="should reject percentage greater than 100">Bounds check</case>
+        <case name="should reject invalid task action">Enum validation</case>
+        <case name="should validate valid HealthInsightResponse">Happy path</case>
+        <case name="should reject invalid health level enum">Enum validation</case>
+        <case name="should validate valid EstimationResponse">Happy path</case>
+      </test-cases>
+    </nestjs-tests>
+  </testing-requirements>
+
+  <alignment-notes>
+    <note type="naming-convention">
+      Use snake_case for field names in both Python and TypeScript schemas to match
+      JSON convention and Python standard. TypeScript can use camelCase internally
+      with transformation if needed.
+    </note>
+    <note type="enum-alignment">
+      HealthLevel and HealthTrend already exist in Prisma schema. Use those values
+      exactly (EXCELLENT, GOOD, WARNING, CRITICAL and IMPROVING, STABLE, DECLINING).
+    </note>
+    <note type="error-handling">
+      When validation fails, throw descriptive errors that include:
+      - Which field failed
+      - What the expected format was
+      - The actual value received (if safe to log)
+    </note>
+  </alignment-notes>
+
+  <definition-of-done>
+    <item>All 5 acceptance criteria met</item>
+    <item>Pydantic models created for all agent outputs in structured_outputs.py</item>
+    <item>Zod schemas created matching Pydantic models in agent-responses.schema.ts</item>
+    <item>No regex-based string parsing in NestJS services</item>
+    <item>No hardcoded fallback defaults (explicit errors instead)</item>
+    <item>Unit tests for Pydantic models passing</item>
+    <item>Unit tests for Zod schemas passing</item>
+    <item>TypeScript types complete for all schemas</item>
+    <item>No TypeScript errors (pnpm type-check passes)</item>
+    <item>Lint passing (pnpm lint passes)</item>
+  </definition-of-done>
+
+  <references>
+    <reference type="story">/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/stories/pm-12-2-agent-response-parsing.md</reference>
+    <reference type="retrospective">/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/retrospectives/pm-05-retrospective.md</reference>
+    <reference type="epic">/home/chris/projects/work/Ai Bussiness Hub/docs/modules/bm-pm/epics/epic-pm-12-consolidated-followups.md</reference>
+    <reference type="anthropic-docs">https://docs.anthropic.com/en/docs/build-with-claude/tool-use</reference>
+  </references>
+</story-context>

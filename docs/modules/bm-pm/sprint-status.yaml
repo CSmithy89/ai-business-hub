@@ -289,7 +289,7 @@ development_status:
   # ===========================================
   pm-12: contexted
   pm-12-1-agent-ui-components: done
-  pm-12-2-agent-response-parsing: backlog
+  pm-12-2-agent-response-parsing: done
   pm-12-3-notification-integration: backlog
   pm-12-4-integration-e2e-tests: backlog
   pm-12-5-python-agent-tests: backlog
