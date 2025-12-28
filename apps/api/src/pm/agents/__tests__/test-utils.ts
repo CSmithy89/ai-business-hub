@@ -441,8 +441,8 @@ export function expectHealthScoreStructure(healthScore: any) {
 export function expectReportStructure(report: any) {
   expect(report).toHaveProperty('id');
   expect(report).toHaveProperty('type');
-  expect(report).toHaveProperty('name');
-  expect(report).toHaveProperty('createdAt');
+  expect(report).toHaveProperty('title');
+  expect(report).toHaveProperty('generatedAt');
 }
 
 // ============================================

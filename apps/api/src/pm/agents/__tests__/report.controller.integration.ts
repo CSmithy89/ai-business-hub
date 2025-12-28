@@ -104,7 +104,7 @@ describe('ReportController (Integration)', () => {
       expect(result).toBeDefined();
       expect(result.report).toHaveProperty('id');
       expect(mockPrisma.report.create).toHaveBeenCalled();
-      expect(mockAgentClient.generateReport).toHaveBeenCalled();
+      // Note: ReportService generates reports internally, not via Python agent client
     });
 
     it('should generate HEALTH_REPORT', async () => {

@@ -12,6 +12,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../common/services/prisma.service';
+import { PMNotificationService } from '../../notifications/pm-notification.service';
 import { HealthService } from '../health.service';
 import { HealthLevel, HealthTrend, RiskSeverity } from '@prisma/client';
 import {
@@ -20,6 +21,14 @@ import {
   TestData,
   expectHealthScoreStructure,
 } from './test-utils';
+
+// Mock PMNotificationService
+const createMockPMNotificationService = () => ({
+  sendHealthAlert: jest.fn().mockResolvedValue(undefined),
+  sendRiskNotification: jest.fn().mockResolvedValue(undefined),
+  sendRiskResolvedNotification: jest.fn().mockResolvedValue(undefined),
+  sendReportNotification: jest.fn().mockResolvedValue(undefined),
+});
 
 describe('HealthController (Integration)', () => {
   let mockPrisma: ReturnType<typeof createMockPrisma>;
@@ -49,6 +58,10 @@ describe('HealthController (Integration)', () => {
           {
             provide: PrismaService,
             useValue: mockPrisma,
+          },
+          {
+            provide: PMNotificationService,
+            useValue: createMockPMNotificationService(),
           },
         ],
       }).compile();
@@ -192,6 +205,10 @@ describe('HealthController (Integration)', () => {
             provide: PrismaService,
             useValue: mockPrisma,
           },
+          {
+            provide: PMNotificationService,
+            useValue: createMockPMNotificationService(),
+          },
         ],
       }).compile();
 
@@ -257,6 +274,10 @@ describe('HealthController (Integration)', () => {
           {
             provide: PrismaService,
             useValue: mockPrisma,
+          },
+          {
+            provide: PMNotificationService,
+            useValue: createMockPMNotificationService(),
           },
         ],
       }).compile();
@@ -338,6 +359,10 @@ describe('HealthController (Integration)', () => {
           {
             provide: PrismaService,
             useValue: mockPrisma,
+          },
+          {
+            provide: PMNotificationService,
+            useValue: createMockPMNotificationService(),
           },
         ],
       }).compile();
@@ -422,6 +447,10 @@ describe('HealthController (Integration)', () => {
             provide: PrismaService,
             useValue: mockPrisma,
           },
+          {
+            provide: PMNotificationService,
+            useValue: createMockPMNotificationService(),
+          },
         ],
       }).compile();
 
@@ -471,6 +500,10 @@ describe('HealthController (Integration)', () => {
           {
             provide: PrismaService,
             useValue: mockPrisma,
+          },
+          {
+            provide: PMNotificationService,
+            useValue: createMockPMNotificationService(),
           },
         ],
       }).compile();
@@ -527,6 +560,10 @@ describe('HealthController (Integration)', () => {
           {
             provide: PrismaService,
             useValue: mockPrisma,
+          },
+          {
+            provide: PMNotificationService,
+            useValue: createMockPMNotificationService(),
           },
         ],
       }).compile();
@@ -609,6 +646,10 @@ describe('HealthController (Integration)', () => {
           {
             provide: PrismaService,
             useValue: mockPrisma,
+          },
+          {
+            provide: PMNotificationService,
+            useValue: createMockPMNotificationService(),
           },
         ],
       }).compile();

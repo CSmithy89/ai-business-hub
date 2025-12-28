@@ -149,6 +149,9 @@ export class HealthService {
       // Limit risks per check to prevent excessive DB writes
       const limitedRisks = risks.slice(0, HEALTH_CHECK_LIMITS.MAX_RISKS_PER_CHECK);
 
+      // Track which risks are actually new (for notifications after transaction)
+      let newRisksForNotification: RiskEntry[] = [];
+
       // 5. Store health score and risks in a transaction
       await this.prisma.$transaction(async (tx) => {
         // Create health score record
@@ -194,6 +197,9 @@ export class HealthService {
             (risk) => !existingTypes.has(risk.type),
           );
 
+          // Store for notifications after transaction completes
+          newRisksForNotification = newRisks;
+
           if (newRisks.length > 0) {
             await tx.riskEntry.createMany({
               data: newRisks.map((risk) => ({
@@ -229,7 +235,8 @@ export class HealthService {
         healthScore.level === HealthLevel.WARNING
       ) {
         // Only notify if this is a drop to CRITICAL/WARNING (check previous level)
-        const previousLevel = previousHealthScore?.score
+        // Note: Check previousHealthScore existence, not score value (score of 0 is valid)
+        const previousLevel = previousHealthScore !== null && previousHealthScore !== undefined
           ? this.scoreTolevel(previousHealthScore.score)
           : undefined;
 
@@ -266,9 +273,9 @@ export class HealthService {
         }
       }
 
-      // PM-12.3: Send risk notifications for new risks
-      if (limitedRisks.length > 0) {
-        for (const risk of limitedRisks) {
+      // PM-12.3: Send risk notifications for newly detected risks only
+      if (newRisksForNotification.length > 0) {
+        for (const risk of newRisksForNotification) {
           // Send notification asynchronously
           this.pmNotificationService
             .sendRiskNotification(

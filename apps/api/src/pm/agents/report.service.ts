@@ -203,7 +203,8 @@ export class ReportService {
       where: { id: projectId },
       select: {
         team: {
-          include: {
+          select: {
+            leadUserId: true,
             members: {
               where: { isActive: true },
               select: { userId: true },
@@ -219,7 +220,12 @@ export class ReportService {
 
     const recipients: string[] = [];
 
-    // Add team members
+    // Add project lead first (if present)
+    if (project.team?.leadUserId) {
+      recipients.push(project.team.leadUserId);
+    }
+
+    // Add team members (avoiding duplicates)
     if (project.team?.members) {
       for (const member of project.team.members) {
         if (!recipients.includes(member.userId)) {

@@ -376,9 +376,15 @@ export function useAgentChat(projectId: string, agentName: string) {
       .find((m) => m.role === 'user');
 
     if (lastUserMessage) {
-      // Remove error message
+      // Remove error message (ES2022 compatible - find last error index manually)
       setLocalMessages((prev) => {
-        const lastErrorIdx = prev.findLastIndex((m) => m.error);
+        let lastErrorIdx = -1;
+        for (let i = prev.length - 1; i >= 0; i--) {
+          if (prev[i].error) {
+            lastErrorIdx = i;
+            break;
+          }
+        }
         if (lastErrorIdx !== -1) {
           return [...prev.slice(0, lastErrorIdx), ...prev.slice(lastErrorIdx + 1)];
         }

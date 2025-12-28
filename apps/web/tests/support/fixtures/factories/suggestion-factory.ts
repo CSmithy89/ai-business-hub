@@ -18,7 +18,7 @@ type SuggestionData = {
   title?: string;
   description?: string;
   confidence?: number;
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
   expiresInHours?: number;
   agentName?: string;
 };

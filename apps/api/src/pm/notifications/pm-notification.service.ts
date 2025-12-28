@@ -47,6 +47,9 @@ export class PMNotificationService {
    */
   private loadEmailTemplates(): void {
     try {
+      // Register custom Handlebars helpers
+      Handlebars.registerHelper('lowercase', (str: string) => str?.toLowerCase() ?? '');
+
       const templateDir = path.join(__dirname, 'templates');
       const htmlPath = path.join(templateDir, 'critical-health-alert.hbs');
       const textPath = path.join(templateDir, 'critical-health-alert.text.hbs');
@@ -83,9 +86,12 @@ export class PMNotificationService {
     this.logger.log(`Sending health alert for project ${payload.projectId}`);
 
     try {
-      // Get project with team
-      const project = await this.prisma.project.findUnique({
-        where: { id: payload.projectId },
+      // Get project with team (scoped to workspace for tenant isolation)
+      const project = await this.prisma.project.findFirst({
+        where: {
+          id: payload.projectId,
+          workspaceId, // Enforce workspace scoping
+        },
         select: {
           id: true,
           name: true,
@@ -104,7 +110,7 @@ export class PMNotificationService {
       });
 
       if (!project) {
-        this.logger.warn(`Project ${payload.projectId} not found for health alert`);
+        this.logger.warn(`Project ${payload.projectId} not found in workspace ${workspaceId} for health alert`);
         return;
       }
 

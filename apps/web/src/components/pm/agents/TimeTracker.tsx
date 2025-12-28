@@ -21,7 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -473,14 +472,14 @@ export function TimeTracker({
                 <Play className="w-4 h-4" />
                 Start Timer
               </Button>
-              <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Log Manually
-                  </Button>
-                </DialogTrigger>
-              </Dialog>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setManualDialogOpen(true)}
+              >
+                <Plus className="w-4 h-4" />
+                Log Manually
+              </Button>
             </div>
           </div>
         )}

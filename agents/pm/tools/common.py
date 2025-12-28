@@ -302,10 +302,10 @@ def api_request_strict(
             message="Invalid response format from API",
             tool_name=endpoint,
         )
-    except Exception as e:
-        logger.error(
+    except Exception:
+        logger.exception(
             "Unexpected error in API call",
-            extra={"method": method.upper(), "endpoint": endpoint, "error_type": type(e).__name__}
+            extra={"method": method.upper(), "endpoint": endpoint}
         )
         raise AgentToolError(
             message="An unexpected error occurred",
@@ -398,7 +398,7 @@ def api_request(
             fallback_data=fallback_data,
         ).to_dict()
     except Exception:
-        logger.error(
+        logger.exception(
             "Unexpected error in API call",
             extra={"method": method.upper(), "endpoint": endpoint}
         )
