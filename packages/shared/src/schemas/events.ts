@@ -2,7 +2,7 @@
  * Zod schemas for event payload validation
  * Used for runtime validation of events in the consumer
  *
- * Uses Zod v4 top-level validators (e.g., z.iso.datetime() instead of z.string().datetime())
+ * Uses Zod string validators with datetime() for ISO timestamp validation
  */
 import { z } from 'zod';
 
@@ -14,7 +14,7 @@ export const BaseEventSchema = z.object({
   id: z.string().min(1, 'Event ID is required'),
   type: z.string().min(1, 'Event type is required'),
   source: z.string().min(1, 'Event source is required'),
-  timestamp: z.iso.datetime(),
+  timestamp: z.string().datetime(),
   correlationId: z.string().optional(),
   tenantId: z.string().min(1, 'Tenant ID is required'),
   userId: z.string().min(1, 'User ID is required'),
@@ -35,7 +35,7 @@ export const ApprovalRequestedPayloadSchema = z.object({
   confidenceScore: z.number().min(0).max(100),
   recommendation: z.enum(['approve', 'review', 'full_review']),
   assignedToId: z.string().optional(),
-  dueAt: z.iso.datetime(),
+  dueAt: z.string().datetime(),
   sourceModule: z.string().optional(),
   sourceId: z.string().optional(),
 });
@@ -57,15 +57,15 @@ export const ApprovalEscalatedPayloadSchema = z.object({
   escalatedFromId: z.string().optional(),
   escalatedToId: z.string().min(1, 'Escalated to ID is required'),
   reason: z.string().min(1, 'Reason is required'),
-  originalDueAt: z.iso.datetime(),
-  newDueAt: z.iso.datetime(),
+  originalDueAt: z.string().datetime(),
+  newDueAt: z.string().datetime(),
 });
 
 export const ApprovalExpiredPayloadSchema = z.object({
   approvalId: z.string().min(1, 'Approval ID is required'),
   type: z.string().min(1, 'Type is required'),
   title: z.string().min(1, 'Title is required'),
-  dueAt: z.iso.datetime(),
+  dueAt: z.string().datetime(),
   assignedToId: z.string().optional(),
 });
 
