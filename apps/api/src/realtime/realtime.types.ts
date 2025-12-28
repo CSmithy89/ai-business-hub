@@ -61,6 +61,11 @@ export interface ServerToClientEvents {
   'pm.presence.joined': (data: PresencePayload) => void;
   'pm.presence.left': (data: PresencePayload) => void;
   'pm.presence.updated': (data: PresencePayload) => void;
+
+  // PM Health and Risk events (PM-12.3)
+  'pm.health.critical': (data: PMHealthEventPayload) => void;
+  'pm.health.warning': (data: PMHealthEventPayload) => void;
+  'pm.risk.detected': (data: PMRiskEventPayload) => void;
 }
 
 /**
@@ -431,6 +436,34 @@ export interface PresencePayload {
 }
 
 // ============================================
+// PM Health and Risk Event Payloads (PM-12.3)
+// ============================================
+
+/**
+ * PM Health event payload for critical/warning alerts
+ */
+export interface PMHealthEventPayload {
+  projectId: string;
+  projectName: string;
+  score: number;
+  level: 'CRITICAL' | 'WARNING';
+  explanation: string;
+  timestamp: string;
+}
+
+/**
+ * PM Risk event payload for detected risks
+ */
+export interface PMRiskEventPayload {
+  projectId: string;
+  projectName: string;
+  riskId: string;
+  title: string;
+  severity: string;
+  timestamp: string;
+}
+
+// ============================================
 // WebSocket Event Names
 // ============================================
 
@@ -487,6 +520,11 @@ export const WS_EVENTS = {
   PM_PRESENCE_JOINED: 'pm.presence.joined',
   PM_PRESENCE_LEFT: 'pm.presence.left',
   PM_PRESENCE_UPDATED: 'pm.presence.updated',
+
+  // PM Health and Risk events (PM-12.3)
+  PM_HEALTH_CRITICAL: 'pm.health.critical',
+  PM_HEALTH_WARNING: 'pm.health.warning',
+  PM_RISK_DETECTED: 'pm.risk.detected',
 } as const;
 
 export type WsEventName = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];

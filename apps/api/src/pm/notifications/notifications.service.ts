@@ -250,6 +250,10 @@ export class NotificationsService {
       [PMNotificationType.DUE_DATE_REMINDER]: 'DueDateReminder',
       [PMNotificationType.AGENT_COMPLETION]: 'AgentCompletion',
       [PMNotificationType.HEALTH_ALERT]: 'HealthAlert',
+      // PM-12.3: Additional notification types (use HealthAlert preference for risk/report)
+      [PMNotificationType.RISK_DETECTED]: 'HealthAlert',
+      [PMNotificationType.RISK_RESOLVED]: 'HealthAlert',
+      [PMNotificationType.REPORT_GENERATED]: 'HealthAlert',
     };
 
     // Map channel to preference field prefix (PUSH not yet supported)

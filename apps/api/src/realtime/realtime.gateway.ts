@@ -36,6 +36,8 @@ import {
   PMProjectDeletedPayload,
   PMTeamChangePayload,
   PresencePayload,
+  PMHealthEventPayload,
+  PMRiskEventPayload,
   WS_EVENTS,
   getWorkspaceRoom,
   getUserRoom,
@@ -1088,6 +1090,53 @@ export class RealtimeGateway
       userId: presence.userId,
       page: presence.page,
       room,
+    });
+  }
+
+  // ============================================
+  // PM Health and Risk Broadcast Methods (PM-12.3)
+  // ============================================
+
+  /**
+   * Broadcast PM health critical event to workspace
+   */
+  broadcastPMHealthCritical(workspaceId: string, payload: PMHealthEventPayload): void {
+    this.emitToWorkspace(workspaceId, WS_EVENTS.PM_HEALTH_CRITICAL, payload);
+
+    this.logger.debug({
+      message: 'PM health critical event emitted',
+      workspaceId,
+      projectId: payload.projectId,
+      score: payload.score,
+    });
+  }
+
+  /**
+   * Broadcast PM health warning event to workspace
+   */
+  broadcastPMHealthWarning(workspaceId: string, payload: PMHealthEventPayload): void {
+    this.emitToWorkspace(workspaceId, WS_EVENTS.PM_HEALTH_WARNING, payload);
+
+    this.logger.debug({
+      message: 'PM health warning event emitted',
+      workspaceId,
+      projectId: payload.projectId,
+      score: payload.score,
+    });
+  }
+
+  /**
+   * Broadcast PM risk detected event to workspace
+   */
+  broadcastPMRiskDetected(workspaceId: string, payload: PMRiskEventPayload): void {
+    this.emitToWorkspace(workspaceId, WS_EVENTS.PM_RISK_DETECTED, payload);
+
+    this.logger.debug({
+      message: 'PM risk detected event emitted',
+      workspaceId,
+      projectId: payload.projectId,
+      riskId: payload.riskId,
+      severity: payload.severity,
     });
   }
 

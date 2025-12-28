@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { CommonModule } from '../../common/common.module';
 import { RealtimeModule } from '../../realtime/realtime.module';
 import { NotificationsService } from './notifications.service';
+import { PMNotificationService } from './pm-notification.service';
 import { NotificationPreferencesController } from './notification-preferences.controller';
 import { NotificationCenterController } from './notification-center.controller';
 import { DigestService } from './digest.service';
@@ -49,10 +50,11 @@ import { DigestProcessor } from './queues/digest.processor';
   ],
   providers: [
     NotificationsService,
+    PMNotificationService,
     DigestService,
     DigestSchedulerService,
     DigestProcessor,
   ],
-  exports: [NotificationsService, DigestService, DigestSchedulerService],
+  exports: [NotificationsService, PMNotificationService, DigestService, DigestSchedulerService],
 })
 export class NotificationsModule {}

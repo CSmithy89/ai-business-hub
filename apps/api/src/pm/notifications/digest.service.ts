@@ -34,6 +34,10 @@ export class DigestService {
     [PMNotificationType.DUE_DATE_REMINDER]: 3,
     [PMNotificationType.AGENT_COMPLETION]: 4,
     [PMNotificationType.HEALTH_ALERT]: 5,
+    // PM-12.3: Additional notification types
+    [PMNotificationType.RISK_DETECTED]: 6,
+    [PMNotificationType.RISK_RESOLVED]: 7,
+    [PMNotificationType.REPORT_GENERATED]: 8,
   };
 
   constructor(

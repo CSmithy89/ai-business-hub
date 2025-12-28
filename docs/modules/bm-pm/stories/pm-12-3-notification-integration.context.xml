@@ -1,0 +1,708 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: PM-12.3 - Notification Integration
+  Generated: 2025-12-28
+  Epic: PM-12 - Consolidated Follow-ups from PM-04/PM-05
+  Points: 5
+
+  This context file provides comprehensive implementation details for integrating
+  PM notifications into the existing notification infrastructure.
+-->
+<story-context>
+  <story-metadata>
+    <id>PM-12.3</id>
+    <title>Notification Integration</title>
+    <epic>PM-12 - Consolidated Follow-ups from PM-04/PM-05</epic>
+    <status>ready-for-dev</status>
+    <points>5</points>
+    <story-file>docs/modules/bm-pm/stories/pm-12-3-notification-integration.md</story-file>
+  </story-metadata>
+
+  <summary>
+    This story integrates health alerts, risk notifications, and report notifications
+    from the Pulse agent (HealthService) and Herald agent (ReportService) into the
+    existing PM notification infrastructure. The existing NotificationsService already
+    handles in-app notifications with WebSocket broadcasts and user preferences. This
+    story extends it with:
+    1. Health critical/warning notifications when health score drops
+    2. Risk detected/resolved notifications to affected users
+    3. Report generation notifications to recipients
+    4. Critical health email alerts using Handlebars templates
+    5. New WebSocket events for real-time health/risk updates
+  </summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1" title="Health Critical/Warning Notifications">
+      <description>
+        When Pulse agent detects health score drop below threshold and health level
+        changes to CRITICAL or WARNING, system sends in-app notifications to:
+        - Project lead (always)
+        - Team members (for CRITICAL only)
+        Notification includes: project name, health score, health level, explanation
+        Priority: HIGH for CRITICAL, MEDIUM for WARNING
+      </description>
+    </criterion>
+
+    <criterion id="AC2" title="Risk Detected Notifications">
+      <description>
+        When Pulse agent identifies a new risk with status IDENTIFIED, system sends
+        in-app notification to all affected users (from risk.affectedUsers).
+        Notification includes: risk title, severity, description, affected task count
+        Priority: HIGH for CRITICAL/HIGH severity, MEDIUM for others
+      </description>
+    </criterion>
+
+    <criterion id="AC3" title="Risk Resolved Notifications">
+      <description>
+        When risk status changes to RESOLVED, system sends in-app notification to
+        user who acknowledged the risk (if different from resolver).
+        Priority: LOW
+        Notification includes: risk title, resolved by, resolution timestamp
+      </description>
+    </criterion>
+
+    <criterion id="AC4" title="Report Generation Notifications">
+      <description>
+        When Herald agent generates a scheduled or on-demand report, system sends
+        in-app notification to scheduled recipients or requesting user.
+        Notification includes: report type, project name, download link
+        Priority: MEDIUM
+      </description>
+    </criterion>
+
+    <criterion id="AC5" title="Critical Health Email Alerts">
+      <description>
+        When health level drops to CRITICAL, system sends email to project lead with:
+        - Subject: "[CRITICAL] Project Health Alert: {project_name}"
+        - Body: Health score, explanation, link to project, top risks
+        Email respects user notification preferences (emailHealthAlert)
+      </description>
+    </criterion>
+
+    <criterion id="AC6" title="User Preference Respect">
+      <description>
+        All notifications respect user preferences:
+        - In-app notification toggle (inAppHealthAlert)
+        - Email notification toggle (emailHealthAlert)
+        - Quiet hours (skip non-CRITICAL during configured hours)
+      </description>
+    </criterion>
+
+    <criterion id="AC7" title="Real-Time WebSocket Broadcast">
+      <description>
+        When health alert or risk notification is created, system broadcasts via WebSocket:
+        - Event `pm.health.critical` for critical alerts
+        - Event `pm.health.warning` for warning alerts
+        - Event `pm.risk.detected` for new risks
+        Scoped to workspace room (not project room since team may not be subscribed)
+      </description>
+    </criterion>
+  </acceptance-criteria>
+
+  <architecture>
+    <overview>
+      The implementation uses the existing NotificationsService as the core engine
+      for creating and broadcasting notifications. A new PMNotificationService acts
+      as a thin facade that provides PM-specific helper methods while delegating
+      actual notification creation to NotificationsService. This approach:
+      1. Reuses existing preference checking, quiet hours, WebSocket broadcasting
+      2. Avoids duplication of notification creation logic
+      3. Maintains consistency with existing notification patterns
+    </overview>
+
+    <file-structure>
+      <directory path="apps/api/src/pm/notifications/">
+        <file name="notifications.service.ts" action="modify">
+          Add new PM notification types to the type-to-severity mapping
+        </file>
+        <file name="pm-notification.service.ts" action="create">
+          PM-specific notification facade with helper methods for health/risk/report
+        </file>
+        <file name="pm-notification.types.ts" action="create">
+          Type definitions for PM notification payloads
+        </file>
+        <file name="notifications.module.ts" action="modify">
+          Register PMNotificationService provider and export it
+        </file>
+        <file name="templates/critical-health-alert.hbs" action="create">
+          HTML email template for critical health alerts
+        </file>
+        <file name="templates/critical-health-alert.text.hbs" action="create">
+          Plain text email template for critical health alerts
+        </file>
+      </directory>
+
+      <directory path="apps/api/src/pm/agents/">
+        <file name="health.service.ts" action="modify">
+          Inject PMNotificationService and call sendHealthAlert after score drops
+        </file>
+        <file name="health.cron.ts" action="no-change">
+          No changes needed - notifications triggered from HealthService
+        </file>
+        <file name="report.service.ts" action="modify">
+          Inject PMNotificationService and call sendReportNotification
+        </file>
+        <file name="agents.module.ts" action="modify">
+          Import NotificationsModule to make PMNotificationService available
+        </file>
+      </directory>
+
+      <directory path="apps/api/src/realtime/">
+        <file name="realtime.types.ts" action="modify">
+          Add PM health and risk event types and payloads
+        </file>
+        <file name="realtime.gateway.ts" action="modify">
+          Add broadcast methods for health and risk events
+        </file>
+      </directory>
+
+      <directory path="packages/shared/src/types/">
+        <file name="notifications.ts" action="modify">
+          Add new PMNotificationType values for health/risk/report
+        </file>
+      </directory>
+    </file-structure>
+  </architecture>
+
+  <existing-code-patterns>
+    <pattern name="NotificationsService.createNotification">
+      <description>
+        Core method for creating notifications. Saves to database, broadcasts via WebSocket,
+        and returns NotificationDto. This is the method PMNotificationService should delegate to.
+      </description>
+      <location>apps/api/src/pm/notifications/notifications.service.ts</location>
+      <signature><![CDATA[
+async createNotification(data: {
+  userId: string;
+  workspaceId: string;
+  type: string;
+  title: string;
+  message?: string;
+  link?: string;
+  data?: Record<string, unknown>;
+}): Promise<NotificationDto>
+      ]]></signature>
+    </pattern>
+
+    <pattern name="NotificationsService.shouldSendNotification">
+      <description>
+        Checks user preferences before sending. Handles quiet hours for non-HEALTH_ALERT types.
+        Returns boolean indicating if notification should be sent.
+      </description>
+      <location>apps/api/src/pm/notifications/notifications.service.ts</location>
+      <signature><![CDATA[
+async shouldSendNotification(
+  userId: string,
+  notificationType: PMNotificationType,
+  channel: NotificationChannel
+): Promise<boolean>
+      ]]></signature>
+    </pattern>
+
+    <pattern name="RealtimeGateway.emitToWorkspace">
+      <description>
+        Broadcasts event to all clients in a workspace room. Generic method used
+        by existing broadcast helpers.
+      </description>
+      <location>apps/api/src/realtime/realtime.gateway.ts</location>
+      <signature><![CDATA[
+emitToWorkspace<K extends keyof ServerToClientEvents>(
+  workspaceId: string,
+  event: K,
+  data: Parameters<ServerToClientEvents[K]>[0],
+): void
+      ]]></signature>
+    </pattern>
+
+    <pattern name="EmailService.sendEmail">
+      <description>
+        Sends email via Resend. Used by DigestService for digest emails.
+        Returns { id?: string, success: boolean }.
+      </description>
+      <location>apps/api/src/common/services/email.service.ts</location>
+      <signature><![CDATA[
+async sendEmail(options: {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  from?: string;
+}): Promise<{ id?: string; success: boolean }>
+      ]]></signature>
+    </pattern>
+
+    <pattern name="HealthService.runHealthCheck">
+      <description>
+        Main health check entry point. Calculates health score, detects risks,
+        saves to database. This is where notifications should be triggered.
+      </description>
+      <location>apps/api/src/pm/agents/health.service.ts</location>
+      <key-integration-point>
+        After line 220 (after transaction completes), compare with previous health level
+        and trigger notification if health degraded to CRITICAL or WARNING.
+      </key-integration-point>
+    </pattern>
+
+    <pattern name="ReportService.generateReport">
+      <description>
+        Generates reports for projects. After report is created, should trigger
+        notification to recipients.
+      </description>
+      <location>apps/api/src/pm/agents/report.service.ts</location>
+      <key-integration-point>
+        After line 168 (after report created), call notification service with
+        the requesting user as recipient.
+      </key-integration-point>
+    </pattern>
+  </existing-code-patterns>
+
+  <type-definitions>
+    <existing-types>
+      <type name="HealthScore" location="apps/api/src/pm/agents/health.service.ts">
+        <![CDATA[
+interface HealthScore {
+  score: number; // 0-100
+  level: HealthLevel;
+  trend: HealthTrend;
+  factors: {
+    onTimeDelivery: number;
+    blockerImpact: number;
+    teamCapacity: number;
+    velocityTrend: number;
+  };
+  riskCount: number;
+  explanation: string;
+  suggestions: string[];
+}
+        ]]>
+      </type>
+
+      <type name="RiskEntry" location="apps/api/src/pm/agents/health.service.ts">
+        <![CDATA[
+interface RiskEntry {
+  type: string;
+  severity: RiskSeverity;
+  title: string;
+  description: string;
+  affectedTasks: string[];
+  affectedUsers: string[];
+}
+        ]]>
+      </type>
+
+      <type name="PMNotificationType" location="packages/shared/src/types/notifications.ts">
+        <![CDATA[
+enum PMNotificationType {
+  TASK_ASSIGNED = 'task.assigned',
+  TASK_MENTIONED = 'task.mentioned',
+  DUE_DATE_REMINDER = 'task.due_date_reminder',
+  AGENT_COMPLETION = 'agent.task_completed',
+  HEALTH_ALERT = 'project.health_alert',
+}
+        ]]>
+        <note>
+          Need to add RISK_DETECTED, RISK_RESOLVED, REPORT_GENERATED types
+        </note>
+      </type>
+
+      <type name="HealthLevel" location="@prisma/client">
+        <![CDATA[
+enum HealthLevel {
+  CRITICAL
+  WARNING
+  GOOD
+  EXCELLENT
+}
+        ]]>
+      </type>
+    </existing-types>
+
+    <new-types>
+      <type name="HealthAlertPayload">
+        <![CDATA[
+interface HealthAlertPayload {
+  projectId: string;
+  projectName: string;
+  score: number;
+  level: HealthLevel;
+  previousLevel?: HealthLevel;
+  explanation: string;
+  topRisks?: Array<{
+    title: string;
+    severity: RiskSeverity;
+  }>;
+}
+        ]]>
+      </type>
+
+      <type name="RiskNotificationPayload">
+        <![CDATA[
+interface RiskNotificationPayload {
+  projectId: string;
+  projectName: string;
+  riskId: string;
+  title: string;
+  severity: RiskSeverity;
+  description: string;
+  affectedTaskCount: number;
+}
+        ]]>
+      </type>
+
+      <type name="ReportNotificationPayload">
+        <![CDATA[
+interface ReportNotificationPayload {
+  projectId: string;
+  projectName: string;
+  reportId: string;
+  reportType: string;
+  reportTitle: string;
+  downloadUrl?: string;
+}
+        ]]>
+      </type>
+    </new-types>
+  </type-definitions>
+
+  <websocket-events>
+    <existing-events>
+      <event name="notification.new" room="user:{userId}">
+        Used for in-app notifications - already handled by NotificationsService
+      </event>
+      <event name="pm.presence.updated" room="project:{projectId}">
+        Presence updates - shows pattern for project-scoped events
+      </event>
+    </existing-events>
+
+    <new-events>
+      <event name="pm.health.critical" room="workspace:{workspaceId}">
+        <description>Broadcast when project health drops to CRITICAL</description>
+        <payload>
+          <![CDATA[
+{
+  projectId: string;
+  projectName: string;
+  score: number;
+  level: 'CRITICAL';
+  explanation: string;
+  timestamp: string;
+}
+          ]]>
+        </payload>
+      </event>
+
+      <event name="pm.health.warning" room="workspace:{workspaceId}">
+        <description>Broadcast when project health drops to WARNING</description>
+        <payload>
+          <![CDATA[
+{
+  projectId: string;
+  projectName: string;
+  score: number;
+  level: 'WARNING';
+  explanation: string;
+  timestamp: string;
+}
+          ]]>
+        </payload>
+      </event>
+
+      <event name="pm.risk.detected" room="workspace:{workspaceId}">
+        <description>Broadcast when new risk is identified</description>
+        <payload>
+          <![CDATA[
+{
+  projectId: string;
+  projectName: string;
+  riskId: string;
+  title: string;
+  severity: RiskSeverity;
+  timestamp: string;
+}
+          ]]>
+        </payload>
+      </event>
+    </new-events>
+  </websocket-events>
+
+  <email-template>
+    <template name="critical-health-alert.hbs">
+      <description>
+        HTML email template for critical health alerts. Follows the same
+        styling pattern as digest-email.hbs with red/warning colors.
+      </description>
+      <data-model>
+        <![CDATA[
+{
+  userName: string;
+  projectName: string;
+  projectUrl: string;
+  healthScore: number;
+  healthLevel: 'CRITICAL';
+  explanation: string;
+  topRisks: Array<{ title: string; severity: string }>;
+  managePreferencesUrl: string;
+}
+        ]]>
+      </data-model>
+    </template>
+  </email-template>
+
+  <implementation-guide>
+    <step order="1" title="Extend PMNotificationType enum">
+      <file>packages/shared/src/types/notifications.ts</file>
+      <description>
+        Add RISK_DETECTED, RISK_RESOLVED, REPORT_GENERATED to enum
+      </description>
+      <code><![CDATA[
+export enum PMNotificationType {
+  TASK_ASSIGNED = 'task.assigned',
+  TASK_MENTIONED = 'task.mentioned',
+  DUE_DATE_REMINDER = 'task.due_date_reminder',
+  AGENT_COMPLETION = 'agent.task_completed',
+  HEALTH_ALERT = 'project.health_alert',
+  // New types for PM-12.3
+  RISK_DETECTED = 'project.risk_detected',
+  RISK_RESOLVED = 'project.risk_resolved',
+  REPORT_GENERATED = 'project.report_generated',
+}
+      ]]></code>
+    </step>
+
+    <step order="2" title="Add WebSocket event types">
+      <file>apps/api/src/realtime/realtime.types.ts</file>
+      <description>
+        Add PM health and risk event definitions to ServerToClientEvents and WS_EVENTS
+      </description>
+      <code><![CDATA[
+// Add to ServerToClientEvents interface:
+'pm.health.critical': (data: PMHealthEventPayload) => void;
+'pm.health.warning': (data: PMHealthEventPayload) => void;
+'pm.risk.detected': (data: PMRiskEventPayload) => void;
+
+// Add PMHealthEventPayload type:
+export interface PMHealthEventPayload {
+  projectId: string;
+  projectName: string;
+  score: number;
+  level: 'CRITICAL' | 'WARNING';
+  explanation: string;
+  timestamp: string;
+}
+
+// Add PMRiskEventPayload type:
+export interface PMRiskEventPayload {
+  projectId: string;
+  projectName: string;
+  riskId: string;
+  title: string;
+  severity: string;
+  timestamp: string;
+}
+
+// Add to WS_EVENTS:
+PM_HEALTH_CRITICAL: 'pm.health.critical',
+PM_HEALTH_WARNING: 'pm.health.warning',
+PM_RISK_DETECTED: 'pm.risk.detected',
+      ]]></code>
+    </step>
+
+    <step order="3" title="Add WebSocket broadcast methods">
+      <file>apps/api/src/realtime/realtime.gateway.ts</file>
+      <description>
+        Add broadcast methods for health and risk events
+      </description>
+      <code><![CDATA[
+/**
+ * Broadcast PM health critical event to workspace
+ */
+broadcastPMHealthCritical(workspaceId: string, payload: PMHealthEventPayload): void {
+  this.emitToWorkspace(workspaceId, WS_EVENTS.PM_HEALTH_CRITICAL, payload);
+}
+
+/**
+ * Broadcast PM health warning event to workspace
+ */
+broadcastPMHealthWarning(workspaceId: string, payload: PMHealthEventPayload): void {
+  this.emitToWorkspace(workspaceId, WS_EVENTS.PM_HEALTH_WARNING, payload);
+}
+
+/**
+ * Broadcast PM risk detected event to workspace
+ */
+broadcastPMRiskDetected(workspaceId: string, payload: PMRiskEventPayload): void {
+  this.emitToWorkspace(workspaceId, WS_EVENTS.PM_RISK_DETECTED, payload);
+}
+      ]]></code>
+    </step>
+
+    <step order="4" title="Create PMNotificationService">
+      <file>apps/api/src/pm/notifications/pm-notification.service.ts</file>
+      <description>
+        Create facade service for PM-specific notifications
+      </description>
+      <key-methods>
+        <method name="sendHealthAlert">
+          Get project with team, determine recipients based on level,
+          check preferences, create notifications, send email for CRITICAL
+        </method>
+        <method name="sendRiskNotification">
+          Notify affected users about new risk
+        </method>
+        <method name="sendRiskResolvedNotification">
+          Notify acknowledger when risk is resolved by different user
+        </method>
+        <method name="sendReportNotification">
+          Notify recipients when report is generated
+        </method>
+      </key-methods>
+    </step>
+
+    <step order="5" title="Create email templates">
+      <file>apps/api/src/pm/notifications/templates/critical-health-alert.hbs</file>
+      <file>apps/api/src/pm/notifications/templates/critical-health-alert.text.hbs</file>
+      <description>
+        Create Handlebars templates following digest-email.hbs pattern
+      </description>
+    </step>
+
+    <step order="6" title="Update NotificationsModule">
+      <file>apps/api/src/pm/notifications/notifications.module.ts</file>
+      <description>
+        Register PMNotificationService as provider and add to exports
+      </description>
+    </step>
+
+    <step order="7" title="Update AgentsModule">
+      <file>apps/api/src/pm/agents/agents.module.ts</file>
+      <description>
+        Import NotificationsModule to make PMNotificationService available
+      </description>
+    </step>
+
+    <step order="8" title="Integrate into HealthService">
+      <file>apps/api/src/pm/agents/health.service.ts</file>
+      <description>
+        Inject PMNotificationService, add previous health level comparison,
+        trigger notifications on health degradation
+      </description>
+      <integration-point>
+        After runHealthCheck transaction completes, check if:
+        1. Previous level was GOOD/EXCELLENT and new level is WARNING/CRITICAL
+        2. Previous level was WARNING and new level is CRITICAL
+        If so, call pmNotifications.sendHealthAlert()
+      </integration-point>
+    </step>
+
+    <step order="9" title="Integrate into ReportService">
+      <file>apps/api/src/pm/agents/report.service.ts</file>
+      <description>
+        Inject PMNotificationService, call sendReportNotification after
+        report is created with userId as recipient
+      </description>
+    </step>
+
+    <step order="10" title="Write unit tests">
+      <file>apps/api/src/pm/notifications/__tests__/pm-notification.service.spec.ts</file>
+      <description>
+        Test all notification scenarios:
+        - Health alert recipients based on level
+        - Risk notification to affected users
+        - User preference checks
+        - Quiet hours bypass for CRITICAL
+        - Email sent only for CRITICAL health
+        - WebSocket events broadcast correctly
+      </description>
+    </step>
+  </implementation-guide>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-file>apps/api/src/pm/notifications/__tests__/pm-notification.service.spec.ts</test-file>
+      <test-cases>
+        <case>Health alert sends to project lead for WARNING</case>
+        <case>Health alert sends to all team for CRITICAL</case>
+        <case>Risk notification sent to all affected users</case>
+        <case>Risk resolved notification sent to acknowledger (not resolver)</case>
+        <case>Report notification sent to all recipients</case>
+        <case>User preferences respected (disabled = no notification)</case>
+        <case>Quiet hours blocks non-CRITICAL notifications</case>
+        <case>CRITICAL health bypasses quiet hours</case>
+        <case>Email only sent for CRITICAL health</case>
+        <case>WebSocket events use correct event names</case>
+        <case>WebSocket broadcasts to workspace room</case>
+      </test-cases>
+    </unit-tests>
+
+    <integration-tests>
+      <test-file>apps/api/src/pm/notifications/__tests__/pm-notification.integration.ts</test-file>
+      <test-cases>
+        <case>Health cron triggers notification on score drop</case>
+        <case>Risk creation in transaction triggers notification</case>
+        <case>Report generation triggers notification to requester</case>
+        <case>Email service called with correct template data</case>
+      </test-cases>
+    </integration-tests>
+  </testing-requirements>
+
+  <dependencies>
+    <dependency type="service">NotificationsService - core notification creation</dependency>
+    <dependency type="service">RealtimeGateway - WebSocket broadcasting</dependency>
+    <dependency type="service">EmailService - email sending via Resend</dependency>
+    <dependency type="service">PrismaService - database access</dependency>
+    <dependency type="module">CommonModule - shared services</dependency>
+    <dependency type="module">RealtimeModule - WebSocket gateway</dependency>
+    <dependency type="library">Handlebars - email template rendering</dependency>
+  </dependencies>
+
+  <key-files>
+    <file path="apps/api/src/pm/notifications/notifications.service.ts" importance="high">
+      Core notification service - use createNotification and shouldSendNotification
+    </file>
+    <file path="apps/api/src/pm/agents/health.service.ts" importance="high">
+      HealthService - integrate notifications after runHealthCheck
+    </file>
+    <file path="apps/api/src/pm/agents/report.service.ts" importance="medium">
+      ReportService - integrate notifications after generateReport
+    </file>
+    <file path="apps/api/src/realtime/realtime.gateway.ts" importance="high">
+      WebSocket gateway - add health/risk broadcast methods
+    </file>
+    <file path="apps/api/src/realtime/realtime.types.ts" importance="high">
+      WebSocket types - add new event definitions
+    </file>
+    <file path="apps/api/src/common/services/email.service.ts" importance="medium">
+      Email service - use sendEmail for critical alerts
+    </file>
+    <file path="apps/api/src/pm/notifications/templates/digest-email.hbs" importance="low">
+      Reference for email template styling
+    </file>
+    <file path="packages/shared/src/types/notifications.ts" importance="medium">
+      Shared notification types - extend PMNotificationType
+    </file>
+  </key-files>
+
+  <notes>
+    <note type="pattern">
+      The existing NotificationsService already handles in-app notifications with
+      WebSocket broadcast. PMNotificationService should be a thin wrapper that
+      provides PM-specific convenience methods while delegating to NotificationsService.
+    </note>
+    <note type="pattern">
+      The HealthService already fetches previous health score for trend calculation.
+      Use this to detect health degradation - compare previous level to new level.
+    </note>
+    <note type="security">
+      Risk notifications should only go to affected users (from risk.affectedUsers).
+      Do not broadcast sensitive risk details to entire workspace.
+    </note>
+    <note type="performance">
+      Use Promise.all for creating multiple notifications but ensure database
+      transaction is complete before sending WebSocket broadcasts.
+    </note>
+    <note type="preference">
+      HEALTH_ALERT (CRITICAL) should bypass quiet hours check - this is already
+      implemented in shouldSendNotification.
+    </note>
+  </notes>
+</story-context>
