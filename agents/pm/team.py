@@ -7,7 +7,7 @@ coordinated by Navi as team leader.
 
 Team Structure:
 - Leader: Navi (PM Orchestration Assistant)
-- Members: Sage (Estimation), Chrono (Time Tracking), Scope (Phase Management), Pulse (Health Monitoring), Herald (Reporting), Prism (Predictive Analytics)
+- Members: Oracle (Estimation), Chrono (Time Tracking), Scope (Phase Management), Vitals (Health Monitoring), Herald (Reporting), Prism (Predictive Analytics)
 
 Usage:
     from agents.pm.team import create_pm_team
@@ -30,10 +30,10 @@ from agno.storage.postgres import PostgresStorage
 from agno.memory import Memory
 
 from .navi import create_navi_agent
-from .sage import create_sage_agent
+from .oracle import create_oracle_agent
 from .chrono import create_chrono_agent
 from .scope import create_scope_agent
-from .pulse import create_pulse_agent
+from .vitals import create_vitals_agent
 from .herald import create_herald_agent
 from .prism import create_prism_agent
 
@@ -135,8 +135,8 @@ def create_pm_team(
         model=model,
     )
 
-    # Create Sage agent (estimation specialist)
-    sage = create_sage_agent(
+    # Create Oracle agent (estimation specialist)
+    oracle = create_oracle_agent(
         workspace_id=workspace_id,
         project_id=project_id,
         shared_memory=shared_memory,
@@ -159,8 +159,8 @@ def create_pm_team(
         model=model,
     )
 
-    # Create Pulse agent (health monitoring specialist)
-    pulse = create_pulse_agent(
+    # Create Vitals agent (health monitoring specialist)
+    vitals = create_vitals_agent(
         workspace_id=workspace_id,
         project_id=project_id,
         shared_memory=shared_memory,
@@ -189,7 +189,7 @@ def create_pm_team(
         mode="coordinate",  # Leader coordinates member agents
         model=Claude(id=model or "claude-sonnet-4-20250514"),
         leader=navi,
-        members=[sage, chrono, scope, pulse, herald, prism],  # Full PM team: Sage + Chrono + Scope + Pulse + Herald + Prism
+        members=[oracle, chrono, scope, vitals, herald, prism],  # Full PM team: Oracle + Chrono + Scope + Vitals + Herald + Prism
         # Leader delegates to specific members, not all at once
         delegate_task_to_all_members=False,
         # Leader responds directly after synthesis
@@ -213,7 +213,7 @@ def create_pm_team(
             "Always suggest actions, never auto-execute (suggestion_mode: True).",
             "Use Knowledge Base search for context when appropriate (kb_rag_enabled: True).",
             "Scope handles phase management, transitions, and checkpoint tracking.",
-            "Pulse monitors project health and detects risks proactively.",
+            "Vitals monitors project health and detects risks proactively.",
             "Herald generates automated reports for project status, health, and progress.",
             "Prism provides predictive analytics and completion forecasts based on velocity trends.",
         ],

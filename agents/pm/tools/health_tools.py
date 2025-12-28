@@ -1,21 +1,44 @@
 """
-Health Monitoring Tools for Pulse Agent
+Health Monitoring Tools for Vitals Agent
 AI Business Hub - Project Management Module
 
 Tools for detecting risks, calculating health scores, and monitoring project health.
+Uses structured Pydantic output models for type-safe responses.
 """
 
-from agno import tool
-from typing import Dict, Any
+import logging
+from typing import Union
 
-from .common import api_request
+from agno import tool
+
+from .common import api_request, api_request_strict, AgentToolError
+from .structured_outputs import (
+    HealthInsightOutput,
+    HealthScoreFactors,
+    HealthLevel,
+    HealthTrend,
+    RiskDetectionOutput,
+    RiskEntry,
+    TeamCapacityOutput,
+    TeamCapacityMember,
+    VelocityAnalysisOutput,
+    VelocityTrend,
+    BlockerChainsOutput,
+    BlockerChain,
+    OverdueTasksOutput,
+    OverdueTask,
+    DueSoonTask,
+    AgentErrorOutput,
+)
+
+logger = logging.getLogger(__name__)
 
 
 @tool
 def detect_risks(
     workspace_id: str,
     project_id: str
-) -> Dict[str, Any]:
+) -> Union[RiskDetectionOutput, AgentErrorOutput]:
     """
     Detect all types of project risks.
 
@@ -30,36 +53,40 @@ def detect_risks(
         project_id: Project to analyze
 
     Returns:
-        Dict with detected risks:
-        {
-            "risks": [
-                {
-                    "type": "deadline_warning" | "blocker_chain" | "capacity_overload" | "velocity_drop",
-                    "severity": "info" | "warning" | "critical",
-                    "title": str,
-                    "description": str,
-                    "affectedTasks": [str],
-                    "affectedUsers": [str]
-                }
-            ]
-        }
+        RiskDetectionOutput with detected risks:
+        - risks: List of RiskEntry containing:
+          - type: "deadline_warning" | "blocker_chain" | "capacity_overload" | "velocity_drop"
+          - severity: "info" | "warning" | "critical"
+          - title: Risk title
+          - description: Detailed description
+          - affected_tasks: List of affected task IDs
+          - affected_users: List of affected user IDs
 
     Raises:
-        httpx.HTTPStatusError: If API request fails
+        AgentToolError: If API request fails
     """
-    return api_request(
-        "POST",
-        f"/api/pm/agents/health/{project_id}/detect-risks",
-        workspace_id,
-        fallback_data={"risks": []},
-    )
+    try:
+        return api_request_strict(
+            "POST",
+            f"/api/pm/agents/health/{project_id}/detect-risks",
+            workspace_id,
+            RiskDetectionOutput,
+        )
+    except AgentToolError as e:
+        logger.error(f"detect_risks failed: {e.message}")
+        return AgentErrorOutput(
+            error="RISK_DETECTION_FAILED",
+            message=e.message,
+            status_code=e.status_code,
+            recoverable=True,
+        )
 
 
 @tool
 def calculate_health_score(
     workspace_id: str,
     project_id: str
-) -> Dict[str, Any]:
+) -> Union[HealthInsightOutput, AgentErrorOutput]:
     """
     Calculate project health score (0-100).
 
@@ -80,41 +107,39 @@ def calculate_health_score(
         project_id: Project to analyze
 
     Returns:
-        Dict with health score:
-        {
-            "score": int (0-100),
-            "level": "excellent" | "good" | "warning" | "critical",
-            "trend": "improving" | "stable" | "declining",
-            "factors": {
-                "onTimeDelivery": float (0-1),
-                "blockerImpact": float (0-1),
-                "teamCapacity": float (0-1),
-                "velocityTrend": float (0-1)
-            },
-            "explanation": str,
-            "suggestions": [str]
-        }
+        HealthInsightOutput with health analysis:
+        - score: int (0-100)
+        - level: EXCELLENT | GOOD | WARNING | CRITICAL
+        - trend: IMPROVING | STABLE | DECLINING
+        - factors: HealthScoreFactors breakdown
+        - explanation: Human-readable explanation
+        - suggestions: List of improvement suggestions
 
     Raises:
-        httpx.HTTPStatusError: If API request fails
+        AgentToolError: If API request fails
     """
-    return api_request(
-        "POST",
-        f"/api/pm/agents/health/{project_id}/calculate-score",
-        workspace_id,
-        fallback_data={
-            "score": 50,
-            "level": "warning",
-            "trend": "stable",
-        },
-    )
+    try:
+        return api_request_strict(
+            "POST",
+            f"/api/pm/agents/health/{project_id}/calculate-score",
+            workspace_id,
+            HealthInsightOutput,
+        )
+    except AgentToolError as e:
+        logger.error(f"calculate_health_score failed: {e.message}")
+        return AgentErrorOutput(
+            error="HEALTH_SCORE_FAILED",
+            message=e.message,
+            status_code=e.status_code,
+            recoverable=True,
+        )
 
 
 @tool
 def check_team_capacity(
     workspace_id: str,
     project_id: str
-) -> Dict[str, Any]:
+) -> Union[TeamCapacityOutput, AgentErrorOutput]:
     """
     Check if any team members are overloaded.
 
@@ -125,39 +150,40 @@ def check_team_capacity(
         project_id: Project to analyze
 
     Returns:
-        Dict with capacity info:
-        {
-            "overloadedMembers": [
-                {
-                    "userId": str,
-                    "userName": str,
-                    "assignedHours": float,
-                    "threshold": 40,
-                    "overloadPercent": float
-                }
-            ],
-            "teamHealth": "healthy" | "at_capacity" | "overloaded"
-        }
+        TeamCapacityOutput with capacity info:
+        - overloaded_members: List of overloaded TeamCapacityMember
+          - user_id: User ID
+          - user_name: User name (optional)
+          - assigned_hours: Hours assigned
+          - threshold: Capacity threshold (40)
+          - overload_percent: Percentage over threshold
+        - team_health: "healthy" | "at_capacity" | "overloaded"
 
     Raises:
-        httpx.HTTPStatusError: If API request fails
+        AgentToolError: If API request fails
     """
-    return api_request(
-        "GET",
-        f"/api/pm/agents/health/{project_id}/team-capacity",
-        workspace_id,
-        fallback_data={
-            "overloadedMembers": [],
-            "teamHealth": "healthy",
-        },
-    )
+    try:
+        return api_request_strict(
+            "GET",
+            f"/api/pm/agents/health/{project_id}/team-capacity",
+            workspace_id,
+            TeamCapacityOutput,
+        )
+    except AgentToolError as e:
+        logger.error(f"check_team_capacity failed: {e.message}")
+        return AgentErrorOutput(
+            error="TEAM_CAPACITY_FAILED",
+            message=e.message,
+            status_code=e.status_code,
+            recoverable=True,
+        )
 
 
 @tool
 def analyze_velocity(
     workspace_id: str,
     project_id: str
-) -> Dict[str, Any]:
+) -> Union[VelocityAnalysisOutput, AgentErrorOutput]:
     """
     Analyze project velocity vs baseline.
 
@@ -169,36 +195,38 @@ def analyze_velocity(
         project_id: Project to analyze
 
     Returns:
-        Dict with velocity analysis:
-        {
-            "currentVelocity": float,
-            "baselineVelocity": float,
-            "changePercent": float,
-            "trend": "up" | "stable" | "down",
-            "alert": bool (true if >30% drop)
-        }
+        VelocityAnalysisOutput with velocity analysis:
+        - current_velocity: Current velocity
+        - baseline_velocity: Baseline velocity
+        - change_percent: Percentage change
+        - trend: UP | STABLE | DOWN
+        - alert: True if >30% drop detected
 
     Raises:
-        httpx.HTTPStatusError: If API request fails
+        AgentToolError: If API request fails
     """
-    return api_request(
-        "GET",
-        f"/api/pm/agents/health/{project_id}/velocity",
-        workspace_id,
-        fallback_data={
-            "currentVelocity": 0,
-            "baselineVelocity": 0,
-            "trend": "stable",
-            "alert": False,
-        },
-    )
+    try:
+        return api_request_strict(
+            "GET",
+            f"/api/pm/agents/health/{project_id}/velocity",
+            workspace_id,
+            VelocityAnalysisOutput,
+        )
+    except AgentToolError as e:
+        logger.error(f"analyze_velocity failed: {e.message}")
+        return AgentErrorOutput(
+            error="VELOCITY_ANALYSIS_FAILED",
+            message=e.message,
+            status_code=e.status_code,
+            recoverable=True,
+        )
 
 
 @tool
 def detect_blocker_chains(
     workspace_id: str,
     project_id: str
-) -> Dict[str, Any]:
+) -> Union[BlockerChainsOutput, AgentErrorOutput]:
     """
     Detect blocker chains (3+ tasks blocked by same dependency).
 
@@ -207,40 +235,38 @@ def detect_blocker_chains(
         project_id: Project to analyze
 
     Returns:
-        Dict with blocker chains:
-        {
-            "chains": [
-                {
-                    "blockerId": str,
-                    "blockerTitle": str,
-                    "blockedTasks": [
-                        {
-                            "id": str,
-                            "title": str,
-                            "assignee": str
-                        }
-                    ],
-                    "severity": "warning" | "critical"
-                }
-            ]
-        }
+        BlockerChainsOutput with blocker chains:
+        - chains: List of BlockerChain containing:
+          - blocker_id: Blocking task ID
+          - blocker_title: Blocking task title
+          - blocked_tasks: List of blocked tasks
+          - severity: "warning" | "critical"
 
     Raises:
-        httpx.HTTPStatusError: If API request fails
+        AgentToolError: If API request fails
     """
-    return api_request(
-        "GET",
-        f"/api/pm/agents/health/{project_id}/blocker-chains",
-        workspace_id,
-        fallback_data={"chains": []},
-    )
+    try:
+        return api_request_strict(
+            "GET",
+            f"/api/pm/agents/health/{project_id}/blocker-chains",
+            workspace_id,
+            BlockerChainsOutput,
+        )
+    except AgentToolError as e:
+        logger.error(f"detect_blocker_chains failed: {e.message}")
+        return AgentErrorOutput(
+            error="BLOCKER_CHAINS_FAILED",
+            message=e.message,
+            status_code=e.status_code,
+            recoverable=True,
+        )
 
 
 @tool
 def get_overdue_tasks(
     workspace_id: str,
     project_id: str
-) -> Dict[str, Any]:
+) -> Union[OverdueTasksOutput, AgentErrorOutput]:
     """
     Get tasks that are overdue or due within 48 hours.
 
@@ -249,37 +275,35 @@ def get_overdue_tasks(
         project_id: Project to analyze
 
     Returns:
-        Dict with overdue and upcoming tasks:
-        {
-            "overdue": [
-                {
-                    "id": str,
-                    "title": str,
-                    "dueDate": str,
-                    "daysOverdue": int,
-                    "assignee": str
-                }
-            ],
-            "dueSoon": [
-                {
-                    "id": str,
-                    "title": str,
-                    "dueDate": str,
-                    "hoursRemaining": float,
-                    "assignee": str
-                }
-            ]
-        }
+        OverdueTasksOutput with overdue and upcoming tasks:
+        - overdue: List of OverdueTask containing:
+          - id: Task ID
+          - title: Task title
+          - due_date: Due date (ISO format)
+          - days_overdue: Days overdue
+          - assignee: Assignee ID
+        - due_soon: List of DueSoonTask containing:
+          - id: Task ID
+          - title: Task title
+          - due_date: Due date (ISO format)
+          - hours_remaining: Hours until due
+          - assignee: Assignee ID
 
     Raises:
-        httpx.HTTPStatusError: If API request fails
+        AgentToolError: If API request fails
     """
-    return api_request(
-        "GET",
-        f"/api/pm/agents/health/{project_id}/overdue-tasks",
-        workspace_id,
-        fallback_data={
-            "overdue": [],
-            "dueSoon": [],
-        },
-    )
+    try:
+        return api_request_strict(
+            "GET",
+            f"/api/pm/agents/health/{project_id}/overdue-tasks",
+            workspace_id,
+            OverdueTasksOutput,
+        )
+    except AgentToolError as e:
+        logger.error(f"get_overdue_tasks failed: {e.message}")
+        return AgentErrorOutput(
+            error="OVERDUE_TASKS_FAILED",
+            message=e.message,
+            status_code=e.status_code,
+            recoverable=True,
+        )
