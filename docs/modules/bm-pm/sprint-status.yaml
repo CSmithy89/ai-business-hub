@@ -292,7 +292,7 @@ development_status:
   pm-12-2-agent-response-parsing: done
   pm-12-3-notification-integration: done
   pm-12-4-integration-e2e-tests: done
-  pm-12-5-python-agent-tests: backlog
+  pm-12-5-python-agent-tests: done
   pm-12-6-realtime-agent-features: backlog
   pm-12-7-performance-security-hardening: backlog
   pm-12-retrospective: optional
