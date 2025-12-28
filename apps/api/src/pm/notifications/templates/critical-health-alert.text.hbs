@@ -1,0 +1,28 @@
+CRITICAL HEALTH ALERT
+=====================
+
+Project: {{projectName}}
+
+Hello {{userName}},
+
+The project "{{projectName}}" has dropped to CRITICAL health status and requires your immediate attention.
+
+HEALTH SCORE: {{healthScore}}/100
+
+{{explanation}}
+
+{{#if topRisks.length}}
+ACTIVE RISKS:
+{{#each topRisks}}
+- [{{severity}}] {{title}}
+{{/each}}
+{{/if}}
+
+Please review the project and take action to address any blocking issues.
+
+View Project: {{projectUrl}}
+
+---
+
+You're receiving this email because you are the project lead for {{projectName}}.
+Manage notification preferences: {{managePreferencesUrl}}

@@ -22,10 +22,11 @@ import { AnalyticsController } from './analytics.controller';
 import { CommonModule } from '../../common/common.module';
 import { AgentOSModule } from '../../agentos/agentos.module';
 import { EventsModule } from '../../events/events.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   // ScheduleModule is registered globally in AppModule
-  imports: [CommonModule, AgentOSModule, EventsModule, HttpModule],
+  imports: [CommonModule, AgentOSModule, EventsModule, HttpModule, NotificationsModule],
   controllers: [
     AgentsController,
     HealthController,

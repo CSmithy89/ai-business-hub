@@ -103,6 +103,76 @@ jobs:
       - name: Build packages
         run: pnpm turbo build
 
+  # Integration tests - Backend NestJS tests with services
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: hyvve_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @hyvve/db exec prisma generate
+
+      - name: Run database migrations
+        run: pnpm --filter @hyvve/db exec prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/hyvve_test
+
+      - name: Run integration tests
+        run: pnpm --filter @hyvve/api test:integration
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/hyvve_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+
+      - name: Upload integration test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: apps/api/coverage/
+          retention-days: 7
+
   # Test stage - Parallel execution with sharding
   test:
     name: E2E Test (Shard ${{ matrix.shard }})
@@ -218,7 +288,7 @@ jobs:
   report:
     name: Test Report
     runs-on: ubuntu-latest
-    needs: [test, burn-in]
+    needs: [integration-tests, test, burn-in]
     if: always()
 
     steps:
@@ -230,13 +300,14 @@ jobs:
 
       - name: Generate summary
         run: |
-          echo "## E2E Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Execution Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Test | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Burn-in | ${{ needs.burn-in.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Shards**: 4" >> $GITHUB_STEP_SUMMARY
@@ -246,6 +317,10 @@ jobs:
             echo "**Warning**: Flaky tests detected - Review burn-in artifacts" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if [ "${{ needs.test.result }}" == "success" ]; then
+          if [ "${{ needs.integration-tests.result }}" == "failure" ]; then
+            echo "**Warning**: Integration tests failed - Review test artifacts" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.integration-tests.result }}" == "success" ]; then
             echo "All tests passed!" >> $GITHUB_STEP_SUMMARY
           fi

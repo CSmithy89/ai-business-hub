@@ -8,7 +8,8 @@ The Dynamic Module System implements the "Unified Protocol" architecture using A
 
 ## Architecture Reference
 
-- [Dynamic Module System Architecture](../../architecture/dynamic-module-system.md)
+- [Dynamic Module System Architecture](../../architecture/dynamic-module-system.md) - Primary (AG-UI, A2A, CopilotKit)
+- [Remote Coding Agent Patterns](../../architecture/remote-coding-agent-patterns.md) - CCR Integration (DM-01.6-8, DM-02.6-9)
 
 ## Epic Summary
 
@@ -124,3 +125,4 @@ DM-06 (Intelligence) ← KB-02 (RAG)
 - **AG-UI Protocol** - Agent-to-User communication
 - **A2A Protocol** - Agent-to-Agent communication (Google standard)
 - **MCP** - Model Context Protocol for tool integration
+- **CCR (Claude Code Router)** - Intelligent model routing and BYOAI hybrid mode

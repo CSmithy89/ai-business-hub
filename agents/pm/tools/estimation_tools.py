@@ -1,16 +1,26 @@
 """
-Estimation Tools - Tools for Sage estimation agent
+Estimation Tools - Tools for Oracle estimation agent
 AI Business Hub - Project Management Module
 
 Tools for task estimation, historical analysis, and accuracy tracking.
+Uses structured Pydantic output models for type-safe responses.
 """
 
 import logging
-from typing import Optional, Dict, List, Any
+from typing import Optional, List, Union
 import httpx
 from agno.tools import tool
+from pydantic import ValidationError
 
-from .common import API_BASE_URL, get_auth_headers
+from .common import API_BASE_URL, get_auth_headers, AgentToolError
+from .structured_outputs import (
+    EstimationOutput,
+    ConfidenceLevel,
+    VelocityMetricsOutput,
+    EstimationMetricsOutput,
+    SimilarTaskRef,
+    AgentErrorOutput,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +32,11 @@ def estimate_task(
     task_type: str,
     project_id: str,
     workspace_id: str,
-) -> Dict[str, Any]:
+) -> Union[EstimationOutput, AgentErrorOutput]:
     """
     Generate story point and hour estimates for a task.
 
-    This is Sage's primary tool. It analyzes the task and returns an estimate
+    This is Oracle's primary tool. It analyzes the task and returns an estimate
     with confidence level and reasoning.
 
     Args:
@@ -37,7 +47,18 @@ def estimate_task(
         workspace_id: Workspace/tenant ID
 
     Returns:
-        Estimation with confidence level and reasoning
+        EstimationOutput with estimate details:
+        - story_points: Fibonacci story points (1-21)
+        - estimated_hours: Estimated hours
+        - confidence_level: LOW | MEDIUM | HIGH
+        - confidence_score: 0-1 confidence score
+        - basis: Reasoning for the estimate
+        - cold_start: Whether using cold-start defaults
+        - similar_tasks: IDs of similar tasks used
+        - complexity_factors: Factors affecting complexity
+
+    Raises:
+        AgentToolError: If API call fails
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/estimation/estimate"
@@ -52,33 +73,33 @@ def estimate_task(
         with httpx.Client(timeout=15.0) as client:
             response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+
+            # Validate response with Pydantic
+            return EstimationOutput.model_validate(data)
 
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP {e.response.status_code} estimating task: {e}")
-        return {
-            "storyPoints": 3,
-            "estimatedHours": 8.0,
-            "confidenceLevel": "low",
-            "confidenceScore": 0.3,
-            "basis": f"Error occurred (HTTP {e.response.status_code}), using default estimate",
-            "coldStart": True,
-            "complexityFactors": ["Unable to analyze - using defaults"],
-            "statusCode": e.response.status_code,
-        }
+        return AgentErrorOutput(
+            error="ESTIMATION_FAILED",
+            message=f"API request failed: HTTP {e.response.status_code}",
+            status_code=e.response.status_code,
+            recoverable=True,
+        )
     except httpx.HTTPError as e:
         logger.error(f"Network error estimating task: {e}")
-        # Return fallback estimate
-        return {
-            "storyPoints": 3,
-            "estimatedHours": 8.0,
-            "confidenceLevel": "low",
-            "confidenceScore": 0.3,
-            "basis": "Error occurred, using default estimate",
-            "coldStart": True,
-            "complexityFactors": ["Unable to analyze - using defaults"],
-            "error": str(e),
-        }
+        return AgentErrorOutput(
+            error="ESTIMATION_NETWORK_ERROR",
+            message=f"Network error: {str(e)}",
+            recoverable=True,
+        )
+    except ValidationError as e:
+        logger.error(f"Estimation response validation failed: {e}")
+        return AgentErrorOutput(
+            error="ESTIMATION_VALIDATION_ERROR",
+            message=f"Invalid response format: {str(e)}",
+            recoverable=True,
+        )
 
 
 @tool
@@ -88,7 +109,7 @@ def get_similar_tasks(
     task_type: str,
     search_query: str,
     limit: int = 10,
-) -> List[Dict[str, Any]]:
+) -> List[SimilarTaskRef]:
     """
     Find similar historical tasks for estimation reference.
 
@@ -103,7 +124,15 @@ def get_similar_tasks(
         limit: Maximum number of tasks to return (default 10)
 
     Returns:
-        List of similar completed tasks with estimates and actuals
+        List of SimilarTaskRef:
+        - id: Task ID
+        - title: Task title
+        - story_points: Story points (if assigned)
+        - estimated_hours: Estimated hours
+        - actual_hours: Actual hours spent
+
+    Note:
+        Returns empty list if API call fails or no similar tasks found
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/estimation/similar"
@@ -122,14 +151,22 @@ def get_similar_tasks(
                 return []
 
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+
+            # Validate list of similar tasks
+            if isinstance(data, list):
+                return [SimilarTaskRef.model_validate(task) for task in data]
+            return []
 
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP {e.response.status_code} getting similar tasks: {e}")
-        return {"error": f"Failed to get similar tasks (HTTP {e.response.status_code})"}
+        return []
     except httpx.HTTPError as e:
         logger.error(f"Network error getting similar tasks: {e}")
-        return {"error": "Network error getting similar tasks"}
+        return []
+    except ValidationError as e:
+        logger.error(f"Similar tasks validation failed: {e}")
+        return []
 
 
 @tool
@@ -137,7 +174,7 @@ def calculate_velocity(
     project_id: str,
     workspace_id: str,
     sprint_count: int = 3,
-) -> Dict[str, Any]:
+) -> Union[VelocityMetricsOutput, AgentErrorOutput]:
     """
     Calculate team velocity for the project.
 
@@ -150,7 +187,13 @@ def calculate_velocity(
         sprint_count: Number of recent sprints to analyze (default 3)
 
     Returns:
-        Velocity metrics (points per sprint, hours per sprint)
+        VelocityMetricsOutput:
+        - avg_points_per_sprint: Average points completed per sprint
+        - avg_hours_per_sprint: Average hours logged per sprint
+        - sprint_count: Number of sprints analyzed
+
+    Raises:
+        AgentToolError: If API call fails
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/estimation/velocity/{project_id}"
@@ -161,31 +204,39 @@ def calculate_velocity(
             response = client.get(url, headers=headers, params=params)
 
             if response.status_code == 404:
-                return {
-                    "avgPointsPerSprint": None,
-                    "avgHoursPerSprint": None,
-                    "sprintCount": 0,
-                }
+                # Valid case - no sprint data yet
+                return VelocityMetricsOutput(
+                    avg_points_per_sprint=None,
+                    avg_hours_per_sprint=None,
+                    sprint_count=0,
+                )
 
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            return VelocityMetricsOutput.model_validate(data)
 
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP {e.response.status_code} calculating velocity: {e}")
-        return {
-            "avgPointsPerSprint": None,
-            "avgHoursPerSprint": None,
-            "sprintCount": 0,
-            "error": f"HTTP {e.response.status_code}",
-        }
+        return AgentErrorOutput(
+            error="VELOCITY_CALCULATION_FAILED",
+            message=f"API request failed: HTTP {e.response.status_code}",
+            status_code=e.response.status_code,
+            recoverable=True,
+        )
     except httpx.HTTPError as e:
         logger.error(f"Network error calculating velocity: {e}")
-        return {
-            "avgPointsPerSprint": None,
-            "avgHoursPerSprint": None,
-            "sprintCount": 0,
-            "error": "Network error",
-        }
+        return AgentErrorOutput(
+            error="VELOCITY_NETWORK_ERROR",
+            message=f"Network error: {str(e)}",
+            recoverable=True,
+        )
+    except ValidationError as e:
+        logger.error(f"Velocity response validation failed: {e}")
+        return AgentErrorOutput(
+            error="VELOCITY_VALIDATION_ERROR",
+            message=f"Invalid response format: {str(e)}",
+            recoverable=True,
+        )
 
 
 @tool
@@ -193,7 +244,7 @@ def get_estimation_metrics(
     project_id: str,
     workspace_id: str,
     task_type: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> Union[EstimationMetricsOutput, AgentErrorOutput]:
     """
     Get historical estimation accuracy metrics.
 
@@ -206,7 +257,13 @@ def get_estimation_metrics(
         task_type: Optional task type to filter by
 
     Returns:
-        Accuracy metrics (average error, accuracy percentage)
+        EstimationMetricsOutput:
+        - average_error: Average estimation error
+        - average_accuracy: Average accuracy percentage
+        - total_estimations: Total number of estimations made
+
+    Raises:
+        AgentToolError: If API call fails
     """
     try:
         url = f"{API_BASE_URL}/api/pm/agents/estimation/metrics"
@@ -220,28 +277,36 @@ def get_estimation_metrics(
             response = client.get(url, headers=headers, params=params)
 
             if response.status_code == 404:
-                return {
-                    "averageError": None,
-                    "averageAccuracy": None,
-                    "totalEstimations": 0,
-                }
+                # Valid case - no metrics yet
+                return EstimationMetricsOutput(
+                    average_error=None,
+                    average_accuracy=None,
+                    total_estimations=0,
+                )
 
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            return EstimationMetricsOutput.model_validate(data)
 
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP {e.response.status_code} getting estimation metrics: {e}")
-        return {
-            "averageError": None,
-            "averageAccuracy": None,
-            "totalEstimations": 0,
-            "error": f"HTTP {e.response.status_code}",
-        }
+        return AgentErrorOutput(
+            error="METRICS_FETCH_FAILED",
+            message=f"API request failed: HTTP {e.response.status_code}",
+            status_code=e.response.status_code,
+            recoverable=True,
+        )
     except httpx.HTTPError as e:
         logger.error(f"Network error getting estimation metrics: {e}")
-        return {
-            "averageError": None,
-            "averageAccuracy": None,
-            "totalEstimations": 0,
-            "error": "Network error",
-        }
+        return AgentErrorOutput(
+            error="METRICS_NETWORK_ERROR",
+            message=f"Network error: {str(e)}",
+            recoverable=True,
+        )
+    except ValidationError as e:
+        logger.error(f"Metrics response validation failed: {e}")
+        return AgentErrorOutput(
+            error="METRICS_VALIDATION_ERROR",
+            message=f"Invalid response format: {str(e)}",
+            recoverable=True,
+        )

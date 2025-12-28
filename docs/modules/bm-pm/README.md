@@ -124,3 +124,42 @@ Core-PM includes three specialized AI agents built on the Agno framework:
 - Default: 1000 requests/hour per API key
 - Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
 - Returns `429 Too Many Requests` when exceeded
+
+## PM-12 Consolidated Follow-ups (Implemented)
+
+PM-12 consolidates deferred improvements from PM-04/PM-05 retrospectives, enhancing the AI agent infrastructure.
+
+**Agent UI Components**
+- `AgentResponseCard` - Displays parsed agent responses with markdown rendering
+- `SuggestionCard` - Interactive suggestion cards with accept/reject actions
+- `AgentTypingIndicator` - Shows when agents are processing
+- Status badges for agent states (idle, thinking, streaming, error)
+
+**Agent Response Parsing**
+- `parseAgentResponse()` - Extracts structured content from agent responses
+- `extractSuggestions()` - Parses suggestion items from agent output
+- Handles markdown, task links, and @mentions in responses
+
+**Real-time Agent Features**
+- WebSocket events for agent streaming (`pm.agent.stream.*`)
+- Live suggestion lifecycle events (`pm.suggestion.*`)
+- Real-time health score updates (`pm.health.updated`)
+- `useRealtimePMAgents` React hook for consuming events
+- Typing/processing indicators during agent operations
+
+**Notification Integration**
+- Agent-triggered notifications via platform notification service
+- Configurable notification preferences per agent type
+- Risk alerts, briefing reminders, and suggestion notifications
+
+**Performance & Security**
+- HTTP connection pooling for Python agent API calls
+- Rate limiting on agent endpoints via ThrottlerGuard
+- Structured logging with safe error messages (no sensitive data leakage)
+- AGENT_SERVICE_TOKEN rotation documented in key-rotation runbook
+
+**Testing**
+- Integration tests for agent API endpoints (NestJS)
+- E2E tests for agent workflows
+- Python unit tests for agent tools and utilities (pytest)
+- Mock fixtures for API and agent responses

@@ -11,6 +11,10 @@ export enum PMNotificationType {
   DUE_DATE_REMINDER = 'task.due_date_reminder',
   AGENT_COMPLETION = 'agent.task_completed',
   HEALTH_ALERT = 'project.health_alert',
+  // PM-12.3: Additional notification types for Pulse and Herald agents
+  RISK_DETECTED = 'project.risk_detected',
+  RISK_RESOLVED = 'project.risk_resolved',
+  REPORT_GENERATED = 'project.report_generated',
 }
 
 /**

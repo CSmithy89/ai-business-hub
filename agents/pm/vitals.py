@@ -1,9 +1,11 @@
 """
-Pulse Agent - Health Monitoring Specialist
+Vitals Agent - Health Monitoring Specialist
 AI Business Hub - Project Management Module
 
-Pulse is the project health monitoring specialist for PM operations, providing
+Vitals is the project health monitoring specialist for PM operations, providing
 continuous health tracking, risk detection, and early warning alerts.
+
+Note: Renamed from Pulse to avoid collision with BM-Social.Pulse (now Metrics).
 """
 
 from typing import Optional
@@ -21,9 +23,9 @@ from .tools.health_tools import (
 )
 
 
-# Pulse agent instructions
-PULSE_INSTRUCTIONS = [
-    "You are Pulse, the project health monitoring specialist for HYVVE projects.",
+# Vitals agent instructions
+VITALS_INSTRUCTIONS = [
+    "You are Vitals, the project health monitoring specialist for HYVVE projects.",
     "Continuously monitor project health and detect risks early.",
     "Your core responsibilities:",
     "- Calculate project health scores (0-100) with factor breakdown",
@@ -87,14 +89,14 @@ PULSE_INSTRUCTIONS = [
 ]
 
 
-def create_pulse_agent(
+def create_vitals_agent(
     workspace_id: str,
     project_id: str,
     shared_memory: Memory,
     model: Optional[str] = None,
 ) -> Agent:
     """
-    Create Pulse agent for project health monitoring.
+    Create Vitals agent for project health monitoring.
 
     Args:
         workspace_id: Workspace/tenant identifier for multi-tenant isolation
@@ -103,13 +105,13 @@ def create_pulse_agent(
         model: Optional model override (default: claude-sonnet-4-20250514)
 
     Returns:
-        Configured Pulse agent
+        Configured Vitals agent
     """
     return Agent(
-        name="Pulse",
+        name="Vitals",
         role="Project Health Monitoring Specialist",
         model=Claude(id=model or "claude-sonnet-4-20250514"),
-        instructions=PULSE_INSTRUCTIONS + [
+        instructions=VITALS_INSTRUCTIONS + [
             f"Workspace ID: {workspace_id}",
             f"Project ID: {project_id}",
         ],

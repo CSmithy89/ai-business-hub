@@ -8,6 +8,8 @@ import { test as base, mergeTests } from '@playwright/test';
 import { UserFactory } from './factories/user-factory';
 import { WorkspaceFactory } from './factories/workspace-factory';
 import { BusinessFactory } from './factories/business-factory';
+import { ProjectFactory } from './factories/project-factory';
+import { SuggestionFactory } from './factories/suggestion-factory';
 
 // Auth fixture type definition
 type AuthFixture = {
@@ -70,13 +72,33 @@ const businessFactoryFixture = base.extend<{ businessFactory: BusinessFactory }>
   },
 });
 
+// Project factory fixture - creates test PM projects with auto-cleanup
+const projectFactoryFixture = base.extend<{ projectFactory: ProjectFactory }>({
+  projectFactory: async ({}, use) => {
+    const factory = new ProjectFactory();
+    await use(factory);
+    await factory.cleanup();
+  },
+});
+
+// Suggestion factory fixture - creates test agent suggestions with auto-cleanup
+const suggestionFactoryFixture = base.extend<{ suggestionFactory: SuggestionFactory }>({
+  suggestionFactory: async ({}, use) => {
+    const factory = new SuggestionFactory();
+    await use(factory);
+    await factory.cleanup();
+  },
+});
+
 // Merged test export - compose all fixtures
 export const test = mergeTests(
   base,
   authFixture,
   userFactoryFixture,
   workspaceFactoryFixture,
-  businessFactoryFixture
+  businessFactoryFixture,
+  projectFactoryFixture,
+  suggestionFactoryFixture
 );
 
 // Re-export expect for convenience

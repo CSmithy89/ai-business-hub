@@ -46,6 +46,24 @@ export interface ServerToClientEvents {
   'pm.task.updated': (data: PMTaskUpdatePayload) => void;
   'pm.task.deleted': (data: PMTaskDeletedPayload) => void;
   'pm.task.status_changed': (data: PMTaskStatusPayload) => void;
+
+  // PM Agent Streaming events (PM-12.6)
+  'pm.agent.stream.start': (data: PMAgentStreamStartPayload) => void;
+  'pm.agent.stream.chunk': (data: PMAgentStreamChunkPayload) => void;
+  'pm.agent.stream.end': (data: PMAgentStreamEndPayload) => void;
+  'pm.agent.typing': (data: PMAgentTypingPayload) => void;
+
+  // PM Suggestion events (PM-12.6)
+  'pm.suggestion.created': (data: PMSuggestionEventPayload) => void;
+  'pm.suggestion.updated': (data: PMSuggestionEventPayload) => void;
+  'pm.suggestion.accepted': (data: PMSuggestionActionPayload) => void;
+  'pm.suggestion.rejected': (data: PMSuggestionActionPayload) => void;
+  'pm.suggestion.snoozed': (data: PMSuggestionActionPayload) => void;
+
+  // PM Health Live Update events (PM-12.6)
+  'pm.health.updated': (data: PMHealthUpdatePayload) => void;
+  'pm.health.critical': (data: PMHealthEventPayload) => void;
+  'pm.health.warning': (data: PMHealthEventPayload) => void;
 }
 
 /**
@@ -242,6 +260,124 @@ export interface PMTaskStatusPayload {
 }
 
 // ============================================
+// PM Agent Streaming Payloads (PM-12.6)
+// ============================================
+
+export interface PMAgentStreamStartPayload {
+  streamId: string;
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  chatId: string;
+  messageId: string;
+  timestamp: string;
+  correlationId?: string;
+}
+
+export interface PMAgentStreamChunkPayload {
+  streamId: string;
+  projectId: string;
+  agentId: string;
+  chatId: string;
+  messageId: string;
+  content: string;
+  chunkIndex: number;
+  timestamp: string;
+}
+
+export interface PMAgentStreamEndPayload {
+  streamId: string;
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  chatId: string;
+  messageId: string;
+  fullContent: string;
+  tokensUsed?: number;
+  durationMs?: number;
+  timestamp: string;
+  correlationId?: string;
+}
+
+export interface PMAgentTypingPayload {
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  chatId: string;
+  isTyping: boolean;
+  timestamp: string;
+}
+
+// ============================================
+// PM Suggestion Event Payloads (PM-12.6)
+// ============================================
+
+export interface PMSuggestionEventPayload {
+  id: string;
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  type: 'task_recommendation' | 'estimation' | 'phase_transition' | 'health_alert' | 'resource_allocation';
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'pending' | 'accepted' | 'rejected' | 'snoozed' | 'expired';
+  confidence: number;
+  expiresAt?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  correlationId?: string;
+}
+
+export interface PMSuggestionActionPayload {
+  id: string;
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  type: string;
+  title: string;
+  action: 'accepted' | 'rejected' | 'snoozed';
+  actionBy: string;
+  actionAt: string;
+  snoozeUntil?: string;
+  feedback?: string;
+  correlationId?: string;
+}
+
+// ============================================
+// PM Health Event Payloads (PM-12.6)
+// ============================================
+
+export interface PMHealthUpdatePayload {
+  projectId: string;
+  projectName: string;
+  score: number;
+  previousScore: number;
+  level: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'CRITICAL';
+  previousLevel: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'CRITICAL';
+  trend: 'UP' | 'DOWN' | 'STABLE';
+  factors: {
+    onTimeDelivery: number;
+    blockerImpact: number;
+    teamCapacity: number;
+    velocityTrend: number;
+  };
+  triggeredBy: 'task_completed' | 'task_blocked' | 'deadline_passed' | 'scheduled_check' | 'manual';
+  timestamp: string;
+  correlationId?: string;
+}
+
+export interface PMHealthEventPayload {
+  projectId: string;
+  projectName: string;
+  score: number;
+  level: 'CRITICAL' | 'WARNING';
+  explanation: string;
+  timestamp: string;
+}
+
+// ============================================
 // Connection State
 // ============================================
 
@@ -278,6 +414,21 @@ export const WS_EVENTS = {
   PM_TASK_UPDATED: 'pm.task.updated',
   PM_TASK_DELETED: 'pm.task.deleted',
   PM_TASK_STATUS_CHANGED: 'pm.task.status_changed',
+  // PM Agent Streaming events (PM-12.6)
+  PM_AGENT_STREAM_START: 'pm.agent.stream.start',
+  PM_AGENT_STREAM_CHUNK: 'pm.agent.stream.chunk',
+  PM_AGENT_STREAM_END: 'pm.agent.stream.end',
+  PM_AGENT_TYPING: 'pm.agent.typing',
+  // PM Suggestion events (PM-12.6)
+  PM_SUGGESTION_CREATED: 'pm.suggestion.created',
+  PM_SUGGESTION_UPDATED: 'pm.suggestion.updated',
+  PM_SUGGESTION_ACCEPTED: 'pm.suggestion.accepted',
+  PM_SUGGESTION_REJECTED: 'pm.suggestion.rejected',
+  PM_SUGGESTION_SNOOZED: 'pm.suggestion.snoozed',
+  // PM Health events (PM-12.6)
+  PM_HEALTH_UPDATED: 'pm.health.updated',
+  PM_HEALTH_CRITICAL: 'pm.health.critical',
+  PM_HEALTH_WARNING: 'pm.health.warning',
 } as const;
 
 export type WsEventName = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];

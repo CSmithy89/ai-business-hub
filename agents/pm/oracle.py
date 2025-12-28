@@ -1,9 +1,11 @@
 """
-Sage Agent - Task Estimation Specialist
+Oracle Agent - Task Estimation Specialist
 AI Business Hub - Project Management Module
 
-Sage is the estimation specialist for PM operations, providing intelligent
+Oracle is the estimation specialist for PM operations, providing intelligent
 task estimates based on historical data or industry benchmarks.
+
+Note: Renamed from Sage to avoid collision with BM-Brand.Sage (Brand Strategist).
 """
 
 from typing import Optional
@@ -19,9 +21,9 @@ from .tools.estimation_tools import (
 )
 
 
-# Sage agent instructions
-SAGE_INSTRUCTIONS = [
-    "You are Sage, the task estimation specialist for HYVVE projects.",
+# Oracle agent instructions
+ORACLE_INSTRUCTIONS = [
+    "You are Oracle, the task estimation specialist for HYVVE projects.",
     "Provide story point and hour estimates based on task description and type.",
     "Use historical data when available to inform your estimates.",
     "For new projects with no history, use industry benchmarks with 'low' confidence.",
@@ -54,14 +56,14 @@ SAGE_INSTRUCTIONS = [
 ]
 
 
-def create_sage_agent(
+def create_oracle_agent(
     workspace_id: str,
     project_id: str,
     shared_memory: Memory,
     model: Optional[str] = None,
 ) -> Agent:
     """
-    Create Sage agent for task estimation.
+    Create Oracle agent for task estimation.
 
     Args:
         workspace_id: Workspace/tenant identifier for multi-tenant isolation
@@ -70,13 +72,13 @@ def create_sage_agent(
         model: Optional model override (default: claude-sonnet-4-20250514)
 
     Returns:
-        Configured Sage agent
+        Configured Oracle agent
     """
     return Agent(
-        name="Sage",
+        name="Oracle",
         role="Task Estimation Specialist",
         model=Claude(id=model or "claude-sonnet-4-20250514"),
-        instructions=SAGE_INSTRUCTIONS + [
+        instructions=ORACLE_INSTRUCTIONS + [
             f"Workspace ID: {workspace_id}",
             f"Project ID: {project_id}",
         ],

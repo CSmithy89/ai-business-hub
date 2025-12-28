@@ -100,7 +100,58 @@ Implement `useCopilotReadable` for context awareness:
 
 **Points:** 5
 
-## Total Points: 26
+### Story DM-01.6: CCR Routing Settings UI
+
+Extend AI Config settings with CCR routing configuration:
+
+- Add "Routing & Fallbacks" tab to `/settings/ai-config/`
+- Create `CCRRoutingConfig` component for routing rules
+- Add platform subscription toggle per agent
+- Implement fallback chain configuration UI
+
+**Acceptance Criteria:**
+- New subnav item "Routing & Fallbacks" appears
+- Users can toggle platform vs BYOAI per agent
+- Fallback chains configurable via drag-drop or select
+- Settings persist to backend
+
+**Points:** 8
+
+### Story DM-01.7: CCR Connection Status
+
+Display CCR connection and provider health status:
+
+- Add `CCRStatus` component showing connection state
+- Display per-provider health indicators
+- Show active routing mode (auto/manual)
+- Add reconnection controls
+
+**Acceptance Criteria:**
+- CCR connection status visible in settings
+- Provider health shown (green/yellow/red)
+- Current routing mode displayed
+- Manual reconnect button works
+
+**Points:** 5
+
+### Story DM-01.8: CCR Quota & Usage Display
+
+Extend usage dashboard with CCR subscription quotas:
+
+- Add subscription quota progress bars
+- Display remaining API calls per provider
+- Show quota reset dates
+- Integrate with alert configuration
+
+**Acceptance Criteria:**
+- Quota usage visible per subscription
+- Progress bars show consumption
+- Reset dates displayed
+- Low quota warnings shown
+
+**Points:** 5
+
+## Total Points: 44
 
 ## Dependencies
 
@@ -113,19 +164,27 @@ Implement `useCopilotReadable` for context awareness:
 ```
 apps/web/src/
 ├── app/
-│   └── providers.tsx          # Add CopilotKit provider
+│   └── providers.tsx              # Add CopilotKit provider
+│   └── (dashboard)/settings/ai-config/
+│       └── routing/
+│           └── page.tsx           # CCR routing settings page
 ├── components/
 │   ├── slots/
-│   │   ├── DashboardSlots.tsx # Slot registry
+│   │   ├── DashboardSlots.tsx     # Slot registry
 │   │   └── widgets/
 │   │       ├── ProjectStatusWidget.tsx
 │   │       ├── TaskListWidget.tsx
 │   │       ├── MetricsWidget.tsx
 │   │       └── AlertWidget.tsx
-│   └── copilot/
-│       └── CopilotChat.tsx    # Chat UI wrapper
+│   ├── copilot/
+│   │   └── CopilotChat.tsx        # Chat UI wrapper
+│   └── settings/
+│       ├── ccr-routing-config.tsx # CCR routing configuration
+│       ├── ccr-status.tsx         # CCR connection status
+│       └── ccr-quota-display.tsx  # CCR quota/usage display
 └── hooks/
-    └── useCopilotContext.ts   # Context hook
+    ├── useCopilotContext.ts       # Context hook
+    └── useCCRStatus.ts            # CCR status hook
 ```
 
 ### Environment Variables
@@ -146,10 +205,15 @@ NEXT_PUBLIC_AGNO_URL=http://localhost:8000
 - Chat UI available throughout the application
 - At least 4 widget types implemented
 - Context awareness working for projects and tasks
+- CCR routing settings UI functional
+- CCR connection status visible
+- CCR quota display integrated
 - No performance regressions
 
 ## References
 
 - [Dynamic Module System Architecture](../../architecture/dynamic-module-system.md)
+- [Remote Coding Agent Patterns (CCR Section)](../../architecture/remote-coding-agent-patterns.md)
 - [CopilotKit Documentation](https://docs.copilotkit.ai)
 - [AG-UI Protocol](https://github.com/ag-ui-protocol/ag-ui)
+- [CCR-Custom Fork](https://github.com/VisionCraft3r/ccr-custom)

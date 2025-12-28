@@ -3,14 +3,26 @@ Phase Tools - Tools for Scope PM agent
 AI Business Hub - Project Management Module
 
 Tools for phase management, transition analysis, and checkpoint tracking.
+Uses structured Pydantic output models for type-safe responses.
 """
 
 import logging
-from typing import Optional, Dict, List, Any
+from typing import Optional, List, Union
 
 from agno.tools import tool
 
-from .common import api_request
+from .common import api_request, api_request_strict, AgentToolError
+from .structured_outputs import (
+    PhaseAnalysisOutput,
+    PhaseAnalysisSummary,
+    IncompleteTask,
+    TaskRecommendation,
+    TaskAction,
+    PhaseCheckpointOutput,
+    PhaseTransitionOutput,
+    PhaseTransitionPreview,
+    AgentErrorOutput,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +32,7 @@ def analyze_phase_completion(
     project_id: str,
     phase_id: str,
     workspace_id: str
-) -> Dict[str, Any]:
+) -> Union[PhaseAnalysisOutput, AgentErrorOutput]:
     """
     Analyze phase for completion readiness and provide task recommendations.
 
@@ -34,40 +46,41 @@ def analyze_phase_completion(
         workspace_id: Workspace/tenant identifier
 
     Returns:
-        Phase completion analysis with task recommendations:
-        {
-            "phaseId": string,
-            "phaseName": string,
-            "totalTasks": number,
-            "completedTasks": number,
-            "incompleteTasks": [...],
-            "recommendations": [...],
-            "summary": {
-                "readyForCompletion": boolean,
-                "blockers": [...],
-                "nextPhasePreview": string
-            }
-        }
+        PhaseAnalysisOutput: Phase completion analysis with task recommendations
+        - phase_id: The analyzed phase ID
+        - phase_name: Phase name
+        - total_tasks: Total tasks in phase
+        - completed_tasks: Completed tasks count
+        - incomplete_tasks: List of incomplete tasks
+        - recommendations: Task recommendations (complete/carry_over/cancel)
+        - summary: Phase summary with readiness and blockers
 
     Raises:
-        httpx.HTTPStatusError: If API call fails
+        AgentToolError: If API call fails or response is invalid
     """
-    return api_request(
-        "POST",
-        f"/api/pm/phases/{phase_id}/analyze-completion",
-        workspace_id,
-        json={"projectId": project_id},
-        fallback_data={
-            "error": "Failed to analyze phase",
-        },
-    )
+    try:
+        return api_request_strict(
+            "POST",
+            f"/api/pm/phases/{phase_id}/analyze-completion",
+            workspace_id,
+            PhaseAnalysisOutput,
+            json={"projectId": project_id},
+        )
+    except AgentToolError as e:
+        logger.error(f"analyze_phase_completion failed: {e.message}")
+        return AgentErrorOutput(
+            error="PHASE_ANALYSIS_FAILED",
+            message=e.message,
+            status_code=e.status_code,
+            recoverable=True,
+        )
 
 
 @tool
 def check_phase_checkpoint(
     phase_id: str,
     workspace_id: str
-) -> Optional[Dict[str, Any]]:
+) -> Optional[List[PhaseCheckpointOutput]]:
     """
     Check if phase has upcoming checkpoints.
 
@@ -79,19 +92,15 @@ def check_phase_checkpoint(
         workspace_id: Workspace/tenant identifier
 
     Returns:
-        List of upcoming checkpoints or None if no checkpoints found:
-        [
-            {
-                "id": string,
-                "name": string,
-                "checkpointDate": string (ISO),
-                "status": "PENDING" | "COMPLETED" | "CANCELLED",
-                "description": string (optional)
-            }
-        ]
+        List of PhaseCheckpointOutput or None if no checkpoints found:
+        - id: Checkpoint ID
+        - name: Checkpoint name
+        - checkpoint_date: Checkpoint date (ISO format)
+        - status: "PENDING" | "COMPLETED" | "CANCELLED"
+        - description: Optional description
 
-    Raises:
-        httpx.HTTPStatusError: If API call fails (except 404)
+    Note:
+        Returns None for 404 (no checkpoints) - this is expected behavior
     """
     result = api_request(
         "GET",
@@ -99,17 +108,25 @@ def check_phase_checkpoint(
         workspace_id,
     )
     # Return None for 404 (no checkpoints found) or errors
-    if "error" in result:
+    if isinstance(result, dict) and "error" in result:
         return None
-    return result
+
+    # Validate list of checkpoints
+    try:
+        if isinstance(result, list):
+            return [PhaseCheckpointOutput.model_validate(cp) for cp in result]
+        return None
+    except Exception as e:
+        logger.error(f"Checkpoint validation failed: {e}")
+        return None
 
 
 @tool
 def suggest_phase_transition(
     phase_id: str,
-    task_actions: List[Dict[str, str]],
+    task_actions: List[dict],
     workspace_id: str
-) -> Dict[str, Any]:
+) -> Union[PhaseTransitionOutput, AgentErrorOutput]:
     """
     Suggest phase transition with recommended task actions.
 
@@ -130,32 +147,32 @@ def suggest_phase_transition(
         workspace_id: Workspace/tenant identifier
 
     Returns:
-        Transition preview:
-        {
-            "phaseId": string,
-            "phaseName": string,
-            "nextPhaseId": string,
-            "nextPhaseName": string,
-            "transitionPreview": {
-                "tasksToComplete": number,
-                "tasksToCarryOver": number,
-                "tasksToCancel": number,
-                "affectedTasks": [...]
-            }
-        }
+        PhaseTransitionOutput: Transition preview
+        - phase_id: Current phase ID
+        - phase_name: Current phase name
+        - next_phase_id: Next phase ID (if exists)
+        - next_phase_name: Next phase name
+        - transition_preview: Details of tasks to complete/carry_over/cancel
 
     Raises:
-        httpx.HTTPStatusError: If API call fails
+        AgentToolError: If API call fails or response is invalid
     """
-    return api_request(
-        "POST",
-        f"/api/pm/phases/{phase_id}/transition-preview",
-        workspace_id,
-        json={"taskActions": task_actions},
-        fallback_data={
-            "error": "Failed to preview transition",
-        },
-    )
+    try:
+        return api_request_strict(
+            "POST",
+            f"/api/pm/phases/{phase_id}/transition-preview",
+            workspace_id,
+            PhaseTransitionOutput,
+            json={"taskActions": task_actions},
+        )
+    except AgentToolError as e:
+        logger.error(f"suggest_phase_transition failed: {e.message}")
+        return AgentErrorOutput(
+            error="TRANSITION_PREVIEW_FAILED",
+            message=e.message,
+            status_code=e.status_code,
+            recoverable=True,
+        )
 
 
 @tool
@@ -163,7 +180,7 @@ def recommend_task_actions(
     phase_id: str,
     task_ids: List[str],
     workspace_id: str
-) -> List[Dict[str, Any]]:
+) -> List[TaskRecommendation]:
     """
     Get recommended actions (complete/carry/cancel) for incomplete tasks.
 
@@ -176,19 +193,13 @@ def recommend_task_actions(
         workspace_id: Workspace/tenant identifier
 
     Returns:
-        List of task recommendations:
-        [
-            {
-                "taskId": string,
-                "taskTitle": string,
-                "action": "complete" | "carry_over" | "cancel",
-                "reasoning": string,
-                "confidence": "low" | "medium" | "high"
-            }
-        ]
+        List of TaskRecommendation:
+        - task_id: Task identifier
+        - action: "complete" | "carry_over" | "cancel"
+        - reason: Reasoning for this recommendation
 
-    Raises:
-        httpx.HTTPStatusError: If API call fails
+    Note:
+        Returns empty list if API call fails - allows graceful degradation
     """
     result = api_request(
         "POST",
@@ -197,6 +208,15 @@ def recommend_task_actions(
         json={"taskIds": task_ids},
     )
     # Return empty list if error occurred
-    if "error" in result:
+    if isinstance(result, dict) and "error" in result:
+        logger.warning(f"recommend_task_actions returned error: {result.get('error')}")
         return []
-    return result
+
+    # Validate list of recommendations
+    try:
+        if isinstance(result, list):
+            return [TaskRecommendation.model_validate(rec) for rec in result]
+        return []
+    except Exception as e:
+        logger.error(f"Task recommendation validation failed: {e}")
+        return []

@@ -132,4 +132,132 @@ Never pass API keys in plain text.
 
 ---
 
-*Refined from Remote Coding Agent documentation.*
+## 7. Model Routing Layer (CCR Integration)
+
+### 7.1 Overview
+
+For platform-provided AI access, HYVVE supports **Claude Code Router (CCR)** as an optional routing layer between AgentOS and model providers. CCR enables intelligent task-based routing, fallback chains, and cost optimization.
+
+**Architecture with CCR:**
+```
+Frontend (CopilotKit)
+        ↓ AG-UI
+AgentOS (Agno)
+        ↓
+CCR (Claude Code Router)  ← NEW LAYER
+        ↓
+CLI Subscriptions OR API Providers
+```
+
+### 7.2 CCR Features
+
+| Feature | Description |
+|---------|-------------|
+| **Task-Based Routing** | Routes requests based on task type (reasoning, code, long-context) |
+| **Fallback Chains** | Automatic failover to alternative providers |
+| **Cost Optimization** | Cheap models for simple tasks, powerful models for complex |
+| **BMAD Awareness** | Detects `.bmad/` agent structure for per-agent routing |
+| **Transformer Support** | Request/response transformation for provider compatibility |
+
+### 7.3 Hybrid Model Support
+
+HYVVE supports both user-provided API keys (BYOAI) and platform subscriptions via CCR:
+
+| Mode | Provider Source | Use Case |
+|------|-----------------|----------|
+| **BYOAI** | User's own API keys | Power users, enterprise, unlimited usage |
+| **CCR** | Platform CLI subscriptions | Free tier, quick start, cost-controlled |
+| **Hybrid** | Both available | User chooses per-agent or per-task |
+
+### 7.4 CCR Configuration
+
+CCR uses `~/.claude-code-router/config.json` for routing rules:
+
+```json
+{
+  "providers": {
+    "claude": { "base_url": "subscription", "type": "claude-cli" },
+    "deepseek": { "base_url": "https://api.deepseek.com", "api_key": "$DEEPSEEK_KEY" },
+    "gemini": { "base_url": "subscription", "type": "gemini-cli" }
+  },
+  "routing": {
+    "reasoning": "claude",
+    "code_generation": "deepseek",
+    "long_context": "gemini",
+    "default": "claude"
+  },
+  "fallbacks": {
+    "claude": ["deepseek", "gemini"],
+    "deepseek": ["claude", "gemini"]
+  }
+}
+```
+
+### 7.5 Agno Integration
+
+```python
+from agno.models.openai import OpenAIChat
+
+def get_model(user_config: BYOAIConfig):
+    """Hybrid model selection - CCR or BYOAI"""
+    if user_config.use_platform_subscription:
+        # Route through CCR
+        return OpenAIChat(
+            id="auto",  # CCR decides
+            base_url="http://localhost:3456/v1",
+            api_key="ccr-platform"
+        )
+    else:
+        # User's own API keys (BYOAI)
+        return get_byoai_model(user_config)
+```
+
+### 7.6 Per-Agent Model Assignment
+
+Users can configure which model/provider each agent uses:
+
+```python
+# Agent-specific model configuration
+agent_model_config = {
+    "navi": {"provider": "claude", "model": "claude-3-5-sonnet"},
+    "sage": {"provider": "deepseek", "model": "deepseek-coder"},
+    "pulse": {"provider": "gemini", "model": "gemini-2.0-flash"},
+}
+```
+
+This configuration is stored in user preferences and exposed via the Settings UI.
+
+### 7.7 Usage Monitoring & Alerts
+
+CCR integration includes usage tracking and quota notifications:
+
+- **Usage Tracking**: Monitor API calls per provider
+- **Quota Alerts**: Notify when subscription limits approach
+- **Cost Dashboard**: Visualize spending across providers
+- **Fallback Events**: Log when fallbacks are triggered
+
+---
+
+## 8. Agent-Model UI Configuration
+
+### 8.1 Settings Interface
+
+Users configure agent-model mappings via `/settings/ai-config`:
+
+- **Global Default**: Default provider for all agents
+- **Per-Agent Override**: Specific model for each agent type
+- **Task-Type Routing**: Route by task complexity (if CCR enabled)
+- **Fallback Order**: Priority list for failover
+
+### 8.2 UI Components
+
+| Component | Purpose |
+|-----------|---------|
+| `AgentModelSelector` | Dropdown to assign model to agent |
+| `ProviderStatus` | Health/quota status per provider |
+| `UsageChart` | Visualization of API usage |
+| `FallbackConfig` | Configure failover chains |
+
+---
+
+*Refined from Remote Coding Agent documentation and CCR integration patterns.*

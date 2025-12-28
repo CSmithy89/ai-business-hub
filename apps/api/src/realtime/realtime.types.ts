@@ -61,6 +61,27 @@ export interface ServerToClientEvents {
   'pm.presence.joined': (data: PresencePayload) => void;
   'pm.presence.left': (data: PresencePayload) => void;
   'pm.presence.updated': (data: PresencePayload) => void;
+
+  // PM Health and Risk events (PM-12.3)
+  'pm.health.critical': (data: PMHealthEventPayload) => void;
+  'pm.health.warning': (data: PMHealthEventPayload) => void;
+  'pm.risk.detected': (data: PMRiskEventPayload) => void;
+
+  // PM Agent Streaming events (PM-12.6)
+  'pm.agent.stream.start': (data: PMAgentStreamStartPayload) => void;
+  'pm.agent.stream.chunk': (data: PMAgentStreamChunkPayload) => void;
+  'pm.agent.stream.end': (data: PMAgentStreamEndPayload) => void;
+  'pm.agent.typing': (data: PMAgentTypingPayload) => void;
+
+  // PM Suggestion events (PM-12.6)
+  'pm.suggestion.created': (data: PMSuggestionEventPayload) => void;
+  'pm.suggestion.updated': (data: PMSuggestionEventPayload) => void;
+  'pm.suggestion.accepted': (data: PMSuggestionActionPayload) => void;
+  'pm.suggestion.rejected': (data: PMSuggestionActionPayload) => void;
+  'pm.suggestion.snoozed': (data: PMSuggestionActionPayload) => void;
+
+  // PM Health Live Update events (PM-12.6)
+  'pm.health.updated': (data: PMHealthUpdatePayload) => void;
 }
 
 /**
@@ -431,6 +452,164 @@ export interface PresencePayload {
 }
 
 // ============================================
+// PM Health and Risk Event Payloads (PM-12.3)
+// ============================================
+
+/**
+ * PM Health event payload for critical/warning alerts
+ */
+export interface PMHealthEventPayload {
+  projectId: string;
+  projectName: string;
+  score: number;
+  level: 'CRITICAL' | 'WARNING';
+  explanation: string;
+  timestamp: string;
+}
+
+/**
+ * PM Risk event payload for detected risks
+ */
+export interface PMRiskEventPayload {
+  projectId: string;
+  projectName: string;
+  riskId: string;
+  title: string;
+  severity: string;
+  timestamp: string;
+}
+
+// ============================================
+// PM Agent Streaming Payloads (PM-12.6)
+// ============================================
+
+/**
+ * PM Agent stream start payload - sent when agent begins streaming response
+ */
+export interface PMAgentStreamStartPayload {
+  streamId: string;
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  chatId: string;
+  messageId: string;
+  timestamp: string;
+  correlationId?: string;
+}
+
+/**
+ * PM Agent stream chunk payload - sent for each text chunk
+ */
+export interface PMAgentStreamChunkPayload {
+  streamId: string;
+  projectId: string;
+  agentId: string;
+  chatId: string;
+  messageId: string;
+  content: string;
+  chunkIndex: number;
+  timestamp: string;
+}
+
+/**
+ * PM Agent stream end payload - sent when streaming completes
+ */
+export interface PMAgentStreamEndPayload {
+  streamId: string;
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  chatId: string;
+  messageId: string;
+  fullContent: string;
+  tokensUsed?: number;
+  durationMs?: number;
+  timestamp: string;
+  correlationId?: string;
+}
+
+/**
+ * PM Agent typing payload - sent when agent is processing
+ */
+export interface PMAgentTypingPayload {
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  chatId: string;
+  isTyping: boolean;
+  timestamp: string;
+}
+
+// ============================================
+// PM Suggestion Event Payloads (PM-12.6)
+// ============================================
+
+/**
+ * PM Suggestion event payload for created/updated suggestions
+ */
+export interface PMSuggestionEventPayload {
+  id: string;
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  type: 'task_recommendation' | 'estimation' | 'phase_transition' | 'health_alert' | 'resource_allocation';
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'pending' | 'accepted' | 'rejected' | 'snoozed' | 'expired';
+  confidence: number;
+  expiresAt?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  correlationId?: string;
+}
+
+/**
+ * PM Suggestion action payload for accepted/rejected/snoozed suggestions
+ */
+export interface PMSuggestionActionPayload {
+  id: string;
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  type: string;
+  title: string;
+  action: 'accepted' | 'rejected' | 'snoozed';
+  actionBy: string;
+  actionAt: string;
+  snoozeUntil?: string;
+  feedback?: string;
+  correlationId?: string;
+}
+
+// ============================================
+// PM Health Live Update Payloads (PM-12.6)
+// ============================================
+
+/**
+ * PM Health update payload for live health score changes
+ */
+export interface PMHealthUpdatePayload {
+  projectId: string;
+  projectName: string;
+  score: number;
+  previousScore: number;
+  level: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'CRITICAL';
+  previousLevel: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'CRITICAL';
+  trend: 'UP' | 'DOWN' | 'STABLE';
+  factors: {
+    onTimeDelivery: number;
+    blockerImpact: number;
+    teamCapacity: number;
+    velocityTrend: number;
+  };
+  triggeredBy: 'task_completed' | 'task_blocked' | 'deadline_passed' | 'scheduled_check' | 'manual';
+  timestamp: string;
+  correlationId?: string;
+}
+
+// ============================================
 // WebSocket Event Names
 // ============================================
 
@@ -487,6 +666,27 @@ export const WS_EVENTS = {
   PM_PRESENCE_JOINED: 'pm.presence.joined',
   PM_PRESENCE_LEFT: 'pm.presence.left',
   PM_PRESENCE_UPDATED: 'pm.presence.updated',
+
+  // PM Health and Risk events (PM-12.3)
+  PM_HEALTH_CRITICAL: 'pm.health.critical',
+  PM_HEALTH_WARNING: 'pm.health.warning',
+  PM_RISK_DETECTED: 'pm.risk.detected',
+
+  // PM Agent Streaming events (PM-12.6)
+  PM_AGENT_STREAM_START: 'pm.agent.stream.start',
+  PM_AGENT_STREAM_CHUNK: 'pm.agent.stream.chunk',
+  PM_AGENT_STREAM_END: 'pm.agent.stream.end',
+  PM_AGENT_TYPING: 'pm.agent.typing',
+
+  // PM Suggestion events (PM-12.6)
+  PM_SUGGESTION_CREATED: 'pm.suggestion.created',
+  PM_SUGGESTION_UPDATED: 'pm.suggestion.updated',
+  PM_SUGGESTION_ACCEPTED: 'pm.suggestion.accepted',
+  PM_SUGGESTION_REJECTED: 'pm.suggestion.rejected',
+  PM_SUGGESTION_SNOOZED: 'pm.suggestion.snoozed',
+
+  // PM Health Live Update events (PM-12.6)
+  PM_HEALTH_UPDATED: 'pm.health.updated',
 } as const;
 
 export type WsEventName = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];

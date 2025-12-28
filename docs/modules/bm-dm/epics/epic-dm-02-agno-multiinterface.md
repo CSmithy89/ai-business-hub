@@ -101,7 +101,76 @@ Update existing PM agents for A2A compatibility:
 
 **Points:** 8
 
-## Total Points: 26
+### Story DM-02.6: CCR Installation & Configuration
+
+Install and configure Claude Code Router (CCR) for intelligent model routing:
+
+- Clone and set up CCR-custom fork (VisionCraft3r/ccr-custom)
+- Configure `~/.claude-code-router/config.json` with providers
+- Set up CLI subscription connections (Claude, Codex, Gemini)
+- Configure fallback chains for provider failures
+- Test CCR proxy startup and health checks
+
+**Acceptance Criteria:**
+- CCR starts successfully on configured port (default 3456)
+- Provider connections verified
+- Fallback chains trigger correctly on failure
+- Health endpoint responds with provider status
+
+**Points:** 5
+
+### Story DM-02.7: CCR-Agno Integration
+
+Integrate Agno agents with CCR routing layer:
+
+- Create `agents/models/ccr_provider.py` for CCR model wrapper
+- Update agent model selection to support CCR routing
+- Implement hybrid mode (CCR vs BYOAI per agent)
+- Add CCR connection health checks to agent startup
+
+**Acceptance Criteria:**
+- Agents can route through CCR
+- Hybrid mode allows per-agent BYOAI or CCR
+- CCR failures trigger BYOAI fallback
+- Agent startup validates CCR connection
+
+**Points:** 5
+
+### Story DM-02.8: CCR Task-Based Routing
+
+Configure intelligent task-based routing through CCR:
+
+- Define routing rules (reasoning → Claude, code → DeepSeek, etc.)
+- Configure BMAD agent detection for per-agent routing
+- Set up transformer chains for provider compatibility
+- Test routing decisions match expectations
+
+**Acceptance Criteria:**
+- Tasks route to appropriate providers by type
+- Per-agent model overrides work
+- Transformers correctly adapt request/response formats
+- Routing decisions logged for debugging
+
+**Points:** 5
+
+### Story DM-02.9: CCR Usage Monitoring & Alerts
+
+Implement usage tracking and quota notifications for CCR:
+
+- Create usage tracking service for CCR calls
+- Implement quota threshold detection
+- Configure notifications for low quota alerts
+- Add usage metrics to monitoring dashboard
+
+**Acceptance Criteria:**
+- API calls tracked per provider
+- Alerts trigger at configurable thresholds (e.g., 80%, 95%)
+- Notifications sent via configured channels
+- Usage data available in metrics endpoint
+
+**Points:** 5
+
+## Total Points: 51
 
 ## Dependencies
 
@@ -157,5 +226,7 @@ agent_os = AgentOS(
 ## References
 
 - [Dynamic Module System Architecture](../../architecture/dynamic-module-system.md)
+- [Remote Coding Agent Patterns (CCR Section)](../../architecture/remote-coding-agent-patterns.md)
+- [CCR-Custom Fork](https://github.com/VisionCraft3r/ccr-custom)
 - [Agno Documentation](https://docs.agno.com)
 - [A2A Protocol Spec](https://github.com/google/a2a-protocol)

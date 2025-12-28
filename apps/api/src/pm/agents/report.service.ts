@@ -7,6 +7,7 @@ import {
 import { ReportType, ReportFormat, StakeholderType } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 import { HealthService } from './health.service';
+import { PMNotificationService } from '../notifications/pm-notification.service';
 
 export interface ReportContent {
   summary: string;
@@ -54,6 +55,7 @@ export class ReportService {
   constructor(
     private prisma: PrismaService,
     private healthService: HealthService,
+    private pmNotificationService: PMNotificationService,
   ) {}
 
   /**
@@ -165,7 +167,74 @@ export class ReportService {
       },
     });
 
+    // PM-12.3: Send report generated notification to project team
+    const recipientIds = await this.getReportRecipients(project.id, workspaceId);
+    if (recipientIds.length > 0) {
+      this.pmNotificationService
+        .sendReportNotification(
+          workspaceId,
+          {
+            projectId: project.id,
+            projectName: project.name,
+            reportId: report.id,
+            reportType: dto.type,
+            reportTitle: title,
+            downloadUrl: `/pm/projects/${project.id}/reports/${report.id}`,
+          },
+          recipientIds,
+        )
+        .catch((error) => {
+          this.logger.error('Failed to send report notification', error);
+        });
+    }
+
     return { report };
+  }
+
+  /**
+   * Get recipients for report notifications
+   * Returns project team members
+   */
+  private async getReportRecipients(
+    projectId: string,
+    _workspaceId: string,
+  ): Promise<string[]> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        team: {
+          select: {
+            leadUserId: true,
+            members: {
+              where: { isActive: true },
+              select: { userId: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      return [];
+    }
+
+    const recipients: string[] = [];
+
+    // Add project lead first (if present)
+    if (project.team?.leadUserId) {
+      recipients.push(project.team.leadUserId);
+    }
+
+    // Add team members (avoiding duplicates)
+    if (project.team?.members) {
+      for (const member of project.team.members) {
+        if (!recipients.includes(member.userId)) {
+          recipients.push(member.userId);
+        }
+      }
+    }
+
+    return recipients;
   }
 
   /**

@@ -13,6 +13,7 @@ import {
   ProjectAccessDeniedException,
   HealthCheckFailedException,
 } from './exceptions';
+import { PMNotificationService } from '../notifications/pm-notification.service';
 
 export interface HealthScore {
   score: number; // 0-100
@@ -69,7 +70,10 @@ interface ProjectWithTeam {
 export class HealthService {
   private readonly logger = new Logger(HealthService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private pmNotificationService: PMNotificationService,
+  ) {}
 
   async runHealthCheck(
     workspaceId: string,
@@ -145,6 +149,9 @@ export class HealthService {
       // Limit risks per check to prevent excessive DB writes
       const limitedRisks = risks.slice(0, HEALTH_CHECK_LIMITS.MAX_RISKS_PER_CHECK);
 
+      // Track which risks are actually new (for notifications after transaction)
+      let newRisksForNotification: RiskEntry[] = [];
+
       // 5. Store health score and risks in a transaction
       await this.prisma.$transaction(async (tx) => {
         // Create health score record
@@ -190,6 +197,9 @@ export class HealthService {
             (risk) => !existingTypes.has(risk.type),
           );
 
+          // Store for notifications after transaction completes
+          newRisksForNotification = newRisks;
+
           if (newRisks.length > 0) {
             await tx.riskEntry.createMany({
               data: newRisks.map((risk) => ({
@@ -219,6 +229,74 @@ export class HealthService {
         });
       });
 
+      // PM-12.3: Send notifications for CRITICAL or WARNING health levels
+      if (
+        healthScore.level === HealthLevel.CRITICAL ||
+        healthScore.level === HealthLevel.WARNING
+      ) {
+        // Only notify if this is a drop to CRITICAL/WARNING (check previous level)
+        // Note: Check previousHealthScore existence, not score value (score of 0 is valid)
+        const previousLevel = previousHealthScore !== null && previousHealthScore !== undefined
+          ? this.scoreTolevel(previousHealthScore.score)
+          : undefined;
+
+        const shouldNotify =
+          !previousLevel ||
+          (healthScore.level === HealthLevel.CRITICAL &&
+            previousLevel !== HealthLevel.CRITICAL) ||
+          (healthScore.level === HealthLevel.WARNING &&
+            previousLevel !== HealthLevel.WARNING &&
+            previousLevel !== HealthLevel.CRITICAL);
+
+        if (shouldNotify) {
+          // Get top risks for the notification
+          const topRisks = limitedRisks.slice(0, 3).map((r) => ({
+            title: r.title,
+            severity: r.severity,
+          }));
+
+          // Send notification asynchronously (don't block the health check)
+          this.pmNotificationService
+            .sendHealthAlert(workspaceId, {
+              projectId: project.id,
+              projectName: project.name,
+              score: healthScore.score,
+              level: healthScore.level,
+              previousLevel,
+              previousScore: previousHealthScore?.score ?? undefined,
+              explanation: healthScore.explanation,
+              topRisks,
+            })
+            .catch((error) => {
+              this.logger.error('Failed to send health alert notification', error);
+            });
+        }
+      }
+
+      // PM-12.3: Send risk notifications for newly detected risks only
+      if (newRisksForNotification.length > 0) {
+        for (const risk of newRisksForNotification) {
+          // Send notification asynchronously
+          this.pmNotificationService
+            .sendRiskNotification(
+              workspaceId,
+              {
+                projectId: project.id,
+                projectName: project.name,
+                riskId: risk.type, // Using type as temporary ID (actual ID is created in transaction)
+                title: risk.title,
+                severity: risk.severity,
+                description: risk.description,
+                affectedTaskCount: risk.affectedTasks.length,
+              },
+              risk.affectedUsers,
+            )
+            .catch((error) => {
+              this.logger.error('Failed to send risk notification', error);
+            });
+        }
+      }
+
       return {
         ...healthScore,
         riskCount: risks.length,
@@ -240,6 +318,16 @@ export class HealthService {
         error instanceof Error ? error.message : 'Unknown error',
       );
     }
+  }
+
+  /**
+   * Convert health score to level (helper for notification logic)
+   */
+  private scoreTolevel(score: number): HealthLevel {
+    if (score >= 85) return HealthLevel.EXCELLENT;
+    if (score >= 70) return HealthLevel.GOOD;
+    if (score >= 50) return HealthLevel.WARNING;
+    return HealthLevel.CRITICAL;
   }
 
   private calculateHealthScore(
