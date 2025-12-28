@@ -40,8 +40,8 @@ development_status:
 
   # ===========================================
   # DM-01: CopilotKit Frontend Infrastructure
-  # Phase 1 | 5 stories | 26 points
-  # CopilotKit, AG-UI, Slots, Widgets
+  # Phase 1 | 8 stories | 44 points
+  # CopilotKit, AG-UI, Slots, Widgets, CCR UI
   # ===========================================
   dm-01: backlog
   dm-01-1-copilotkit-installation: backlog
@@ -49,6 +49,9 @@ development_status:
   dm-01-3-base-widget-components: backlog
   dm-01-4-copilotkit-chat-integration: backlog
   dm-01-5-context-provider-integration: backlog
+  dm-01-6-ccr-routing-settings-ui: backlog
+  dm-01-7-ccr-connection-status: backlog
+  dm-01-8-ccr-quota-usage-display: backlog
   dm-01-retrospective: optional
 
   # ===========================================
@@ -57,8 +60,8 @@ development_status:
 
   # ===========================================
   # DM-02: Agno Multi-Interface Backend
-  # Phase 2 | 5 stories | 26 points
-  # AgentOS, AG-UI, A2A, Discovery
+  # Phase 2 | 9 stories | 51 points
+  # AgentOS, AG-UI, A2A, Discovery, CCR Integration
   # ===========================================
   dm-02: backlog
   dm-02-1-agno-protocol-dependencies: backlog
@@ -66,6 +69,10 @@ development_status:
   dm-02-3-a2a-agentcard-discovery: backlog
   dm-02-4-dashboard-gateway-agent: backlog
   dm-02-5-existing-agent-protocol-updates: backlog
+  dm-02-6-ccr-installation-configuration: backlog
+  dm-02-7-ccr-agno-integration: backlog
+  dm-02-8-ccr-task-based-routing: backlog
+  dm-02-9-ccr-usage-monitoring-alerts: backlog
   dm-02-retrospective: optional
 
   # ===========================================
@@ -141,12 +148,12 @@ development_status:
 # Summary
 # ===========================================
 # Total Epics: 6
-# Total Stories: 31
-# Total Points: 188
+# Total Stories: 38
+# Total Points: 231
 #
 # Phase Breakdown:
-#   Phase 1 (DM-01): 26 points - Frontend
-#   Phase 2 (DM-02): 26 points - Backend
+#   Phase 1 (DM-01): 44 points - Frontend + CCR UI
+#   Phase 2 (DM-02): 51 points - Backend + CCR Integration
 #   Phase 3 (DM-03): 34 points - Integration
 #   Phase 4 (DM-04): 26 points - Shared State
 #   Phase 5 (DM-05): 34 points - Advanced
