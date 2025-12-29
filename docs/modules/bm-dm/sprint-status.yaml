@@ -80,7 +80,7 @@ development_status:
   dm-02: contexted
   dm-02-1-agno-protocol-dependencies: done
   dm-02-2-agentos-multiinterface-setup: done
-  dm-02-3-a2a-agentcard-discovery: backlog
+  dm-02-3-a2a-agentcard-discovery: done
   dm-02-4-dashboard-gateway-agent: backlog
   dm-02-5-existing-agent-protocol-updates: backlog
   dm-02-6-ccr-installation-configuration: backlog
