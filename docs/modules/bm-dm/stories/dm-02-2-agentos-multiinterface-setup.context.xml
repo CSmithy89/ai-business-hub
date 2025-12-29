@@ -1,0 +1,885 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="dm-02-2-agentos-multiinterface-setup" epic="dm-02">
+  <metadata>
+    <title>AgentOS Multi-Interface Setup</title>
+    <points>5</points>
+    <status>drafted</status>
+    <priority>High (critical infrastructure)</priority>
+    <dependencies>DM-02.1 (Complete - Protocol Dependencies)</dependencies>
+    <created>2025-12-30</created>
+    <context-generated>2025-12-30</context-generated>
+  </metadata>
+
+  <story-requirements>
+    <overview>
+      Configure AgentOS with multi-interface support enabling both AG-UI and A2A protocols
+      simultaneously. This story creates the AgentOS configuration infrastructure that will
+      serve all protocol interfaces for the Dynamic Module System.
+    </overview>
+
+    <acceptance-criteria>
+      <criterion id="AC1">AgentOS configuration module created with multi-interface support</criterion>
+      <criterion id="AC2">Environment variable schema defined with sensible defaults</criterion>
+      <criterion id="AC3">Factory function creates properly configured AgentOS instance</criterion>
+      <criterion id="AC4">AG-UI and A2A interfaces both enabled and routed correctly</criterion>
+      <criterion id="AC5">Unit tests verify configuration and interface setup</criterion>
+    </acceptance-criteria>
+
+    <technical-approach>
+      <decision>
+        Use Option B from tech spec: Mount AGUI/A2A routers on the existing FastAPI app.
+        This approach maintains backward compatibility with existing REST endpoints,
+        allows incremental adoption, leverages existing middleware, and simplifies deployment.
+      </decision>
+
+      <interface-configuration-model>
+        Each agent can be configured with:
+        - AG-UI enabled/disabled (for frontend-facing agents)
+        - A2A enabled/disabled (for inter-agent/external communication)
+        - Custom paths for each interface
+        - Timeout overrides using DMConstants
+      </interface-configuration-model>
+    </technical-approach>
+
+    <files-to-create>
+      <file>agents/agentos/__init__.py</file>
+      <file>agents/agentos/config.py</file>
+      <file>agents/agentos/factory.py</file>
+      <file>agents/agentos/health.py</file>
+      <file>agents/tests/test_dm_02_2_agentos_config.py</file>
+    </files-to-create>
+
+    <files-to-modify-future>
+      <file note="When Dashboard agent is created in DM-02.4">agents/main.py</file>
+    </files-to-modify-future>
+  </story-requirements>
+
+  <existing-code>
+    <file path="agents/main.py" purpose="Existing FastAPI application to understand current structure">
+<![CDATA[
+"""
+HYVVE AgentOS - AI Agent Runtime
+
+Production runtime for Agno agents with tenant isolation,
+JWT authentication, A2A protocol, and AG-UI streaming support.
+
+Version: 0.2.0
+Protocols: A2A v0.3.0, AG-UI v0.1.0
+"""
+
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from middleware.tenant import TenantMiddleware
+from middleware.rate_limit import init_rate_limiting, NoopLimiter
+from middleware.business_validator import validate_business_ownership
+from config import get_settings
+from pydantic import BaseModel, Field
+from typing import Optional, Any, Dict, List, Union
+import logging
+import time
+import asyncio
+import json
+import uuid
+import hmac
+import os
+
+# Import registry and A2A models
+from registry import registry, AgentCard
+
+# Import AG-UI encoder
+from ag_ui.encoder import EventEncoder, AGUIEventType
+
+# Import BYOAI provider integration
+from providers import resolve_and_create_model, get_provider_resolver, ResolvedProvider
+from providers.byoai_client import BYOAIClient
+
+# Import platform agents
+from core_platform.approval_agent import ApprovalAgent
+
+# Import team factories
+from validation.team import create_validation_team
+from planning.team import create_planning_team
+from branding.team import create_branding_team
+
+# Configuration (must be at top before usage)
+settings = get_settings()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# FastAPI Application
+app = FastAPI(
+    title="HYVVE AgentOS",
+    description="AI Agent Runtime with A2A protocol and AG-UI streaming",
+    version="0.2.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# CORS middleware configuration
+origins_setting = settings.cors_origins
+if isinstance(origins_setting, str):
+    allowed_origins = [origins_setting]
+else:
+    allowed_origins = list(origins_setting or [])
+
+# Add Control Plane origin if enabled
+if settings.control_plane_enabled and settings.control_plane_origin:
+    if settings.control_plane_origin not in allowed_origins:
+        allowed_origins.append(settings.control_plane_origin)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
+)
+
+# Tenant middleware (JWT validation and workspace_id injection)
+# ... (middleware setup continues)
+
+# Key existing endpoints to preserve:
+# - GET / (root with service info)
+# - GET /health
+# - GET /ready
+# - GET /.well-known/agent-card.json (A2A discovery - already exists)
+# - GET /a2a/{agent_id}/.well-known/agent-card.json (agent card)
+# - POST /a2a/{agent_id}/rpc (A2A JSON-RPC)
+# - POST /agents/approval/runs
+# - POST /agents/validation/runs
+# - POST /agents/planning/runs
+# - POST /agents/branding/runs
+# - POST /knowledge/ingest
+# - POST /knowledge/search
+]]>
+    </file>
+
+    <file path="agents/config.py" purpose="Existing configuration module">
+<![CDATA[
+"""
+AgentOS Configuration Management
+
+Manages environment variables for the AgentOS runtime using Pydantic Settings.
+"""
+
+from functools import lru_cache
+from typing import Optional
+
+from pydantic import Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """AgentOS configuration settings loaded from environment variables"""
+
+    # Database
+    database_url: str
+
+    # Redis
+    redis_url: Optional[str] = None
+
+    # Authentication
+    better_auth_secret: SecretStr
+
+    # AI provider key encryption (shared with Nest/Next)
+    encryption_master_key: Optional[SecretStr] = None
+
+    # Server
+    agentos_host: str = "0.0.0.0"
+    agentos_port: int = 7777
+
+    # NestJS API (for BYOAI integration)
+    api_base_url: str = "http://localhost:3001"
+
+    # Control Plane (optional)
+    control_plane_enabled: bool = True
+    agno_api_key: Optional[SecretStr] = None
+
+    # CORS
+    cors_origins: list[str] | str = Field(
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+        ]
+    )
+    cors_allow_methods: list[str] = Field(
+        default_factory=lambda: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    )
+    cors_allow_headers: list[str] = Field(default_factory=lambda: ["Authorization", "Content-Type"])
+    control_plane_origin: str = "https://os.agno.com"
+
+    @field_validator("better_auth_secret")
+    @classmethod
+    def _ensure_auth_secret(cls, v: SecretStr) -> SecretStr:
+        value = v.get_secret_value()
+        if not value or not value.strip():
+            raise ValueError("BETTER_AUTH_SECRET must be set")
+        return v
+
+    @field_validator("encryption_master_key", mode="before")
+    @classmethod
+    def _normalize_encryption_master_key(cls, v: object) -> object:
+        if v is None:
+            return None
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+
+@lru_cache
+def get_settings() -> "Settings":
+    """
+    Lazy settings factory to avoid eager validation at import time.
+    """
+    return Settings()
+]]>
+    </file>
+
+    <file path="agents/constants/dm_constants.py" purpose="DMConstants created in DM-02.1">
+<![CDATA[
+"""
+Dynamic Module System Constants
+
+All magic numbers for DM-02+ epics must be defined here.
+Do NOT hardcode values in agent code.
+
+Based on Epic DM-02 Technical Specification.
+"""
+
+
+class DMConstants:
+    """Dynamic Module System constants - no magic numbers in code."""
+
+    # AgentOS Configuration
+    class AGENTOS:
+        DEFAULT_PORT = 8000
+        WORKER_COUNT = 4
+        REQUEST_TIMEOUT_SECONDS = 30
+        KEEP_ALIVE_SECONDS = 65
+        MAX_CONCURRENT_TASKS = 100
+
+    # A2A Protocol
+    class A2A:
+        PROTOCOL_VERSION = "0.3.0"
+        TASK_TIMEOUT_SECONDS = 300
+        MAX_TASK_QUEUE_SIZE = 1000
+        AGENT_DISCOVERY_CACHE_TTL_SECONDS = 300
+        HEARTBEAT_INTERVAL_SECONDS = 30
+        MAX_MESSAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+    # AG-UI Protocol
+    class AGUI:
+        PROTOCOL_VERSION = "0.1.0"
+        STREAM_CHUNK_SIZE_BYTES = 4096
+        MAX_STREAM_DURATION_SECONDS = 600
+        TOOL_CALL_TIMEOUT_SECONDS = 60
+        MAX_TOOL_CALLS_PER_REQUEST = 50
+
+    # CCR Configuration (for DM-02.6+)
+    class CCR:
+        DEFAULT_PORT = 3456
+        HEALTH_CHECK_INTERVAL_SECONDS = 30
+        PROVIDER_TIMEOUT_SECONDS = 60
+        MAX_RETRIES = 3
+        RETRY_BACKOFF_MULTIPLIER = 2.0
+        QUOTA_WARNING_THRESHOLD = 0.8
+        QUOTA_CRITICAL_THRESHOLD = 0.95
+
+    # Dashboard Agent (for DM-02.4+)
+    class DASHBOARD:
+        MAX_WIDGETS_PER_REQUEST = 12
+        WIDGET_DATA_TTL_SECONDS = 60
+        CACHE_SIZE_MB = 100
+        CONCURRENT_AGENT_CALLS = 5
+
+    # Performance Targets
+    class PERFORMANCE:
+        P50_RESPONSE_TARGET_MS = 200
+        P95_RESPONSE_TARGET_MS = 500
+        P99_RESPONSE_TARGET_MS = 1000
+        MAX_MEMORY_MB = 512
+]]>
+    </file>
+
+    <file path="agents/registry.py" purpose="Existing agent registry">
+<![CDATA[
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field
+import importlib
+import logging
+from agno.agent import Agent
+from agno.team import Team
+from agno.workflow import Workflow
+
+logger = logging.getLogger(__name__)
+
+# --- A2A Protocol Models ---
+
+class AgentSkill(BaseModel):
+    """Describes a specific capability or tool exposed by an agent."""
+    name: str
+    description: str
+    parameters: Dict[str, Any]  # JSON Schema
+
+class AgentEndpoints(BaseModel):
+    """Endpoints for interacting with the agent."""
+    rpc: str = "/rpc"
+    ws: Optional[str] = None
+
+class AgentCapabilities(BaseModel):
+    """Feature flags for the agent."""
+    streaming: bool = True
+    events: bool = True
+    files: bool = False
+
+class AgentCard(BaseModel):
+    """The A2A Discovery Manifest."""
+    protocolVersion: str = "0.3.0"
+    id: str
+    name: str
+    description: str
+    version: str = "1.0.0"
+    endpoints: AgentEndpoints = Field(default_factory=AgentEndpoints)
+    capabilities: AgentCapabilities = Field(default_factory=AgentCapabilities)
+    skills: List[AgentSkill] = []
+
+# --- Registry Implementation ---
+
+class AgentRegistry:
+    """
+    Central registry for discovering and managing AgentOS components.
+    Handles dynamic loading of modules and A2A card generation.
+    """
+
+    def __init__(self):
+        self._agents: Dict[str, Agent] = {}
+        self._teams: Dict[str, Team] = {}
+        self._workflows: Dict[str, Workflow] = {}
+        self._cards: Dict[str, AgentCard] = {}
+
+    def register_agent(self, agent: Agent, override_id: Optional[str] = None):
+        """Register a single Agno Agent."""
+        agent_id = override_id or agent.model.id if hasattr(agent, "model") and hasattr(agent.model, "id") else getattr(agent, "name", "unknown").lower().replace(" ", "_")
+        if not agent_id:
+             agent_id = f"agent_{len(self._agents)}"
+
+        self._agents[agent_id] = agent
+        self._generate_card(agent_id, agent, "agent")
+        logger.info(f"Registered Agent: {agent_id}")
+
+    def register_team(self, team: Team, override_id: Optional[str] = None):
+        """Register an Agno Team."""
+        team_id = override_id or getattr(team, "name", "unknown_team").lower().replace(" ", "_")
+        self._teams[team_id] = team
+        self._generate_card(team_id, team, "team")
+        logger.info(f"Registered Team: {team_id}")
+
+    def get_agent(self, agent_id: str) -> Optional[Agent]:
+        return self._agents.get(agent_id)
+
+    def get_team(self, team_id: str) -> Optional[Team]:
+        return self._teams.get(team_id)
+
+    def get_card(self, component_id: str) -> Optional[AgentCard]:
+        return self._cards.get(component_id)
+
+    def list_cards(self) -> List[AgentCard]:
+        return list(self._cards.values())
+
+    def _generate_card(self, component_id: str, component: Any, component_type: str):
+        """Generates an A2A Agent Card for any registered component."""
+        name = getattr(component, "name", component_id)
+        description = getattr(component, "description", f"A registered {component_type}")
+
+        skills = []
+        if hasattr(component, "tools") and component.tools:
+            for tool in component.tools:
+                if hasattr(tool, "name") and hasattr(tool, "description"):
+                     skills.append(AgentSkill(
+                         name=tool.name,
+                         description=tool.description or "",
+                         parameters=getattr(tool, "parameters", {})
+                     ))
+
+        card = AgentCard(
+            id=component_id,
+            name=name,
+            description=description,
+            skills=skills,
+            capabilities=AgentCapabilities(
+                streaming=True,
+                events=True
+            )
+        )
+        self._cards[component_id] = card
+
+# Global Registry Instance
+registry = AgentRegistry()
+]]>
+    </file>
+  </existing-code>
+
+  <tech-spec-excerpt>
+    <section title="2.1 AgentOS Multi-Interface Configuration">
+      <content>
+        Agno's AgentOS can expose the same agent via multiple protocol interfaces simultaneously:
+        - AG-UI for CopilotKit frontend communication (streaming, tool calls)
+        - A2A for inter-agent and external agent communication (JSON-RPC 2.0)
+
+        Pattern (conceptual - Option B: Mount routers on existing FastAPI app):
+        ```python
+        from agno.os.interfaces.agui import create_agui_router
+        from agno.os.interfaces.a2a import create_a2a_router
+
+        # Mount AGUI for dashboard
+        agui_router = create_agui_router(dashboard_agent, path="/agui")
+        app.include_router(agui_router)
+
+        # Mount A2A for all agents
+        for config in INTERFACE_CONFIGS:
+            if config.a2a_enabled:
+                a2a_router = create_a2a_router(
+                    agent=agents.get(config.agent_id),
+                    path=config.a2a_path
+                )
+                app.include_router(a2a_router)
+        ```
+      </content>
+    </section>
+
+    <section title="3.2 Story DM-02.2 Technical Breakdown">
+      <interface-configuration>
+        ```python
+        class InterfaceConfig(BaseModel):
+            """Configuration for an agent interface."""
+            agent_id: str
+            agui_enabled: bool = False
+            agui_path: Optional[str] = None
+            a2a_enabled: bool = True
+            a2a_path: Optional[str] = None
+
+        # Default interface configurations
+        INTERFACE_CONFIGS: List[InterfaceConfig] = [
+            InterfaceConfig(
+                agent_id="dashboard_gateway",
+                agui_enabled=True,
+                agui_path="/agui",
+                a2a_enabled=True,
+                a2a_path="/a2a/dashboard",
+            ),
+            InterfaceConfig(
+                agent_id="navi",
+                a2a_enabled=True,
+                a2a_path="/a2a/navi",
+            ),
+            InterfaceConfig(
+                agent_id="pulse",
+                a2a_enabled=True,
+                a2a_path="/a2a/pulse",
+            ),
+            InterfaceConfig(
+                agent_id="herald",
+                a2a_enabled=True,
+                a2a_path="/a2a/herald",
+            ),
+        ]
+        ```
+      </interface-configuration>
+
+      <interface-factory>
+        Factory function to create interfaces for configured agents using DMConstants
+        for timeout values and other configuration.
+      </interface-factory>
+
+      <definition-of-done>
+        - AgentOS starts with both AGUI and A2A interfaces
+        - /agui endpoint responds to AG-UI protocol requests
+        - /a2a/dashboard endpoint responds to A2A requests
+        - Both interfaces reference the same Dashboard agent instance
+        - Existing REST endpoints continue to work
+      </definition-of-done>
+    </section>
+
+    <section title="Interface Path Conventions">
+      <table>
+        | Interface | Path Pattern | Example |
+        |-----------|--------------|---------|
+        | AG-UI | /agui or /agui/{agent} | /agui |
+        | A2A | /a2a/{agent_name} | /a2a/dashboard, /a2a/navi |
+        | A2A Discovery | /.well-known/agent.json | (DM-02.3) |
+      </table>
+    </section>
+
+    <section title="Environment Variables">
+      <table>
+        | Variable | Default | Description |
+        |----------|---------|-------------|
+        | AGENTOS_PORT | 8000 | Server port |
+        | AGENTOS_HOST | 0.0.0.0 | Server host |
+        | AGENTOS_WORKERS | 4 | Worker count |
+        | AGENTOS_BASE_URL | http://localhost:8000 | Base URL for A2A discovery |
+        | AGENTOS_REQUEST_TIMEOUT_SECONDS | 30 | Default request timeout |
+        | AGENTOS_AGUI_ENABLED | true | Global AG-UI enable |
+        | AGENTOS_A2A_ENABLED | true | Global A2A enable |
+        | AGENTOS_DEBUG | false | Debug mode |
+      </table>
+    </section>
+  </tech-spec-excerpt>
+
+  <agno-library-reference>
+    <overview>
+      The Agno framework provides AgentOS with multi-interface support through:
+      - agno.os.AgentOS: Main AgentOS class
+      - agno.os.interfaces.agui.AGUI: AG-UI interface for frontend streaming
+      - agno.os.interfaces.a2a.A2A: A2A interface for inter-agent communication
+    </overview>
+
+    <agui-interface>
+      <description>
+        Main entry point for AG-UI exposure. Wraps an Agno Agent or Team into
+        an AG-UI compatible FastAPI router with protocol-compliant endpoints.
+      </description>
+      <initialization-parameters>
+        | Parameter | Type | Default | Description |
+        |-----------|------|---------|-------------|
+        | agent | Optional[Agent] | None | Agno Agent instance |
+        | team | Optional[Team] | None | Agno Team instance |
+      </initialization-parameters>
+      <key-method>
+        get_router(use_async: bool = True) -> APIRouter
+        Returns the AG-UI FastAPI router with protocol-compliant endpoints.
+      </key-method>
+      <usage-example>
+        ```python
+        from agno.agent.agent import Agent
+        from agno.os import AgentOS
+        from agno.os.interfaces.agui import AGUI
+
+        chat_agent = Agent(model=OpenAIChat(id="gpt-4o"))
+
+        # Option 1: Via AgentOS interfaces parameter
+        agent_os = AgentOS(
+            agents=[chat_agent],
+            interfaces=[AGUI(agent=chat_agent)],
+        )
+
+        # Option 2: Get router directly
+        agui_interface = AGUI(agent=chat_agent)
+        router = agui_interface.get_router(use_async=True)
+        ```
+      </usage-example>
+    </agui-interface>
+
+    <a2a-interface>
+      <description>
+        A2A interface for exposing agents via the A2A protocol for inter-agent
+        and external agent communication using JSON-RPC 2.0.
+      </description>
+      <initialization-patterns>
+        ```python
+        # Pattern 1: Global A2A enable
+        agent_os = AgentOS(
+            agents=[agent],
+            a2a_interface=True,  # Exposes all agents via A2A
+        )
+
+        # Pattern 2: Explicit interface initialization
+        a2a = A2A(agents=[agent])
+        agent_os = AgentOS(
+            agents=[agent],
+            interfaces=[a2a],
+        )
+        ```
+      </initialization-patterns>
+    </a2a-interface>
+
+    <important-notes>
+      - When using explicit interfaces, pass them via the `interfaces` parameter
+      - The `a2a_interface=True` flag exposes ALL agents/teams via A2A
+      - For fine-grained control, create A2A/AGUI instances with specific agents
+      - Both interfaces can coexist on the same AgentOS instance
+    </important-notes>
+  </agno-library-reference>
+
+  <implementation-guide>
+    <task id="1" title="Create AgentOS Configuration Module" points="1.5">
+      <file>agents/agentos/__init__.py</file>
+      <description>Module init with exports for all configuration and factory functions</description>
+      <exports>
+        - AgentOSSettings
+        - InterfaceConfig
+        - get_agentos_settings
+        - get_interface_config
+        - INTERFACE_CONFIGS
+        - create_interfaces
+        - create_agui_interface
+        - create_a2a_interface
+      </exports>
+    </task>
+
+    <task id="2" title="Create Configuration Module" points="1.5">
+      <file>agents/agentos/config.py</file>
+      <description>
+        Environment-based configuration with Pydantic Settings.
+        Must use DMConstants for all default values.
+      </description>
+      <key-classes>
+        <class name="InterfaceConfig">
+          Per-agent interface configuration model defining:
+          - agent_id (required)
+          - agui_enabled, agui_path
+          - a2a_enabled, a2a_path
+          - agui_timeout_seconds, a2a_timeout_seconds (optional overrides)
+          - Helper methods: get_agui_timeout(), get_a2a_timeout()
+        </class>
+        <class name="AgentOSSettings">
+          Global settings from environment with AGENTOS_ prefix:
+          - port, host, workers
+          - base_url (for A2A discovery)
+          - request_timeout_seconds, keep_alive_seconds
+          - max_concurrent_tasks
+          - agui_enabled, a2a_enabled (global flags)
+          - debug
+        </class>
+      </key-classes>
+      <default-configs>
+        Pre-configure INTERFACE_CONFIGS list with:
+        - dashboard_gateway: AG-UI + A2A (primary frontend gateway)
+        - navi: A2A only (PM orchestrator)
+        - pulse: A2A only (PM project manager)
+        - herald: A2A only (PM communicator)
+      </default-configs>
+    </task>
+
+    <task id="3" title="Create Interface Factory Module" points="1.5">
+      <file>agents/agentos/factory.py</file>
+      <description>
+        Factory functions for creating protocol interfaces.
+        Handles interface instantiation with proper configuration.
+      </description>
+      <key-functions>
+        <function name="create_agui_interface">
+          Create AG-UI interface for an agent.
+          Args: agent, path, timeout_seconds
+          Returns: AGUI interface instance
+        </function>
+        <function name="create_a2a_interface">
+          Create A2A interface for an agent.
+          Args: agent, path, timeout_seconds, max_concurrent
+          Returns: A2A interface instance
+        </function>
+        <function name="create_interfaces">
+          Batch create interfaces for multiple agents based on configuration.
+          Args: agents dict, optional configs list
+          Returns: Dict mapping agent_id to list of interfaces
+        </function>
+        <function name="get_all_interface_paths">
+          Utility to get all configured paths for documentation/health.
+          Returns: Dict mapping agent_id to {agui: path, a2a: path}
+        </function>
+        <function name="validate_interface_config">
+          Validate an InterfaceConfig before use.
+          Returns: List of validation error messages
+        </function>
+      </key-functions>
+    </task>
+
+    <task id="4" title="Create Health Check Support" points="0.5">
+      <file>agents/agentos/health.py</file>
+      <description>Health check utilities for monitoring interface status</description>
+      <key-functions>
+        <function name="get_interfaces_health">
+          Returns comprehensive health status including:
+          - Overall status (healthy/degraded)
+          - healthy_count, total_count
+          - Per-interface status list
+          - Current settings
+          - Protocol versions from DMConstants
+        </function>
+      </key-functions>
+    </task>
+
+    <task id="5" title="Create Unit Tests" points="1.5">
+      <file>agents/tests/test_dm_02_2_agentos_config.py</file>
+      <description>Comprehensive tests for configuration and factory modules</description>
+      <test-classes>
+        <class name="TestAgentOSSettings" tests="4">
+          - test_default_settings (verify DMConstants defaults)
+          - test_environment_override
+          - test_base_url_default
+          - test_interface_enable_flags
+        </class>
+        <class name="TestInterfaceConfig" tests="6">
+          - test_interface_config_creation
+          - test_timeout_defaults
+          - test_timeout_overrides
+          - test_default_configs_exist
+          - test_dashboard_has_both_interfaces
+          - test_pm_agents_a2a_only
+        </class>
+        <class name="TestInterfaceConfigRegistry" tests="4">
+          - test_get_interface_config
+          - test_get_interface_config_not_found
+          - test_register_interface_config
+          - test_register_duplicate_raises
+        </class>
+        <class name="TestInterfaceFactory" tests="5">
+          - test_create_agui_interface
+          - test_create_a2a_interface
+          - test_create_interfaces_for_multiple_agents
+          - test_create_interfaces_skips_missing_agents
+          - test_get_all_interface_paths
+        </class>
+        <class name="TestInterfaceConfigValidation" tests="5">
+          - test_validate_valid_config
+          - test_validate_agui_enabled_no_path
+          - test_validate_a2a_enabled_no_path
+          - test_validate_path_must_start_with_slash
+          - test_validate_negative_timeout
+        </class>
+        <class name="TestInterfaceHealth" tests="3">
+          - test_get_interfaces_health
+          - test_health_includes_protocol_versions
+          - test_health_reflects_settings
+        </class>
+      </test-classes>
+      <testing-notes>
+        - Use pytest.importorskip("agno") at module level
+        - Mock AGUI and A2A classes in factory tests
+        - Use monkeypatch for environment variable tests
+        - Clear lru_cache in environment override tests
+      </testing-notes>
+    </task>
+  </implementation-guide>
+
+  <testing-requirements>
+    <unit-tests>
+      <coverage>Minimum 85% for configuration and factory modules</coverage>
+      <test-count>27 tests total across 6 test classes</test-count>
+      <key-assertions>
+        - Default settings match DMConstants values
+        - Environment overrides apply correctly
+        - Interface configs for all known agents exist
+        - Dashboard has both AG-UI and A2A enabled
+        - PM agents have only A2A enabled
+        - Factory creates correct interface types
+        - Validation catches configuration errors
+        - Health check returns expected structure
+      </key-assertions>
+    </unit-tests>
+
+    <integration-tests note="Future - with real agents in DM-02.4+">
+      <test>test_agui_endpoint_responds - Verify /agui accepts AG-UI requests</test>
+      <test>test_a2a_endpoint_responds - Verify /a2a/* accepts A2A requests</test>
+      <test>test_both_interfaces_same_agent - Verify both interfaces serve same agent</test>
+    </integration-tests>
+
+    <run-command>pytest agents/tests/test_dm_02_2_agentos_config.py -v</run-command>
+  </testing-requirements>
+
+  <acceptance-validation>
+    <checklist>
+      <item ac="AC1">
+        agents/agentos/__init__.py created with all exports
+        agents/agentos/config.py created with AgentOSSettings and InterfaceConfig
+        INTERFACE_CONFIGS contains dashboard_gateway, navi, pulse, herald
+      </item>
+      <item ac="AC2">
+        AgentOSSettings uses AGENTOS_ env prefix
+        All defaults reference DMConstants (no magic numbers)
+        Environment variables documented in settings class docstrings
+      </item>
+      <item ac="AC3">
+        create_agui_interface() factory function implemented
+        create_a2a_interface() factory function implemented
+        create_interfaces() batch factory function implemented
+        Factory functions use DMConstants for timeouts
+      </item>
+      <item ac="AC4">
+        dashboard_gateway config has agui_enabled=True, a2a_enabled=True
+        PM agent configs have agui_enabled=False, a2a_enabled=True
+        Path conventions followed: /agui, /a2a/{agent_name}
+      </item>
+      <item ac="AC5">
+        27 unit tests implemented
+        All tests pass: pytest agents/tests/test_dm_02_2_agentos_config.py
+        Tests mock Agno imports to run in CI without dependencies
+      </item>
+    </checklist>
+
+    <definition-of-done>
+      - [ ] agents/agentos/__init__.py created with exports
+      - [ ] agents/agentos/config.py created with:
+        - [ ] AgentOSSettings Pydantic settings class
+        - [ ] InterfaceConfig model for per-agent configuration
+        - [ ] INTERFACE_CONFIGS default configurations for known agents
+        - [ ] get_agentos_settings() cached settings accessor
+        - [ ] get_interface_config() config lookup function
+        - [ ] register_interface_config() dynamic registration
+      - [ ] agents/agentos/factory.py created with:
+        - [ ] create_agui_interface() factory function
+        - [ ] create_a2a_interface() factory function
+        - [ ] create_interfaces() batch factory function
+        - [ ] validate_interface_config() validation helper
+        - [ ] get_all_interface_paths() path utility
+      - [ ] agents/agentos/health.py created with health check support
+      - [ ] Unit tests pass (pytest agents/tests/test_dm_02_2_agentos_config.py)
+      - [ ] All interface configs use DMConstants (no magic numbers)
+      - [ ] Environment variable schema documented in settings class
+      - [ ] Code follows existing patterns in codebase
+    </definition-of-done>
+  </acceptance-validation>
+
+  <important-notes>
+    <note title="Backward Compatibility">
+      This story creates configuration infrastructure WITHOUT modifying agents/main.py.
+      Integration with FastAPI app happens in DM-02.4 when Dashboard Gateway agent is created.
+      This ensures existing REST endpoints remain unaffected.
+    </note>
+
+    <note title="Factory Pattern Rationale">
+      We use a factory pattern to:
+      1. Centralize configuration - All interface creation goes through the factory
+      2. Enable testing - Factory functions can be mocked easily
+      3. Support validation - Configuration is validated before interface creation
+      4. Allow extension - New interface types can be added without changing callers
+    </note>
+
+    <note title="Constants Usage">
+      All timeout and configuration values MUST use DMConstants:
+      ```python
+      # CORRECT - Use constants
+      from constants.dm_constants import DMConstants
+      timeout = DMConstants.A2A.TASK_TIMEOUT_SECONDS
+
+      # INCORRECT - Magic numbers
+      timeout = 300  # Don't do this!
+      ```
+    </note>
+
+    <note title="Import Path">
+      The agentos module will be at agents/agentos/.
+      Imports should be: `from agentos.config import ...`
+      or `from agentos import ...`
+    </note>
+  </important-notes>
+
+  <references>
+    <reference>Epic DM-02 Definition: docs/modules/bm-dm/epics/epic-dm-02-agno-multiinterface.md</reference>
+    <reference>Epic DM-02 Tech Spec: docs/modules/bm-dm/epics/epic-dm-02-tech-spec.md</reference>
+    <reference>Story DM-02.1: docs/modules/bm-dm/stories/dm-02-1-agno-protocol-dependencies.md</reference>
+    <reference>DM Constants: agents/constants/dm_constants.py</reference>
+    <reference>Agno Documentation: https://docs.agno.com</reference>
+    <reference>A2A Protocol: https://github.com/google/a2a-protocol</reference>
+  </references>
+</story-context>
