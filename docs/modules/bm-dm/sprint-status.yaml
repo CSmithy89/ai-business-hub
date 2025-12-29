@@ -78,7 +78,7 @@ development_status:
   # Tech Spec: docs/modules/bm-dm/epics/epic-dm-02-tech-spec.md
   # ===========================================
   dm-02: contexted
-  dm-02-1-agno-protocol-dependencies: backlog
+  dm-02-1-agno-protocol-dependencies: done
   dm-02-2-agentos-multiinterface-setup: backlog
   dm-02-3-a2a-agentcard-discovery: backlog
   dm-02-4-dashboard-gateway-agent: backlog

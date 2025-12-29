@@ -1,0 +1,767 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="dm-02-1" title="Agno Protocol Dependencies">
+
+  <story-summary>
+    <description>
+      Install and configure Agno protocol support packages (AG-UI and A2A) to enable
+      multi-interface AgentOS in the backend. This is a foundational story for Epic DM-02
+      that establishes the dependency foundation required for:
+      - AG-UI streaming protocol (frontend communication via CopilotKit)
+      - A2A protocol (inter-agent and external agent communication)
+      - Multi-interface AgentOS configuration
+
+      All subsequent DM-02 stories depend on these protocol packages being installed
+      and working correctly.
+    </description>
+    <epic>DM-02 - Agno Multi-Interface Backend</epic>
+    <points>2</points>
+    <priority>High (foundational)</priority>
+    <dependencies>DM-01 (Complete)</dependencies>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">All protocol packages installed via `pip install -e ".[dev]"` or equivalent</criterion>
+    <criterion id="AC2">Protocol imports work without errors in Python REPL</criterion>
+    <criterion id="AC3">Version compatibility verified with existing `agents/main.py` codebase</criterion>
+    <criterion id="AC4">Development environment documentation updated</criterion>
+    <criterion id="AC5">Verification script runs successfully</criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <architecture-overview>
+      Epic DM-02 establishes the backend infrastructure for the Dynamic Module System,
+      enabling AgentOS to expose agents via multiple protocols simultaneously:
+      - Agno AG-UI and A2A protocol installation and configuration
+      - Multi-interface AgentOS exposing /agui and /a2a endpoints
+      - A2A AgentCard discovery via /.well-known/agent.json
+      - Dashboard Gateway agent with render_dashboard_widget tool
+      - CCR (Claude Code Router) installation and integration
+    </architecture-overview>
+
+    <key-technologies>
+      <technology name="agno[agui,a2a]" version="Latest" purpose="Core Agno framework with protocol support" />
+      <technology name="ag-ui-protocol" version="^0.1.x" purpose="AG-UI streaming protocol" />
+      <technology name="a2a-sdk" version="^0.3.x" purpose="Google A2A protocol SDK" />
+      <technology name="FastAPI" version="^0.110.x" purpose="HTTP server framework" />
+      <technology name="Pydantic" version="^2.x" purpose="Request/response validation" />
+    </key-technologies>
+
+    <integration-points>
+      <point name="AgentOS (agents/main.py)">
+        - Update to use Agno's native multi-interface support
+        - Add AGUI and A2A interface configurations
+        - Integrate CCR as model provider option
+      </point>
+      <point name="Existing PM Agents (agents/pm/)">
+        - Add A2A interface compatibility to Navi, Pulse, Herald
+        - Maintain backward compatibility with current REST endpoints
+      </point>
+    </integration-points>
+
+    <package-installation-strategy>
+      <primary-command>pip install "agno[agui,a2a]>=0.3.0"</primary-command>
+      <fallback-command>pip install "agno>=0.3.0" "ag-ui-protocol>=0.1.0" "a2a-sdk>=0.3.0"</fallback-command>
+      <version-pinning-rationale>
+        We use minimum version constraints (>=0.3.0) rather than exact pins to:
+        1. Allow patch updates for bug fixes
+        2. Reduce dependency conflict issues
+        3. Enable compatibility with CI environments
+      </version-pinning-rationale>
+    </package-installation-strategy>
+  </technical-context>
+
+  <existing-code>
+    <file path="agents/requirements.txt" status="exists">
+<![CDATA[
+# AgentOS Requirements - Updated 2025-12-13
+# Reference: docs/detailed-implementation-plan.md Section 6
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# AI Agent Framework
+# https://docs.agno.com/how-to/install
+agno
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+asyncpg>=0.29.0
+
+# Authentication
+pyjwt==2.8.0
+
+# Configuration
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Utilities
+requests>=2.31.0
+httpx>=0.27.0
+respx>=0.20.2
+slowapi>=0.1.9
+limits>=3.7.0
+
+# AG-UI Streaming (Server-Sent Events)
+sse-starlette>=1.8.0
+
+# A2A Performance (High-performance JSON)
+orjson>=3.9.0
+
+# RAG Knowledge Base
+pgvector>=0.2.5
+tiktoken>=0.5.0  # Token counting for embeddings
+
+# Document Processing (for Agno readers)
+pypdf>=3.0.0  # PDF reading
+python-docx>=1.0.0  # DOCX reading
+python-pptx>=0.6.0  # PPTX reading
+beautifulsoup4>=4.12.0  # Web scraping
+lxml>=5.0.0  # HTML/XML parsing
+
+# BYOAI Key Encryption
+cryptography>=41.0.0
+
+# Model Context Protocol (MCP)
+mcp>=0.1.0
+]]>
+    </file>
+
+    <file path="agents/main.py" status="exists" summary="Current AgentOS implementation with A2A and AG-UI basics">
+<![CDATA[
+"""
+HYVVE AgentOS - AI Agent Runtime
+
+Production runtime for Agno agents with tenant isolation,
+JWT authentication, A2A protocol, and AG-UI streaming support.
+
+Version: 0.2.0
+Protocols: A2A v0.3.0, AG-UI v0.1.0
+"""
+
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from middleware.tenant import TenantMiddleware
+from middleware.rate_limit import init_rate_limiting, NoopLimiter
+from middleware.business_validator import validate_business_ownership
+from config import get_settings
+from pydantic import BaseModel, Field
+from typing import Optional, Any, Dict, List, Union
+import logging
+import time
+import asyncio
+import json
+import uuid
+import hmac
+import os
+
+# Import registry and A2A models
+from registry import registry, AgentCard
+
+# Import AG-UI encoder
+from ag_ui.encoder import EventEncoder, AGUIEventType
+
+# Import BYOAI provider integration
+from providers import resolve_and_create_model, get_provider_resolver, ResolvedProvider
+from providers.byoai_client import BYOAIClient
+
+# Import platform agents
+from core_platform.approval_agent import ApprovalAgent
+
+# Import team factories
+from validation.team import create_validation_team
+from planning.team import create_planning_team
+from branding.team import create_branding_team
+
+# ... (file continues with FastAPI app configuration, A2A endpoints, team execution, etc.)
+# Key points:
+# - Already imports from ag_ui.encoder (EventEncoder, AGUIEventType)
+# - Already has registry import for AgentCard
+# - Already has A2A discovery endpoint at /.well-known/agent-card.json
+# - Already has JSON-RPC 2.0 models for A2A protocol
+# - Team execution supports SSE streaming with AG-UI events
+# - Version: 0.2.0, Protocols: A2A v0.3.0, AG-UI v0.1.0
+]]>
+    </file>
+
+    <file path="agents/pyproject.toml" status="does-not-exist">
+      <!-- Note: pyproject.toml does not exist yet. requirements.txt is used.
+           Story should create pyproject.toml with proper dependency structure. -->
+    </file>
+
+    <file path="agents/constants/" status="does-not-exist">
+      <!-- Constants directory needs to be created -->
+    </file>
+
+    <file path="agents/scripts/" status="unknown">
+      <!-- Scripts directory may need to be created for verify_protocols.py -->
+    </file>
+  </existing-code>
+
+  <implementation-guide>
+    <task id="1" points="1" title="Update pyproject.toml">
+      <description>Create or update agents/pyproject.toml to include Agno protocol dependencies.</description>
+      <file>agents/pyproject.toml</file>
+      <changes>
+<![CDATA[
+[project]
+name = "hyvve-agentos"
+version = "0.2.0"
+description = "HYVVE AgentOS - AI Agent Runtime with A2A and AG-UI protocols"
+requires-python = ">=3.12"
+
+dependencies = [
+    # Web Framework
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+
+    # Agno Framework with Protocol Support
+    "agno[agui,a2a]>=0.3.0",
+    # OR if extras not available:
+    # "agno>=0.3.0",
+    # "ag-ui-protocol>=0.1.0",
+    # "a2a-sdk>=0.3.0",
+
+    # Database
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.0",
+    "asyncpg>=0.29.0",
+
+    # Authentication
+    "pyjwt>=2.8.0",
+
+    # Configuration
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+
+    # Utilities
+    "requests>=2.31.0",
+    "httpx>=0.27.0",
+    "slowapi>=0.1.9",
+    "limits>=3.7.0",
+
+    # AG-UI Streaming (Server-Sent Events)
+    "sse-starlette>=1.8.0",
+
+    # A2A Performance (High-performance JSON)
+    "orjson>=3.9.0",
+
+    # RAG Knowledge Base
+    "pgvector>=0.2.5",
+    "tiktoken>=0.5.0",
+
+    # Document Processing
+    "pypdf>=3.0.0",
+    "python-docx>=1.0.0",
+    "python-pptx>=0.6.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.0.0",
+
+    # BYOAI Key Encryption
+    "cryptography>=41.0.0",
+
+    # Model Context Protocol
+    "mcp>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "respx>=0.20.2",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+]]>
+      </changes>
+      <steps>
+        <step>Create agents/pyproject.toml if it doesn't exist</step>
+        <step>Add all dependencies from requirements.txt to dependencies array</step>
+        <step>Add Agno protocol dependencies with proper version constraints</step>
+        <step>Add dev optional dependencies for testing</step>
+      </steps>
+    </task>
+
+    <task id="2" points="0.25" title="Update requirements.txt">
+      <description>Update requirements.txt for consistency with pyproject.toml</description>
+      <file>agents/requirements.txt</file>
+      <changes>
+<![CDATA[
+# Add after existing "agno" line:
+# Agno Framework with Protocol Support
+agno[agui,a2a]>=0.3.0
+]]>
+      </changes>
+      <note>Replace the simple "agno" line with the full "agno[agui,a2a]>=0.3.0"</note>
+    </task>
+
+    <task id="3" points="0.25" title="Create DM Constants File">
+      <description>Create the constants file for DM-02 that will be used throughout the epic.</description>
+      <files>
+        <file path="agents/constants/__init__.py">
+<![CDATA[
+"""Constants module for AgentOS."""
+from .dm_constants import DMConstants
+
+__all__ = ["DMConstants"]
+]]>
+        </file>
+        <file path="agents/constants/dm_constants.py">
+<![CDATA[
+"""
+Dynamic Module System Constants
+
+All magic numbers for DM-02+ epics must be defined here.
+Do NOT hardcode values in agent code.
+
+Based on Epic DM-02 Technical Specification.
+"""
+
+
+class DMConstants:
+    """Dynamic Module System constants - no magic numbers in code."""
+
+    # AgentOS Configuration
+    class AGENTOS:
+        DEFAULT_PORT = 8000
+        WORKER_COUNT = 4
+        REQUEST_TIMEOUT_SECONDS = 30
+        KEEP_ALIVE_SECONDS = 65
+        MAX_CONCURRENT_TASKS = 100
+
+    # A2A Protocol
+    class A2A:
+        PROTOCOL_VERSION = "0.3.0"
+        TASK_TIMEOUT_SECONDS = 300
+        MAX_TASK_QUEUE_SIZE = 1000
+        AGENT_DISCOVERY_CACHE_TTL_SECONDS = 300
+        HEARTBEAT_INTERVAL_SECONDS = 30
+        MAX_MESSAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+    # AG-UI Protocol
+    class AGUI:
+        PROTOCOL_VERSION = "0.1.0"
+        STREAM_CHUNK_SIZE_BYTES = 4096
+        MAX_STREAM_DURATION_SECONDS = 600
+        TOOL_CALL_TIMEOUT_SECONDS = 60
+        MAX_TOOL_CALLS_PER_REQUEST = 50
+
+    # CCR Configuration (for DM-02.6+)
+    class CCR:
+        DEFAULT_PORT = 3456
+        HEALTH_CHECK_INTERVAL_SECONDS = 30
+        PROVIDER_TIMEOUT_SECONDS = 60
+        MAX_RETRIES = 3
+        RETRY_BACKOFF_MULTIPLIER = 2.0
+        QUOTA_WARNING_THRESHOLD = 0.8
+        QUOTA_CRITICAL_THRESHOLD = 0.95
+
+    # Dashboard Agent (for DM-02.4+)
+    class DASHBOARD:
+        MAX_WIDGETS_PER_REQUEST = 12
+        WIDGET_DATA_TTL_SECONDS = 60
+        CACHE_SIZE_MB = 100
+        CONCURRENT_AGENT_CALLS = 5
+
+    # Performance Targets
+    class PERFORMANCE:
+        P50_RESPONSE_TARGET_MS = 200
+        P95_RESPONSE_TARGET_MS = 500
+        P99_RESPONSE_TARGET_MS = 1000
+        MAX_MEMORY_MB = 512
+]]>
+        </file>
+      </files>
+    </task>
+
+    <task id="4" points="0.5" title="Create Protocol Verification Script">
+      <description>Create a verification script to validate protocol installations.</description>
+      <file>agents/scripts/verify_protocols.py</file>
+      <content>
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Verify Agno Protocol Package Installation
+
+This script validates that all required protocol packages are installed
+and importable. Run this after installing dependencies to ensure the
+development environment is correctly configured.
+
+Usage:
+    python agents/scripts/verify_protocols.py
+
+Exit codes:
+    0 - All imports successful
+    1 - One or more imports failed
+"""
+
+import sys
+from typing import Tuple, List
+
+
+def verify_agno_core() -> Tuple[bool, str]:
+    """Verify core Agno framework imports."""
+    try:
+        from agno.agent import Agent
+        from agno.models.base import Model
+        return True, f"agno.agent.Agent imported successfully"
+    except ImportError as e:
+        return False, f"Failed to import Agno core: {e}"
+
+
+def verify_agentos() -> Tuple[bool, str]:
+    """Verify AgentOS imports."""
+    try:
+        from agno.os import AgentOS
+        return True, f"agno.os.AgentOS imported successfully"
+    except ImportError as e:
+        return False, f"Failed to import AgentOS: {e}"
+
+
+def verify_agui_interface() -> Tuple[bool, str]:
+    """Verify AG-UI interface imports."""
+    try:
+        from agno.os.interfaces.agui import AGUI
+        return True, f"agno.os.interfaces.agui.AGUI imported successfully"
+    except ImportError as e:
+        return False, f"Failed to import AG-UI interface: {e}"
+
+
+def verify_a2a_interface() -> Tuple[bool, str]:
+    """Verify A2A interface imports."""
+    try:
+        from agno.os.interfaces.a2a import A2A
+        return True, f"agno.os.interfaces.a2a.A2A imported successfully"
+    except ImportError as e:
+        return False, f"Failed to import A2A interface: {e}"
+
+
+def verify_agui_protocol() -> Tuple[bool, str]:
+    """Verify AG-UI protocol package imports."""
+    try:
+        from ag_ui.encoder import EventEncoder
+        return True, f"ag_ui.encoder.EventEncoder imported successfully"
+    except ImportError as e:
+        # Try alternative import path
+        try:
+            import ag_ui_protocol
+            return True, f"ag_ui_protocol module imported successfully"
+        except ImportError:
+            return False, f"Failed to import AG-UI protocol: {e}"
+
+
+def verify_a2a_sdk() -> Tuple[bool, str]:
+    """Verify A2A SDK imports."""
+    try:
+        from a2a import A2AClient
+        return True, f"a2a.A2AClient imported successfully"
+    except ImportError as e:
+        # Try alternative import paths
+        try:
+            import a2a_sdk
+            return True, f"a2a_sdk module imported successfully"
+        except ImportError:
+            return False, f"Failed to import A2A SDK: {e}"
+
+
+def verify_version_compatibility() -> Tuple[bool, str]:
+    """Verify version compatibility with existing codebase."""
+    try:
+        import agno
+        version = getattr(agno, '__version__', 'unknown')
+
+        # Check minimum version requirement
+        if version != 'unknown':
+            parts = version.split('.')
+            if len(parts) >= 2:
+                major, minor = int(parts[0]), int(parts[1])
+                if major >= 0 and minor >= 3:
+                    return True, f"Agno version {version} meets minimum requirement (>=0.3.0)"
+                else:
+                    return False, f"Agno version {version} below minimum (>=0.3.0)"
+
+        return True, f"Agno version: {version} (version check skipped)"
+    except Exception as e:
+        return False, f"Failed to check Agno version: {e}"
+
+
+def main():
+    """Run all verification checks."""
+    print("=" * 60)
+    print("Agno Protocol Package Verification")
+    print("=" * 60)
+    print()
+
+    checks: List[Tuple[str, callable]] = [
+        ("Agno Core", verify_agno_core),
+        ("AgentOS", verify_agentos),
+        ("AG-UI Interface", verify_agui_interface),
+        ("A2A Interface", verify_a2a_interface),
+        ("AG-UI Protocol", verify_agui_protocol),
+        ("A2A SDK", verify_a2a_sdk),
+        ("Version Compatibility", verify_version_compatibility),
+    ]
+
+    results = []
+    all_passed = True
+
+    for name, check in checks:
+        print(f"Checking {name}...")
+        success, message = check()
+        results.append((name, success, message))
+
+        status = "PASS" if success else "FAIL"
+        print(f"  [{status}]: {message}")
+
+        if not success:
+            all_passed = False
+        print()
+
+    print("=" * 60)
+    print("Summary")
+    print("=" * 60)
+
+    passed = sum(1 for _, s, _ in results if s)
+    total = len(results)
+
+    print(f"Passed: {passed}/{total}")
+
+    if all_passed:
+        print("\nAll protocol imports successful!")
+        print("  The development environment is ready for DM-02.")
+        return 0
+    else:
+        print("\nSome imports failed!")
+        print("  Please check the error messages above and install missing packages.")
+        print("\n  Try running:")
+        print('    pip install "agno[agui,a2a]>=0.3.0"')
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+]]>
+      </content>
+    </task>
+
+    <task id="5" title="Install Dependencies and Verify">
+      <description>Execute the installation and run verification.</description>
+      <commands>
+<![CDATA[
+# Navigate to agents directory
+cd agents
+
+# Install dependencies (development mode)
+pip install -e ".[dev]"
+
+# OR using pip directly
+pip install "agno[agui,a2a]>=0.3.0"
+
+# Run verification script
+python scripts/verify_protocols.py
+
+# Verify in Python REPL
+python -c "from agno.os import AgentOS; from agno.os.interfaces.agui import AGUI; from agno.os.interfaces.a2a import A2A; print('All imports successful')"
+]]>
+      </commands>
+    </task>
+  </implementation-guide>
+
+  <files-to-create>
+    <file path="agents/pyproject.toml" purpose="Package configuration with Agno protocol dependencies" />
+    <file path="agents/constants/__init__.py" purpose="Constants module init" />
+    <file path="agents/constants/dm_constants.py" purpose="DM module constants (no magic numbers)" />
+    <file path="agents/scripts/verify_protocols.py" purpose="Protocol installation verification script" />
+    <file path="agents/tests/test_dm_02_1_protocol_deps.py" purpose="Unit tests for protocol dependencies" />
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="agents/requirements.txt">
+      <change>Replace "agno" with "agno[agui,a2a]>=0.3.0"</change>
+    </file>
+  </files-to-modify>
+
+  <testing-requirements>
+    <unit-tests>
+      <test name="test_agno_core_import">Verify `from agno.agent import Agent` works</test>
+      <test name="test_agentos_import">Verify `from agno.os import AgentOS` works</test>
+      <test name="test_agui_interface_import">Verify `from agno.os.interfaces.agui import AGUI` works</test>
+      <test name="test_a2a_interface_import">Verify `from agno.os.interfaces.a2a import A2A` works</test>
+      <test name="test_protocol_imports">Verify AG-UI and A2A protocol packages import</test>
+      <test name="test_dm_constants">Verify DMConstants class loads correctly</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test name="test_existing_agents_still_work">Verify existing agent code doesn't break</test>
+      <test name="test_main_py_compatibility">Verify `agents/main.py` imports still work</test>
+    </integration-tests>
+
+    <test-file path="agents/tests/test_dm_02_1_protocol_deps.py">
+<![CDATA[
+"""
+Tests for DM-02.1: Agno Protocol Dependencies
+
+Verifies that all required protocol packages are installed and importable.
+"""
+import pytest
+
+
+class TestAgnoProtocolDependencies:
+    """Test suite for protocol dependency verification."""
+
+    def test_agno_core_import(self):
+        """Verify Agno core framework imports."""
+        from agno.agent import Agent
+        from agno.models.base import Model
+        assert Agent is not None
+        assert Model is not None
+
+    def test_agentos_import(self):
+        """Verify AgentOS imports."""
+        from agno.os import AgentOS
+        assert AgentOS is not None
+
+    def test_agui_interface_import(self):
+        """Verify AG-UI interface imports."""
+        from agno.os.interfaces.agui import AGUI
+        assert AGUI is not None
+
+    def test_a2a_interface_import(self):
+        """Verify A2A interface imports."""
+        from agno.os.interfaces.a2a import A2A
+        assert A2A is not None
+
+    def test_dm_constants_import(self):
+        """Verify DMConstants class imports and has expected structure."""
+        from constants.dm_constants import DMConstants
+
+        # Verify nested classes exist
+        assert hasattr(DMConstants, 'AGENTOS')
+        assert hasattr(DMConstants, 'A2A')
+        assert hasattr(DMConstants, 'AGUI')
+        assert hasattr(DMConstants, 'CCR')
+        assert hasattr(DMConstants, 'DASHBOARD')
+        assert hasattr(DMConstants, 'PERFORMANCE')
+
+        # Verify key constants
+        assert DMConstants.A2A.PROTOCOL_VERSION == "0.3.0"
+        assert DMConstants.AGUI.PROTOCOL_VERSION == "0.1.0"
+        assert DMConstants.AGENTOS.DEFAULT_PORT == 8000
+
+    def test_version_compatibility(self):
+        """Verify Agno version meets minimum requirements."""
+        import agno
+        version = getattr(agno, '__version__', None)
+
+        if version:
+            parts = version.split('.')
+            if len(parts) >= 2:
+                major, minor = int(parts[0]), int(parts[1])
+                # Must be >= 0.3.0
+                assert (major > 0) or (major == 0 and minor >= 3), \
+                    f"Agno version {version} below minimum requirement (>=0.3.0)"
+]]>
+    </test-file>
+  </testing-requirements>
+
+  <dependencies>
+    <package name="agno[agui,a2a]" version=">=0.3.0" purpose="Core Agno framework with protocol extras" />
+    <package name="ag-ui-protocol" version=">=0.1.0" purpose="AG-UI streaming protocol for CopilotKit (included in agno[agui])" />
+    <package name="a2a-sdk" version=">=0.3.0" purpose="Google A2A protocol SDK for inter-agent communication (included in agno[a2a])" />
+
+    <version-requirements>
+      <requirement>Must be compatible with existing Agno version in agents/requirements.txt</requirement>
+      <requirement>Must support Python 3.12+ (project requirement)</requirement>
+      <requirement>Must integrate with FastAPI 0.110.x (existing framework)</requirement>
+      <requirement>Must work with Pydantic 2.x (existing validation library)</requirement>
+    </version-requirements>
+
+    <fallback-strategy>
+      If agno[agui,a2a] extras are unavailable, install packages separately:
+      pip install agno>=0.3.0 ag-ui-protocol>=0.1.0 a2a-sdk>=0.3.0
+    </fallback-strategy>
+  </dependencies>
+
+  <definition-of-done>
+    <item>agno[agui,a2a]>=0.3.0 added to agents/pyproject.toml</item>
+    <item>agents/constants/dm_constants.py created with all DM-02 constants</item>
+    <item>agents/scripts/verify_protocols.py created and executable</item>
+    <item>All protocol imports work in Python REPL:
+      - from agno.os import AgentOS
+      - from agno.os.interfaces.agui import AGUI
+      - from agno.os.interfaces.a2a import A2A
+    </item>
+    <item>Verification script passes all checks</item>
+    <item>Unit tests pass (pytest agents/tests/test_dm_02_1_protocol_deps.py)</item>
+    <item>Existing agent code still works (no import breaks)</item>
+    <item>Version compatibility verified (>=0.3.0)</item>
+    <item>Development environment documentation updated (if needed)</item>
+  </definition-of-done>
+
+  <technical-notes>
+    <note title="Version Pinning Strategy">
+      We use minimum version constraints (>=0.3.0) rather than exact pins to:
+      1. Allow patch updates for bug fixes
+      2. Reduce dependency conflict issues
+      3. Enable compatibility with CI environments
+
+      If version conflicts arise, consider: "agno[agui,a2a]>=0.3.0,&lt;0.4.0"
+    </note>
+
+    <note title="Import Path Variations">
+      The Agno framework may have different import paths depending on version:
+
+      Standard paths (expected):
+        from agno.os.interfaces.agui import AGUI
+        from agno.os.interfaces.a2a import A2A
+
+      Alternative paths (may vary by version):
+        from agno.interfaces.agui import AGUI
+        from agno.interfaces.a2a import A2A
+
+      The verification script checks multiple paths for robustness.
+    </note>
+
+    <note title="Constants Usage Pattern">
+      All subsequent DM-02 stories MUST use constants from DMConstants:
+
+      # CORRECT - Use constants
+      from constants.dm_constants import DMConstants
+      timeout = DMConstants.A2A.TASK_TIMEOUT_SECONDS
+
+      # INCORRECT - Magic numbers
+      timeout = 300  # Don't do this!
+    </note>
+
+    <note title="Current AgentOS State">
+      agents/main.py already has:
+      - AG-UI encoder import (from ag_ui.encoder import EventEncoder, AGUIEventType)
+      - A2A registry and AgentCard support
+      - A2A discovery endpoint at /.well-known/agent-card.json
+      - JSON-RPC 2.0 models for A2A protocol
+      - Team execution with SSE streaming using AG-UI events
+
+      This story adds the native Agno multi-interface support (AGUI, A2A classes)
+      which will be used in subsequent stories (DM-02.2+) to refactor the current
+      manual implementation to use Agno's built-in interface system.
+    </note>
+  </technical-notes>
+
+  <references>
+    <reference type="epic" path="docs/modules/bm-dm/epics/epic-dm-02-agno-multiinterface.md">Epic DM-02 Definition</reference>
+    <reference type="tech-spec" path="docs/modules/bm-dm/epics/epic-dm-02-tech-spec.md">Epic DM-02 Technical Specification</reference>
+    <reference type="architecture" path="docs/architecture/dynamic-module-system.md">Dynamic Module System Architecture</reference>
+    <reference type="external" url="https://docs.agno.com">Agno Documentation</reference>
+    <reference type="external" url="https://github.com/google/a2a-protocol">A2A Protocol Spec</reference>
+    <reference type="external" url="https://github.com/ag-ui-protocol/ag-ui">AG-UI Protocol</reference>
+  </references>
+
+</story-context>

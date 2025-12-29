@@ -5,9 +5,10 @@
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 
-# AI Agent Framework
+# AI Agent Framework with Protocol Support
 # https://docs.agno.com/how-to/install
-agno
+# Agno with AG-UI and A2A protocol extras for DM-02
+agno[agui,a2a]>=0.3.0
 
 # Database
 sqlalchemy>=2.0.0
