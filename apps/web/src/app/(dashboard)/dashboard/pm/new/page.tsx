@@ -1,28 +1,16 @@
 /**
- * Create Project (placeholder)
+ * Create Project - Redirect to Projects List
  *
- * Story: PM-01.4 will implement the multi-step create project modal/wizard.
+ * Story: PM-01.4 - Project creation is now handled via CreateProjectModal on the projects page.
+ * This page redirects to the main projects list where users can use the "New Project" button.
  */
 
-import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 export const metadata = {
   title: 'New Project',
 }
 
 export default function NewProjectPage() {
-  return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <h1 className="text-2xl font-semibold text-[rgb(var(--color-text-primary))]">New Project</h1>
-        <p className="text-sm text-[rgb(var(--color-text-secondary))]">
-          Project creation wizard is coming in PM-01.4.
-        </p>
-      </div>
-
-      <Link href={{ pathname: '/dashboard/pm' }} className="text-sm text-primary hover:underline">
-        Back to projects
-      </Link>
-    </div>
-  )
+  redirect('/dashboard/pm')
 }

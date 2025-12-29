@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChevronRight, Building2, Loader2 } from 'lucide-react';
+import { useSession } from '@/lib/auth-client';
 
 interface StepWorkspaceProps {
   initialName: string;
@@ -34,6 +35,7 @@ function generateSlug(name: string): string {
 }
 
 export function StepWorkspace({ initialName, initialSlug, onContinue }: StepWorkspaceProps) {
+  const { refetch: refetchSession } = useSession();
   const [name, setName] = useState(initialName);
   const [slug, setSlug] = useState(initialSlug);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +96,9 @@ export function StepWorkspace({ initialName, initialSlug, onContinue }: StepWork
         }
         return;
       }
+
+      // Refetch session to get updated activeWorkspaceId
+      await refetchSession();
 
       // Success - continue to next step
       onContinue(name.trim(), slug, result.data?.id || result.id);
