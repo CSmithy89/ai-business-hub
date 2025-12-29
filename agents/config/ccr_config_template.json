@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Claude Code Router (CCR) configuration template for HYVVE platform",
+  "port": 3456,
+  "providers": {
+    "claude": {
+      "type": "claude-cli",
+      "base_url": "subscription",
+      "description": "Claude subscription via CLI - best for reasoning tasks"
+    },
+    "deepseek": {
+      "type": "openai-compatible",
+      "base_url": "https://api.deepseek.com/v1",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "description": "DeepSeek API - cost-effective for code generation"
+    },
+    "gemini": {
+      "type": "gemini-cli",
+      "base_url": "subscription",
+      "description": "Gemini subscription via CLI - best for long context"
+    },
+    "openrouter": {
+      "type": "openai-compatible",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "description": "OpenRouter - access to 100+ models"
+    }
+  },
+  "routing": {
+    "reasoning": "claude",
+    "code_generation": "deepseek",
+    "long_context": "gemini",
+    "general": "claude",
+    "default": "claude"
+  },
+  "fallbacks": {
+    "claude": ["deepseek", "gemini", "openrouter"],
+    "deepseek": ["claude", "gemini", "openrouter"],
+    "gemini": ["claude", "deepseek", "openrouter"],
+    "openrouter": ["claude", "deepseek", "gemini"]
+  },
+  "health_check": {
+    "enabled": true,
+    "interval_seconds": 30,
+    "timeout_seconds": 10,
+    "unhealthy_threshold": 3
+  },
+  "rate_limiting": {
+    "enabled": true,
+    "requests_per_minute": 60,
+    "burst_limit": 10
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "include_request_body": false,
+    "include_response_body": false
+  },
+  "metrics": {
+    "enabled": true,
+    "endpoint": "/metrics",
+    "include_latency_histogram": true,
+    "include_provider_stats": true
+  }
+}

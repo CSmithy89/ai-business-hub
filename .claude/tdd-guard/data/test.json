@@ -1,0 +1,154 @@
+{
+  "testModules": [
+    {
+      "moduleId": "tests/test_dm_02_6_ccr_health.py",
+      "tests": [
+        {
+          "name": "test_health_status_values",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestHealthStatus::test_health_status_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_health_status_from_string",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestHealthStatus::test_health_status_from_string",
+          "state": "passed"
+        },
+        {
+          "name": "test_provider_status_values",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestProviderStatus::test_provider_status_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_state",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthState::test_default_state",
+          "state": "passed"
+        },
+        {
+          "name": "test_custom_state",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthState::test_custom_state",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_with_defaults",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerInit::test_init_with_defaults",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_with_custom_values",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerInit::test_init_with_custom_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_uses_dm_constants",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerInit::test_init_uses_dm_constants",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_instance_creates_singleton[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerSingleton::test_get_instance_creates_singleton[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_instance_requires_url_first_time[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerSingleton::test_get_instance_requires_url_first_time[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_instance[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerSingleton::test_reset_instance[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_health_success[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerCheckHealth::test_check_health_success[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_health_connection_error[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerCheckHealth::test_check_health_connection_error[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_health_timeout_error[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerCheckHealth::test_check_health_timeout_error[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_health_consecutive_failures[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerCheckHealth::test_check_health_consecutive_failures[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_when_disabled[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerStartStop::test_start_when_disabled[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_when_not_running[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerStartStop::test_stop_when_not_running[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_none_when_not_initialized[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestGetCCRHealthChecker::test_returns_none_when_not_initialized[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_instance_when_initialized[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestGetCCRHealthChecker::test_returns_instance_when_initialized[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_initial_state",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerState::test_initial_state",
+          "state": "passed"
+        },
+        {
+          "name": "test_is_healthy_property",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerState::test_is_healthy_property",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_provider_status",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerState::test_get_provider_status",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict_basic",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerToDict::test_to_dict_basic",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict_with_providers",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerToDict::test_to_dict_with_providers",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict_with_last_check",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerToDict::test_to_dict_with_last_check",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_check_interval_uses_constant",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestDMConstantsUsage::test_default_check_interval_uses_constant",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_default_port_constant_exists",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestDMConstantsUsage::test_ccr_default_port_constant_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_max_retries_constant_exists",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestDMConstantsUsage::test_ccr_max_retries_constant_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_provider_timeout_constant_exists",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestDMConstantsUsage::test_ccr_provider_timeout_constant_exists",
+          "state": "passed"
+        }
+      ]
+    }
+  ]
+}
