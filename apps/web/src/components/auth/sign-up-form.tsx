@@ -386,6 +386,7 @@ export function SignUpForm() {
         type="submit"
         className="w-full bg-primary hover:bg-primary/90"
         disabled={isSubmitting}
+        data-testid="sign-up-button"
       >
         {isSubmitting ? (
           <>

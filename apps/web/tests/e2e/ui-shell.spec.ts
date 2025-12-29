@@ -129,13 +129,13 @@ test.describe('Mobile Drawer', () => {
   });
 
   test('shows mobile menu button on small screens', async ({ page }) => {
-    // Mobile menu button should be visible
-    const menuButton = page.getByRole('button', { name: /menu|open navigation/i });
+    // Mobile menu button should be visible (specifically "Open menu", not "User menu")
+    const menuButton = page.getByRole('button', { name: 'Open menu' });
     await expect(menuButton).toBeVisible();
   });
 
   test('opens drawer on menu button click', async ({ page }) => {
-    const menuButton = page.getByRole('button', { name: /menu|open navigation/i });
+    const menuButton = page.getByRole('button', { name: 'Open menu' });
     await menuButton.click();
 
     // Drawer should be visible with navigation items
@@ -143,7 +143,7 @@ test.describe('Mobile Drawer', () => {
   });
 
   test('closes drawer on backdrop click', async ({ page }) => {
-    const menuButton = page.getByRole('button', { name: /menu|open navigation/i });
+    const menuButton = page.getByRole('button', { name: 'Open menu' });
     await menuButton.click();
 
     // Click backdrop to close
@@ -155,7 +155,7 @@ test.describe('Mobile Drawer', () => {
   });
 
   test('closes drawer on navigation item click', async ({ page }) => {
-    const menuButton = page.getByRole('button', { name: /menu|open navigation/i });
+    const menuButton = page.getByRole('button', { name: 'Open menu' });
     await menuButton.click();
 
     // Click a navigation item
@@ -168,7 +168,7 @@ test.describe('Mobile Drawer', () => {
   });
 
   test('drawer contains all main navigation items', async ({ page }) => {
-    const menuButton = page.getByRole('button', { name: /menu|open navigation/i });
+    const menuButton = page.getByRole('button', { name: 'Open menu' });
     await menuButton.click();
 
     // Check for main navigation items

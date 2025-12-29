@@ -462,6 +462,7 @@ export function SignInForm() {
             aria-invalid={errors.email ? 'true' : 'false'}
             aria-describedby={errors.email ? 'email-error' : undefined}
             aria-required="true"
+            data-testid="email-input"
           />
           {errors.email && (
             <p id="email-error" className="text-sm text-red-600" role="alert">
@@ -490,6 +491,7 @@ export function SignInForm() {
             {...register('password')}
             disabled={isSubmitting}
             error={!!errors.password}
+            data-testid="password-input"
           />
           {errors.password && (
             <p id="password-error" className="text-sm text-red-600" role="alert">
@@ -519,6 +521,7 @@ export function SignInForm() {
           type="submit"
           className="w-full bg-primary hover:bg-primary/90"
           disabled={isSubmitting}
+          data-testid="sign-in-button"
         >
           {isSubmitting ? (
             <>

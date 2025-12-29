@@ -26,7 +26,8 @@ const authFixture = base.extend<{ auth: AuthFixture }>({
       await page.fill('[data-testid="email-input"]', email);
       await page.fill('[data-testid="password-input"]', password);
       await page.click('[data-testid="sign-in-button"]');
-      await page.waitForURL(/\/(dashboard|workspaces)/);
+      // Wait for redirect after sign-in - could be businesses, onboarding, or dashboard
+      await page.waitForURL(/\/(businesses|dashboard|onboarding)/);
     };
 
     const loginAsTestUser = async () => {
