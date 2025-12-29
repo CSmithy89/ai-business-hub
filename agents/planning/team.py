@@ -262,11 +262,11 @@ def create_planning_team(
     )
 
     # Create all agents with shared storage
-    blake = create_blake_agent(model=model, db=db)
-    model_agent = create_model_agent(model=model, db=db)
-    finance = create_finance_agent(model=model, db=db)
-    revenue = create_revenue_agent(model=model, db=db)
-    forecast = create_forecast_agent(model=model, db=db)
+    blake = create_blake_agent(model=model, db=storage)
+    model_agent = create_model_agent(model=model, db=storage)
+    finance = create_finance_agent(model=model, db=storage)
+    revenue = create_revenue_agent(model=model, db=storage)
+    forecast = create_forecast_agent(model=model, db=storage)
 
     # Create team with Blake as leader
     team = Team(
@@ -287,7 +287,7 @@ def create_planning_team(
         session_id=session_id,
         user_id=user_id,
         # Storage for team-level persistence
-        db=db,
+        db=storage,
         # Debug settings
         debug_mode=debug_mode,
         show_members_responses=debug_mode,

@@ -30,9 +30,9 @@ async function handleRequest(
     const searchParams = request.nextUrl.searchParams;
     const backendUrl = new URL(`${NESTJS_API_URL}/kb/${pathString}`);
 
-    // Forward all query parameters
+    // Forward all query parameters (use append to support multi-valued params)
     searchParams.forEach((value, key) => {
-      backendUrl.searchParams.set(key, value);
+      backendUrl.searchParams.append(key, value);
     });
 
     // Get workspaceId from header or session

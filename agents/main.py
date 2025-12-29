@@ -947,10 +947,10 @@ async def approval_agent_info():
 @limiter.limit("10/minute")
 async def run_validation_team(request_data: TeamRunRequest, request: Request):
     """Run Validation Team. Set stream=true for SSE."""
-    await validate_business_ownership(req, request_data.business_id)
+    await validate_business_ownership(request, request_data.business_id)
     if request_data.stream:
-        return await _run_team_stream("validation", request_data, req)
-    return await _run_team("validation", request_data, req)
+        return await _run_team_stream("validation", request_data, request)
+    return await _run_team("validation", request_data, request)
 
 
 @app.get("/agents/validation/health")
@@ -963,10 +963,10 @@ async def validation_team_health():
 @limiter.limit("10/minute")
 async def run_planning_team(request_data: TeamRunRequest, request: Request):
     """Run Planning Team. Set stream=true for SSE."""
-    await validate_business_ownership(req, request_data.business_id)
+    await validate_business_ownership(request, request_data.business_id)
     if request_data.stream:
-        return await _run_team_stream("planning", request_data, req)
-    return await _run_team("planning", request_data, req)
+        return await _run_team_stream("planning", request_data, request)
+    return await _run_team("planning", request_data, request)
 
 
 @app.get("/agents/planning/health")
@@ -979,10 +979,10 @@ async def planning_team_health():
 @limiter.limit("10/minute")
 async def run_branding_team(request_data: TeamRunRequest, request: Request):
     """Run Branding Team. Set stream=true for SSE."""
-    await validate_business_ownership(req, request_data.business_id)
+    await validate_business_ownership(request, request_data.business_id)
     if request_data.stream:
-        return await _run_team_stream("branding", request_data, req)
-    return await _run_team("branding", request_data, req)
+        return await _run_team_stream("branding", request_data, request)
+    return await _run_team("branding", request_data, request)
 
 
 @app.get("/agents/branding/health")

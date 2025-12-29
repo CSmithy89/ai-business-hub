@@ -264,11 +264,11 @@ def create_validation_team(
     )
 
     # Create all agents with shared storage
-    vera = create_vera_agent(model=model, db=db)
-    marco = create_marco_agent(model=model, db=db)
-    cipher = create_cipher_agent(model=model, db=db)
-    persona = create_persona_agent(model=model, db=db)
-    risk = create_risk_agent(model=model, db=db)
+    vera = create_vera_agent(model=model, db=storage)
+    marco = create_marco_agent(model=model, db=storage)
+    cipher = create_cipher_agent(model=model, db=storage)
+    persona = create_persona_agent(model=model, db=storage)
+    risk = create_risk_agent(model=model, db=storage)
 
     # Create team with Vera as leader
     team = Team(
@@ -289,7 +289,7 @@ def create_validation_team(
         session_id=session_id,
         user_id=user_id,
         # Storage for team-level persistence
-        db=db,
+        db=storage,
         # Debug settings
         debug_mode=debug_mode,
         show_members_responses=debug_mode,
