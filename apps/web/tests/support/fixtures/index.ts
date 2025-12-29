@@ -14,7 +14,8 @@ import { SuggestionFactory } from './factories/suggestion-factory';
 // Auth fixture type definition
 type AuthFixture = {
   loginAs: (email: string, password: string) => Promise<void>;
-  loginAsTestUser: () => Promise<{ email: string }>;
+  loginAsTestUser: () => Promise<{ email: string; password: string }>;
+  createAndLoginUser: () => Promise<{ email: string; password: string }>;
   logout: () => Promise<void>;
 };
 
@@ -30,10 +31,30 @@ const authFixture = base.extend<{ auth: AuthFixture }>({
       await page.waitForURL(/\/(businesses|dashboard|onboarding)/);
     };
 
+    const createAndLoginUser = async () => {
+      const factory = new UserFactory();
+      const user = await factory.createVerifiedUser();
+
+      await loginAs(user.email, user.password);
+      return { email: user.email, password: user.password };
+    };
+
     const loginAsTestUser = async () => {
-      const email = process.env.TEST_USER_EMAIL || 'test@example.com';
-      await loginAs(email, process.env.TEST_USER_PASSWORD || 'Test1234!');
-      return { email };
+      // Try env vars first, fall back to creating a user
+      const email = process.env.TEST_USER_EMAIL;
+      const password = process.env.TEST_USER_PASSWORD;
+
+      if (email && password) {
+        try {
+          await loginAs(email, password);
+          return { email, password };
+        } catch {
+          // Fall back to creating a new user
+          console.warn('Failed to login with env test user, creating new user');
+        }
+      }
+
+      return createAndLoginUser();
     };
 
     const logout = async () => {
@@ -42,7 +63,7 @@ const authFixture = base.extend<{ auth: AuthFixture }>({
       await page.waitForURL('/sign-in');
     };
 
-    await use({ loginAs, loginAsTestUser, logout });
+    await use({ loginAs, loginAsTestUser, createAndLoginUser, logout });
   },
 });
 

@@ -114,7 +114,7 @@ export function DependenciesDashboard() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
-                      href={{ pathname: '/dashboard/pm/[slug]/tasks', query: { slug: relation.source.projectSlug } }}
+                      href={`/dashboard/pm/${relation.source.projectSlug}/tasks`}
                       className="text-sm font-medium text-[rgb(var(--color-text-primary))] hover:underline"
                     >
                       #{relation.source.taskNumber} {relation.source.title}
@@ -123,7 +123,7 @@ export function DependenciesDashboard() {
                       {relation.relationType.replace(/_/g, ' ')}
                     </Badge>
                     <Link
-                      href={{ pathname: '/dashboard/pm/[slug]/tasks', query: { slug: relation.target.projectSlug } }}
+                      href={`/dashboard/pm/${relation.target.projectSlug}/tasks`}
                       className="text-sm font-medium text-[rgb(var(--color-text-primary))] hover:underline"
                     >
                       #{relation.target.taskNumber} {relation.target.title}

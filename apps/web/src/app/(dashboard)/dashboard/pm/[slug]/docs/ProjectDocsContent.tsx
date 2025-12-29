@@ -45,31 +45,31 @@ function ProjectNavTabs({ slug }: { slug: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
       <Link
-        href={{ pathname: '/dashboard/pm/[slug]', query: { slug } }}
+        href={`/dashboard/pm/${slug}`}
         className="rounded-md px-3 py-1.5 text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-tertiary))]"
       >
         Overview
       </Link>
       <Link
-        href={{ pathname: '/dashboard/pm/[slug]/tasks', query: { slug } }}
+        href={`/dashboard/pm/${slug}/tasks`}
         className="rounded-md px-3 py-1.5 text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-tertiary))]"
       >
         Tasks
       </Link>
       <Link
-        href={{ pathname: '/dashboard/pm/[slug]/team', query: { slug } }}
+        href={`/dashboard/pm/${slug}/team`}
         className="rounded-md px-3 py-1.5 text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-tertiary))]"
       >
         Team
       </Link>
       <Link
-        href={{ pathname: '/dashboard/pm/[slug]/docs', query: { slug } }}
+        href={`/dashboard/pm/${slug}/docs`}
         className="rounded-md bg-[rgb(var(--color-bg-tertiary))] px-3 py-1.5 text-[rgb(var(--color-text-primary))]"
       >
         Docs
       </Link>
       <Link
-        href={{ pathname: '/dashboard/pm/[slug]/settings', query: { slug } }}
+        href={`/dashboard/pm/${slug}/settings`}
         className="rounded-md px-3 py-1.5 text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-tertiary))]"
       >
         Settings

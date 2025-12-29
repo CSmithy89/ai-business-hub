@@ -150,7 +150,7 @@ export function ProjectTeamContent() {
       <Card>
         <CardContent className="py-6">
           <p className="text-sm text-red-600">{teamError?.message || 'Team not found'}</p>
-          <Link href={{ pathname: '/dashboard/pm/[slug]', query: { slug } }} className="mt-3 inline-block text-sm text-primary hover:underline">
+          <Link href={`/dashboard/pm/${slug}`} className="mt-3 inline-block text-sm text-primary hover:underline">
             Back to overview
           </Link>
         </CardContent>
@@ -166,7 +166,7 @@ export function ProjectTeamContent() {
           <p className="text-sm text-[rgb(var(--color-text-secondary))]">Manage roles, capacity, and permissions.</p>
         </div>
         <Link
-          href={{ pathname: '/dashboard/pm/[slug]', query: { slug } }}
+          href={`/dashboard/pm/${slug}`}
           className="text-sm text-primary hover:underline"
         >
           Back to overview

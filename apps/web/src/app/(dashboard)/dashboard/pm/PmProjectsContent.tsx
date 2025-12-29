@@ -156,7 +156,7 @@ export function PmProjectsContent() {
             return (
               <Link
                 key={project.id}
-                href={{ pathname: '/dashboard/pm/[slug]', query: { slug: project.slug } }}
+                href={`/dashboard/pm/${project.slug}`}
                 className="block"
               >
                 <Card className="h-full transition-colors hover:bg-[rgb(var(--color-bg-secondary))]">

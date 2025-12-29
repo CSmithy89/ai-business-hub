@@ -223,7 +223,7 @@ export function ProjectSettingsContent() {
           </p>
         </div>
         <Link
-          href={{ pathname: '/dashboard/pm/[slug]', query: { slug } }}
+          href={`/dashboard/pm/${slug}`}
           className="text-sm text-primary hover:underline"
         >
           Back to overview

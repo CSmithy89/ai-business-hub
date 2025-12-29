@@ -251,31 +251,31 @@ export function ProjectOverviewContent() {
 
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Link
-            href={{ pathname: '/dashboard/pm/[slug]', query: { slug } }}
+            href={`/dashboard/pm/${slug}`}
             className="rounded-md bg-[rgb(var(--color-bg-tertiary))] px-3 py-1.5 text-[rgb(var(--color-text-primary))]"
           >
             Overview
           </Link>
           <Link
-            href={{ pathname: '/dashboard/pm/[slug]/tasks', query: { slug } }}
+            href={`/dashboard/pm/${slug}/tasks`}
             className="rounded-md px-3 py-1.5 text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-tertiary))]"
           >
             Tasks
           </Link>
           <Link
-            href={{ pathname: '/dashboard/pm/[slug]/team', query: { slug } }}
+            href={`/dashboard/pm/${slug}/team`}
             className="rounded-md px-3 py-1.5 text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-tertiary))]"
           >
             Team
           </Link>
           <Link
-            href={{ pathname: '/dashboard/pm/[slug]/docs', query: { slug } }}
+            href={`/dashboard/pm/${slug}/docs`}
             className="rounded-md px-3 py-1.5 text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-tertiary))]"
           >
             Docs
           </Link>
           <Link
-            href={{ pathname: '/dashboard/pm/[slug]/settings', query: { slug } }}
+            href={`/dashboard/pm/${slug}/settings`}
             className="rounded-md px-3 py-1.5 text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-tertiary))]"
           >
             Settings
@@ -337,7 +337,7 @@ export function ProjectOverviewContent() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Link href={{ pathname: '/dashboard/pm/[slug]/docs', query: { slug } }}>
+        <Link href={`/dashboard/pm/${slug}/docs`}>
           <Card className="transition-colors hover:bg-muted/50">
             <CardContent className="flex items-center justify-between py-5">
               <div className="flex items-center gap-3">
@@ -348,7 +348,7 @@ export function ProjectOverviewContent() {
             </CardContent>
           </Card>
         </Link>
-        <Link href={{ pathname: '/dashboard/pm/[slug]/settings', query: { slug } }}>
+        <Link href={`/dashboard/pm/${slug}/settings`}>
           <Card className="transition-colors hover:bg-muted/50">
             <CardContent className="flex items-center justify-between py-5">
               <div className="flex items-center gap-3">

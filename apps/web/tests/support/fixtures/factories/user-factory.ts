@@ -68,11 +68,15 @@ export class UserFactory {
     const user = await this.createUser(overrides);
 
     // In test environment, auto-verify via test API endpoint
-    await fetch(`${this.apiUrl}/test/verify-user`, {
+    const verifyResponse = await fetch(`${this.apiUrl}/test/verify-user`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id }),
+      body: JSON.stringify({ userId: user.id, email: user.email }),
     });
+
+    if (!verifyResponse.ok) {
+      console.warn('Failed to verify user via API, user may need manual verification');
+    }
 
     return user;
   }
