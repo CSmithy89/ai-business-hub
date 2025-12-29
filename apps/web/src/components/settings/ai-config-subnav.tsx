@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 
 const ITEMS: Array<{ label: string; href: Route }> = [
   { label: 'Agent Preferences', href: '/settings/ai-config/agent-preferences' as Route },
+  { label: 'Routing & Fallbacks', href: '/settings/ai-config/routing' as Route },
   { label: 'Token Usage', href: '/settings/ai-config/usage' as Route },
 ]
 
