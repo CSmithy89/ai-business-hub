@@ -100,7 +100,7 @@ development_status:
   # Tech Spec: docs/modules/bm-dm/epics/epic-dm-03-tech-spec.md
   # ===========================================
   dm-03: contexted
-  dm-03-1-a2a-client-setup: backlog
+  dm-03-1-a2a-client-setup: done
   dm-03-2-dashboard-agent-orchestration: backlog
   dm-03-3-widget-rendering-pipeline: backlog
   dm-03-4-dashboard-page-integration: backlog
