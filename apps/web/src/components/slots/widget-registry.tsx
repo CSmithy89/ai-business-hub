@@ -83,7 +83,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetComponent> = {
  * }
  */
 export function isValidWidgetType(type: string): type is WidgetType {
-  return type in WIDGET_REGISTRY;
+  return Object.prototype.hasOwnProperty.call(WIDGET_REGISTRY, type);
 }
 
 /**

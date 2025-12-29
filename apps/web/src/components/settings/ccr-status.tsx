@@ -110,7 +110,7 @@ function StatusStats({
   totalRequests?: number;
   failedRequests?: number;
 }) {
-  if (uptime === undefined && totalRequests === undefined) return null;
+  if (uptime === undefined && totalRequests === undefined && failedRequests === undefined) return null;
 
   return (
     <div className="grid grid-cols-3 gap-4 py-4 border-t" data-testid="status-stats">

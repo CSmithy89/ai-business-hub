@@ -46,7 +46,7 @@ export const DM_CONSTANTS = {
     /** Distance from bottom to trigger auto-scroll (px) */
     AUTO_SCROLL_THRESHOLD_PX: 100,
     /** Keyboard shortcut for opening chat */
-    KEYBOARD_SHORTCUT: 'k',
+    KEYBOARD_SHORTCUT: '/',
     /** Modifier key for keyboard shortcut */
     KEYBOARD_MODIFIER: 'meta', // Cmd on Mac, Ctrl on Windows
   },

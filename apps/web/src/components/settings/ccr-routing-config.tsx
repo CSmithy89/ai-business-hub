@@ -276,7 +276,12 @@ function AgentOverrideCard({
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <select
           className="w-full sm:w-[200px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-          value={override.preferredProviderId ?? ''}
+          value={
+            // Only show provider if it still exists and is enabled
+            availableProviders.some((p) => p.enabled && p.id === override.preferredProviderId)
+              ? override.preferredProviderId ?? ''
+              : ''
+          }
           onChange={(e) => onUpdate(e.target.value || null, override.fallbackEnabled)}
           disabled={disabled}
           aria-label={`Provider for ${override.agentName}`}
@@ -295,7 +300,15 @@ function AgentOverrideCard({
           <Switch
             id={`fallback-${override.agentId}`}
             checked={override.fallbackEnabled}
-            onCheckedChange={(checked) => onUpdate(override.preferredProviderId, checked)}
+            onCheckedChange={(checked) => {
+              // Clear stale provider ID when toggling if provider no longer valid
+              const validProviderId = availableProviders.some(
+                (p) => p.enabled && p.id === override.preferredProviderId
+              )
+                ? override.preferredProviderId
+                : null;
+              onUpdate(validProviderId, checked);
+            }}
             disabled={disabled}
           />
           <Label htmlFor={`fallback-${override.agentId}`} className="text-sm whitespace-nowrap">
@@ -349,7 +362,7 @@ function AgentRoutingOverrides({
  */
 export function CCRRoutingConfig() {
   const { data: config, isLoading: isLoadingConfig, error: configError } = useCCRRoutingConfig();
-  const { data: providers, isLoading: isLoadingProviders } = useAvailableRoutingProviders();
+  const { data: providers, isLoading: isLoadingProviders, error: providersError } = useAvailableRoutingProviders();
   const updateConfigMutation = useUpdateRoutingConfig();
   const updateOverrideMutation = useUpdateAgentOverride();
 
@@ -411,7 +424,7 @@ export function CCRRoutingConfig() {
     );
   }
 
-  if (configError) {
+  if (configError || providersError) {
     return (
       <Card>
         <CardHeader>
@@ -423,7 +436,11 @@ export function CCRRoutingConfig() {
         <CardContent>
           <div className="flex items-center gap-2 text-destructive">
             <AlertCircle className="h-5 w-5" />
-            <p>Failed to load routing configuration</p>
+            <p>
+              {configError
+                ? 'Failed to load routing configuration'
+                : 'Failed to load available providers'}
+            </p>
           </div>
         </CardContent>
       </Card>

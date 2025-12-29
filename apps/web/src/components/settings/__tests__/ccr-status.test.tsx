@@ -186,10 +186,12 @@ describe('CCRStatus', () => {
   it('shows stats section with uptime and requests', () => {
     renderWithProviders(<CCRStatus />);
 
-    expect(screen.getByTestId('status-stats')).toBeInTheDocument();
-    expect(screen.getByText('99.9%')).toBeInTheDocument();
-    expect(screen.getByText('1,234')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    const statsSection = screen.getByTestId('status-stats');
+    expect(statsSection).toBeInTheDocument();
+    // Use locale-independent matching by deriving expected values from mockStatus
+    expect(statsSection).toHaveTextContent(`${mockStatus.uptime}%`);
+    expect(statsSection).toHaveTextContent(mockStatus.totalRequests!.toLocaleString());
+    expect(statsSection).toHaveTextContent(String(mockStatus.failedRequests));
   });
 
   it('shows refresh button', () => {

@@ -13,13 +13,17 @@ import { NextRequest, NextResponse } from 'next/server';
  * @see docs/modules/bm-dm/epics/epic-dm-01-tech-spec.md
  */
 export async function POST(request: NextRequest) {
-  // Log for debugging during development
-  console.log('[CopilotKit Mock] Received POST request');
+  // Log for debugging during development only
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[CopilotKit Mock] Received POST request');
+  }
 
   try {
-    // Parse the request body for logging purposes
     const body = await request.json();
-    console.log('[CopilotKit Mock] Request body:', JSON.stringify(body, null, 2));
+    // Only log request body in development (may contain sensitive user content)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[CopilotKit Mock] Request body:', JSON.stringify(body, null, 2));
+    }
 
     // Return a minimal valid response structure
     // This mock endpoint allows frontend development without the Agno backend

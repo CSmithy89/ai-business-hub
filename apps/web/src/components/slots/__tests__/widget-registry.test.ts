@@ -77,9 +77,10 @@ describe('widget-registry', () => {
       expect(types).toContain('Alert');
     });
 
-    it('returns exactly 4 widget types', () => {
+    it('returns the same number of types as the registry', () => {
       const types = getRegisteredWidgetTypes();
-      expect(types).toHaveLength(4);
+      const registryKeys = Object.keys(WIDGET_REGISTRY);
+      expect(types).toHaveLength(registryKeys.length);
     });
 
     it('returns an array', () => {

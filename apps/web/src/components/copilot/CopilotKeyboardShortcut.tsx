@@ -45,6 +45,11 @@ export function CopilotKeyboardShortcut() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignore auto-repeated keydown events to avoid multiple toggles
+      if (event.repeat) {
+        return;
+      }
+
       // Skip if focus is in an input field
       if (isInputFocused()) {
         return;

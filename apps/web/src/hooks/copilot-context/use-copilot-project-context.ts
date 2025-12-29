@@ -11,6 +11,7 @@
  * Epic: DM-01 | Story: DM-01.5
  */
 
+import { useMemo } from 'react';
 import { useCopilotReadable } from '@copilotkit/react-core';
 import type { ProjectDetailResponse } from '@/hooks/use-pm-projects';
 import type { ProjectContext, ProjectPhaseInfo } from './types';
@@ -110,25 +111,30 @@ function transformProjectToContext(
 export function useCopilotProjectContext(
   project: ProjectDetailResponse['data'] | null | undefined
 ): void {
-  const context = project ? transformProjectToContext(project) : null;
+  // Memoize context to prevent unnecessary re-registrations with CopilotKit
+  const { description, context } = useMemo(() => {
+    const ctx = project ? transformProjectToContext(project) : null;
 
-  // Build a descriptive message for agents
-  let description: string;
+    // Build a descriptive message for agents
+    let desc: string;
 
-  if (context) {
-    const progressText = `${context.progress.percentage}% complete with ${context.progress.completedTasks}/${context.progress.totalTasks} tasks done`;
-    const phaseText = context.currentPhase
-      ? ` Currently in phase "${context.currentPhase.name}" (phase ${context.currentPhase.phaseNumber}).`
-      : '';
-    const dateText = context.targetDate
-      ? ` Target completion: ${context.targetDate}.`
-      : '';
+    if (ctx) {
+      const progressText = `${ctx.progress.percentage}% complete with ${ctx.progress.completedTasks}/${ctx.progress.totalTasks} tasks done`;
+      const phaseText = ctx.currentPhase
+        ? ` Currently in phase "${ctx.currentPhase.name}" (phase ${ctx.currentPhase.phaseNumber}).`
+        : '';
+      const dateText = ctx.targetDate
+        ? ` Target completion: ${ctx.targetDate}.`
+        : '';
 
-    description = `Active project: "${context.name}" (${context.status}, ${context.type}). ${progressText}.${phaseText}${dateText} Use this context when the user asks about "this project", "the project", or project-related questions.`;
-  } else {
-    description =
-      'No project is currently selected. The user is not viewing a specific project.';
-  }
+      desc = `Active project: "${ctx.name}" (${ctx.status}, ${ctx.type}). ${progressText}.${phaseText}${dateText} Use this context when the user asks about "this project", "the project", or project-related questions.`;
+    } else {
+      desc =
+        'No project is currently selected. The user is not viewing a specific project.';
+    }
+
+    return { description: desc, context: ctx };
+  }, [project]);
 
   useCopilotReadable({
     description,

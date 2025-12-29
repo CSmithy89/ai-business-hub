@@ -40,25 +40,26 @@ describe('getSection', () => {
   });
 
   it('identifies project detail section correctly', () => {
-    expect(getSection('/dashboard/pm/projects/my-project')).toBe(
-      'project-detail'
-    );
-    expect(getSection('/dashboard/pm/projects/test-slug/tasks')).toBe(
-      'project-detail'
-    );
-    expect(getSection('/dashboard/pm/projects/abc123/overview')).toBe(
-      'project-detail'
-    );
+    // Project detail at /dashboard/pm/[slug]
+    expect(getSection('/dashboard/pm/my-project')).toBe('project-detail');
+    expect(getSection('/dashboard/pm/test-slug/settings')).toBe('project-detail');
+    expect(getSection('/dashboard/pm/abc123/team')).toBe('project-detail');
+    expect(getSection('/dashboard/pm/abc123/docs')).toBe('project-detail');
+    expect(getSection('/dashboard/pm/abc123/workflows')).toBe('project-detail');
   });
 
   it('identifies tasks section correctly', () => {
-    expect(getSection('/dashboard/pm/tasks')).toBe('tasks');
-    expect(getSection('/dashboard/pm/tasks/create')).toBe('tasks');
+    // Tasks are under /dashboard/pm/[slug]/tasks
+    expect(getSection('/dashboard/pm/my-project/tasks')).toBe('tasks');
+    expect(getSection('/dashboard/pm/test-slug/tasks/create')).toBe('tasks');
   });
 
   it('identifies projects section correctly', () => {
     expect(getSection('/dashboard/pm')).toBe('projects');
-    expect(getSection('/dashboard/pm/create')).toBe('projects');
+    // Known non-project routes
+    expect(getSection('/dashboard/pm/new')).toBe('projects');
+    expect(getSection('/dashboard/pm/dependencies')).toBe('projects');
+    expect(getSection('/dashboard/pm/portfolio')).toBe('projects');
   });
 
   it('identifies knowledge-base section correctly', () => {
@@ -131,7 +132,7 @@ describe('useCopilotPageContext', () => {
   });
 
   it('extracts params correctly', () => {
-    mockUsePathname.mockReturnValue('/dashboard/pm/projects/my-project');
+    mockUsePathname.mockReturnValue('/dashboard/pm/my-project');
     mockUseParams.mockReturnValue({ slug: 'my-project' });
 
     renderHook(() => useCopilotPageContext());
@@ -152,7 +153,7 @@ describe('useCopilotPageContext', () => {
   });
 
   it('extracts searchParams correctly', () => {
-    mockUsePathname.mockReturnValue('/dashboard/pm/tasks');
+    mockUsePathname.mockReturnValue('/dashboard/pm/my-project/tasks');
     mockUseSearchParams.mockReturnValue(
       createMockSearchParams({ view: 'kanban', filter: 'active' })
     );

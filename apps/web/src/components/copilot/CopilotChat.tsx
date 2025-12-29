@@ -16,6 +16,7 @@
  * Epic: DM-01 | Story: DM-01.4
  */
 
+import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useCopilotChatState } from './use-copilot-chat-state';
 import { DM_CONSTANTS } from '@/lib/dm-constants';
@@ -37,6 +38,19 @@ interface CopilotChatProps {
 export function CopilotChat({ defaultOpen = false }: CopilotChatProps) {
   const { isOpen, setIsOpen } = useCopilotChatState();
 
+  // Honor the defaultOpen prop on initial mount
+  useEffect(() => {
+    if (defaultOpen) {
+      setIsOpen(true);
+    }
+  }, [defaultOpen, setIsOpen]);
+
+  // Conditionally render based on isOpen state to support keyboard toggle
+  // CopilotSidebar's defaultOpen is only used on initial render
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <div
       className="copilot-chat"
@@ -44,8 +58,12 @@ export function CopilotChat({ defaultOpen = false }: CopilotChatProps) {
       data-testid="copilot-chat"
     >
       <CopilotSidebar
-        defaultOpen={defaultOpen || isOpen}
-        onSetOpen={setIsOpen}
+        defaultOpen={true}
+        onSetOpen={(open) => {
+          if (!open) {
+            setIsOpen(false);
+          }
+        }}
         labels={{
           title: 'HYVVE Assistant',
           placeholder: 'Ask anything about your workspace...',
