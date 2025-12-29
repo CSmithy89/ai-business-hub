@@ -5,6 +5,91 @@ All notable changes to HYVVE are documented in this file.
 This changelog is organized by Epic, following the BMAD Method development process.
 
 **Foundation Complete:** 17 Epics | 190 Stories | 541 Points | 100% Complete
+**Core-PM Complete:** 16 Epics | 61 Stories | Complete
+**Dynamic Module System:** Phase 1-2 Complete (DM-01, DM-02)
+
+---
+
+## EPIC-DM-02: Agno Multi-Interface Backend (9 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-30
+**Branch:** `epic/dm-02-agno-backend`
+**PR:** #41
+
+### Added
+
+- **AgentOS Multi-Interface Runtime**: Single agent with AG-UI + A2A protocol support simultaneously
+- **A2A AgentCard Discovery**: `.well-known/agent.json` endpoint following Google A2A standard
+- **Dashboard Gateway Agent**: Frontend orchestration agent with widget rendering tools
+- **CCR Integration**: Claude Code Router for intelligent model routing
+  - Health monitoring with graceful degradation
+  - Task-based routing (reasoning, code_generation, long_context, general)
+  - Keyword classification + explicit hints + agent defaults
+  - Quota alerts at 80% (warning) and 95% (critical)
+- **PM Agent Protocol Updates**: A2A adapters for Navi, Sage, Chrono, Scribe agents
+
+### API Endpoints
+
+- `GET /.well-known/agent.json` - A2A AgentCard discovery
+- `GET /agents` - List all agents with A2A metadata
+- `GET /agents/:agent_id` - Individual agent card
+- `GET /ccr/metrics` - CCR usage metrics and quota status
+- `GET /ccr/health` - CCR connection health check
+
+### Key Files
+
+- `agents/main.py` - Multi-interface AgentOS entry point
+- `agents/models/ccr_provider.py` - CCRModel extending OpenAIChat
+- `agents/models/task_classifier.py` - Task type classification
+- `agents/services/ccr_health.py` - CCR health checking service
+- `agents/services/ccr_usage.py` - Usage tracking and alerts
+- `agents/platform/dashboard_gateway.py` - Dashboard Gateway agent
+- `agents/platform/agent_discovery.py` - A2A AgentCard builders
+- `agents/constants/dm_constants.py` - All DM routing constants
+
+### Notes
+
+- Tech spec: `docs/modules/bm-dm/epics/epic-dm-02-tech-spec.md`
+- 290 unit tests (251 pass, 34 require agno package, 5 skipped)
+- CCR hybrid mode allows BYOAI fallback when CCR unavailable
+
+---
+
+## EPIC-DM-01: CopilotKit Frontend Infrastructure (8 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-28
+**Branch:** `epic/dm-01-copilotkit-frontend`
+**PR:** #40
+
+### Added
+
+- **CopilotKit Provider**: AG-UI protocol integration with Zustand chat state
+- **Slot System**: `DashboardSlots` component with widget registry
+- **Base Widgets**: ProjectStatus, TaskList, Metrics, Alert, Activity widgets
+- **Chat Integration**: CopilotKit Chat panel with AG-UI endpoints
+- **Context Providers**: Business, projects, and tasks context for agents
+- **CCR Settings UI**: Mode selection (ccr-only, byoai, hybrid) and fallback chain config
+- **CCR Connection Status**: Health monitoring with visual indicators
+- **CCR Quota Display**: Usage progress bars with threshold warnings
+
+### Routes
+
+- `/settings/ai-config` - CCR routing configuration
+
+### Key Files
+
+- `apps/web/src/lib/copilotkit/` - CopilotKit configuration
+- `apps/web/src/components/slots/` - Slot system and widgets
+- `apps/web/src/components/chat/` - Chat panel integration
+- `apps/web/src/components/settings/` - CCR config components
+- `apps/web/src/hooks/` - CCR hooks (useCCRRouting, useCCRStatus, useCCRQuota)
+
+### Notes
+
+- Tech spec: `docs/modules/bm-dm/epics/epic-dm-01-tech-spec.md`
+- Implements CopilotKit Generative UI pattern with `useRenderToolCall`
 
 ---
 
