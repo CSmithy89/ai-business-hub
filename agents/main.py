@@ -69,6 +69,9 @@ from a2a.discovery import router as discovery_router
 # Import CCR model provider (DM-02.7)
 from models.ccr_provider import validate_ccr_connection
 
+# Import CCR usage tracker (DM-02.9)
+from services.ccr_usage import get_ccr_usage_tracker
+
 # ============================================================================
 # Configuration (must be at top before usage)
 # ============================================================================
@@ -939,6 +942,39 @@ async def pm_agents_a2a_status():
             for agent_id, adapter in _pm_adapters.items()
         },
         "count": len(_pm_adapters),
+    }
+
+
+# =============================================================================
+# CCR Metrics Endpoint (DM-02.9)
+# =============================================================================
+
+
+@app.get(
+    "/ccr/metrics",
+    tags=["ccr", "metrics"],
+    summary="CCR Usage Metrics",
+)
+async def ccr_metrics():
+    """
+    Get CCR usage metrics and quota status.
+
+    Returns aggregated usage data including:
+    - Total requests by provider
+    - Requests by task type
+    - Estimated token usage
+    - Quota status with alert levels
+    """
+    if not settings.ccr_enabled:
+        return {
+            "status": "disabled",
+            "message": "CCR is not enabled",
+        }
+
+    tracker = get_ccr_usage_tracker()
+    return {
+        "status": "enabled",
+        **tracker.get_metrics_summary(),
     }
 
 
