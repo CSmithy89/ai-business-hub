@@ -75,8 +75,9 @@ development_status:
   # DM-02: Agno Multi-Interface Backend
   # Phase 2 | 9 stories | 51 points
   # AgentOS, AG-UI, A2A, Discovery, CCR Integration
+  # Tech Spec: docs/modules/bm-dm/epics/epic-dm-02-tech-spec.md
   # ===========================================
-  dm-02: backlog
+  dm-02: contexted
   dm-02-1-agno-protocol-dependencies: backlog
   dm-02-2-agentos-multiinterface-setup: backlog
   dm-02-3-a2a-agentcard-discovery: backlog
