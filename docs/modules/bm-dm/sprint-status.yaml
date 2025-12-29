@@ -87,7 +87,7 @@ development_status:
   dm-02-7-ccr-agno-integration: done
   dm-02-8-ccr-task-based-routing: done
   dm-02-9-ccr-usage-monitoring-alerts: done
-  dm-02-retrospective: optional
+  dm-02-retrospective: done
 
   # ===========================================
   # PHASE 3: INTEGRATION
