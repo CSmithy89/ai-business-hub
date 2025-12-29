@@ -64,8 +64,19 @@ export class KbCollabServerService implements OnModuleInit, OnModuleDestroy {
       extensions: [this.createKbExtension()],
     })
 
-    await this.server.listen(port)
-    this.logger.log(`KB collaboration server listening on ws://${this.server.URL}`)
+    try {
+      await this.server.listen(port)
+      this.logger.log(`KB collaboration server listening on ws://${this.server.URL}`)
+    } catch (error) {
+      // Handle EADDRINUSE gracefully - another instance may be running
+      if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'EADDRINUSE') {
+        this.logger.warn(`KB collaboration port ${port} already in use. Collab features disabled for this instance.`)
+        this.server = null
+        return
+      }
+      // Re-throw other errors
+      throw error
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

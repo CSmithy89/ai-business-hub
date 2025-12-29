@@ -49,6 +49,7 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
   private readonly handlers = new Map<string, EventHandlerInfo[]>();
   private running = false;
   private readonly consumerName = CONSUMER_CONFIG.NAME;
+  private _redisClient: ReturnType<RedisProvider['getClient']> | null = null;
 
   constructor(
     private readonly redisProvider: RedisProvider,
@@ -58,6 +59,22 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
     @Inject(forwardRef(() => EventRetryService))
     private readonly eventRetryService: EventRetryService,
   ) {}
+
+  /**
+   * Get Redis client lazily - waits for RedisProvider to be ready
+   * Returns null if client is not yet available
+   */
+  private getRedisClient(): ReturnType<RedisProvider['getClient']> | null {
+    if (this._redisClient) {
+      return this._redisClient;
+    }
+    try {
+      this._redisClient = this.redisProvider.getClient();
+      return this._redisClient;
+    } catch {
+      return null;
+    }
+  }
 
   /**
    * Initialize the consumer service
@@ -194,7 +211,24 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
    * - Event processing errors: handled individually, don't affect consumer loop
    */
   private async consumeLoop(): Promise<void> {
-    const redis = this.redisProvider.getClient();
+    // Wait for Redis to be ready before starting the consumer loop
+    let redis = this.getRedisClient();
+    let waitAttempts = 0;
+    const maxWaitAttempts = 10;
+
+    while (!redis && waitAttempts < maxWaitAttempts && this.running) {
+      waitAttempts++;
+      this.logger.debug(`Waiting for Redis client to be ready... (attempt ${waitAttempts}/${maxWaitAttempts})`);
+      await this.sleep(500);
+      redis = this.getRedisClient();
+    }
+
+    if (!redis) {
+      this.logger.error('Redis client not available after waiting, consumer loop cannot start');
+      return;
+    }
+
+    this.logger.log('Redis client ready, consumer connected');
     let consecutiveErrors = 0;
 
     this.logger.log('Consumer loop started');
@@ -296,7 +330,11 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
     streamId: string,
     event: BaseEvent,
   ): Promise<void> {
-    const redis = this.redisProvider.getClient();
+    const redis = this.getRedisClient();
+    if (!redis) {
+      this.logger.error('Redis client not available for event processing');
+      return;
+    }
     const matchingHandlers = this.findMatchingHandlers(event.type);
 
     if (matchingHandlers.length === 0) {

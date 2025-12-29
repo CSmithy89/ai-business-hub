@@ -351,6 +351,17 @@ export function RealtimeProvider({
 
   // Define scheduleReconnect
   scheduleReconnectRef.current = () => {
+    // Don't reconnect if there's no valid session
+    const currentSession = sessionRef.current;
+    if (!currentSession?.user?.id) {
+      setConnectionState((prev) => ({
+        ...prev,
+        status: 'disconnected',
+        error: null,
+      }));
+      return;
+    }
+
     if (reconnectAttemptRef.current >= mergedConfig.maxReconnectAttempts) {
       setConnectionState((prev) => ({
         ...prev,
