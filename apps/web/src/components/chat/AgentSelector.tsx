@@ -78,6 +78,48 @@ export const CHAT_AGENTS: ChatAgent[] = [
     greeting:
       "Hi! I'm Echo, focused on analytics and insights. I can help you understand data, generate reports, and surface actionable insights. What metrics would you like to explore?",
   },
+  // PM-specific agents (bm-pm module)
+  {
+    id: 'navi',
+    name: 'Navi',
+    icon: '🧭',
+    color: '#6366F1',
+    role: 'Project Navigator',
+    status: 'online',
+    greeting:
+      "Hi! I'm Navi, your project navigator. I specialize in task routing, phase transitions, and keeping your project workflow smooth. What project would you like to navigate?",
+  },
+  {
+    id: 'sage',
+    name: 'Sage',
+    icon: '🔮',
+    color: '#0EA5E9',
+    role: 'Domain Expert',
+    status: 'online',
+    greeting:
+      "Hello! I'm Sage, your domain expert. I provide technical guidance, best practices, and deep expertise for your project's domain. What technical challenge can I help with?",
+  },
+  {
+    id: 'chrono',
+    name: 'Chrono',
+    icon: '⏱️',
+    color: '#F59E0B',
+    role: 'Timeline Analyst',
+    status: 'online',
+    greeting:
+      "Greetings! I'm Chrono, your timeline analyst. I focus on scheduling, dependencies, and ensuring your project stays on track. How can I help with your timeline?",
+  },
+  // KB-specific agent (bm-kb module)
+  {
+    id: 'scribe',
+    name: 'Scribe',
+    icon: '📚',
+    color: '#EC4899',
+    role: 'Knowledge Specialist',
+    status: 'online',
+    greeting:
+      "Hi! I'm Scribe, your knowledge base specialist. I can help verify content, manage documentation, and ensure your knowledge stays accurate and up-to-date. What would you like to document?",
+  },
 ];
 
 interface AgentSelectorProps {

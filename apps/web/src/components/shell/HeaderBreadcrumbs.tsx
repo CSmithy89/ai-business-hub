@@ -54,8 +54,8 @@ function formatSegmentName(segment: string): string {
   return segment
     .split('-')
     .map((word) => {
-      // Handle special cases like AI, CRM, etc.
-      const upperWords = ['ai', 'crm', 'api', 'ui', 'ux'];
+      // Handle special cases like AI, CRM, PM, KB, etc.
+      const upperWords = ['ai', 'crm', 'api', 'ui', 'ux', 'pm', 'kb', 'id', 'qa'];
       if (upperWords.includes(word.toLowerCase())) {
         return word.toUpperCase();
       }

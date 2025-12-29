@@ -2,14 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
-import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
 import type { TiptapDocument } from '@hyvve/shared'
 import { toast } from 'sonner'
 
+/**
+ * Returns empty string so all KB API calls go through Next.js proxy
+ * This avoids CORS issues when browser calls backend directly
+ */
 function getBaseUrl(): string {
-  if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured')
-  return NESTJS_API_URL.replace(/\/$/, '')
+  return ''
 }
 
 function getSessionToken(session: unknown): string | undefined {
