@@ -12,6 +12,7 @@
  * <DashboardSlots />
  *
  * @see docs/modules/bm-dm/stories/dm-01-2-slot-system-foundation.md
+ * @see docs/modules/bm-dm/stories/dm-01-3-base-widget-components.md
  */
 
 // Main component
@@ -27,7 +28,27 @@ export {
   isValidWidgetType,
   getWidgetComponent,
   getRegisteredWidgetTypes,
+  type WidgetProps,
 } from './widget-registry';
+
+// Widget components
+export {
+  // Shared components
+  WidgetSkeleton,
+  WidgetEmpty,
+  // Widget implementations
+  ProjectStatusWidget,
+  TaskListWidget,
+  MetricsWidget,
+  AlertWidget,
+  // Props types
+  type WidgetSkeletonProps,
+  type WidgetEmptyProps,
+  type ProjectStatusWidgetProps,
+  type TaskListWidgetProps,
+  type MetricsWidgetProps,
+  type AlertWidgetProps,
+} from './widgets';
 
 // Types
 export type {

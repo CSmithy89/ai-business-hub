@@ -20,6 +20,7 @@
  * render_dashboard_widget({ type: "ProjectStatus", data: { ... } })
  *
  * @see docs/modules/bm-dm/stories/dm-01-2-slot-system-foundation.md
+ * @see docs/modules/bm-dm/stories/dm-01-3-base-widget-components.md
  */
 
 import { useCopilotAction } from '@copilotkit/react-core';
@@ -31,12 +32,13 @@ import type { RenderWidgetArgs } from './types';
 export function DashboardSlots() {
   useCopilotAction({
     name: 'render_dashboard_widget',
-    description: 'Render a widget on the user\'s dashboard',
+    description: "Render a widget on the user's dashboard",
     parameters: [
       {
         name: 'type',
         type: 'string',
-        description: 'Widget type identifier (ProjectStatus, TaskList, Metrics, Alert)',
+        description:
+          'Widget type identifier (ProjectStatus, TaskList, Metrics, Alert)',
         required: true,
       },
       {
@@ -60,9 +62,10 @@ export function DashboardSlots() {
       }
 
       // Render the widget with error boundary protection
+      // Pass data prop directly - widgets handle their own prop types
       return (
         <WidgetErrorBoundary widgetType={type}>
-          <WidgetComponent type={type} data={data} />
+          <WidgetComponent data={data} />
         </WidgetErrorBoundary>
       );
     },

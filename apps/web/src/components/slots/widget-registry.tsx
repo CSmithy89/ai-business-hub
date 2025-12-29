@@ -9,50 +9,66 @@
  * - Easy extension with new widget types
  * - Future code splitting via React.lazy
  *
- * @see docs/modules/bm-dm/stories/dm-01-2-slot-system-foundation.md
+ * @see docs/modules/bm-dm/stories/dm-01-3-base-widget-components.md
  */
 
 import type { ComponentType } from 'react';
-import type { WidgetType, PlaceholderWidgetProps } from './types';
+import type { WidgetType, WidgetData } from './types';
+import {
+  ProjectStatusWidget,
+  TaskListWidget,
+  MetricsWidget,
+  AlertWidget,
+} from './widgets';
 
 /**
- * Placeholder Widget Component
- *
- * Renders a debug view showing widget type and data.
- * Will be replaced with actual widget implementations in DM-01.3.
+ * Widget props interface for registry.
+ * All widgets accept data and optional isLoading props.
+ * The data is typed as the base WidgetData but each widget
+ * internally casts to its specific data type.
  */
-function PlaceholderWidget({ type, data }: PlaceholderWidgetProps) {
-  return (
-    <div className="p-4 border rounded-lg bg-muted">
-      <p className="text-sm font-medium text-muted-foreground">
-        Placeholder: {type}
-      </p>
-      <pre className="mt-2 text-xs overflow-auto max-h-48 bg-background/50 p-2 rounded">
-        {JSON.stringify(data, null, 2)}
-      </pre>
-    </div>
-  );
+export interface WidgetProps {
+  /** Widget data payload */
+  data: WidgetData;
+  /** Whether the widget is in a loading state */
+  isLoading?: boolean;
 }
+
+/**
+ * Internal widget component type that allows for specific data types.
+ * Each widget can have its own data type that extends WidgetData.
+ */
+type WidgetComponent = ComponentType<{
+  data: WidgetData;
+  isLoading?: boolean;
+}>;
 
 /**
  * Widget Registry
  *
  * Maps widget types to their React component implementations.
+ * Uses type assertion to handle the variance between specific widget
+ * data types and the base WidgetData type.
  *
  * To add a new widget type:
  * 1. Add the type to WidgetType in types.ts
- * 2. Create the widget component
- * 3. Add the mapping here
+ * 2. Create the widget component in widgets/
+ * 3. Export it from widgets/index.ts
+ * 4. Add the mapping here
  *
  * @example
- * import { NewWidget } from './widgets/NewWidget';
- * WIDGET_REGISTRY.NewWidgetType = NewWidget;
+ * // In types.ts, add to WidgetType:
+ * export type WidgetType = 'ProjectStatus' | 'TaskList' | 'Metrics' | 'Alert' | 'NewWidget';
+ *
+ * // In widgets/NewWidget.tsx, create the component
+ * // In widgets/index.ts, export it
+ * // Here, add: NewWidget: NewWidgetComponent as WidgetComponent,
  */
-export const WIDGET_REGISTRY: Record<WidgetType, ComponentType<PlaceholderWidgetProps>> = {
-  ProjectStatus: PlaceholderWidget,
-  TaskList: PlaceholderWidget,
-  Metrics: PlaceholderWidget,
-  Alert: PlaceholderWidget,
+export const WIDGET_REGISTRY: Record<WidgetType, WidgetComponent> = {
+  ProjectStatus: ProjectStatusWidget as WidgetComponent,
+  TaskList: TaskListWidget as WidgetComponent,
+  Metrics: MetricsWidget as WidgetComponent,
+  Alert: AlertWidget as WidgetComponent,
 };
 
 /**
@@ -79,10 +95,12 @@ export function isValidWidgetType(type: string): type is WidgetType {
  * @example
  * const Widget = getWidgetComponent('ProjectStatus');
  * if (Widget) {
- *   return <Widget type="ProjectStatus" data={data} />;
+ *   return <Widget data={data} />;
  * }
  */
-export function getWidgetComponent(type: string): ComponentType<PlaceholderWidgetProps> | undefined {
+export function getWidgetComponent(
+  type: string
+): ComponentType<WidgetProps> | undefined {
   if (isValidWidgetType(type)) {
     return WIDGET_REGISTRY[type];
   }

@@ -59,7 +59,7 @@ development_status:
   dm-01: contexted
   dm-01-1-copilotkit-installation: done
   dm-01-2-slot-system-foundation: done
-  dm-01-3-base-widget-components: backlog
+  dm-01-3-base-widget-components: done
   dm-01-4-copilotkit-chat-integration: backlog
   dm-01-5-context-provider-integration: backlog
   dm-01-6-ccr-routing-settings-ui: backlog
