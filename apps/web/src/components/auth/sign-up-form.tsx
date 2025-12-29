@@ -262,6 +262,7 @@ export function SignUpForm() {
           {...register('name')}
           disabled={isSubmitting}
           aria-invalid={errors.name ? 'true' : 'false'}
+          data-testid="name-input"
         />
         {errors.name && (
           <p className="text-sm text-red-600">{errors.name.message}</p>
@@ -278,6 +279,7 @@ export function SignUpForm() {
           {...register('email')}
           disabled={isSubmitting}
           aria-invalid={errors.email ? 'true' : 'false'}
+          data-testid="email-input"
         />
         {errors.email && (
           <p className="text-sm text-red-600">{errors.email.message}</p>
@@ -296,6 +298,7 @@ export function SignUpForm() {
             disabled={isSubmitting}
             aria-invalid={errors.password ? 'true' : 'false'}
             className="pr-10"
+            data-testid="password-input"
           />
           <button
             type="button"
@@ -323,6 +326,7 @@ export function SignUpForm() {
             disabled={isSubmitting}
             aria-invalid={errors.confirmPassword ? 'true' : 'false'}
             className="pr-16"
+            data-testid="confirm-password-input"
           />
           {showMatchIndicator && (
             <div className="absolute right-10 top-1/2 -translate-y-1/2">
