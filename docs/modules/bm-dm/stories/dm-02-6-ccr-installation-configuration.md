@@ -16,7 +16,7 @@ CCR is a node-based service that provides OpenAI-compatible API endpoints, allow
 
 **Key Deliverables:**
 - CCR setup documentation in `docs/guides/ccr-setup.md`
-- CCR configuration template in `agents/config/ccr_config_template.json`
+- CCR configuration template in `agents/ccr_config/ccr_config_template.json`
 - CCR health check service in `agents/services/ccr_health.py`
 - CCR-related settings in `agents/config.py`
 - Unit tests for health checker
@@ -66,7 +66,7 @@ CCR is a node-based service that provides OpenAI-compatible API endpoints, allow
 - Troubleshooting section
 
 ### Task 2: Create CCR Configuration Template
-**File:** `agents/config/ccr_config_template.json`
+**File:** `agents/ccr_config/ccr_config_template.json`
 - Provider configurations for Claude, DeepSeek, Gemini, OpenRouter
 - Task-based routing rules (reasoning, code_generation, long_context)
 - Fallback chain definitions

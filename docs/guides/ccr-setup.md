@@ -42,7 +42,7 @@ mkdir -p ~/.claude-code-router
 Copy the template configuration and customize:
 
 ```bash
-cp /path/to/agents/config/ccr_config_template.json ~/.claude-code-router/config.json
+cp /path/to/agents/ccr_config/ccr_config_template.json ~/.claude-code-router/config.json
 ```
 
 Or create manually:

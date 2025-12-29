@@ -66,6 +66,9 @@ from agentos import (
 # Import A2A discovery router
 from a2a.discovery import router as discovery_router
 
+# Import CCR model provider (DM-02.7)
+from models.ccr_provider import validate_ccr_connection
+
 # ============================================================================
 # Configuration (must be at top before usage)
 # ============================================================================
@@ -669,6 +672,16 @@ async def startup_event():
     logger.info(f"Registry contains {len(registry.list_cards())} agents/teams")
     logger.info(f"Database: {'configured' if settings.database_url else 'not configured'}")
     logger.info(f"Redis: {'configured' if settings.redis_url else 'not configured'}")
+
+    # Validate CCR connection if enabled (DM-02.7)
+    if settings.ccr_enabled:
+        ccr_ok = await validate_ccr_connection()
+        if ccr_ok:
+            logger.info("CCR connection validated - using CCR for model routing")
+        else:
+            logger.warning("CCR not available, using BYOAI fallback")
+    else:
+        logger.info("CCR disabled, using BYOAI for model routing")
 
     # Initialize Dashboard Gateway Agent
     await startup_dashboard_gateway()
