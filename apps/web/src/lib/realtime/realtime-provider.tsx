@@ -316,7 +316,30 @@ export function RealtimeProvider({
         return;
       }
 
-      // Start reconnection
+      // For server-initiated disconnects, defer the reconnect check to allow
+      // React to update sessionRef with the latest session state. This prevents
+      // reconnection loops when the session has been invalidated but the ref
+      // hasn't updated yet.
+      if (reason === 'io server disconnect') {
+        // Use queueMicrotask to defer until after React's state updates
+        queueMicrotask(() => {
+          const currentSession = sessionRef.current;
+          if (!currentSession?.user?.id) {
+            console.log('[Realtime] Server disconnected - no valid session, not reconnecting');
+            setConnectionState((prev) => ({
+              ...prev,
+              status: 'disconnected',
+              error: null,
+            }));
+            return;
+          }
+          // Session is still valid, proceed with reconnection
+          scheduleReconnectRef.current();
+        });
+        return;
+      }
+
+      // For other disconnect reasons (transport close, etc.), attempt reconnection
       scheduleReconnectRef.current();
     });
 
@@ -328,8 +351,22 @@ export function RealtimeProvider({
         error: error.message,
       }));
 
-      // Start reconnection
-      scheduleReconnectRef.current();
+      // Check if we still have a valid session before reconnecting
+      // Use queueMicrotask to allow React to update sessionRef
+      queueMicrotask(() => {
+        const currentSession = sessionRef.current;
+        if (!currentSession?.user?.id) {
+          console.log('[Realtime] Connection error - no valid session, not reconnecting');
+          setConnectionState((prev) => ({
+            ...prev,
+            status: 'disconnected',
+            error: null,
+          }));
+          return;
+        }
+        // Session is still valid, attempt reconnection
+        scheduleReconnectRef.current();
+      });
     });
 
     // Handle connection status from server
