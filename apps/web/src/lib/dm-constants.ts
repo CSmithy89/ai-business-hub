@@ -75,7 +75,7 @@ export const DM_CONSTANTS = {
     BUNDLE_SIZE_WARNING_KB: 500,
   },
 
-  // Z-Index Layers (extend existing Z_INDEX from layout-constants.ts)
+  // Z-Index Layers (independent values for DM module components)
   Z_INDEX: {
     /** Copilot chat sidebar */
     COPILOT_CHAT: 60,

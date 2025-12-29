@@ -103,7 +103,7 @@ export function TaskListWidget({ data, isLoading }: TaskListWidgetProps) {
             {displayedTasks.map((task) => {
               const StatusIcon = STATUS_ICONS[task.status] || CircleIcon;
               const statusColor = STATUS_COLORS[task.status] || STATUS_COLORS.todo;
-              const priorityConfig = PRIORITY_CONFIG[task.priority];
+              const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
 
               return (
                 <li

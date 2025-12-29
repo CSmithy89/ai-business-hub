@@ -11,6 +11,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
   useCCRRoutingConfig,
   useAvailableRoutingProviders,
@@ -210,7 +211,8 @@ function FallbackChainConfig({
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {
-    const newChain = [...chain];
+    // Deep copy to avoid mutating original objects
+    const newChain = chain.map((p) => ({ ...p }));
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     [newChain[index], newChain[targetIndex]] = [newChain[targetIndex], newChain[index]];
     // Update priorities
@@ -376,11 +378,19 @@ export function CCRRoutingConfig() {
   const displayChain = localChain ?? config?.fallbackChain ?? [];
 
   const handleModeChange = async (mode: RoutingMode) => {
-    await updateConfigMutation.mutateAsync({ mode });
+    try {
+      await updateConfigMutation.mutateAsync({ mode });
+    } catch {
+      toast.error('Failed to update routing mode');
+    }
   };
 
   const handleAutoFailoverChange = async (enabled: boolean) => {
-    await updateConfigMutation.mutateAsync({ autoFailover: enabled });
+    try {
+      await updateConfigMutation.mutateAsync({ autoFailover: enabled });
+    } catch {
+      toast.error('Failed to update auto failover setting');
+    }
   };
 
   const handleChainChange = (chain: RoutingProvider[]) => {
@@ -390,9 +400,13 @@ export function CCRRoutingConfig() {
 
   const handleSaveChain = async () => {
     if (localChain) {
-      await updateConfigMutation.mutateAsync({ fallbackChain: localChain });
-      setLocalChain(null);
-      setHasUnsavedChanges(false);
+      try {
+        await updateConfigMutation.mutateAsync({ fallbackChain: localChain });
+        setLocalChain(null);
+        setHasUnsavedChanges(false);
+      } catch {
+        toast.error('Failed to save fallback chain');
+      }
     }
   };
 
@@ -401,11 +415,15 @@ export function CCRRoutingConfig() {
     preferredProviderId: string | null,
     fallbackEnabled: boolean
   ) => {
-    await updateOverrideMutation.mutateAsync({
-      agentId,
-      preferredProviderId,
-      fallbackEnabled,
-    });
+    try {
+      await updateOverrideMutation.mutateAsync({
+        agentId,
+        preferredProviderId,
+        fallbackEnabled,
+      });
+    } catch {
+      toast.error('Failed to update agent routing');
+    }
   };
 
   if (isLoading) {

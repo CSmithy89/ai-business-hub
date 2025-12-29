@@ -20,7 +20,7 @@ The chat component will be globally available across all dashboard pages, persis
 
 - [ ] **AC1:** Chat UI available globally - CopilotKit chat component renders on all dashboard pages
 - [ ] **AC2:** Styling matches HYVVE theme - Chat colors, typography, and spacing follow design tokens
-- [ ] **AC3:** Keyboard shortcut works - `Cmd+K` (Mac) / `Ctrl+K` (Windows) toggles the chat panel
+- [ ] **AC3:** Keyboard shortcut works - `Cmd+/` (Mac) / `Ctrl+/` (Windows) toggles the chat panel
 - [ ] **AC4:** Chat persists across navigation - Conversation history maintained when navigating between pages
 
 ---
@@ -493,7 +493,7 @@ MAX_MESSAGE_LENGTH: 10000,
 MAX_HISTORY_MESSAGES: 100,
 TYPING_INDICATOR_DELAY_MS: 500,
 AUTO_SCROLL_THRESHOLD_PX: 100,
-KEYBOARD_SHORTCUT: 'k', // Note: Using '/' instead per recommendation
+KEYBOARD_SHORTCUT: '/', // Cmd+/ (Mac) / Ctrl+/ (Windows)
 KEYBOARD_MODIFIER: 'meta',
 
 // From DM_CONSTANTS.Z_INDEX
