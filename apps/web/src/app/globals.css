@@ -1291,3 +1291,57 @@
   background-color: rgba(59, 130, 246, 0.3);
   border-color: rgba(59, 130, 246, 0.4);
 }
+
+/* ============================================
+ * COPILOTKIT CHAT THEMING - Story DM-01.4
+ * Custom styling for CopilotKit components
+ * ============================================ */
+
+.copilot-chat {
+  /* Primary colors - Maps to HYVVE coral */
+  --copilot-kit-primary-color: rgb(var(--color-primary-500));
+  --copilot-kit-contrast-color: #ffffff;
+
+  /* Background colors */
+  --copilot-kit-background-color: rgb(var(--color-bg-surface));
+  --copilot-kit-secondary-color: rgb(var(--color-bg-muted));
+
+  /* Text colors */
+  --copilot-kit-muted-color: rgb(var(--color-text-muted));
+
+  /* Response styling */
+  --copilot-kit-response-button-background-color: rgb(var(--color-bg-tertiary));
+  --copilot-kit-response-button-color: rgb(var(--color-text-primary));
+
+  /* Typography */
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+
+  /* Smooth transitions */
+  transition: transform var(--duration-default) var(--ease-out);
+}
+
+/* Dark mode overrides for CopilotKit */
+.dark .copilot-chat {
+  --copilot-kit-background-color: rgb(var(--color-slate-900));
+  --copilot-kit-secondary-color: rgb(var(--color-slate-800));
+  --copilot-kit-response-button-background-color: rgb(var(--color-slate-800));
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .copilot-chat {
+    transition: none;
+  }
+}
+
+/* Focus indicators for accessibility within CopilotKit */
+.copilot-chat *:focus-visible {
+  outline: 2px solid rgb(var(--color-primary-500));
+  outline-offset: 2px;
+}
+
+.dark .copilot-chat *:focus-visible {
+  outline-color: rgb(var(--color-primary-400));
+  box-shadow: 0 0 8px rgba(255, 107, 107, 0.3);
+}

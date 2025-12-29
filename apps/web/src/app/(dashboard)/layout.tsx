@@ -43,6 +43,10 @@ import { SkipLink } from '@/components/ui/skip-link';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { DemoModeBanner } from '@/components/demo-mode-banner';
 import { DashboardSlots } from '@/components/slots';
+import {
+  CopilotChat,
+  CopilotKeyboardShortcut,
+} from '@/components/copilot';
 
 // Lazy load ChatPanel to reduce initial bundle size (~75KB gzipped: react-markdown, remark-gfm, dompurify)
 const ChatPanel = dynamic(
@@ -225,6 +229,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Global Keyboard Shortcuts - Handles Cmd+K, Cmd+B, Cmd+/, etc. */}
       <KeyboardShortcuts />
+
+      {/* CopilotKit Chat Integration - Story DM-01.4 */}
+      {/* Keyboard shortcut handler for Cmd+/ toggle */}
+      <CopilotKeyboardShortcut />
+      {/* Global AI Assistant chat sidebar */}
+      <CopilotChat />
 
       {/* Mobile Navigation Components - Only on mobile (<768px) */}
       {isMobile && (
