@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="dm-02-3-a2a-agentcard-discovery" epic="dm-02">
+  <metadata>
+    <title>A2A AgentCard Discovery</title>
+    <epic>DM-02 - Agno Multi-Interface Backend</epic>
+    <points>3</points>
+    <status>drafted</status>
+    <priority>High (A2A protocol compliance)</priority>
+    <dependencies>
+      <dependency story="dm-02-2" status="complete">AgentOS Multi-Interface Setup</dependency>
+    </dependencies>
+    <context-generated>2025-12-30</context-generated>
+    <story-file>docs/modules/bm-dm/stories/dm-02-3-a2a-agentcard-discovery.md</story-file>
+    <tech-spec>docs/modules/bm-dm/epics/epic-dm-02-tech-spec.md</tech-spec>
+  </metadata>
+
+  <story-requirements>
+    <overview>
+      Implement Google A2A protocol AgentCard generation and discovery endpoints for agent-to-agent communication.
+      AgentCards describe agent capabilities and how to communicate with them, enabling external agents to
+      discover and interact with HYVVE agents.
+    </overview>
+
+    <acceptance-criteria>
+      <criterion id="AC1" status="pending">AgentCard Pydantic models created matching Google A2A spec</criterion>
+      <criterion id="AC2" status="pending">AgentCard generation functions implemented for all agent types (dashboard_gateway, navi, pulse, herald)</criterion>
+      <criterion id="AC3" status="pending">`/.well-known/agent.json` discovery endpoint implemented returning all agent cards</criterion>
+      <criterion id="AC4" status="pending">`/.well-known/agents` multi-agent discovery endpoint implemented</criterion>
+      <criterion id="AC5" status="pending">Unit tests verify AgentCard schema compliance and endpoint responses</criterion>
+    </acceptance-criteria>
+
+    <discovery-endpoints>
+      <endpoint path="GET /.well-known/agent.json" purpose="Global discovery (all agents)" auth="None (public)"/>
+      <endpoint path="GET /.well-known/agents" purpose="Multi-agent listing with metadata" auth="None (public)"/>
+      <endpoint path="GET /a2a/{agent_id}/.well-known/agent.json" purpose="Individual agent discovery" auth="None (public)"/>
+    </discovery-endpoints>
+
+    <tasks>
+      <task id="1" points="1.5">Create A2A Module with AgentCard Models</task>
+      <task id="2" points="1.0">Create Discovery Endpoints</task>
+      <task id="3" points="0.5">Create Unit Tests</task>
+    </tasks>
+  </story-requirements>
+
+  <existing-code>
+    <file path="agents/agentos/config.py">
+      <description>
+        AgentOS configuration with InterfaceConfig model and INTERFACE_CONFIGS list.
+        Contains agent interface configurations for dashboard_gateway, navi, pulse, and herald.
+        Provides get_agentos_settings() for accessing AgentOSSettings.
+      </description>
+      <relevant-code>
+<![CDATA[
+class InterfaceConfig(BaseModel):
+    """Configuration for an agent interface.
+
+    Defines which protocols an agent exposes and their endpoint paths.
+    Each agent can have AG-UI (for frontend communication) and/or A2A
+    (for inter-agent communication) interfaces enabled.
+
+    Attributes:
+        agent_id: Unique agent identifier
+        agui_enabled: Enable AG-UI interface for frontend communication
+        agui_path: AG-UI endpoint path (e.g., '/agui')
+        a2a_enabled: Enable A2A interface for inter-agent communication
+        a2a_path: A2A endpoint path (e.g., '/a2a/agent-name')
+        agui_timeout_seconds: AG-UI tool call timeout override
+        a2a_timeout_seconds: A2A task timeout override
+    """
+
+    agent_id: str = Field(..., description="Unique agent identifier")
+    agui_enabled: bool = Field(default=False, ...)
+    agui_path: Optional[str] = Field(default=None, ...)
+    a2a_enabled: bool = Field(default=True, ...)
+    a2a_path: Optional[str] = Field(default=None, ...)
+    agui_timeout_seconds: Optional[int] = Field(default=None, ...)
+    a2a_timeout_seconds: Optional[int] = Field(default=None, ...)
+
+# Default interface configurations for known agents
+INTERFACE_CONFIGS: List[InterfaceConfig] = [
+    InterfaceConfig(
+        agent_id="dashboard_gateway",
+        agui_enabled=True,
+        agui_path="/agui",
+        a2a_enabled=True,
+        a2a_path="/a2a/dashboard",
+    ),
+    InterfaceConfig(
+        agent_id="navi",
+        agui_enabled=False,
+        a2a_enabled=True,
+        a2a_path="/a2a/navi",
+    ),
+    InterfaceConfig(
+        agent_id="pulse",
+        agui_enabled=False,
+        a2a_enabled=True,
+        a2a_path="/a2a/pulse",
+    ),
+    InterfaceConfig(
+        agent_id="herald",
+        agui_enabled=False,
+        a2a_enabled=True,
+        a2a_path="/a2a/herald",
+    ),
+]
+
+@lru_cache()
+def get_agentos_settings() -> AgentOSSettings:
+    """Get cached AgentOS settings."""
+    return AgentOSSettings()
+
+def get_interface_config(agent_id: str) -> Optional[InterfaceConfig]:
+    """Get interface configuration for a specific agent."""
+    for config in INTERFACE_CONFIGS:
+        if config.agent_id == agent_id:
+            return config
+    return None
+]]>
+      </relevant-code>
+      <usage-pattern>
+        Import INTERFACE_CONFIGS and get_agentos_settings from agentos.config.
+        Use INTERFACE_CONFIGS to get list of all agent configurations.
+        Filter by a2a_enabled and a2a_path to get A2A-enabled agents.
+      </usage-pattern>
+    </file>
+
+    <file path="agents/constants/dm_constants.py">
+      <description>
+        Dynamic Module System constants - no magic numbers in code.
+        Contains A2A protocol version and other configuration values.
+      </description>
+      <relevant-code>
+<![CDATA[
+class DMConstants:
+    """Dynamic Module System constants - no magic numbers in code."""
+
+    # A2A Protocol
+    class A2A:
+        PROTOCOL_VERSION = "0.3.0"
+        TASK_TIMEOUT_SECONDS = 300
+        MAX_TASK_QUEUE_SIZE = 1000
+        AGENT_DISCOVERY_CACHE_TTL_SECONDS = 300
+        HEARTBEAT_INTERVAL_SECONDS = 30
+        MAX_MESSAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+    # AG-UI Protocol
+    class AGUI:
+        PROTOCOL_VERSION = "0.1.0"
+        TOOL_CALL_TIMEOUT_SECONDS = 60
+        MAX_TOOL_CALLS_PER_REQUEST = 50
+
+    # Dashboard Agent (for DM-02.4+)
+    class DASHBOARD:
+        MAX_WIDGETS_PER_REQUEST = 12
+        WIDGET_DATA_TTL_SECONDS = 60
+        CONCURRENT_AGENT_CALLS = 5
+]]>
+      </relevant-code>
+      <usage-pattern>
+        Always use DMConstants.A2A.PROTOCOL_VERSION for protocol version.
+        Never hardcode version strings in agent code.
+      </usage-pattern>
+    </file>
+
+    <file path="agents/main.py">
+      <description>
+        HYVVE AgentOS FastAPI application. Currently has existing A2A discovery endpoint
+        at /.well-known/agent-card.json using the registry module.
+        Discovery router from this story will be mounted here in DM-02.4.
+      </description>
+      <relevant-code>
+<![CDATA[
+# Import registry and A2A models
+from registry import registry, AgentCard
+
+# Existing A2A Protocol Endpoints (to be replaced/enhanced)
+@app.get("/.well-known/agent-card.json")
+async def a2a_discovery():
+    """
+    A2A Discovery Endpoint.
+    Returns all registered agent cards for discovery.
+    """
+    cards = registry.list_cards()
+    return {
+        "protocolVersion": "0.3.0",
+        "agents": [card.model_dump() for card in cards]
+    }
+
+@app.get("/a2a/{agent_id}/.well-known/agent-card.json")
+async def a2a_agent_card(agent_id: str):
+    """Get specific agent card by ID."""
+    card = registry.get_card(agent_id)
+    if not card:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+    return card.model_dump()
+]]>
+      </relevant-code>
+      <integration-note>
+        The discovery router from agents/a2a/discovery.py will be mounted here
+        in DM-02.4 when the Dashboard Gateway agent is created:
+
+        from a2a.discovery import router as discovery_router
+        app.include_router(discovery_router)
+
+        The new implementation uses JSON-LD format and enhanced AgentCard structure.
+      </integration-note>
+    </file>
+
+    <file path="agents/registry.py">
+      <description>
+        Central registry for discovering and managing AgentOS components.
+        Contains existing AgentCard model (simpler version without JSON-LD).
+      </description>
+      <relevant-code>
+<![CDATA[
+class AgentSkill(BaseModel):
+    """Describes a specific capability or tool exposed by an agent."""
+    name: str
+    description: str
+    parameters: Dict[str, Any]  # JSON Schema
+
+class AgentEndpoints(BaseModel):
+    """Endpoints for interacting with the agent."""
+    rpc: str = "/rpc"
+    ws: Optional[str] = None
+
+class AgentCapabilities(BaseModel):
+    """Feature flags for the agent."""
+    streaming: bool = True
+    events: bool = True
+    files: bool = False
+
+class AgentCard(BaseModel):
+    """The A2A Discovery Manifest."""
+    protocolVersion: str = "0.3.0"
+    id: str
+    name: str
+    description: str
+    version: str = "1.0.0"
+    endpoints: AgentEndpoints = Field(default_factory=AgentEndpoints)
+    capabilities: AgentCapabilities = Field(default_factory=AgentCapabilities)
+    skills: List[AgentSkill] = []
+
+class AgentRegistry:
+    """Central registry for discovering and managing AgentOS components."""
+    def register_agent(self, agent: Agent, override_id: Optional[str] = None): ...
+    def register_team(self, team: Team, override_id: Optional[str] = None): ...
+    def get_card(self, component_id: str) -> Optional[AgentCard]: ...
+    def list_cards(self) -> List[AgentCard]: ...
+
+registry = AgentRegistry()
+]]>
+      </relevant-code>
+      <note>
+        The new A2A AgentCard implementation in agents/a2a/agent_card.py will use
+        JSON-LD format with @context and @type fields, following the official
+        Google A2A specification more closely. The registry module remains for
+        runtime agent/team registration.
+      </note>
+    </file>
+  </existing-code>
+
+  <tech-spec-excerpt>
+    <section id="3.3" title="Story DM-02.3: A2A AgentCard Discovery">
+      <objective>Implement A2A discovery endpoints returning valid AgentCards.</objective>
+
+      <agentcard-builder>
+<![CDATA[
+# agents/a2a/agent_card.py
+"""A2A AgentCard generation."""
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
+from agno.agent import Agent
+
+from agents.constants.dm_constants import DMConstants
+
+class Skill(BaseModel):
+    """A2A Skill definition."""
+    id: str
+    name: str
+    description: str
+    parameters: Optional[Dict[str, Any]] = None
+
+class Capabilities(BaseModel):
+    """A2A Agent capabilities."""
+    streaming: bool = True
+    pushNotifications: bool = False
+    stateTransfer: bool = False
+
+class AgentCard(BaseModel):
+    """A2A AgentCard following JSON-LD spec."""
+    context: str = Field(alias="@context", default="https://schema.org")
+    type: str = Field(alias="@type", default="AIAgent")
+    name: str
+    description: str
+    url: str
+    version: str = "0.2.0"
+    capabilities: Capabilities = Field(default_factory=Capabilities)
+    skills: List[Skill] = Field(default_factory=list)
+    defaultInputModes: List[str] = Field(default=["text"])
+    defaultOutputModes: List[str] = Field(default=["text", "tool_calls"])
+
+    class Config:
+        populate_by_name = True
+]]>
+      </agentcard-builder>
+
+      <discovery-endpoints>
+<![CDATA[
+# Global discovery endpoint
+@app.get("/.well-known/agent.json")
+async def a2a_global_discovery():
+    """Returns all registered agent cards for discovery."""
+    return build_discovery_response(
+        agents=registered_agents,
+        base_url=settings.agentos_base_url,
+        paths=agent_a2a_paths,
+    )
+
+# Individual agent discovery
+@app.get("/a2a/{agent_id}/.well-known/agent.json")
+async def a2a_agent_discovery(agent_id: str):
+    """Get specific agent card by ID."""
+    agent = registered_agents.get(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
+    path = agent_a2a_paths.get(agent_id)
+    card = build_agent_card(agent, settings.agentos_base_url, path)
+    return card.model_dump(by_alias=True)
+]]>
+      </discovery-endpoints>
+
+      <files-to-create>
+        <file>agents/a2a/__init__.py</file>
+        <file>agents/a2a/agent_card.py</file>
+      </files-to-create>
+
+      <files-to-modify>
+        <file>agents/main.py - Mount discovery router (deferred to DM-02.4)</file>
+      </files-to-modify>
+
+      <test-requirements>
+        <test>Unit: AgentCard builder produces valid JSON-LD</test>
+        <test>Unit: Skills extracted correctly from agent tools</test>
+        <test>Integration: /.well-known/agent.json returns valid response</test>
+        <test>Integration: Individual agent discovery works</test>
+      </test-requirements>
+
+      <definition-of-done>
+        <item>/.well-known/agent.json returns valid JSON-LD AgentCards</item>
+        <item>All agent skills listed correctly from tool definitions</item>
+        <item>Capabilities accurately describe agent features</item>
+        <item>External agents can discover via endpoint (verified with A2A client)</item>
+      </definition-of-done>
+    </section>
+  </tech-spec-excerpt>
+
+  <a2a-spec-reference>
+    <overview>
+      The Agent2Agent (A2A) protocol is a communication protocol for AI agents introduced by Google
+      in April 2025. It enables interoperability between AI agents from varied providers using
+      standardized discovery and communication mechanisms.
+    </overview>
+
+    <agentcard-purpose>
+      The AgentCard is a JSON metadata document that serves as an agent's "digital business card".
+      It is typically published at a well-known URI (/.well-known/agent.json or /.well-known/agent-card.json)
+      and enables agents to discover and understand how to interact with one another.
+    </agentcard-purpose>
+
+    <agentcard-schema>
+      <required-fields>
+        <field name="protocolVersion" type="string" description="A2A protocol version (e.g., '0.3.0' or '1.0')"/>
+        <field name="name" type="string" description="Human-readable name for the agent"/>
+        <field name="description" type="string" description="Human-readable description of the agent's purpose"/>
+        <field name="version" type="string" description="Version of the agent itself (e.g., '1.0.0')"/>
+        <field name="capabilities" type="AgentCapabilities" description="Object detailing supported features"/>
+        <field name="defaultInputModes" type="array[string]" description="Default input media types supported"/>
+        <field name="defaultOutputModes" type="array[string]" description="Default output media types supported"/>
+        <field name="skills" type="array[AgentSkill]" description="Array of skill objects"/>
+      </required-fields>
+
+      <json-ld-format>
+        <field name="@context" type="string" default="https://schema.org" description="JSON-LD context"/>
+        <field name="@type" type="string" default="AIAgent" description="JSON-LD type identifier"/>
+      </json-ld-format>
+
+      <capabilities-structure>
+        <field name="streaming" type="boolean" description="Real-time event delivery support"/>
+        <field name="pushNotifications" type="boolean" description="Webhook-based async updates"/>
+        <field name="stateTransitionHistory" type="boolean" description="Task state history support"/>
+        <field name="extensions" type="array" description="Protocol extensions supported"/>
+      </capabilities-structure>
+
+      <skill-structure>
+        <field name="id" type="string" description="Unique identifier for the skill"/>
+        <field name="name" type="string" description="Human-readable name for the skill"/>
+        <field name="description" type="string" description="Detailed explanation of the skill"/>
+        <field name="tags" type="array[string]" description="Keywords describing capabilities"/>
+        <field name="examples" type="array[string]" description="Example prompts or scenarios"/>
+        <field name="input_modes" type="array[string]" description="Supported input media types"/>
+        <field name="output_modes" type="array[string]" description="Supported output media types"/>
+      </skill-structure>
+    </agentcard-schema>
+
+    <discovery-endpoints>
+      <endpoint path="/.well-known/agent.json" method="GET">
+        Global discovery endpoint returning all agent cards or primary agent card.
+        This is the standardized location for agent discovery per A2A specification.
+      </endpoint>
+      <endpoint path="/.well-known/agent-card.json" method="GET">
+        Alternative discovery endpoint (legacy format).
+      </endpoint>
+      <endpoint path="/.well-known/agents" method="GET">
+        Multi-agent listing endpoint returning simplified agent listings.
+      </endpoint>
+      <endpoint path="/a2a/{agent_id}/.well-known/agent.json" method="GET">
+        Individual agent discovery for specific agent by ID.
+      </endpoint>
+    </discovery-endpoints>
+
+    <authentication>
+      Discovery endpoints are intentionally unauthenticated because:
+      1. They return public metadata only (no sensitive data)
+      2. A2A protocol expects discoverable agents
+      3. External agents need to discover capabilities before authentication
+
+      Security schemes in AgentCard describe requirements for actual task execution,
+      not discovery. Supported schemes include: Bearer, Basic, ApiKey, OAuth 2.0.
+    </authentication>
+
+    <protocol-version>
+      Current version: 0.3.0 (as defined in DMConstants.A2A.PROTOCOL_VERSION)
+      This version includes: gRPC support, cryptographic card signing, extended client support.
+    </protocol-version>
+
+    <sources>
+      <source url="https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/">Google Developers Blog - A2A Announcement</source>
+      <source url="https://a2a-protocol.org/latest/specification/">A2A Protocol Specification (DRAFT v1.0)</source>
+      <source url="https://github.com/a2aproject/A2A">GitHub - A2A Protocol Repository</source>
+      <source url="https://cloud.google.com/blog/products/ai-machine-learning/agent2agent-protocol-is-getting-an-upgrade">Google Cloud Blog - A2A v0.3 Upgrade</source>
+    </sources>
+  </a2a-spec-reference>
+
+  <implementation-guide>
+    <file-structure>
+<![CDATA[
+agents/
+├── a2a/                        # NEW: A2A protocol module
+│   ├── __init__.py             # Module exports
+│   └── agent_card.py           # AgentCard models and builders
+│   └── discovery.py            # FastAPI router for discovery endpoints
+├── agentos/
+│   ├── config.py               # Existing - INTERFACE_CONFIGS (read from)
+│   └── factory.py              # Existing - interface factory
+├── constants/
+│   └── dm_constants.py         # Existing - DMConstants.A2A.PROTOCOL_VERSION
+├── tests/
+│   └── test_dm_02_3_agentcard_discovery.py  # NEW: Unit tests
+└── main.py                     # Modified in DM-02.4 - mount discovery endpoints
+]]>
+    </file-structure>
+
+    <implementation-steps>
+      <step number="1" task="Task 1: Create A2A Module with AgentCard Models">
+        <description>Create the AgentCard Pydantic models following the A2A JSON-LD specification.</description>
+        <files>
+          <create>agents/a2a/__init__.py</create>
+          <create>agents/a2a/agent_card.py</create>
+        </files>
+        <key-points>
+          <point>Use Field(alias="@context") for JSON-LD fields</point>
+          <point>Always use DMConstants.A2A.PROTOCOL_VERSION</point>
+          <point>Use model_dump(by_alias=True) for serialization</point>
+          <point>Define AGENT_METADATA for all known agents (dashboard_gateway, navi, pulse, herald)</point>
+          <point>Include build_agent_card(), build_discovery_response(), build_multi_agent_response() functions</point>
+        </key-points>
+      </step>
+
+      <step number="2" task="Task 2: Create Discovery Endpoints">
+        <description>Create FastAPI router for A2A discovery endpoints.</description>
+        <files>
+          <create>agents/a2a/discovery.py</create>
+          <modify>agents/a2a/__init__.py - add discovery_router export</modify>
+        </files>
+        <endpoints>
+          <endpoint>GET /.well-known/agent.json - global_discovery()</endpoint>
+          <endpoint>GET /.well-known/agents - multi_agent_listing()</endpoint>
+          <endpoint>GET /a2a/{agent_id}/.well-known/agent.json - agent_discovery(agent_id)</endpoint>
+        </endpoints>
+        <key-points>
+          <point>Import get_agentos_settings and INTERFACE_CONFIGS from agentos.config</point>
+          <point>Filter INTERFACE_CONFIGS for a2a_enabled agents</point>
+          <point>Return 404 with helpful message if agent not found</point>
+          <point>No authentication required (public metadata)</point>
+        </key-points>
+      </step>
+
+      <step number="3" task="Task 3: Create Unit Tests">
+        <description>Create comprehensive tests for AgentCard models and discovery endpoints.</description>
+        <files>
+          <create>agents/tests/test_dm_02_3_agentcard_discovery.py</create>
+        </files>
+        <test-classes>
+          <class name="TestAgentCardModels">Verify Pydantic model structure (9 tests)</class>
+          <class name="TestAgentMetadata">Verify agent metadata definitions (4 tests)</class>
+          <class name="TestAgentCardBuilders">Verify builder functions (8 tests)</class>
+          <class name="TestDiscoveryEndpoints">Verify FastAPI endpoints (4 tests)</class>
+          <class name="TestProtocolCompliance">Verify A2A spec compliance (3 tests)</class>
+        </test-classes>
+      </step>
+    </implementation-steps>
+
+    <pydantic-patterns>
+      <pattern name="JSON-LD Aliases">
+<![CDATA[
+class AgentCard(BaseModel):
+    context: str = Field(
+        alias="@context",
+        default="https://schema.org",
+        description="JSON-LD context"
+    )
+    type: str = Field(
+        alias="@type",
+        default="AIAgent",
+        description="JSON-LD type"
+    )
+
+    model_config = {
+        "populate_by_name": True,  # Allow both 'context' and '@context'
+    }
+
+# Serialization
+card = AgentCard(...)
+json_response = card.model_dump(by_alias=True)  # Includes @context, @type
+]]>
+      </pattern>
+
+      <pattern name="URL Normalization">
+<![CDATA[
+def build_agent_card(agent_id: str, base_url: str, path: str) -> AgentCard:
+    # Ensure no double slashes
+    url = f"{base_url.rstrip('/')}{path}"
+    return AgentCard(url=url, ...)
+]]>
+      </pattern>
+    </pydantic-patterns>
+
+    <agent-metadata-pattern>
+<![CDATA[
+AGENT_METADATA: Dict[str, Dict[str, Any]] = {
+    "dashboard_gateway": {
+        "name": "dashboard_gateway",
+        "description": "Dashboard Gateway agent for HYVVE - orchestrates dashboard widgets",
+        "skills": [
+            Skill(
+                id="render_dashboard_widget",
+                name="Render Dashboard Widget",
+                description="Render a widget on the user's dashboard",
+            ),
+        ],
+        "capabilities": Capabilities(streaming=True, pushNotifications=False),
+        "defaultOutputModes": ["text", "tool_calls"],
+    },
+    "navi": { ... },
+    "pulse": { ... },
+    "herald": { ... },
+}
+]]>
+    </agent-metadata-pattern>
+  </implementation-guide>
+
+  <testing-requirements>
+    <unit-tests>
+      <suite name="TestAgentCardModels" count="9">
+        <test>test_skill_creation - Verify Skill model with required fields</test>
+        <test>test_skill_with_parameters - Verify Skill can include parameters schema</test>
+        <test>test_capabilities_defaults - Verify Capabilities has correct defaults</test>
+        <test>test_capabilities_override - Verify Capabilities can be overridden</test>
+        <test>test_provider_defaults - Verify Provider has HYVVE defaults</test>
+        <test>test_authentication_defaults - Verify Authentication has correct defaults</test>
+        <test>test_agent_card_creation - Verify AgentCard with required fields</test>
+        <test>test_agent_card_json_ld_aliases - Verify @context and @type in output</test>
+        <test>test_agent_card_default_modes - Verify correct default input/output modes</test>
+      </suite>
+
+      <suite name="TestAgentMetadata" count="4">
+        <test>test_agent_metadata_exists - Verify AGENT_METADATA contains expected agents</test>
+        <test>test_dashboard_gateway_metadata - Verify dashboard_gateway metadata is complete</test>
+        <test>test_pm_agents_have_skills - Verify PM agents have defined skills</test>
+        <test>test_herald_has_push_notifications - Verify Herald supports push notifications</test>
+      </suite>
+
+      <suite name="TestAgentCardBuilders" count="8">
+        <test>test_build_agent_card_known_agent - Verify builder works for known agents</test>
+        <test>test_build_agent_card_unknown_agent - Verify ValueError for unknown agents</test>
+        <test>test_build_agent_card_custom_skills - Verify builder accepts custom skills</test>
+        <test>test_build_agent_card_custom_description - Verify builder accepts custom description</test>
+        <test>test_build_agent_card_url_normalization - Verify URL normalization</test>
+        <test>test_build_discovery_response - Verify discovery response structure</test>
+        <test>test_build_discovery_response_skips_unknown - Verify unknown agents are skipped</test>
+        <test>test_build_multi_agent_response - Verify multi-agent response structure</test>
+      </suite>
+
+      <suite name="TestDiscoveryEndpoints" count="4">
+        <test>test_global_discovery_endpoint - Verify global discovery returns all agents</test>
+        <test>test_multi_agent_listing_endpoint - Verify multi-agent listing works</test>
+        <test>test_individual_agent_discovery - Verify individual agent discovery works</test>
+        <test>test_individual_agent_not_found - Verify 404 for unknown agent</test>
+      </suite>
+
+      <suite name="TestProtocolCompliance" count="3">
+        <test>test_agent_card_schema_compliance - Verify AgentCard matches A2A spec</test>
+        <test>test_protocol_version_matches_constants - Verify version uses DMConstants</test>
+        <test>test_discovery_response_protocol_version - Verify discovery includes version</test>
+      </suite>
+    </unit-tests>
+
+    <integration-tests note="Future - with mounted router">
+      <test>test_well_known_agent_json_accessible - Verify /.well-known/agent.json responds</test>
+      <test>test_well_known_agents_accessible - Verify /.well-known/agents responds</test>
+      <test>test_external_discovery_works - Verify external A2A client can discover</test>
+    </integration-tests>
+
+    <run-command>pytest agents/tests/test_dm_02_3_agentcard_discovery.py -v</run-command>
+  </testing-requirements>
+
+  <acceptance-validation>
+    <checklist>
+      <item id="1">agents/a2a/__init__.py created with exports</item>
+      <item id="2">agents/a2a/agent_card.py created with:
+        <sub-item>Skill Pydantic model</sub-item>
+        <sub-item>Capabilities Pydantic model</sub-item>
+        <sub-item>Provider Pydantic model</sub-item>
+        <sub-item>Authentication Pydantic model</sub-item>
+        <sub-item>AgentCard Pydantic model with JSON-LD aliases</sub-item>
+        <sub-item>AGENT_METADATA definitions for all known agents</sub-item>
+        <sub-item>build_agent_card() builder function</sub-item>
+        <sub-item>build_discovery_response() for global discovery</sub-item>
+        <sub-item>build_multi_agent_response() for multi-agent listing</sub-item>
+      </item>
+      <item id="3">agents/a2a/discovery.py created with:
+        <sub-item>GET /.well-known/agent.json endpoint</sub-item>
+        <sub-item>GET /.well-known/agents endpoint</sub-item>
+        <sub-item>GET /a2a/{agent_id}/.well-known/agent.json endpoint</sub-item>
+      </item>
+      <item id="4">Unit tests pass (pytest agents/tests/test_dm_02_3_agentcard_discovery.py)</item>
+      <item id="5">All AgentCards use DMConstants.A2A.PROTOCOL_VERSION</item>
+      <item id="6">AgentCard JSON-LD structure matches A2A specification</item>
+      <item id="7">Discovery endpoints are unauthenticated (public metadata)</item>
+    </checklist>
+
+    <validation-commands>
+      <command description="Run unit tests">pytest agents/tests/test_dm_02_3_agentcard_discovery.py -v</command>
+      <command description="Type check">cd agents &amp;&amp; python -m mypy a2a/</command>
+      <command description="Import test">python -c "from a2a import AgentCard, build_agent_card"</command>
+    </validation-commands>
+  </acceptance-validation>
+
+  <references>
+    <internal>
+      <ref path="docs/modules/bm-dm/stories/dm-02-3-a2a-agentcard-discovery.md">Story Definition</ref>
+      <ref path="docs/modules/bm-dm/epics/epic-dm-02-tech-spec.md">Epic DM-02 Tech Spec - Section 3.3</ref>
+      <ref path="docs/modules/bm-dm/stories/dm-02-2-agentos-multiinterface-setup.md">Story DM-02.2 (Dependency)</ref>
+      <ref path="agents/constants/dm_constants.py">DMConstants - A2A.PROTOCOL_VERSION</ref>
+      <ref path="agents/agentos/config.py">AgentOS Config - INTERFACE_CONFIGS</ref>
+      <ref path="agents/registry.py">Existing Registry with AgentCard model</ref>
+      <ref path="agents/main.py">Existing FastAPI application</ref>
+    </internal>
+    <external>
+      <ref url="https://github.com/a2aproject/A2A">A2A Protocol GitHub Repository</ref>
+      <ref url="https://a2a-protocol.org/latest/specification/">A2A Protocol Specification (DRAFT v1.0)</ref>
+      <ref url="https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/">Google A2A Announcement</ref>
+      <ref url="https://cloud.google.com/blog/products/ai-machine-learning/agent2agent-protocol-is-getting-an-upgrade">A2A v0.3 Upgrade Blog</ref>
+    </external>
+  </references>
+</story-context>

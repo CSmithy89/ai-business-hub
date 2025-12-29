@@ -10,6 +10,8 @@ from typing import Optional
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
+from agents.constants.dm_constants import DMConstants
+
 
 class Settings(BaseSettings):
     """AgentOS configuration settings loaded from environment variables"""
@@ -36,6 +38,11 @@ class Settings(BaseSettings):
     # Control Plane (optional)
     control_plane_enabled: bool = True
     agno_api_key: Optional[SecretStr] = None
+
+    # CCR (Claude Code Router) Configuration
+    ccr_enabled: bool = False
+    ccr_url: str = f"http://localhost:{DMConstants.CCR.DEFAULT_PORT}"
+    ccr_health_check_interval: int = DMConstants.CCR.HEALTH_CHECK_INTERVAL_SECONDS
 
     # CORS
     cors_origins: list[str] | str = Field(

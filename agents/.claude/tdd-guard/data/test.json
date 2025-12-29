@@ -1,0 +1,34 @@
+{
+  "testModules": [
+    {
+      "moduleId": "tests/test_dm_02_5_pm_agents_a2a.py",
+      "tests": [
+        {
+          "name": "test_navi_metadata_exists",
+          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_navi_metadata_exists",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "tests/test_dm_02_5_pm_agents_a2a.py:375: in test_navi_metadata_exists\n    from a2a.agent_card import AGENT_METADATA\na2a/__init__.py:31: in <module>\n    from .discovery import router as discovery_router\na2a/discovery.py:15: in <module>\n    from fastapi import APIRouter, HTTPException\nE   ModuleNotFoundError: No module named 'fastapi'"
+            }
+          ]
+        },
+        {
+          "name": "test_pulse_metadata_exists",
+          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_pulse_metadata_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_herald_metadata_exists",
+          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_herald_metadata_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_herald_metadata_push_notifications",
+          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_herald_metadata_push_notifications",
+          "state": "passed"
+        }
+      ]
+    }
+  ]
+}

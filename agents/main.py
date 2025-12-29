@@ -43,6 +43,35 @@ from validation.team import create_validation_team
 from planning.team import create_planning_team
 from branding.team import create_branding_team
 
+# Import Dashboard Gateway Agent
+from gateway import create_dashboard_gateway_agent, get_agent_metadata
+
+# Import PM agent A2A adapter factories (DM-02.5)
+from pm import (
+    PMA2AAdapter,
+    create_navi_a2a_adapter,
+    create_vitals_a2a_adapter,
+    create_herald_a2a_adapter,
+)
+from agno.memory import Memory
+
+# Import AgentOS multi-interface support
+from agentos import (
+    create_agui_interface,
+    create_a2a_interface,
+    get_interface_config,
+    get_agentos_settings,
+)
+
+# Import A2A discovery router
+from a2a.discovery import router as discovery_router
+
+# Import CCR model provider (DM-02.7)
+from models.ccr_provider import validate_ccr_connection
+
+# Import CCR usage tracker (DM-02.9)
+from services.ccr_usage import get_ccr_usage_tracker
+
 # ============================================================================
 # Configuration (must be at top before usage)
 # ============================================================================
@@ -647,6 +676,307 @@ async def startup_event():
     logger.info(f"Database: {'configured' if settings.database_url else 'not configured'}")
     logger.info(f"Redis: {'configured' if settings.redis_url else 'not configured'}")
 
+    # Validate CCR connection if enabled (DM-02.7)
+    if settings.ccr_enabled:
+        ccr_ok = await validate_ccr_connection()
+        if ccr_ok:
+            logger.info("CCR connection validated - using CCR for model routing")
+        else:
+            logger.warning("CCR not available, using BYOAI fallback")
+    else:
+        logger.info("CCR disabled, using BYOAI for model routing")
+
+    # Initialize Dashboard Gateway Agent
+    await startup_dashboard_gateway()
+
+    # Initialize PM Agent A2A interfaces (DM-02.5)
+    await startup_pm_agents_a2a()
+
+
+# =============================================================================
+# Dashboard Gateway Agent Setup
+# =============================================================================
+
+# Global reference to the dashboard agent (created on startup)
+_dashboard_agent = None
+_dashboard_interfaces = {}
+
+
+def get_dashboard_agent():
+    """Get the Dashboard Gateway agent instance."""
+    global _dashboard_agent
+    if _dashboard_agent is None:
+        raise RuntimeError("Dashboard agent not initialized. Wait for startup.")
+    return _dashboard_agent
+
+
+async def startup_dashboard_gateway():
+    """
+    Initialize Dashboard Gateway agent and mount interfaces on startup.
+
+    This creates the agent instance and mounts both AG-UI and A2A routers
+    according to the INTERFACE_CONFIGS from agentos/config.py.
+    """
+    global _dashboard_agent, _dashboard_interfaces
+
+    agentos_settings = get_agentos_settings()
+    config = get_interface_config("dashboard_gateway")
+
+    if not config:
+        logger.warning("No interface config found for dashboard_gateway")
+        return
+
+    # Create the Dashboard Gateway agent
+    _dashboard_agent = create_dashboard_gateway_agent(
+        workspace_id="system",  # Default workspace, overridden per-request
+    )
+    logger.info("Dashboard Gateway agent created")
+
+    # Mount AG-UI interface if enabled
+    if config.agui_enabled and config.agui_path and agentos_settings.agui_enabled:
+        try:
+            agui_interface = create_agui_interface(
+                agent=_dashboard_agent,
+                path=config.agui_path,
+                timeout_seconds=config.get_agui_timeout(),
+            )
+            _dashboard_interfaces["agui"] = agui_interface
+            # Mount the router if interface has a router attribute
+            if hasattr(agui_interface, "router"):
+                app.include_router(
+                    agui_interface.router,
+                    tags=["ag-ui"],
+                )
+            logger.info(f"AG-UI interface mounted at {config.agui_path}")
+        except Exception as e:
+            logger.error(f"Failed to mount AG-UI interface: {e}")
+
+    # Mount A2A interface if enabled
+    if config.a2a_enabled and config.a2a_path and agentos_settings.a2a_enabled:
+        try:
+            a2a_interface = create_a2a_interface(
+                agent=_dashboard_agent,
+                path=config.a2a_path,
+                timeout_seconds=config.get_a2a_timeout(),
+            )
+            _dashboard_interfaces["a2a"] = a2a_interface
+            # Mount the router if interface has a router attribute
+            if hasattr(a2a_interface, "router"):
+                app.include_router(
+                    a2a_interface.router,
+                    tags=["a2a"],
+                )
+            logger.info(f"A2A interface mounted at {config.a2a_path}")
+        except Exception as e:
+            logger.error(f"Failed to mount A2A interface: {e}")
+
+
+# Mount A2A discovery endpoints (from DM-02.3)
+app.include_router(discovery_router)
+logger.info("A2A discovery endpoints mounted")
+
+
+# =============================================================================
+# PM Agent A2A Setup (DM-02.5)
+# =============================================================================
+
+# Global reference to PM agent A2A adapters
+_pm_adapters: Dict[str, PMA2AAdapter] = {}
+
+
+async def startup_pm_agents_a2a():
+    """
+    Initialize PM agent A2A interfaces on startup.
+
+    Creates A2A adapters for Navi, Vitals, and Herald agents
+    and stores them for A2A task routing according to INTERFACE_CONFIGS.
+
+    Note: This does NOT create new agent instances per-request - it creates
+    shared adapter instances that can handle A2A tasks. The actual agent
+    instances are created with workspace/project context per-request in
+    the existing REST endpoints.
+
+    For A2A, we use a "system" context that the Dashboard Gateway will
+    override with proper workspace/project context when routing requests.
+    """
+    global _pm_adapters
+
+    agentos_settings = get_agentos_settings()
+
+    # Skip if A2A is globally disabled
+    if not agentos_settings.a2a_enabled:
+        logger.info("A2A globally disabled, skipping PM agent A2A setup")
+        return
+
+    # Create shared memory for PM team (system context)
+    # In production, this would be replaced with proper per-workspace memory
+    shared_memory = Memory()
+
+    # PM agent configurations
+    pm_agents = [
+        {
+            "config_id": "navi",
+            "adapter_factory": create_navi_a2a_adapter,
+        },
+        {
+            "config_id": "pulse",  # Maps to Vitals implementation
+            "adapter_factory": create_vitals_a2a_adapter,
+        },
+        {
+            "config_id": "herald",
+            "adapter_factory": create_herald_a2a_adapter,
+        },
+    ]
+
+    for pm_config in pm_agents:
+        config_id = pm_config["config_id"]
+        config = get_interface_config(config_id)
+
+        if not config or not config.a2a_enabled:
+            logger.debug(f"Skipping {config_id} - A2A not enabled in config")
+            continue
+
+        try:
+            # Create adapter with system context
+            adapter = pm_config["adapter_factory"](
+                workspace_id="system",
+                project_id="system",
+                shared_memory=shared_memory,
+            )
+
+            # Set the A2A path on the adapter
+            adapter.a2a_path = config.a2a_path
+
+            _pm_adapters[config_id] = adapter
+
+            logger.info(f"PM agent A2A adapter created: {config_id} -> {config.a2a_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to create A2A adapter for {config_id}: {e}")
+
+    logger.info(f"PM agent A2A setup complete: {len(_pm_adapters)} adapters created")
+
+
+def get_pm_adapter(agent_id: str) -> Optional[PMA2AAdapter]:
+    """
+    Get a PM agent A2A adapter by agent ID.
+
+    Args:
+        agent_id: The agent identifier (navi, pulse, herald)
+
+    Returns:
+        The PMA2AAdapter instance or None if not found
+    """
+    return _pm_adapters.get(agent_id)
+
+
+# =============================================================================
+# Dashboard Gateway Health Endpoint
+# =============================================================================
+
+
+@app.get(
+    "/agents/dashboard/health",
+    tags=["health"],
+    summary="Dashboard Gateway Health",
+)
+async def dashboard_gateway_health():
+    """
+    Health check endpoint for the Dashboard Gateway agent.
+
+    Returns agent status, mounted interfaces, and metadata.
+    """
+    global _dashboard_agent, _dashboard_interfaces
+
+    if _dashboard_agent is None:
+        return {
+            "status": "not_initialized",
+            "agent": None,
+            "interfaces": {},
+        }
+
+    metadata = get_agent_metadata()
+
+    return {
+        "status": "healthy",
+        "agent": {
+            "name": metadata["name"],
+            "description": metadata["description"],
+            "tools": metadata["tools"],
+        },
+        "interfaces": {
+            name: {
+                "mounted": True,
+                "path": getattr(iface, "path", "unknown") if hasattr(iface, "path") else "unknown",
+            }
+            for name, iface in _dashboard_interfaces.items()
+        },
+        "widget_types": metadata["widget_types"],
+    }
+
+
+# =============================================================================
+# PM Agent A2A Health Endpoint (DM-02.5)
+# =============================================================================
+
+
+@app.get(
+    "/agents/pm/a2a/status",
+    tags=["health", "a2a"],
+    summary="PM Agents A2A Status",
+)
+async def pm_agents_a2a_status():
+    """
+    Get A2A status for PM agents.
+
+    Returns which PM agents have A2A adapters registered and their paths.
+    """
+    return {
+        "status": "enabled" if _pm_adapters else "disabled",
+        "adapters": {
+            agent_id: {
+                "registered": True,
+                "info": adapter.get_agent_info(),
+                "capabilities": adapter.get_capabilities(),
+            }
+            for agent_id, adapter in _pm_adapters.items()
+        },
+        "count": len(_pm_adapters),
+    }
+
+
+# =============================================================================
+# CCR Metrics Endpoint (DM-02.9)
+# =============================================================================
+
+
+@app.get(
+    "/ccr/metrics",
+    tags=["ccr", "metrics"],
+    summary="CCR Usage Metrics",
+)
+async def ccr_metrics():
+    """
+    Get CCR usage metrics and quota status.
+
+    Returns aggregated usage data including:
+    - Total requests by provider
+    - Requests by task type
+    - Estimated token usage
+    - Quota status with alert levels
+    """
+    if not settings.ccr_enabled:
+        return {
+            "status": "disabled",
+            "message": "CCR is not enabled",
+        }
+
+    tracker = get_ccr_usage_tracker()
+    return {
+        "status": "enabled",
+        **tracker.get_metrics_summary(),
+    }
+
 
 # ============================================================================
 # Core Endpoints
@@ -763,9 +1093,11 @@ async def a2a_rpc(agent_id: str, rpc_request: JSONRPCRequest, request: Request):
             ),
         )
 
-    # Get the team/agent
+    # Get the team/agent - check both registry and PM adapters
     team = registry.get_team(agent_id)
-    if not team:
+    pm_adapter = get_pm_adapter(agent_id) if not team else None
+
+    if not team and not pm_adapter:
         return JSONRPCResponse(
             id=rpc_request.id,
             error=JSONRPCError(
@@ -795,16 +1127,29 @@ async def a2a_rpc(agent_id: str, rpc_request: JSONRPCRequest, request: Request):
 
             logger.info(f"A2A RPC: {caller_id} -> {agent_id}: {task[:50]}...")
 
-            response = await asyncio.wait_for(
-                team.arun(message=task),
-                timeout=TEAM_EXECUTION_TIMEOUT
-            )
+            # Route to team or PM adapter
+            if team:
+                response = await asyncio.wait_for(
+                    team.arun(message=task),
+                    timeout=TEAM_EXECUTION_TIMEOUT
+                )
+                content = response.content
+                tool_calls = []
+            else:
+                # Use PM adapter
+                timeout = pm_adapter.get_timeout()
+                result = await asyncio.wait_for(
+                    pm_adapter.handle_a2a_task(task, context),
+                    timeout=timeout
+                )
+                content = result.get("content", "")
+                tool_calls = result.get("tool_calls", [])
 
             return JSONRPCResponse(
                 id=rpc_request.id,
                 result=JSONRPCResult(
-                    content=response.content,
-                    tool_calls=[],
+                    content=content,
+                    tool_calls=tool_calls,
                     artifacts=[]
                 )
             )
