@@ -4,12 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
 import { getActiveWorkspaceId, getSessionToken, useSession } from '@/lib/auth-client'
-import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
 
+/**
+ * Use Next.js API proxy instead of direct NestJS calls
+ * This avoids CORS issues when browser calls backend directly
+ */
 function getBaseUrl(): string {
-  if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured')
-  return NESTJS_API_URL.replace(/\/$/, '')
+  return '/api'
 }
 
 function createCorrelationId(): string {
@@ -890,7 +892,7 @@ async function bulkDeleteTasks(params: {
 }
 
 export function usePmTasks(query: ListTasksQuery) {
-  const { data: session } = useSession()
+  const { data: session, isPending: sessionLoading } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
@@ -924,23 +926,31 @@ export function usePmTasks(query: ListTasksQuery) {
       query.limit ?? null,
     ],
     queryFn: () => fetchTasks({ workspaceId: workspaceId!, token, query }),
-    enabled: !!workspaceId && hasScope,
+    // Wait for session to fully load before fetching tasks
+    enabled: !sessionLoading && !!workspaceId && hasScope,
     staleTime: 15000,
     refetchOnWindowFocus: true,
+    // Retry on transient failures
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   })
 }
 
 export function usePmTask(taskId: string | null) {
-  const { data: session } = useSession()
+  const { data: session, isPending: sessionLoading } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
   const token = getSessionToken(session)
 
   return useQuery({
     queryKey: ['pm-task', workspaceId, taskId],
     queryFn: () => fetchTask({ workspaceId: workspaceId!, token, taskId: taskId! }),
-    enabled: !!workspaceId && !!taskId,
+    // Wait for session to fully load before fetching task
+    enabled: !sessionLoading && !!workspaceId && !!taskId,
     staleTime: 5000,
     refetchOnWindowFocus: true,
+    // Retry on transient failures
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   })
 }
 

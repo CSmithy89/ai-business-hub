@@ -197,13 +197,14 @@ async function fetchProjectBySlug(params: {
 }
 
 export function usePmProjects(filters: ListProjectsQuery = {}) {
-  const { data: session } = useSession()
+  const { data: session, isPending: sessionLoading } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
 
   return useQuery({
     queryKey: ['pm-projects', workspaceId, filters],
     queryFn: () => fetchProjects({ workspaceId: workspaceId!, filters }),
-    enabled: !!workspaceId,
+    // Wait for session to fully load before fetching projects
+    enabled: !sessionLoading && !!workspaceId,
     staleTime: 30000,
     refetchOnWindowFocus: true,
   })
@@ -231,15 +232,19 @@ export function useCreatePmProject() {
 }
 
 export function usePmProject(slug: string) {
-  const { data: session } = useSession()
+  const { data: session, isPending: sessionLoading } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
 
   return useQuery({
     queryKey: ['pm-project', workspaceId, slug],
     queryFn: () => fetchProjectBySlug({ workspaceId: workspaceId!, slug }),
-    enabled: !!workspaceId && !!slug,
+    // Wait for session to fully load before fetching project
+    enabled: !sessionLoading && !!workspaceId && !!slug,
     staleTime: 15000,
     refetchOnWindowFocus: true,
+    // Retry on transient failures (network issues, session not ready)
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   })
 }
 

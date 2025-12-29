@@ -109,8 +109,8 @@ class SOMScenario:
 class MarketSizing:
     """Complete market sizing with TAM/SAM/SOM."""
     tam: TAMCalculation
-    tam_triangulated: Optional[float] = None  # If multiple methods used
     sam: SAMCalculation
+    tam_triangulated: Optional[float] = None  # If multiple methods used
     som_scenarios: List[SOMScenario] = field(default_factory=list)
     confidence_score: int = 50  # 0-100
     calculated_at: datetime = field(default_factory=datetime.now)

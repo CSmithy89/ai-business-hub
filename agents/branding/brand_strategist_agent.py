@@ -98,10 +98,12 @@ class BrandStrategy:
     # Positioning
     positioning: PositioningStatement
     positioning_strategy: PositioningStrategy
-    competitor_positioning: List[CompetitorPositioning] = field(default_factory=list)
 
-    # Archetype
+    # Archetype (non-default field must come before defaults)
     primary_archetype: BrandArchetype
+
+    # Fields with defaults
+    competitor_positioning: List[CompetitorPositioning] = field(default_factory=list)
     secondary_archetype: Optional[BrandArchetype] = None
     archetype_rationale: Optional[str] = None
 

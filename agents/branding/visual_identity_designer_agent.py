@@ -151,12 +151,12 @@ class VisualIdentity:
     # Logo
     logo_system: LogoSystem
 
-    # Colors
+    # Typography (non-default must come before defaults)
+    typography: TypographySystem
+
+    # Colors (with defaults)
     color_palette: List[ColorDefinition] = field(default_factory=list)
     color_rationale: Optional[str] = None
-
-    # Typography
-    typography: TypographySystem
 
     # Visual Style
     design_principles: List[str] = field(default_factory=list)

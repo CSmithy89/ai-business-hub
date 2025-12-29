@@ -5,7 +5,7 @@ Semantic search and natural language Q&A over the knowledge base.
 
 from typing import Optional
 import logging
-from agno import tool
+from agno.tools import tool
 
 from .http_utils import api_get, api_post, API_BASE_URL
 

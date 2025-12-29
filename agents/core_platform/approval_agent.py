@@ -12,7 +12,7 @@ from typing import Optional
 from datetime import datetime
 import logging
 
-from agno import Agent
+from agno.agent import Agent
 from agno.db.postgres import PostgresDb
 
 # Import approval tools
@@ -105,7 +105,7 @@ def create_approval_agent(
     # Create database connection for session storage
     db = PostgresDb(
         connection_string=database_url,
-        table_name="agent_sessions",
+        session_table="agent_sessions",
     )
 
     # Create agent with tools and configuration

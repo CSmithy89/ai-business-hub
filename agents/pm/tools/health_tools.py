@@ -9,7 +9,7 @@ Uses structured Pydantic output models for type-safe responses.
 import logging
 from typing import Union
 
-from agno import tool
+from agno.tools import tool
 
 from .common import api_request, api_request_strict, AgentToolError
 from .structured_outputs import (

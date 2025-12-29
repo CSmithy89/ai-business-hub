@@ -9,7 +9,7 @@ and orchestrating project management tasks through natural language.
 from typing import Optional
 from agno.agent import Agent
 from agno.models.anthropic import Claude
-from agno.storage.postgres import PostgresStorage
+from agno.db.postgres import PostgresDb
 from agno.memory import Memory
 
 from .tools.pm_tools import get_project_status, list_tasks, search_kb

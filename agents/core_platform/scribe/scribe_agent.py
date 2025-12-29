@@ -11,7 +11,7 @@ BMAD Spec: Epic KB-03 - KB Verification & Scribe Agent
 from typing import Optional
 import logging
 
-from agno import Agent
+from agno.agent import Agent
 from agno.db.postgres import PostgresDb
 
 # Import KB tools
@@ -128,7 +128,7 @@ def create_scribe_agent(
     logger.info(f"Creating Scribe agent for workspace={workspace_id}")
 
     # Create database connection
-    db = PostgresDb(database_url=database_url)
+    db = PostgresDb(db_url=database_url)
 
     # Build context with tenant information
     context = {

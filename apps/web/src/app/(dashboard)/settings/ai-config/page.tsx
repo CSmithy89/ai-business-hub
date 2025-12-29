@@ -6,5 +6,5 @@ export const metadata = {
 }
 
 export default function SettingsAiConfigPage() {
-  redirect('/settings/ai-config/agent-preferences')
+  redirect('/settings/ai-config/providers')
 }

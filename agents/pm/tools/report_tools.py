@@ -5,7 +5,7 @@ AI Business Hub - Project Management Module
 Tools for generating project reports: status, health, and progress reports.
 """
 
-from agno import tool
+from agno.tools import tool
 from typing import Dict, Any, Optional
 import logging
 

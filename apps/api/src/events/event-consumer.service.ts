@@ -71,7 +71,10 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
     try {
       this._redisClient = this.redisProvider.getClient();
       return this._redisClient;
-    } catch {
+    } catch (error) {
+      this.logger.debug(
+        `Redis client not yet available: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return null;
     }
   }

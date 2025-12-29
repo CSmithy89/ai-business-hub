@@ -2,14 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth-client'
-import { NESTJS_API_URL } from '@/lib/api-config'
 import { safeJson } from '@/lib/utils/safe-json'
 import type { TiptapDocument } from '@hyvve/shared'
 import { toast } from 'sonner'
 
+/**
+ * Returns empty string so all KB API calls go through Next.js proxy
+ * This avoids CORS issues when browser calls backend directly
+ */
 function getBaseUrl(): string {
-  if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured')
-  return NESTJS_API_URL.replace(/\/$/, '')
+  return ''
 }
 
 function getSessionToken(session: unknown): string | undefined {
@@ -149,8 +151,8 @@ async function fetchKBPages(params: {
 }): Promise<KBPageListResponse> {
   const { workspaceId, token, flat = true } = params
 
-  const url = new URL(`${getBaseUrl()}/api/kb/pages`)
-  url.searchParams.set('flat', String(flat))
+  // Use relative URL for Next.js proxy - don't use new URL() for relative paths
+  const url = `/api/kb/pages?flat=${flat}`
 
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -601,12 +603,15 @@ async function searchKBPages(params: {
 }): Promise<KBSearchResponse> {
   const { query, workspaceId, token, limit = 20, offset = 0 } = params
 
-  const url = new URL(`${getBaseUrl()}/api/kb/search`)
-  url.searchParams.set('q', query)
-  url.searchParams.set('limit', String(limit))
-  url.searchParams.set('offset', String(offset))
+  // Use relative URL for Next.js proxy - don't use new URL() for relative paths
+  const searchParams = new URLSearchParams({
+    q: query,
+    limit: String(limit),
+    offset: String(offset),
+  })
+  const url = `/api/kb/search?${searchParams.toString()}`
 
-  const response = await fetch(url.toString(), {
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -667,10 +672,10 @@ async function fetchRecentPages(params: {
 }): Promise<{ data: RecentPage[] }> {
   const { workspaceId, token, limit = 10 } = params
 
-  const url = new URL(`${getBaseUrl()}/api/kb/pages/me/recent`)
-  url.searchParams.set('limit', String(limit))
+  // Use relative URL for Next.js proxy - don't use new URL() for relative paths
+  const url = `/api/kb/pages/me/recent?limit=${limit}`
 
-  const response = await fetch(url.toString(), {
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

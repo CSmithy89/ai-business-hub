@@ -5,7 +5,7 @@ Content analysis, stale detection, and KB structure analysis.
 
 from typing import Optional
 import logging
-from agno import tool
+from agno.tools import tool
 
 from .http_utils import api_get, API_BASE_URL
 

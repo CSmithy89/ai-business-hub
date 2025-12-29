@@ -10,6 +10,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -105,8 +107,51 @@ function MessageBubble({ message, agentName }: MessageBubbleProps) {
             </Badge>
           )}
         </div>
-        <div className="text-sm whitespace-pre-wrap break-words">
-          {message.content || (
+        <div className="text-sm break-words">
+          {message.content ? (
+            isUser ? (
+              <span className="whitespace-pre-wrap">{message.content}</span>
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    code: ({ children, className }) => {
+                      const isInline = !className;
+                      if (isInline) {
+                        return (
+                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                            {children}
+                          </code>
+                        );
+                      }
+                      return (
+                        <code className={cn('block overflow-x-auto rounded-md bg-muted p-3 text-xs font-mono', className)}>
+                          {children}
+                        </code>
+                      );
+                    },
+                    a: ({ children, href }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    ul: ({ children }) => <ul className="mb-2 ml-4 list-disc last:mb-0">{children}</ul>,
+                    ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal last:mb-0">{children}</ol>,
+                    li: ({ children }) => <li className="mb-1">{children}</li>,
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            )
+          ) : (
             <span className="text-muted-foreground italic">
               <Loader2 className="w-4 h-4 animate-spin inline mr-1" />
               Generating response...
