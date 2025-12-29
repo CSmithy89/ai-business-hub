@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="dm-01-1-copilotkit-installation">
+  <metadata>
+    <epic>DM-01</epic>
+    <story>DM-01.1</story>
+    <title>CopilotKit Installation and Setup</title>
+    <generated>2025-12-29T00:00:00Z</generated>
+    <points>3</points>
+    <priority>High (foundational)</priority>
+  </metadata>
+
+  <story-requirements>
+    <summary>
+      Install CopilotKit dependencies and configure the CopilotKit provider in the Next.js application.
+      This story establishes the foundational infrastructure required for all subsequent Dynamic Module
+      System features, including the Slot System, Chat UI, and CCR integration.
+    </summary>
+
+    <acceptance-criteria>
+      <criterion id="1">CopilotKit provider wraps the application (inside existing provider chain)</criterion>
+      <criterion id="2">AG-UI connection established (can verify in network tab)</criterion>
+      <criterion id="3">No console errors related to CopilotKit</criterion>
+      <criterion id="4">Environment variables configured correctly</criterion>
+      <criterion id="5">SSR-safe implementation (client-side only)</criterion>
+    </acceptance-criteria>
+
+    <packages-to-install>
+      <package name="@copilotkit/react-core" version="^2.x" purpose="Core CopilotKit functionality (hooks, providers)" />
+      <package name="@copilotkit/react-ui" version="^2.x" purpose="Pre-built chat components (used in DM-01.4)" />
+      <package name="@ag-ui/agno" version="^1.x" purpose="AG-UI protocol adapter for Agno backend" />
+    </packages-to-install>
+
+    <provider-chain-target>
+      <current-structure>
+        QueryClientProvider
+          ThemeProvider
+            RealtimeProvider
+              TooltipProvider
+                children
+      </current-structure>
+      <target-structure>
+        QueryClientProvider
+          ThemeProvider
+            RealtimeProvider
+              CopilotKit (NEW - insert here)
+                TooltipProvider
+                  children
+      </target-structure>
+      <rationale>
+        - CopilotKit needs access to React Query for data fetching
+        - Must be inside ThemeProvider for styling consistency
+        - RealtimeProvider integration allows WebSocket coordination
+      </rationale>
+    </provider-chain-target>
+  </story-requirements>
+
+  <existing-code>
+    <file path="apps/web/src/app/providers.tsx" purpose="Main provider chain - needs CopilotKit insertion">
+      <![CDATA[
+'use client';
+
+import { useEffect, useState } from 'react';
+import { ThemeProvider } from 'next-themes';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { initializeErrorTracking } from '@/lib/telemetry/error-tracking';
+import { RealtimeProvider } from '@/lib/realtime';
+import { useCsrfRefresh } from '@/hooks/use-csrf-refresh';
+
+function CsrfRefresher() {
+  useCsrfRefresh();
+  return null;
+}
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000, // 1 minute
+        refetchOnWindowFocus: false,
+      },
+    },
+  }));
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (
+      (window as unknown as { __errorTrackingInitialized?: boolean })
+        .__errorTrackingInitialized
+    )
+      return;
+
+    let mounted = true;
+
+    (async () => {
+      try {
+        await initializeErrorTracking();
+        if (mounted) {
+          (
+            window as unknown as { __errorTrackingInitialized?: boolean }
+          ).__errorTrackingInitialized = true;
+        }
+      } catch (err) {
+
+        console.error('Error initializing error tracking:', err);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="light"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <RealtimeProvider>
+          <TooltipProvider delayDuration={300}>
+            <CsrfRefresher />
+            {children}
+          </TooltipProvider>
+        </RealtimeProvider>
+        <Toaster richColors position="top-right" />
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+      ]]>
+    </file>
+
+    <file path="apps/web/src/lib/layout-constants.ts" purpose="Reference for constants pattern">
+      <![CDATA[
+/**
+ * Layout Constants
+ *
+ * Centralized layout dimensions and spacing values used throughout
+ * the dashboard. These ensure consistency and make updates easier.
+ *
+ * Epic: 07 - UI Shell
+ * Technical Debt: Extract magic numbers from layout components
+ */
+
+/**
+ * Dashboard layout dimensions in pixels
+ */
+export const LAYOUT = {
+  /** Fixed header height */
+  HEADER_HEIGHT: 60,
+
+  /** Sidebar width when collapsed */
+  SIDEBAR_COLLAPSED_WIDTH: 64,
+
+  /** Sidebar width when expanded */
+  SIDEBAR_EXPANDED_WIDTH: 256,
+
+  /** Minimum chat panel width */
+  CHAT_MIN_WIDTH: 320,
+
+  /** Maximum chat panel width */
+  CHAT_MAX_WIDTH: 480,
+
+  /** Default chat panel width */
+  CHAT_DEFAULT_WIDTH: 320,
+
+  /** Minimum main content width on desktop */
+  CONTENT_MIN_WIDTH_DESKTOP: 600,
+
+  /** Minimum main content width on tablet */
+  CONTENT_MIN_WIDTH_TABLET: 400,
+} as const;
+
+/**
+ * Z-index layers for consistent stacking
+ */
+export const Z_INDEX = {
+  /** Base content layer */
+  CONTENT: 0,
+
+  /** Sidebar overlay on mobile */
+  SIDEBAR: 40,
+
+  /** Header (always above content) */
+  HEADER: 50,
+
+  /** Chat panel */
+  CHAT_PANEL: 30,
+
+  /** Dropdowns and tooltips */
+  DROPDOWN: 100,
+
+  /** Modals and dialogs */
+  MODAL: 200,
+
+  /** Command palette */
+  COMMAND_PALETTE: 300,
+
+  /** Toast notifications */
+  TOAST: 400,
+} as const;
+
+/**
+ * Animation durations in milliseconds
+ */
+export const ANIMATION = {
+  /** Fast transition (hover effects) */
+  FAST: 150,
+
+  /** Default transition (most UI changes) */
+  DEFAULT: 200,
+
+  /** Slow transition (panel open/close) */
+  SLOW: 300,
+} as const;
+
+/**
+ * Type exports for TypeScript consumers
+ */
+export type LayoutKey = keyof typeof LAYOUT;
+export type ZIndexKey = keyof typeof Z_INDEX;
+export type AnimationKey = keyof typeof ANIMATION;
+      ]]>
+    </file>
+
+    <file path="apps/web/package.json" purpose="Current dependencies - packages will be added here">
+      <current-dependencies note="Relevant subset">
+        <dependency name="@tanstack/react-query" version="^5.90.11" />
+        <dependency name="next" version="^15.0.0" />
+        <dependency name="next-themes" version="^0.3.0" />
+        <dependency name="react" version="^19.0.0" />
+        <dependency name="react-dom" version="^19.0.0" />
+        <dependency name="socket.io-client" version="4" />
+        <dependency name="zod" version="^4.1.13" />
+      </current-dependencies>
+    </file>
+
+    <file path=".env.example" purpose="Environment variables documentation">
+      <current-relevant-vars>
+        NEXT_PUBLIC_API_URL="http://localhost:3001"
+        NEXT_PUBLIC_WS_URL="ws://localhost:3001"
+        NEXT_PUBLIC_AGENTOS_URL="http://localhost:7777"
+      </current-relevant-vars>
+      <vars-to-add>
+        # CopilotKit / AG-UI Configuration
+        NEXT_PUBLIC_AGNO_URL=http://localhost:8000
+        # NEXT_PUBLIC_COPILOTKIT_KEY=ck_... (optional - for CopilotKit Cloud)
+      </vars-to-add>
+    </file>
+  </existing-code>
+
+  <implementation-patterns>
+    <pattern name="API Route Pattern" source="apps/web/src/app/api/agents/route.ts">
+      <description>
+        API routes in this project follow the Next.js 15 App Router pattern with
+        NextRequest/NextResponse, session validation, and consistent error handling.
+      </description>
+      <example>
+        <![CDATA[
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth-server'
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getSession()
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Business logic here...
+
+    return NextResponse.json({ data: result })
+  } catch (error) {
+    console.error('Error description:', error)
+    return NextResponse.json(
+      { error: 'Failed to ...' },
+      { status: 500 }
+    )
+  }
+}
+        ]]>
+      </example>
+    </pattern>
+
+    <pattern name="Unit Test Pattern" source="apps/web/src/components/__tests__/error-boundary.test.tsx">
+      <description>
+        Tests use vitest with @testing-library/react. Mock implementations
+        are common. Tests are located in __tests__ directories.
+      </description>
+      <example>
+        <![CDATA[
+import { render, screen, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+
+describe('ComponentName', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('does something expected', async () => {
+    render(<Component />)
+    expect(screen.getByText(/expected text/i)).toBeInTheDocument()
+  })
+})
+        ]]>
+      </example>
+    </pattern>
+
+    <pattern name="E2E Test Pattern" source="apps/web/playwright.config.ts">
+      <description>
+        E2E tests use Playwright, located in tests/e2e directory.
+        Configuration uses chromium with standard timeouts.
+      </description>
+      <config>
+        testDir: './tests/e2e'
+        timeout: 60 * 1000
+        expect.timeout: 15 * 1000
+        baseURL: 'http://localhost:3000'
+      </config>
+    </pattern>
+
+    <pattern name="Constants File Pattern" source="apps/web/src/lib/layout-constants.ts">
+      <description>
+        Constants are grouped by category, use 'as const' for type safety,
+        include JSDoc comments for each value, and export type definitions.
+      </description>
+    </pattern>
+
+    <pattern name="Provider Component Pattern">
+      <description>
+        Provider wrapper components are marked with 'use client', accept children
+        as ReactNode, and use environment variables for configuration.
+      </description>
+      <example>
+        <![CDATA[
+'use client';
+
+interface ProviderProps {
+  children: React.ReactNode;
+}
+
+export function ProviderWrapper({ children }: ProviderProps) {
+  const config = process.env.NEXT_PUBLIC_CONFIG_VALUE || 'fallback';
+
+  return (
+    <SomeProvider config={config}>
+      {children}
+    </SomeProvider>
+  );
+}
+        ]]>
+      </example>
+    </pattern>
+  </implementation-patterns>
+
+  <dependencies>
+    <npm-packages>
+      <package>@copilotkit/react-core@^2.0.0</package>
+      <package>@copilotkit/react-ui@^2.0.0</package>
+      <package>@ag-ui/agno@^1.0.0</package>
+    </npm-packages>
+    <install-command>
+      cd apps/web && pnpm add @copilotkit/react-core @copilotkit/react-ui @ag-ui/agno
+    </install-command>
+  </dependencies>
+
+  <environment-variables>
+    <variable name="NEXT_PUBLIC_AGNO_URL" required="true" default="http://localhost:8000">
+      URL to Agno backend AG-UI endpoint. The CopilotKit provider will connect to
+      ${NEXT_PUBLIC_AGNO_URL}/agui for AG-UI protocol communication.
+    </variable>
+    <variable name="NEXT_PUBLIC_COPILOTKIT_KEY" required="false">
+      Optional CopilotKit Cloud API key. Only needed for CopilotKit Cloud features.
+      Format: ck_... (starts with ck_)
+    </variable>
+  </environment-variables>
+
+  <testing-patterns>
+    <unit-tests>
+      <location>apps/web/src/components/copilot/__tests__/</location>
+      <framework>vitest + @testing-library/react</framework>
+      <setup-file>apps/web/vitest.setup.ts</setup-file>
+      <config-file>apps/web/vitest.config.ts</config-file>
+      <coverage-target>80%</coverage-target>
+      <mocking-strategy>
+        Mock @copilotkit/react-core to avoid network calls:
+        <![CDATA[
+vi.mock('@copilotkit/react-core', () => ({
+  CopilotKit: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="copilotkit-provider">{children}</div>
+  ),
+}));
+        ]]>
+      </mocking-strategy>
+    </unit-tests>
+
+    <e2e-tests>
+      <location>apps/web/tests/e2e/</location>
+      <framework>Playwright</framework>
+      <config-file>apps/web/playwright.config.ts</config-file>
+      <strategy>
+        Verify no console errors related to CopilotKit on page load.
+        Check that provider context is available (no "missing provider" errors).
+      </strategy>
+    </e2e-tests>
+  </testing-patterns>
+
+  <files-to-create>
+    <file path="apps/web/src/lib/dm-constants.ts" purpose="DM module constants file">
+      <description>
+        All magic numbers for DM epics. Follows pattern from layout-constants.ts.
+        Contains COPILOTKIT, WIDGETS, CHAT, CCR, PERFORMANCE, and Z_INDEX sections.
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/copilot/CopilotKitProvider.tsx" purpose="Provider wrapper component">
+      <description>
+        Wraps children with CopilotKit provider configured for AG-UI protocol.
+        Client-side only ('use client' directive), SSR-safe.
+      </description>
+    </file>
+
+    <file path="apps/web/src/app/api/copilotkit/route.ts" purpose="Mock API route for development">
+      <description>
+        Placeholder endpoint for local development when Agno backend is not available.
+        Returns mock responses. Will be bypassed in production via NEXT_PUBLIC_AGNO_URL.
+      </description>
+    </file>
+
+    <file path="apps/web/src/types/copilotkit.d.ts" purpose="Type definitions">
+      <description>
+        Extended types for CopilotKit integration with HYVVE.
+        Re-exports CopilotKit types and adds custom HYVVE-specific types.
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/copilot/__tests__/CopilotKitProvider.test.tsx" purpose="Unit tests">
+      <description>
+        Tests for CopilotKitProvider component: renders children, handles env vars.
+      </description>
+    </file>
+
+    <file path="apps/web/tests/e2e/copilotkit-setup.spec.ts" purpose="E2E tests">
+      <description>
+        E2E tests verifying no console errors and provider context availability.
+      </description>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/package.json" change="Add CopilotKit dependencies">
+      <dependencies-to-add>
+        "@copilotkit/react-core": "^2.0.0"
+        "@copilotkit/react-ui": "^2.0.0"
+        "@ag-ui/agno": "^1.0.0"
+      </dependencies-to-add>
+    </file>
+
+    <file path="apps/web/src/app/providers.tsx" change="Add CopilotKitProvider to chain">
+      <modification>
+        Import CopilotKitProvider from '@/components/copilot/CopilotKitProvider'.
+        Wrap TooltipProvider with CopilotKitProvider inside RealtimeProvider.
+      </modification>
+      <target-structure>
+        <![CDATA[
+<QueryClientProvider client={queryClient}>
+  <ThemeProvider ...>
+    <RealtimeProvider>
+      <CopilotKitProvider>
+        <TooltipProvider delayDuration={300}>
+          <CsrfRefresher />
+          {children}
+        </TooltipProvider>
+      </CopilotKitProvider>
+    </RealtimeProvider>
+    <Toaster richColors position="top-right" />
+  </ThemeProvider>
+</QueryClientProvider>
+        ]]>
+      </target-structure>
+    </file>
+
+    <file path=".env.example" change="Add CopilotKit environment variables">
+      <vars-to-add>
+        <![CDATA[
+# ============================================
+# COPILOTKIT / AG-UI (DM-01+)
+# ============================================
+# URL to Agno backend AG-UI endpoint
+NEXT_PUBLIC_AGNO_URL=http://localhost:8000
+
+# Optional: CopilotKit Cloud API Key (only for cloud features)
+# NEXT_PUBLIC_COPILOTKIT_KEY=ck_...
+        ]]>
+      </vars-to-add>
+    </file>
+  </files-to-modify>
+
+  <implementation-checklist>
+    <task id="1">Run `pnpm add @copilotkit/react-core @copilotkit/react-ui @ag-ui/agno` in apps/web</task>
+    <task id="2">Verify packages added to apps/web/package.json</task>
+    <task id="3">Run `pnpm install` to update lockfile</task>
+    <task id="4">Create apps/web/src/lib/dm-constants.ts with all DM-01 constants</task>
+    <task id="5">Create apps/web/src/components/copilot/CopilotKitProvider.tsx</task>
+    <task id="6">Create apps/web/src/app/api/copilotkit/route.ts (mock endpoint)</task>
+    <task id="7">Create apps/web/src/types/copilotkit.d.ts</task>
+    <task id="8">Update apps/web/src/app/providers.tsx to include CopilotKitProvider</task>
+    <task id="9">Update .env.example with new environment variables</task>
+    <task id="10">Create unit tests in apps/web/src/components/copilot/__tests__/</task>
+    <task id="11">Create E2E tests in apps/web/tests/e2e/copilotkit-setup.spec.ts</task>
+    <task id="12">Run pnpm type-check to verify no TypeScript errors</task>
+    <task id="13">Run pnpm build to verify successful build</task>
+    <task id="14">Run pnpm test to verify unit tests pass</task>
+    <task id="15">Manually verify no console errors on page load</task>
+  </implementation-checklist>
+
+  <definition-of-done>
+    <criterion>Dependencies installed and visible in package.json</criterion>
+    <criterion>dm-constants.ts created with all DM-01 constants</criterion>
+    <criterion>CopilotKitProvider.tsx created and functional</criterion>
+    <criterion>Mock API route created for development</criterion>
+    <criterion>providers.tsx updated with CopilotKit</criterion>
+    <criterion>Type definitions created</criterion>
+    <criterion>Environment variables documented</criterion>
+    <criterion>Unit tests pass</criterion>
+    <criterion>Integration tests pass</criterion>
+    <criterion>E2E tests pass (no console errors)</criterion>
+    <criterion>Application builds without errors (pnpm build)</criterion>
+    <criterion>No TypeScript errors (pnpm type-check)</criterion>
+    <criterion>Code reviewed and approved</criterion>
+  </definition-of-done>
+
+  <notes>
+    <note type="SSR">
+      CopilotKit is designed for client-side use. The CopilotKitProvider component
+      is marked with 'use client' directive to ensure it only runs in the browser.
+      The provider should not cause SSR issues since it's already wrapped in the
+      client-side Providers component.
+    </note>
+
+    <note type="Bundle Size">
+      CopilotKit adds significant JavaScript to the bundle. After installation:
+      1. Run `pnpm build` to check bundle size
+      2. Monitor the output for any significant increases
+      3. Consider dynamic imports in DM-01.4 (chat UI) if bundle size exceeds 300KB
+    </note>
+
+    <note type="Dependencies">
+      This story establishes:
+      - CopilotKit context for useRenderToolCall (DM-01.2)
+      - Provider for chat components (DM-01.4)
+      - Provider for useCopilotReadable (DM-01.5)
+      - Constants file pattern for all DM-01 stories
+    </note>
+
+    <note type="Mock Endpoint">
+      The /api/copilotkit route is a fallback for development only. In production,
+      NEXT_PUBLIC_AGNO_URL should point to the actual Agno backend, and this
+      route will not be used. The provider automatically appends '/agui' to
+      NEXT_PUBLIC_AGNO_URL.
+    </note>
+  </notes>
+
+  <references>
+    <reference url="https://docs.copilotkit.ai">CopilotKit Documentation</reference>
+    <reference url="https://github.com/ag-ui-protocol/ag-ui">AG-UI Protocol</reference>
+    <reference path="docs/modules/bm-dm/epics/epic-dm-01-copilotkit-frontend.md">Epic DM-01 Definition</reference>
+    <reference path="docs/modules/bm-dm/epics/epic-dm-01-tech-spec.md">Tech Spec</reference>
+    <reference path="docs/architecture/dynamic-module-system.md">Dynamic Module System Architecture</reference>
+  </references>
+</story-context>
