@@ -43,6 +43,20 @@ from validation.team import create_validation_team
 from planning.team import create_planning_team
 from branding.team import create_branding_team
 
+# Import Dashboard Gateway Agent
+from gateway import create_dashboard_gateway_agent, get_agent_metadata
+
+# Import AgentOS multi-interface support
+from agentos import (
+    create_agui_interface,
+    create_a2a_interface,
+    get_interface_config,
+    get_agentos_settings,
+)
+
+# Import A2A discovery router
+from a2a.discovery import router as discovery_router
+
 # ============================================================================
 # Configuration (must be at top before usage)
 # ============================================================================
@@ -646,6 +660,137 @@ async def startup_event():
     logger.info(f"Registry contains {len(registry.list_cards())} agents/teams")
     logger.info(f"Database: {'configured' if settings.database_url else 'not configured'}")
     logger.info(f"Redis: {'configured' if settings.redis_url else 'not configured'}")
+
+    # Initialize Dashboard Gateway Agent
+    await startup_dashboard_gateway()
+
+
+# =============================================================================
+# Dashboard Gateway Agent Setup
+# =============================================================================
+
+# Global reference to the dashboard agent (created on startup)
+_dashboard_agent = None
+_dashboard_interfaces = {}
+
+
+def get_dashboard_agent():
+    """Get the Dashboard Gateway agent instance."""
+    global _dashboard_agent
+    if _dashboard_agent is None:
+        raise RuntimeError("Dashboard agent not initialized. Wait for startup.")
+    return _dashboard_agent
+
+
+async def startup_dashboard_gateway():
+    """
+    Initialize Dashboard Gateway agent and mount interfaces on startup.
+
+    This creates the agent instance and mounts both AG-UI and A2A routers
+    according to the INTERFACE_CONFIGS from agentos/config.py.
+    """
+    global _dashboard_agent, _dashboard_interfaces
+
+    agentos_settings = get_agentos_settings()
+    config = get_interface_config("dashboard_gateway")
+
+    if not config:
+        logger.warning("No interface config found for dashboard_gateway")
+        return
+
+    # Create the Dashboard Gateway agent
+    _dashboard_agent = create_dashboard_gateway_agent(
+        workspace_id="system",  # Default workspace, overridden per-request
+    )
+    logger.info("Dashboard Gateway agent created")
+
+    # Mount AG-UI interface if enabled
+    if config.agui_enabled and config.agui_path and agentos_settings.agui_enabled:
+        try:
+            agui_interface = create_agui_interface(
+                agent=_dashboard_agent,
+                path=config.agui_path,
+                timeout_seconds=config.get_agui_timeout(),
+            )
+            _dashboard_interfaces["agui"] = agui_interface
+            # Mount the router if interface has a router attribute
+            if hasattr(agui_interface, "router"):
+                app.include_router(
+                    agui_interface.router,
+                    tags=["ag-ui"],
+                )
+            logger.info(f"AG-UI interface mounted at {config.agui_path}")
+        except Exception as e:
+            logger.error(f"Failed to mount AG-UI interface: {e}")
+
+    # Mount A2A interface if enabled
+    if config.a2a_enabled and config.a2a_path and agentos_settings.a2a_enabled:
+        try:
+            a2a_interface = create_a2a_interface(
+                agent=_dashboard_agent,
+                path=config.a2a_path,
+                timeout_seconds=config.get_a2a_timeout(),
+            )
+            _dashboard_interfaces["a2a"] = a2a_interface
+            # Mount the router if interface has a router attribute
+            if hasattr(a2a_interface, "router"):
+                app.include_router(
+                    a2a_interface.router,
+                    tags=["a2a"],
+                )
+            logger.info(f"A2A interface mounted at {config.a2a_path}")
+        except Exception as e:
+            logger.error(f"Failed to mount A2A interface: {e}")
+
+
+# Mount A2A discovery endpoints (from DM-02.3)
+app.include_router(discovery_router)
+logger.info("A2A discovery endpoints mounted")
+
+
+# =============================================================================
+# Dashboard Gateway Health Endpoint
+# =============================================================================
+
+
+@app.get(
+    "/agents/dashboard/health",
+    tags=["health"],
+    summary="Dashboard Gateway Health",
+)
+async def dashboard_gateway_health():
+    """
+    Health check endpoint for the Dashboard Gateway agent.
+
+    Returns agent status, mounted interfaces, and metadata.
+    """
+    global _dashboard_agent, _dashboard_interfaces
+
+    if _dashboard_agent is None:
+        return {
+            "status": "not_initialized",
+            "agent": None,
+            "interfaces": {},
+        }
+
+    metadata = get_agent_metadata()
+
+    return {
+        "status": "healthy",
+        "agent": {
+            "name": metadata["name"],
+            "description": metadata["description"],
+            "tools": metadata["tools"],
+        },
+        "interfaces": {
+            name: {
+                "mounted": True,
+                "path": getattr(iface, "path", "unknown") if hasattr(iface, "path") else "unknown",
+            }
+            for name, iface in _dashboard_interfaces.items()
+        },
+        "widget_types": metadata["widget_types"],
+    }
 
 
 # ============================================================================

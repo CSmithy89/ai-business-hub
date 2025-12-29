@@ -1,0 +1,1200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>DM-02.4</story-id>
+    <story-title>Dashboard Gateway Agent</story-title>
+    <epic>DM-02 - Agno Multi-Interface Backend</epic>
+    <points>8</points>
+    <priority>High (core integration story)</priority>
+    <dependencies>
+      <dependency status="complete">DM-02.2 (AgentOS Multi-Interface Setup)</dependency>
+      <dependency status="complete">DM-02.3 (A2A AgentCard Discovery)</dependency>
+    </dependencies>
+    <generated>2025-12-30</generated>
+  </metadata>
+
+  <overview>
+    <summary>
+      Create the Dashboard Gateway Agent - the primary interface between the frontend CopilotKit
+      and the backend agent system. This agent handles AG-UI streaming for frontend communication
+      and A2A for orchestrating other agents.
+    </summary>
+    <deliverables>
+      <deliverable>Dashboard Gateway agent with Agno Agent class and tool definitions</deliverable>
+      <deliverable>AG-UI interface integration for CopilotKit streaming at /agui</deliverable>
+      <deliverable>A2A interface integration for agent orchestration at /a2a/dashboard</deliverable>
+      <deliverable>Interface routers mounted on existing FastAPI app in main.py</deliverable>
+      <deliverable>Gateway-specific tools: render_dashboard_widget, get_dashboard_capabilities, route_to_agent</deliverable>
+      <deliverable>Unit tests verifying agent creation and interface integration</deliverable>
+    </deliverables>
+    <consumers>
+      <consumer>CopilotKit frontend (via AG-UI at /agui)</consumer>
+      <consumer>PM agents and future module agents (via A2A at /a2a/dashboard)</consumer>
+      <consumer>Widget rendering pipeline (DM-03)</consumer>
+    </consumers>
+  </overview>
+
+  <acceptance-criteria>
+    <criterion id="AC1">Dashboard Gateway Agent created with proper tool definitions using Agno Agent class</criterion>
+    <criterion id="AC2">AG-UI interface integrated for CopilotKit streaming at /agui endpoint</criterion>
+    <criterion id="AC3">A2A interface integrated for agent orchestration at /a2a/dashboard endpoint</criterion>
+    <criterion id="AC4">Interfaces mounted on existing FastAPI app in agents/main.py</criterion>
+    <criterion id="AC5">Gateway tools implemented: render_dashboard_widget, get_dashboard_capabilities, route_to_agent</criterion>
+    <criterion id="AC6">Unit tests verify agent creation, tool functionality, and interface integration</criterion>
+  </acceptance-criteria>
+
+  <file-structure>
+    <new-files>
+      <file path="agents/gateway/__init__.py">Gateway module init with exports</file>
+      <file path="agents/gateway/agent.py">Dashboard Gateway agent definition</file>
+      <file path="agents/gateway/tools.py">Gateway tool definitions</file>
+      <file path="agents/tests/test_dm_02_4_dashboard_gateway.py">Comprehensive unit tests</file>
+    </new-files>
+    <files-to-modify>
+      <file path="agents/main.py">Mount AG-UI and A2A interface routers, add health endpoint</file>
+    </files-to-modify>
+  </file-structure>
+
+  <existing-code>
+    <file path="agents/main.py" purpose="Existing FastAPI app to modify">
+      <![CDATA[
+"""
+HYVVE AgentOS - AI Agent Runtime
+
+Production runtime for Agno agents with tenant isolation,
+JWT authentication, A2A protocol, and AG-UI streaming support.
+
+Version: 0.2.0
+Protocols: A2A v0.3.0, AG-UI v0.1.0
+"""
+
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from middleware.tenant import TenantMiddleware
+from middleware.rate_limit import init_rate_limiting, NoopLimiter
+from middleware.business_validator import validate_business_ownership
+from config import get_settings
+from pydantic import BaseModel, Field
+from typing import Optional, Any, Dict, List, Union
+import logging
+import time
+import asyncio
+import json
+import uuid
+import hmac
+import os
+
+# Import registry and A2A models
+from registry import registry, AgentCard
+
+# Import AG-UI encoder
+from ag_ui.encoder import EventEncoder, AGUIEventType
+
+# ... (truncated for brevity - see full file)
+
+# ============================================================================
+# FastAPI Application
+# ============================================================================
+
+app = FastAPI(
+    title="HYVVE AgentOS",
+    description="AI Agent Runtime with A2A protocol and AG-UI streaming",
+    version="0.2.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# ... middleware setup ...
+
+# ============================================================================
+# Initialize Agents & Registry
+# ============================================================================
+
+approval_agent = ApprovalAgent(
+    database_url=settings.database_url,
+    default_model="gpt-4o"
+)
+logger.info("ApprovalAgent initialized")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services and register agents on startup."""
+    logger.info("AgentOS starting up...")
+    logger.info(f"Version: 0.2.0")
+    logger.info(f"Protocols: A2A v0.3.0, AG-UI v0.1.0")
+
+    # Register teams in the A2A registry
+    for team_name, config in TEAM_CONFIG.items():
+        try:
+            # Create a reference team for registration
+            team = config["factory"](session_id="registry", user_id="system")
+            registry.register_team(team, override_id=team_name)
+            logger.info(f"Registered team in A2A registry: {team_name}")
+        except Exception as e:
+            logger.warning(f"Could not register team {team_name}: {e}")
+
+    logger.info(f"Registry contains {len(registry.list_cards())} agents/teams")
+    logger.info(f"Database: {'configured' if settings.database_url else 'not configured'}")
+    logger.info(f"Redis: {'configured' if settings.redis_url else 'not configured'}")
+
+# ============================================================================
+# A2A Protocol Endpoints
+# ============================================================================
+
+@app.get("/.well-known/agent-card.json")
+async def a2a_discovery():
+    """
+    A2A Discovery Endpoint.
+
+    Returns all registered agent cards for discovery.
+    Ref: docs/architecture/a2a-protocol.md
+    """
+    cards = registry.list_cards()
+    return {
+        "protocolVersion": "0.3.0",
+        "agents": [card.model_dump() for card in cards]
+    }
+
+# ... (rest of endpoints)
+      ]]>
+    </file>
+
+    <file path="agents/agentos/config.py" purpose="InterfaceConfig and INTERFACE_CONFIGS">
+      <![CDATA[
+"""
+AgentOS Configuration
+
+Environment-based configuration for AgentOS multi-interface setup.
+Uses Pydantic Settings for validation and environment variable binding.
+"""
+from functools import lru_cache
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
+
+from constants.dm_constants import DMConstants
+
+
+class InterfaceConfig(BaseModel):
+    """Configuration for an agent interface.
+
+    Defines which protocols an agent exposes and their endpoint paths.
+    Each agent can have AG-UI (for frontend communication) and/or A2A
+    (for inter-agent communication) interfaces enabled.
+
+    Attributes:
+        agent_id: Unique agent identifier
+        agui_enabled: Enable AG-UI interface for frontend communication
+        agui_path: AG-UI endpoint path (e.g., '/agui')
+        a2a_enabled: Enable A2A interface for inter-agent communication
+        a2a_path: A2A endpoint path (e.g., '/a2a/agent-name')
+        agui_timeout_seconds: AG-UI tool call timeout override
+        a2a_timeout_seconds: A2A task timeout override
+    """
+
+    agent_id: str = Field(..., description="Unique agent identifier")
+
+    # AG-UI Configuration
+    agui_enabled: bool = Field(
+        default=False,
+        description="Enable AG-UI interface for frontend communication",
+    )
+    agui_path: Optional[str] = Field(
+        default=None,
+        description="AG-UI endpoint path (e.g., '/agui')",
+    )
+
+    # A2A Configuration
+    a2a_enabled: bool = Field(
+        default=True,
+        description="Enable A2A interface for inter-agent communication",
+    )
+    a2a_path: Optional[str] = Field(
+        default=None,
+        description="A2A endpoint path (e.g., '/a2a/agent-name')",
+    )
+
+    # Timeout overrides (optional)
+    agui_timeout_seconds: Optional[int] = Field(
+        default=None,
+        description="AG-UI tool call timeout override",
+    )
+    a2a_timeout_seconds: Optional[int] = Field(
+        default=None,
+        description="A2A task timeout override",
+    )
+
+    def get_agui_timeout(self) -> int:
+        """Get AG-UI timeout with fallback to default."""
+        return self.agui_timeout_seconds or DMConstants.AGUI.TOOL_CALL_TIMEOUT_SECONDS
+
+    def get_a2a_timeout(self) -> int:
+        """Get A2A timeout with fallback to default."""
+        return self.a2a_timeout_seconds or DMConstants.A2A.TASK_TIMEOUT_SECONDS
+
+
+class AgentOSSettings(BaseSettings):
+    """AgentOS environment settings."""
+
+    # Server Configuration
+    port: int = Field(default=DMConstants.AGENTOS.DEFAULT_PORT)
+    host: str = Field(default="0.0.0.0")
+    workers: int = Field(default=DMConstants.AGENTOS.WORKER_COUNT)
+
+    # Base URL Configuration
+    base_url: str = Field(default="http://localhost:8000")
+
+    # Request Handling
+    request_timeout_seconds: int = Field(default=DMConstants.AGENTOS.REQUEST_TIMEOUT_SECONDS)
+    keep_alive_seconds: int = Field(default=DMConstants.AGENTOS.KEEP_ALIVE_SECONDS)
+    max_concurrent_tasks: int = Field(default=DMConstants.AGENTOS.MAX_CONCURRENT_TASKS)
+
+    # Interface Defaults
+    agui_enabled: bool = Field(default=True)
+    a2a_enabled: bool = Field(default=True)
+
+    # Development Mode
+    debug: bool = Field(default=False)
+
+    model_config = {
+        "env_prefix": "AGENTOS_",
+        "env_file": ".env",
+        "extra": "ignore",
+    }
+
+
+# Default interface configurations for known agents
+INTERFACE_CONFIGS: List[InterfaceConfig] = [
+    InterfaceConfig(
+        agent_id="dashboard_gateway",
+        agui_enabled=True,
+        agui_path="/agui",
+        a2a_enabled=True,
+        a2a_path="/a2a/dashboard",
+    ),
+    InterfaceConfig(
+        agent_id="navi",
+        agui_enabled=False,
+        a2a_enabled=True,
+        a2a_path="/a2a/navi",
+    ),
+    InterfaceConfig(
+        agent_id="pulse",
+        agui_enabled=False,
+        a2a_enabled=True,
+        a2a_path="/a2a/pulse",
+    ),
+    InterfaceConfig(
+        agent_id="herald",
+        agui_enabled=False,
+        a2a_enabled=True,
+        a2a_path="/a2a/herald",
+    ),
+]
+
+
+@lru_cache()
+def get_agentos_settings() -> AgentOSSettings:
+    """Get cached AgentOS settings."""
+    return AgentOSSettings()
+
+
+def get_interface_config(agent_id: str) -> Optional[InterfaceConfig]:
+    """Get interface configuration for a specific agent."""
+    for config in INTERFACE_CONFIGS:
+        if config.agent_id == agent_id:
+            return config
+    return None
+
+
+def register_interface_config(config: InterfaceConfig) -> None:
+    """Register a new interface configuration."""
+    existing = get_interface_config(config.agent_id)
+    if existing:
+        raise ValueError(f"Interface config already exists for agent: {config.agent_id}")
+    INTERFACE_CONFIGS.append(config)
+
+
+def update_interface_config(config: InterfaceConfig) -> None:
+    """Update an existing interface configuration."""
+    for i, existing in enumerate(INTERFACE_CONFIGS):
+        if existing.agent_id == config.agent_id:
+            INTERFACE_CONFIGS[i] = config
+            return
+    raise ValueError(f"No interface config found for agent: {config.agent_id}")
+      ]]>
+    </file>
+
+    <file path="agents/agentos/factory.py" purpose="Interface factory functions">
+      <![CDATA[
+"""
+Interface Factory
+
+Factory functions for creating AG-UI and A2A interfaces for agents.
+Handles interface instantiation with proper configuration and error handling.
+"""
+from typing import Dict, List, Optional, Union
+import logging
+
+from .config import (
+    INTERFACE_CONFIGS,
+    InterfaceConfig,
+    get_agentos_settings,
+)
+from constants.dm_constants import DMConstants
+
+# Handle optional Agno imports gracefully
+try:
+    from agno.agent import Agent
+    from agno.os.interfaces.agui import AGUI
+    from agno.os.interfaces.a2a import A2A
+
+    AGNO_AVAILABLE = True
+except ImportError:
+    Agent = object  # type: ignore
+    AGUI = object  # type: ignore
+    A2A = object  # type: ignore
+    AGNO_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
+
+
+class InterfaceCreationError(Exception):
+    """Raised when interface creation fails."""
+    pass
+
+
+def create_agui_interface(
+    agent: "Agent",
+    path: str,
+    timeout_seconds: Optional[int] = None,
+) -> "AGUI":
+    """
+    Create an AG-UI interface for an agent.
+
+    AG-UI interfaces enable frontend communication with agents via
+    CopilotKit's streaming protocol.
+
+    Args:
+        agent: The Agno Agent instance
+        path: URL path for the interface (e.g., '/agui')
+        timeout_seconds: Optional timeout override for tool calls
+
+    Returns:
+        Configured AGUI interface
+
+    Raises:
+        InterfaceCreationError: If interface creation fails
+        RuntimeError: If Agno packages are not installed
+    """
+    if not AGNO_AVAILABLE:
+        raise RuntimeError(
+            "Agno packages not installed. Install with: pip install agno[agui,a2a]"
+        )
+
+    timeout = timeout_seconds or DMConstants.AGUI.TOOL_CALL_TIMEOUT_SECONDS
+
+    try:
+        interface = AGUI(
+            agent=agent,
+            path=path,
+            timeout=timeout,
+        )
+        logger.info(
+            f"Created AG-UI interface for agent '{getattr(agent, 'name', 'unknown')}' "
+            f"at path '{path}'"
+        )
+        return interface
+    except Exception as e:
+        logger.error(f"Failed to create AG-UI interface: {e}")
+        raise InterfaceCreationError(f"AG-UI interface creation failed: {e}") from e
+
+
+def create_a2a_interface(
+    agent: "Agent",
+    path: str,
+    timeout_seconds: Optional[int] = None,
+    max_concurrent: Optional[int] = None,
+) -> "A2A":
+    """
+    Create an A2A interface for an agent.
+
+    A2A interfaces enable inter-agent and external agent communication
+    using the A2A protocol (JSON-RPC 2.0).
+
+    Args:
+        agent: The Agno Agent instance
+        path: URL path for the interface (e.g., '/a2a/dashboard')
+        timeout_seconds: Optional timeout override for tasks
+        max_concurrent: Optional max concurrent tasks override
+
+    Returns:
+        Configured A2A interface
+
+    Raises:
+        InterfaceCreationError: If interface creation fails
+        RuntimeError: If Agno packages are not installed
+    """
+    if not AGNO_AVAILABLE:
+        raise RuntimeError(
+            "Agno packages not installed. Install with: pip install agno[agui,a2a]"
+        )
+
+    settings = get_agentos_settings()
+    timeout = timeout_seconds or DMConstants.A2A.TASK_TIMEOUT_SECONDS
+    max_concurrent = max_concurrent or settings.max_concurrent_tasks
+
+    try:
+        interface = A2A(
+            agent=agent,
+            path=path,
+            timeout=timeout,
+            max_concurrent=max_concurrent,
+        )
+        logger.info(
+            f"Created A2A interface for agent '{getattr(agent, 'name', 'unknown')}' "
+            f"at path '{path}'"
+        )
+        return interface
+    except Exception as e:
+        logger.error(f"Failed to create A2A interface: {e}")
+        raise InterfaceCreationError(f"A2A interface creation failed: {e}") from e
+
+
+def create_interfaces(
+    agents: Dict[str, "Agent"],
+    configs: Optional[List[InterfaceConfig]] = None,
+) -> Dict[str, List[Union["AGUI", "A2A"]]]:
+    """
+    Create interfaces for multiple agents based on configuration.
+
+    Args:
+        agents: Dictionary mapping agent_id to Agent instance
+        configs: Optional list of InterfaceConfigs (defaults to INTERFACE_CONFIGS)
+
+    Returns:
+        Dictionary mapping agent_id to list of created interfaces
+    """
+    settings = get_agentos_settings()
+    configs = configs or INTERFACE_CONFIGS
+
+    result: Dict[str, List[Union["AGUI", "A2A"]]] = {}
+
+    for config in configs:
+        agent = agents.get(config.agent_id)
+        if not agent:
+            logger.warning(f"No agent found for interface config: {config.agent_id}")
+            continue
+
+        agent_interfaces: List[Union["AGUI", "A2A"]] = []
+
+        # Create AG-UI interface if enabled
+        if config.agui_enabled and config.agui_path and settings.agui_enabled:
+            try:
+                agui = create_agui_interface(
+                    agent=agent,
+                    path=config.agui_path,
+                    timeout_seconds=config.get_agui_timeout(),
+                )
+                agent_interfaces.append(agui)
+            except InterfaceCreationError as e:
+                logger.error(f"Skipping AG-UI for {config.agent_id}: {e}")
+
+        # Create A2A interface if enabled
+        if config.a2a_enabled and config.a2a_path and settings.a2a_enabled:
+            try:
+                a2a = create_a2a_interface(
+                    agent=agent,
+                    path=config.a2a_path,
+                    timeout_seconds=config.get_a2a_timeout(),
+                )
+                agent_interfaces.append(a2a)
+            except InterfaceCreationError as e:
+                logger.error(f"Skipping A2A for {config.agent_id}: {e}")
+
+        if agent_interfaces:
+            result[config.agent_id] = agent_interfaces
+            logger.info(
+                f"Created {len(agent_interfaces)} interface(s) for agent '{config.agent_id}'"
+            )
+
+    return result
+
+
+def get_all_interface_paths() -> Dict[str, Dict[str, Optional[str]]]:
+    """Get all configured interface paths."""
+    return {
+        config.agent_id: {
+            "agui": config.agui_path if config.agui_enabled else None,
+            "a2a": config.a2a_path if config.a2a_enabled else None,
+        }
+        for config in INTERFACE_CONFIGS
+    }
+      ]]>
+    </file>
+
+    <file path="agents/agentos/__init__.py" purpose="Module exports">
+      <![CDATA[
+"""
+AgentOS Configuration Module
+
+Provides multi-interface configuration for AgentOS, enabling agents
+to be accessed via AG-UI and A2A protocols simultaneously.
+"""
+from .config import (
+    AgentOSSettings,
+    InterfaceConfig,
+    INTERFACE_CONFIGS,
+    get_agentos_settings,
+    get_interface_config,
+    register_interface_config,
+    update_interface_config,
+)
+from .factory import (
+    InterfaceCreationError,
+    create_agui_interface,
+    create_a2a_interface,
+    create_interfaces,
+    get_all_interface_paths,
+    validate_interface_config,
+    validate_all_interface_configs,
+)
+from .health import (
+    InterfaceHealthStatus,
+    get_interfaces_health,
+    get_interface_health_summary,
+    check_interface_enabled,
+)
+
+__all__ = [
+    # Settings
+    "AgentOSSettings",
+    "InterfaceConfig",
+    "INTERFACE_CONFIGS",
+    "get_agentos_settings",
+    "get_interface_config",
+    "register_interface_config",
+    "update_interface_config",
+    # Factory
+    "InterfaceCreationError",
+    "create_agui_interface",
+    "create_a2a_interface",
+    "create_interfaces",
+    "get_all_interface_paths",
+    "validate_interface_config",
+    "validate_all_interface_configs",
+    # Health
+    "InterfaceHealthStatus",
+    "get_interfaces_health",
+    "get_interface_health_summary",
+    "check_interface_enabled",
+]
+      ]]>
+    </file>
+
+    <file path="agents/a2a/discovery.py" purpose="Discovery router to mount">
+      <![CDATA[
+"""
+A2A Discovery Endpoints
+
+Implements the A2A discovery endpoints for agent discovery:
+- /.well-known/agent.json - Global discovery (all agents)
+- /.well-known/agents - Multi-agent listing
+- /a2a/{agent_id}/.well-known/agent.json - Individual agent discovery
+"""
+import logging
+from typing import Any, Dict
+
+from fastapi import APIRouter, HTTPException
+
+from agentos.config import INTERFACE_CONFIGS, get_agentos_settings
+from constants.dm_constants import DMConstants
+
+from .agent_card import (
+    build_agent_card,
+    build_discovery_response,
+    build_multi_agent_response,
+)
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(tags=["a2a-discovery"])
+
+
+def _get_a2a_agents() -> Dict[str, str]:
+    """Get all agents with A2A interfaces enabled."""
+    return {
+        config.agent_id: config.a2a_path
+        for config in INTERFACE_CONFIGS
+        if config.a2a_enabled and config.a2a_path
+    }
+
+
+@router.get(
+    "/.well-known/agent.json",
+    summary="A2A Global Discovery",
+    description="Returns all registered agent cards for A2A discovery.",
+)
+async def global_discovery() -> Dict[str, Any]:
+    """A2A Global Discovery Endpoint."""
+    settings = get_agentos_settings()
+    agents = _get_a2a_agents()
+
+    if not agents:
+        logger.warning("No A2A agents configured for discovery")
+        return {
+            "protocolVersion": (
+                DMConstants.A2A.PROTOCOL_VERSION if settings.a2a_enabled else "disabled"
+            ),
+            "agents": [],
+            "message": "No A2A agents configured",
+        }
+
+    return build_discovery_response(
+        agents=agents,
+        base_url=settings.base_url,
+    )
+
+
+@router.get(
+    "/.well-known/agents",
+    summary="A2A Multi-Agent Listing",
+)
+async def multi_agent_listing() -> Dict[str, Any]:
+    """A2A Multi-Agent Listing Endpoint."""
+    settings = get_agentos_settings()
+    agents = _get_a2a_agents()
+
+    return build_multi_agent_response(
+        agents=agents,
+        base_url=settings.base_url,
+    )
+
+
+@router.get(
+    "/a2a/{agent_id}/.well-known/agent.json",
+    summary="Individual Agent Discovery",
+)
+async def agent_discovery(agent_id: str) -> Dict[str, Any]:
+    """Individual Agent Discovery Endpoint."""
+    settings = get_agentos_settings()
+    agents = _get_a2a_agents()
+
+    if agent_id not in agents:
+        all_agents = {c.agent_id for c in INTERFACE_CONFIGS}
+        if agent_id in all_agents:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Agent '{agent_id}' exists but A2A interface is not enabled",
+            )
+        raise HTTPException(
+            status_code=404,
+            detail=f"Agent '{agent_id}' not found. Available agents: {list(agents.keys())}",
+        )
+
+    try:
+        card = build_agent_card(
+            agent_id=agent_id,
+            base_url=settings.base_url,
+            path=agents[agent_id],
+        )
+        return card.model_dump(by_alias=True)
+    except ValueError as e:
+        logger.error(f"Failed to build AgentCard for {agent_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate AgentCard: {str(e)}",
+        )
+      ]]>
+    </file>
+
+    <file path="agents/constants/dm_constants.py" purpose="DMConstants">
+      <![CDATA[
+"""
+Dynamic Module System Constants
+
+All magic numbers for DM-02+ epics must be defined here.
+Do NOT hardcode values in agent code.
+"""
+
+
+class DMConstants:
+    """Dynamic Module System constants - no magic numbers in code."""
+
+    # AgentOS Configuration
+    class AGENTOS:
+        DEFAULT_PORT = 8000
+        WORKER_COUNT = 4
+        REQUEST_TIMEOUT_SECONDS = 30
+        KEEP_ALIVE_SECONDS = 65
+        MAX_CONCURRENT_TASKS = 100
+
+    # A2A Protocol
+    class A2A:
+        PROTOCOL_VERSION = "0.3.0"
+        TASK_TIMEOUT_SECONDS = 300
+        MAX_TASK_QUEUE_SIZE = 1000
+        AGENT_DISCOVERY_CACHE_TTL_SECONDS = 300
+        HEARTBEAT_INTERVAL_SECONDS = 30
+        MAX_MESSAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+    # AG-UI Protocol
+    class AGUI:
+        PROTOCOL_VERSION = "0.1.0"
+        STREAM_CHUNK_SIZE_BYTES = 4096
+        MAX_STREAM_DURATION_SECONDS = 600
+        TOOL_CALL_TIMEOUT_SECONDS = 60
+        MAX_TOOL_CALLS_PER_REQUEST = 50
+
+    # CCR Configuration (for DM-02.6+)
+    class CCR:
+        DEFAULT_PORT = 3456
+        HEALTH_CHECK_INTERVAL_SECONDS = 30
+        PROVIDER_TIMEOUT_SECONDS = 60
+        MAX_RETRIES = 3
+        RETRY_BACKOFF_MULTIPLIER = 2.0
+        QUOTA_WARNING_THRESHOLD = 0.8
+        QUOTA_CRITICAL_THRESHOLD = 0.95
+
+    # Dashboard Agent (for DM-02.4+)
+    class DASHBOARD:
+        MAX_WIDGETS_PER_REQUEST = 12
+        WIDGET_DATA_TTL_SECONDS = 60
+        CACHE_SIZE_MB = 100
+        CONCURRENT_AGENT_CALLS = 5
+
+    # Performance Targets
+    class PERFORMANCE:
+        P50_RESPONSE_TARGET_MS = 200
+        P95_RESPONSE_TARGET_MS = 500
+        P99_RESPONSE_TARGET_MS = 1000
+        MAX_MEMORY_MB = 512
+      ]]>
+    </file>
+
+    <file path="agents/a2a/agent_card.py" purpose="AgentCard builder with AGENT_METADATA">
+      <![CDATA[
+"""
+A2A AgentCard Generation
+
+Implements AgentCard models and builders following Google A2A protocol
+specification. AgentCards describe agent capabilities for discovery.
+"""
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
+from constants.dm_constants import DMConstants
+
+
+class Skill(BaseModel):
+    """A2A Skill definition."""
+    id: str = Field(..., description="Unique skill identifier")
+    name: str = Field(..., description="Human-readable skill name")
+    description: str = Field(..., description="Skill description")
+    tags: Optional[List[str]] = Field(default=None, description="Keywords")
+    parameters: Optional[Dict[str, Any]] = Field(default=None)
+    examples: Optional[List[str]] = Field(default=None)
+
+
+class Capabilities(BaseModel):
+    """A2A Agent capabilities."""
+    streaming: bool = Field(default=True)
+    pushNotifications: bool = Field(default=False)
+    stateTransfer: bool = Field(default=False)
+
+
+class AgentCard(BaseModel):
+    """A2A AgentCard following JSON-LD spec."""
+    context: str = Field(alias="@context", default="https://schema.org")
+    type: str = Field(alias="@type", default="AIAgent")
+    name: str = Field(...)
+    description: str = Field(...)
+    url: str = Field(...)
+    version: str = Field(default=DMConstants.A2A.PROTOCOL_VERSION)
+    capabilities: Capabilities = Field(default_factory=Capabilities)
+    skills: List[Skill] = Field(default_factory=list)
+    defaultInputModes: List[str] = Field(default=["text"])
+    defaultOutputModes: List[str] = Field(default=["text", "tool_calls"])
+
+    model_config = {"populate_by_name": True}
+
+
+# Agent metadata for card generation
+AGENT_METADATA: Dict[str, Dict[str, Any]] = {
+    "dashboard_gateway": {
+        "name": "dashboard_gateway",
+        "description": (
+            "Dashboard Gateway agent for HYVVE - orchestrates dashboard widgets "
+            "by coordinating with specialist agents"
+        ),
+        "skills": [
+            Skill(
+                id="render_dashboard_widget",
+                name="Render Dashboard Widget",
+                description=(
+                    "Render a widget on the user's dashboard. "
+                    "Supports ProjectStatus, TaskList, Metrics, and Alert widget types."
+                ),
+                tags=["dashboard", "widget", "ui"],
+            ),
+            Skill(
+                id="get_dashboard_capabilities",
+                name="Get Dashboard Capabilities",
+                description="Get available dashboard capabilities.",
+                tags=["dashboard", "capabilities"],
+            ),
+            Skill(
+                id="route_to_agent",
+                name="Route to Agent",
+                description="Route a request to a specialist agent via A2A protocol.",
+                tags=["routing", "a2a", "orchestration"],
+            ),
+        ],
+        "capabilities": Capabilities(
+            streaming=True,
+            pushNotifications=False,
+            stateTransfer=False,
+        ),
+        "defaultOutputModes": ["text", "tool_calls"],
+    },
+    # ... other agents (navi, pulse, herald)
+}
+
+
+def build_agent_card(
+    agent_id: str,
+    base_url: str,
+    path: str,
+    custom_skills: Optional[List[Skill]] = None,
+    custom_description: Optional[str] = None,
+) -> AgentCard:
+    """Build an A2A AgentCard for an agent."""
+    metadata = AGENT_METADATA.get(agent_id)
+    if not metadata:
+        raise ValueError(
+            f"Unknown agent_id: {agent_id}. Known agents: {list(AGENT_METADATA.keys())}"
+        )
+
+    url = f"{base_url.rstrip('/')}{path}"
+
+    return AgentCard(
+        name=metadata["name"],
+        description=custom_description or metadata["description"],
+        url=url,
+        skills=custom_skills or metadata.get("skills", []),
+        capabilities=metadata.get("capabilities", Capabilities()),
+        defaultOutputModes=metadata.get("defaultOutputModes", ["text", "tool_calls"]),
+        created=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    )
+
+
+def build_discovery_response(
+    agents: Dict[str, str],
+    base_url: str,
+) -> Dict[str, Any]:
+    """Build A2A global discovery response."""
+    cards = []
+    for agent_id, path in agents.items():
+        try:
+            card = build_agent_card(agent_id, base_url, path)
+            cards.append(card.model_dump(by_alias=True))
+        except ValueError:
+            continue
+
+    return {
+        "protocolVersion": DMConstants.A2A.PROTOCOL_VERSION,
+        "agents": cards,
+        "discoveredAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+      ]]>
+    </file>
+  </existing-code>
+
+  <agno-patterns>
+    <pattern name="Creating Agent with Tools">
+      <description>
+        Basic pattern for creating an Agno Agent with tools. Tools can be
+        functions decorated with @tool or plain functions passed to the
+        tools parameter.
+      </description>
+      <code language="python">
+        <![CDATA[
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.tools import tool
+
+
+@tool
+def my_tool(param: str) -> str:
+    """Tool description used by the agent.
+
+    Args:
+        param: Description of the parameter
+
+    Returns:
+        Description of the return value
+    """
+    return f"Result for {param}"
+
+
+agent = Agent(
+    name="my_agent",
+    role="Agent Role",
+    description="Agent description for discovery",
+    model=Claude(id="claude-sonnet-4-20250514"),
+    instructions=["Instruction 1", "Instruction 2"],
+    tools=[my_tool],
+    add_datetime_to_instructions=True,
+    markdown=True,
+    show_tool_calls=True,
+)
+        ]]>
+      </code>
+    </pattern>
+
+    <pattern name="Tool Decorator Pattern">
+      <description>
+        The @tool decorator from agno.tools marks a function as a tool
+        that can be called by the agent. The function docstring is used
+        as the tool description.
+      </description>
+      <code language="python">
+        <![CDATA[
+from typing import Optional, Dict, Any
+from agno.tools import tool
+
+
+@tool
+def render_dashboard_widget(
+    widget_type: str,
+    data: Dict[str, Any],
+    title: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Render a widget on the user's dashboard.
+
+    This tool call is intercepted by CopilotKit's useRenderToolCall
+    on the frontend and rendered as a React component.
+
+    Args:
+        widget_type: Widget type identifier (ProjectStatus, TaskList, etc.)
+        data: Widget-specific data payload
+        title: Optional widget title override
+
+    Returns:
+        Widget specification for frontend rendering
+    """
+    return {
+        "type": widget_type,
+        "data": data,
+        "title": title,
+        "rendered": True,
+    }
+        ]]>
+      </code>
+    </pattern>
+
+    <pattern name="Tool with Stop After Call">
+      <description>
+        Use stop_after_tool_call=True when the tool result should be
+        returned immediately without further processing.
+      </description>
+      <code language="python">
+        <![CDATA[
+from agno.tools import tool
+
+
+@tool(stop_after_tool_call=True)
+def get_weather(city: str) -> str:
+    """Get the weather for a city."""
+    return f"The weather in {city} is sunny."
+        ]]>
+      </code>
+    </pattern>
+
+    <pattern name="Agent with Model Selection">
+      <description>
+        Agno supports multiple model providers. Use the appropriate
+        model class for your provider.
+      </description>
+      <code language="python">
+        <![CDATA[
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.models.openai import OpenAIChat
+
+
+# Using Claude
+agent_claude = Agent(
+    model=Claude(id="claude-sonnet-4-20250514"),
+    # ...
+)
+
+# Using OpenAI
+agent_openai = Agent(
+    model=OpenAIChat(id="gpt-4o"),
+    # ...
+)
+        ]]>
+      </code>
+    </pattern>
+  </agno-patterns>
+
+  <implementation-reference>
+    <task id="1" points="2" title="Create Gateway Tools Module">
+      <file>agents/gateway/tools.py</file>
+      <description>
+        Define the tools that the Dashboard Gateway agent will use.
+        These tools follow the Agno @tool decorator pattern.
+      </description>
+      <tools>
+        <tool name="render_dashboard_widget">
+          Render a widget on the user's dashboard. Tool call is intercepted
+          by CopilotKit's useRenderToolCall on the frontend.
+        </tool>
+        <tool name="get_dashboard_capabilities">
+          Get available dashboard capabilities including widget types,
+          max widgets per request, features, and available slots.
+        </tool>
+        <tool name="route_to_agent">
+          Route a request to a specialist agent (navi, pulse, herald)
+          via A2A protocol for backend orchestration.
+        </tool>
+      </tools>
+      <widget-types>
+        <type>ProjectStatus</type>
+        <type>TaskList</type>
+        <type>Metrics</type>
+        <type>Alert</type>
+        <type>KanbanBoard</type>
+        <type>GanttChart</type>
+        <type>BurndownChart</type>
+        <type>TeamActivity</type>
+      </widget-types>
+    </task>
+
+    <task id="2" points="3" title="Create Dashboard Gateway Agent">
+      <file>agents/gateway/agent.py</file>
+      <description>
+        Create the Dashboard Gateway agent using Agno's Agent class.
+        Include DASHBOARD_INSTRUCTIONS with widget types and agent routing info.
+      </description>
+      <functions>
+        <function name="create_dashboard_gateway_agent">
+          Factory function that creates and configures the agent with
+          workspace_id, model_id, and user_id parameters.
+        </function>
+        <function name="get_agent_metadata">
+          Returns metadata about the agent for registration, discovery,
+          and health checks.
+        </function>
+      </functions>
+    </task>
+
+    <task id="3" points="0.5" title="Create Gateway Module Init">
+      <file>agents/gateway/__init__.py</file>
+      <description>
+        Create the gateway module initialization with exports for
+        all agent functions, tools, and constants.
+      </description>
+    </task>
+
+    <task id="4" points="1.5" title="Mount Interfaces on FastAPI App">
+      <file>agents/main.py</file>
+      <description>
+        Update agents/main.py to mount the AG-UI and A2A interface routers.
+        Add startup event to initialize Dashboard Gateway agent.
+      </description>
+      <modifications>
+        <add>Import gateway module and agentos interfaces</add>
+        <add>Global _dashboard_agent and _dashboard_interfaces references</add>
+        <add>startup_dashboard_gateway() event handler</add>
+        <add>Mount A2A discovery router</add>
+        <add>/agents/dashboard/health endpoint</add>
+      </modifications>
+    </task>
+
+    <task id="5" points="1" title="Create Unit Tests">
+      <file>agents/tests/test_dm_02_4_dashboard_gateway.py</file>
+      <description>
+        Create comprehensive tests for the Dashboard Gateway agent
+        and interface integration.
+      </description>
+      <test-classes>
+        <class name="TestGatewayTools">Test tool functions</class>
+        <class name="TestWidgetTypes">Test widget type constants</class>
+        <class name="TestDashboardGatewayAgent">Test agent creation</class>
+        <class name="TestAgentInstructions">Test instructions content</class>
+        <class name="TestModuleExports">Test module exports</class>
+        <class name="TestInterfaceIntegration">Test interface configs</class>
+        <class name="TestDMConstantsUsage">Test DMConstants usage</class>
+      </test-classes>
+    </task>
+  </implementation-reference>
+
+  <technical-notes>
+    <note title="Tool Call Serialization">
+      When the Dashboard Gateway calls render_dashboard_widget, the tool call
+      is serialized as part of the AG-UI stream. CopilotKit's useRenderToolCall
+      hook intercepts these tool calls on the frontend and renders the
+      corresponding React component from the widget registry.
+    </note>
+
+    <note title="Agent Routing via A2A">
+      The route_to_agent tool expresses routing intent for A2A communication
+      with specialist agents (Navi, Pulse, Herald). Actual A2A communication
+      will be implemented in DM-03 (Dashboard Agent Integration).
+    </note>
+
+    <note title="Interface Mounting Strategy">
+      Interfaces are mounted on the existing FastAPI app rather than using
+      a separate AgentOS process. This maintains backward compatibility with
+      existing REST endpoints and allows using existing middleware.
+    </note>
+
+    <note title="DMConstants Usage">
+      All configuration values MUST reference DMConstants:
+      - DMConstants.DASHBOARD.MAX_WIDGETS_PER_REQUEST
+      - DMConstants.DASHBOARD.WIDGET_DATA_TTL_SECONDS
+      - DMConstants.AGUI.TOOL_CALL_TIMEOUT_SECONDS
+      - DMConstants.A2A.TASK_TIMEOUT_SECONDS
+    </note>
+  </technical-notes>
+
+  <testing-requirements>
+    <requirement>
+      All tool functions must be tested with valid and invalid inputs
+    </requirement>
+    <requirement>
+      Agent creation must be tested with various parameter combinations
+    </requirement>
+    <requirement>
+      Interface config existence must be verified for dashboard_gateway
+    </requirement>
+    <requirement>
+      Module exports must be verified for completeness
+    </requirement>
+    <requirement>
+      DMConstants usage must be verified (no magic numbers)
+    </requirement>
+    <requirement>
+      Minimum 29 test cases across 7 test classes
+    </requirement>
+  </testing-requirements>
+
+  <definition-of-done>
+    <item>agents/gateway/__init__.py created with exports</item>
+    <item>agents/gateway/tools.py created with WIDGET_TYPES, render_dashboard_widget, get_dashboard_capabilities, route_to_agent, get_all_tools</item>
+    <item>agents/gateway/agent.py created with DASHBOARD_INSTRUCTIONS, create_dashboard_gateway_agent, get_agent_metadata</item>
+    <item>agents/main.py updated with Dashboard Gateway initialization, AG-UI at /agui, A2A at /a2a/dashboard, discovery router, health endpoint</item>
+    <item>Unit tests pass (pytest agents/tests/test_dm_02_4_dashboard_gateway.py)</item>
+    <item>All configuration values use DMConstants</item>
+    <item>Agent accessible via both AG-UI and A2A interfaces</item>
+    <item>Tool calls properly structured for CopilotKit interception</item>
+  </definition-of-done>
+</story-context>
