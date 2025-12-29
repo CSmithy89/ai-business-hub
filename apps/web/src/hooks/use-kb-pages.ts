@@ -151,8 +151,8 @@ async function fetchKBPages(params: {
 }): Promise<KBPageListResponse> {
   const { workspaceId, token, flat = true } = params
 
-  const url = new URL(`${getBaseUrl()}/api/kb/pages`)
-  url.searchParams.set('flat', String(flat))
+  // Use relative URL for Next.js proxy - don't use new URL() for relative paths
+  const url = `/api/kb/pages?flat=${flat}`
 
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -603,12 +603,15 @@ async function searchKBPages(params: {
 }): Promise<KBSearchResponse> {
   const { query, workspaceId, token, limit = 20, offset = 0 } = params
 
-  const url = new URL(`${getBaseUrl()}/api/kb/search`)
-  url.searchParams.set('q', query)
-  url.searchParams.set('limit', String(limit))
-  url.searchParams.set('offset', String(offset))
+  // Use relative URL for Next.js proxy - don't use new URL() for relative paths
+  const searchParams = new URLSearchParams({
+    q: query,
+    limit: String(limit),
+    offset: String(offset),
+  })
+  const url = `/api/kb/search?${searchParams.toString()}`
 
-  const response = await fetch(url.toString(), {
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -669,10 +672,10 @@ async function fetchRecentPages(params: {
 }): Promise<{ data: RecentPage[] }> {
   const { workspaceId, token, limit = 10 } = params
 
-  const url = new URL(`${getBaseUrl()}/api/kb/pages/me/recent`)
-  url.searchParams.set('limit', String(limit))
+  // Use relative URL for Next.js proxy - don't use new URL() for relative paths
+  const url = `/api/kb/pages/me/recent?limit=${limit}`
 
-  const response = await fetch(url.toString(), {
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

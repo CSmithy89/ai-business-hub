@@ -31,9 +31,10 @@ export async function GET(request: NextRequest) {
       backendUrl.searchParams.set(key, value);
     });
 
-    // Add workspaceId if not provided
-    if (!backendUrl.searchParams.has('workspaceId') && session.session.activeWorkspaceId) {
-      backendUrl.searchParams.set('workspaceId', session.session.activeWorkspaceId);
+    // Add workspaceId if not provided (use optional chaining for safety)
+    const activeWorkspaceId = session.session?.activeWorkspaceId;
+    if (!backendUrl.searchParams.has('workspaceId') && activeWorkspaceId) {
+      backendUrl.searchParams.set('workspaceId', activeWorkspaceId);
     }
 
     try {
@@ -61,9 +62,12 @@ export async function GET(request: NextRequest) {
 
       console.warn(`[PM Tasks API] Backend returned ${response.status}`);
       const errorBody = await response.text();
-      console.warn(`[PM Tasks API] Error body: ${errorBody}`);
+      // Only log error details in development to avoid information leakage
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[PM Tasks API] Error body: ${errorBody}`);
+      }
       return NextResponse.json(
-        { error: 'Failed to fetch tasks', details: errorBody },
+        { error: 'Failed to fetch tasks' },
         { status: response.status }
       );
     } catch (backendError) {
@@ -111,8 +115,8 @@ export async function POST(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const backendUrl = new URL(`${NESTJS_API_URL}/pm/tasks`);
 
-    // Add workspaceId to query
-    const workspaceId = searchParams.get('workspaceId') || session.session.activeWorkspaceId;
+    // Add workspaceId to query (use optional chaining for safety)
+    const workspaceId = searchParams.get('workspaceId') || session.session?.activeWorkspaceId;
     if (workspaceId) {
       backendUrl.searchParams.set('workspaceId', workspaceId);
     }

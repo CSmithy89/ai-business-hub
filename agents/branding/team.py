@@ -280,12 +280,12 @@ def create_branding_team(
     )
 
     # Create all agents with shared storage
-    bella = create_bella_agent(model=model, db=db)
-    sage = create_sage_agent(model=model, db=db)
-    vox = create_vox_agent(model=model, db=db)
-    iris = create_iris_agent(model=model, db=db)
-    artisan = create_artisan_agent(model=model, db=db)
-    audit = create_audit_agent(model=model, db=db)
+    bella = create_bella_agent(model=model, db=storage)
+    sage = create_sage_agent(model=model, db=storage)
+    vox = create_vox_agent(model=model, db=storage)
+    iris = create_iris_agent(model=model, db=storage)
+    artisan = create_artisan_agent(model=model, db=storage)
+    audit = create_audit_agent(model=model, db=storage)
 
     # Build business context instructions
     context_instructions = []
@@ -318,7 +318,7 @@ def create_branding_team(
         session_id=session_id,
         user_id=user_id,
         # Storage for team-level persistence
-        db=db,
+        db=storage,
         # Debug settings
         debug_mode=debug_mode,
         show_members_responses=debug_mode,
