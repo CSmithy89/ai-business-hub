@@ -312,11 +312,17 @@ def build_agent_card(
     # Build URL ensuring no double slashes
     url = f"{base_url.rstrip('/')}{path}"
 
+    # Use explicit None checks to allow empty lists/strings as valid overrides
+    skills = custom_skills if custom_skills is not None else metadata.get("skills", [])
+    description = (
+        custom_description if custom_description is not None else metadata["description"]
+    )
+
     return AgentCard(
         name=metadata["name"],
-        description=custom_description or metadata["description"],
+        description=description,
         url=url,
-        skills=custom_skills or metadata.get("skills", []),
+        skills=skills,
         capabilities=metadata.get("capabilities", Capabilities()),
         defaultOutputModes=metadata.get("defaultOutputModes", ["text", "tool_calls"]),
         created=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),

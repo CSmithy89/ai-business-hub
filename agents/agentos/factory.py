@@ -171,13 +171,16 @@ def create_interfaces(
         >>> # }
     """
     settings = get_agentos_settings()
-    configs = configs or INTERFACE_CONFIGS
+    # Use explicit None check to allow passing empty list intentionally
+    if configs is None:
+        configs = INTERFACE_CONFIGS
 
     result: Dict[str, List[Union["AGUI", "A2A"]]] = {}
 
     for config in configs:
         agent = agents.get(config.agent_id)
-        if not agent:
+        # Use explicit None check to handle falsy-but-valid agent objects
+        if agent is None:
             logger.warning(f"No agent found for interface config: {config.agent_id}")
             continue
 

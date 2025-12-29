@@ -30,6 +30,37 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+class CCRRoutingMetadata:
+    """Metadata about CCR routing decisions."""
+
+    def __init__(
+        self,
+        source: str,
+        task_type: Optional[str] = None,
+        agent_id: Optional[str] = None,
+        model_requested: str = "auto",
+        model_used: Optional[str] = None,
+        fallback_reason: Optional[str] = None,
+    ):
+        self.source = source  # "ccr" or "byoai"
+        self.task_type = task_type
+        self.agent_id = agent_id
+        self.model_requested = model_requested
+        self.model_used = model_used
+        self.fallback_reason = fallback_reason
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize to dictionary for logging and response headers."""
+        return {
+            "routing_source": self.source,
+            "task_type": self.task_type,
+            "agent_id": self.agent_id,
+            "model_requested": self.model_requested,
+            "model_used": self.model_used,
+            "fallback_reason": self.fallback_reason,
+        }
+
+
 class CCRModel(OpenAIChat):  # type: ignore[misc]
     """
     Model that routes through CCR.
@@ -78,6 +109,8 @@ class CCRModel(OpenAIChat):  # type: ignore[misc]
         self._ccr_url = settings.ccr_url
         self._auto_classify = auto_classify
         self._last_message: Optional[str] = None
+        # Store routing metadata for transparency
+        self._routing_metadata: Optional[CCRRoutingMetadata] = None
 
         logger.debug(
             "CCRModel initialized",
@@ -89,6 +122,18 @@ class CCRModel(OpenAIChat):  # type: ignore[misc]
                 "ccr_url": settings.ccr_url,
             },
         )
+
+    @property
+    def routing_metadata(self) -> Optional[CCRRoutingMetadata]:
+        """Get routing metadata for transparency."""
+        if self._routing_metadata is None:
+            self._routing_metadata = CCRRoutingMetadata(
+                source="ccr",
+                task_type=self.task_type,
+                agent_id=self._agent_id,
+                model_requested=self.id,
+            )
+        return self._routing_metadata
 
     def classify_message(self, message: str) -> str:
         """
@@ -168,15 +213,13 @@ def get_model_for_agent(
         task_type: Task type hint for routing
 
     Returns:
-        Configured model instance
+        Configured model instance with routing_metadata attribute
 
     Raises:
         RuntimeError: If neither CCR nor BYOAI available
     """
-    settings = get_settings()
-
-    # Determine if we should use CCR
-    use_ccr = _should_use_ccr(user_config)
+    # Determine if we should use CCR and get fallback reason if not
+    use_ccr, fallback_reason = _should_use_ccr_with_reason(user_config)
 
     if use_ccr:
         logger.info(
@@ -184,6 +227,7 @@ def get_model_for_agent(
             extra={
                 "agent_id": agent_id,
                 "task_type": task_type,
+                "routing_source": "ccr",
             },
         )
         return CCRModel(
@@ -192,12 +236,25 @@ def get_model_for_agent(
             agent_id=agent_id,
         )
     else:
-        # Fall back to BYOAI
+        # Fall back to BYOAI with metadata
+        model = _create_byoai_model(user_config)
+        # Attach routing metadata for transparency
+        model._routing_metadata = CCRRoutingMetadata(
+            source="byoai",
+            task_type=task_type,
+            agent_id=agent_id,
+            model_requested=getattr(model, "id", "unknown"),
+            fallback_reason=fallback_reason,
+        )
         logger.info(
             "Using BYOAI model for agent",
-            extra={"agent_id": agent_id},
+            extra={
+                "agent_id": agent_id,
+                "routing_source": "byoai",
+                "fallback_reason": fallback_reason,
+            },
         )
-        return _create_byoai_model(user_config)
+        return model
 
 
 def _should_use_ccr(user_config: Optional[Dict[str, Any]] = None) -> bool:
@@ -210,26 +267,47 @@ def _should_use_ccr(user_config: Optional[Dict[str, Any]] = None) -> bool:
     Returns:
         True if CCR should be used
     """
+    use_ccr, _ = _should_use_ccr_with_reason(user_config)
+    return use_ccr
+
+
+def _should_use_ccr_with_reason(
+    user_config: Optional[Dict[str, Any]] = None,
+) -> tuple[bool, Optional[str]]:
+    """
+    Determine if CCR should be used and provide reason if not.
+
+    Args:
+        user_config: User's BYOAI configuration
+
+    Returns:
+        Tuple of (should_use_ccr, fallback_reason)
+    """
     settings = get_settings()
 
     # CCR must be enabled
     if not settings.ccr_enabled:
-        return False
+        return False, "ccr_disabled"
 
     # Check CCR health (sync check of cached state)
     health_checker = _get_health_checker_sync()
     if health_checker and not health_checker.is_healthy:
         logger.warning("CCR unhealthy, falling back to BYOAI")
-        return False
+        return False, "ccr_unhealthy"
+
+    # Check if circuit breaker is open
+    if health_checker and health_checker.circuit_is_open:
+        logger.warning("CCR circuit breaker open, falling back to BYOAI")
+        return False, "circuit_breaker_open"
 
     # Check user preference
     if user_config:
         # If user explicitly wants to use their own keys, don't use CCR
         use_platform = user_config.get("use_platform_subscription", True)
         if not use_platform:
-            return False
+            return False, "user_preference_byoai"
 
-    return True
+    return True, None
 
 
 def _get_health_checker_sync() -> Any:

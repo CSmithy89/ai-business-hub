@@ -66,6 +66,10 @@ def create_limiter(redis_url: str | None = None, default_rate: str = "10/minute"
     Args:
         redis_url: Redis connection string (optional)
         default_rate: Default rate limit string (e.g., '10/minute')
+
+    Returns:
+        Limiter configured with rate limit headers (X-RateLimit-Limit,
+        X-RateLimit-Remaining, X-RateLimit-Reset) enabled.
     """
     storage_uri = redis_url or "memory://"
 
@@ -73,7 +77,10 @@ def create_limiter(redis_url: str | None = None, default_rate: str = "10/minute"
         logger.warning("Rate limiter using in-memory storage (redis_url not set)")
 
     limiter = Limiter(
-        key_func=_rate_limit_key, storage_uri=storage_uri, default_limits=[default_rate]
+        key_func=_rate_limit_key,
+        storage_uri=storage_uri,
+        default_limits=[default_rate],
+        headers_enabled=True,  # Enable X-RateLimit-* headers in responses
     )
     return limiter
 

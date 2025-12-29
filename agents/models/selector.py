@@ -5,6 +5,7 @@ Provides intelligent model selection based on agent type, task type,
 and user configuration. Implements hybrid CCR/BYOAI mode.
 """
 
+import copy
 import logging
 from typing import Any, Dict, Optional
 
@@ -148,6 +149,8 @@ def get_all_agent_preferences() -> Dict[str, Dict[str, str]]:
     Get all agent model preferences.
 
     Returns:
-        Dictionary of agent_id -> preferences
+        Deep copy of dictionary mapping agent_id -> preferences,
+        safe to modify without affecting original.
     """
-    return AGENT_MODEL_PREFERENCES.copy()
+    # Use deepcopy to prevent callers from modifying nested dictionaries
+    return copy.deepcopy(AGENT_MODEL_PREFERENCES)

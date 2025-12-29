@@ -15,7 +15,7 @@ Exit codes:
 """
 
 import sys
-from typing import Tuple, List
+from typing import Callable, Tuple, List
 
 
 def verify_agno_core() -> Tuple[bool, str]:
@@ -98,11 +98,16 @@ def verify_version_compatibility() -> Tuple[bool, str]:
         if version != 'unknown':
             parts = version.split('.')
             if len(parts) >= 2:
-                major, minor = int(parts[0]), int(parts[1])
-                if major >= 0 and minor >= 3:
-                    return True, f"Agno version {version} meets minimum requirement (>=0.3.0)"
-                else:
-                    return False, f"Agno version {version} below minimum (>=0.3.0)"
+                try:
+                    major, minor = int(parts[0]), int(parts[1])
+                    # Use tuple comparison for correct version ordering
+                    if (major, minor) >= (0, 3):
+                        return True, f"Agno version {version} meets minimum requirement (>=0.3.0)"
+                    else:
+                        return False, f"Agno version {version} below minimum (>=0.3.0)"
+                except ValueError:
+                    # Handle non-numeric version parts (e.g., "0.3.0rc1")
+                    return True, f"Agno version {version} (numeric check skipped)"
 
         return True, f"Agno version: {version} (version check skipped)"
     except Exception as e:
@@ -117,10 +122,13 @@ def verify_dm_constants() -> Tuple[bool, str]:
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from constants.dm_constants import DMConstants
 
-        # Verify key constants exist
-        assert DMConstants.A2A.PROTOCOL_VERSION == "0.3.0"
-        assert DMConstants.AGUI.PROTOCOL_VERSION == "0.1.0"
-        assert DMConstants.AGENTOS.DEFAULT_PORT == 8000
+        # Verify key constants exist (use explicit checks, not assert which can be stripped)
+        if DMConstants.A2A.PROTOCOL_VERSION != "0.3.0":
+            return False, f"DMConstants.A2A.PROTOCOL_VERSION expected '0.3.0', got '{DMConstants.A2A.PROTOCOL_VERSION}'"
+        if DMConstants.AGUI.PROTOCOL_VERSION != "0.1.0":
+            return False, f"DMConstants.AGUI.PROTOCOL_VERSION expected '0.1.0', got '{DMConstants.AGUI.PROTOCOL_VERSION}'"
+        if DMConstants.AGENTOS.DEFAULT_PORT != 8000:
+            return False, f"DMConstants.AGENTOS.DEFAULT_PORT expected 8000, got {DMConstants.AGENTOS.DEFAULT_PORT}"
         return True, "DMConstants imported and validated successfully"
     except Exception as e:
         return False, f"Failed to import DMConstants: {e}"
@@ -133,7 +141,7 @@ def main():
     print("=" * 60)
     print()
 
-    checks: List[Tuple[str, callable]] = [
+    checks: List[Tuple[str, Callable[[], Tuple[bool, str]]]] = [
         ("Agno Core", verify_agno_core),
         ("AgentOS", verify_agentos),
         ("AG-UI Interface", verify_agui_interface),

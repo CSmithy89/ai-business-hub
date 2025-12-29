@@ -62,6 +62,14 @@ async def global_discovery() -> Dict[str, Any]:
     about agent capabilities, not sensitive data.
     """
     settings = get_agentos_settings()
+
+    # Check global A2A enable flag first
+    if not settings.a2a_enabled:
+        raise HTTPException(
+            status_code=404,
+            detail="A2A protocol is disabled",
+        )
+
     agents = _get_a2a_agents()
 
     if not agents:
@@ -96,6 +104,14 @@ async def multi_agent_listing() -> Dict[str, Any]:
     endpoints, useful for quick enumeration of available agents.
     """
     settings = get_agentos_settings()
+
+    # Check global A2A enable flag first
+    if not settings.a2a_enabled:
+        raise HTTPException(
+            status_code=404,
+            detail="A2A protocol is disabled",
+        )
+
     agents = _get_a2a_agents()
 
     return build_multi_agent_response(
@@ -127,6 +143,14 @@ async def agent_discovery(agent_id: str) -> Dict[str, Any]:
         HTTPException 404: If agent not found or A2A not enabled
     """
     settings = get_agentos_settings()
+
+    # Check global A2A enable flag first
+    if not settings.a2a_enabled:
+        raise HTTPException(
+            status_code=404,
+            detail="A2A protocol is disabled",
+        )
+
     agents = _get_a2a_agents()
 
     if agent_id not in agents:

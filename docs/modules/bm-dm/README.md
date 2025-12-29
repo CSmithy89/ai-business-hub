@@ -94,7 +94,7 @@ Configured AgentOS with native AG-UI and A2A protocol support for multi-interfac
 - `agents/models/task_classifier.py` — Task type classification
 - `agents/services/ccr_health.py` — CCR health checking service
 - `agents/services/ccr_usage.py` — Usage tracking and alerts
-- `agents/platform/dashboard_gateway.py` — Dashboard Gateway agent
+- `agents/gateway/agent.py` — Dashboard Gateway agent
 - `agents/constants/dm_constants.py` — All routing constants
 
 ### Phase 3: Integration (DM-03)

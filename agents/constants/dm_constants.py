@@ -45,6 +45,8 @@ class DMConstants:
         RETRY_BACKOFF_MULTIPLIER = 2.0
         QUOTA_WARNING_THRESHOLD = 0.8
         QUOTA_CRITICAL_THRESHOLD = 0.95
+        # Circuit breaker: time to keep circuit open before half-open test
+        CIRCUIT_BREAKER_TIMEOUT_SECONDS = 60
 
     # Dashboard Agent (for DM-02.4+)
     class DASHBOARD:

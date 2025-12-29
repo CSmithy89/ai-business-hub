@@ -37,6 +37,14 @@ class ProviderStatus(str, Enum):
     UNKNOWN = "unknown"
 
 
+class CircuitState(str, Enum):
+    """Circuit breaker states."""
+
+    CLOSED = "closed"  # Normal operation, requests allowed
+    OPEN = "open"  # Failures exceeded threshold, requests blocked
+    HALF_OPEN = "half_open"  # Testing if service recovered
+
+
 @dataclass
 class CCRHealthState:
     """Current health state of CCR service."""
@@ -47,6 +55,9 @@ class CCRHealthState:
     last_check: Optional[datetime] = None
     last_error: Optional[str] = None
     consecutive_failures: int = 0
+    # Circuit breaker state
+    circuit_state: CircuitState = CircuitState.CLOSED
+    circuit_opened_at: Optional[datetime] = None
 
 
 class CCRHealthChecker:
@@ -139,6 +150,53 @@ class CCRHealthChecker:
         """Check if health checker is running."""
         return self._running
 
+    @property
+    def circuit_is_open(self) -> bool:
+        """Check if circuit breaker is in OPEN state (blocking requests)."""
+        return self._state.circuit_state == CircuitState.OPEN
+
+    def _should_attempt_check(self) -> bool:
+        """Determine if a health check should be attempted based on circuit state."""
+        if self._state.circuit_state == CircuitState.CLOSED:
+            return True
+
+        if self._state.circuit_state == CircuitState.HALF_OPEN:
+            return True
+
+        # Circuit is OPEN - check if timeout has elapsed
+        if self._state.circuit_opened_at is not None:
+            elapsed = (datetime.now(timezone.utc) - self._state.circuit_opened_at).total_seconds()
+            if elapsed >= DMConstants.CCR.CIRCUIT_BREAKER_TIMEOUT_SECONDS:
+                # Transition to HALF_OPEN to test recovery
+                self._state.circuit_state = CircuitState.HALF_OPEN
+                logger.info(
+                    "Circuit breaker transitioning to HALF_OPEN after timeout",
+                    extra={"elapsed_seconds": elapsed},
+                )
+                return True
+
+        return False
+
+    def _open_circuit(self) -> None:
+        """Open the circuit breaker after failure threshold is exceeded."""
+        if self._state.circuit_state != CircuitState.OPEN:
+            self._state.circuit_state = CircuitState.OPEN
+            self._state.circuit_opened_at = datetime.now(timezone.utc)
+            logger.warning(
+                "Circuit breaker OPENED due to consecutive failures",
+                extra={"consecutive_failures": self._state.consecutive_failures},
+            )
+
+    def _close_circuit(self) -> None:
+        """Close the circuit breaker after successful health check."""
+        if self._state.circuit_state != CircuitState.CLOSED:
+            logger.info(
+                "Circuit breaker CLOSED after successful health check",
+                extra={"previous_state": self._state.circuit_state.value},
+            )
+            self._state.circuit_state = CircuitState.CLOSED
+            self._state.circuit_opened_at = None
+
     async def start(self) -> None:
         """Start periodic health checking."""
         if not self.enabled:
@@ -181,11 +239,24 @@ class CCRHealthChecker:
         """
         Perform a single health check against CCR.
 
+        Uses circuit breaker pattern to avoid overwhelming failing services:
+        - CLOSED: Normal operation, requests allowed
+        - OPEN: Failures exceeded threshold, requests blocked for timeout period
+        - HALF_OPEN: Testing if service recovered with single request
+
         Returns:
             Updated CCRHealthState
 
         Handles connection errors gracefully without raising exceptions.
         """
+        # Check circuit breaker state
+        if not self._should_attempt_check():
+            logger.debug(
+                "Health check skipped - circuit breaker is OPEN",
+                extra={"circuit_opened_at": self._state.circuit_opened_at},
+            )
+            return self._state
+
         if self._client is None:
             self._client = httpx.AsyncClient(timeout=DMConstants.CCR.PROVIDER_TIMEOUT_SECONDS)
 
@@ -197,6 +268,9 @@ class CCRHealthChecker:
             self._update_state_from_response(data)
             self._state.consecutive_failures = 0
             self._state.last_error = None
+
+            # Successful check - close the circuit
+            self._close_circuit()
 
         except httpx.ConnectError as e:
             self._handle_check_failure(f"Connection failed: {e}")
@@ -235,6 +309,8 @@ class CCRHealthChecker:
 
         if self._state.consecutive_failures >= DMConstants.CCR.MAX_RETRIES:
             self._state.status = HealthStatus.UNHEALTHY
+            # Open the circuit breaker after exceeding failure threshold
+            self._open_circuit()
         else:
             self._state.status = HealthStatus.DEGRADED
 
@@ -245,6 +321,7 @@ class CCRHealthChecker:
                 "error": error_msg,
                 "consecutive_failures": self._state.consecutive_failures,
                 "status": self._state.status.value,
+                "circuit_state": self._state.circuit_state.value,
             },
         )
 
@@ -274,6 +351,12 @@ class CCRHealthChecker:
             "last_error": self._state.last_error,
             "consecutive_failures": self._state.consecutive_failures,
             "is_running": self._running,
+            "circuit_state": self._state.circuit_state.value,
+            "circuit_opened_at": (
+                self._state.circuit_opened_at.isoformat()
+                if self._state.circuit_opened_at
+                else None
+            ),
         }
 
 

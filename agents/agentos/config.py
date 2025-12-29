@@ -70,7 +70,10 @@ class InterfaceConfig(BaseModel):
         Returns:
             Timeout in seconds, using override if set, otherwise DMConstants default.
         """
-        return self.agui_timeout_seconds or DMConstants.AGUI.TOOL_CALL_TIMEOUT_SECONDS
+        # Use explicit None check to allow 0 as a valid timeout override
+        if self.agui_timeout_seconds is not None:
+            return self.agui_timeout_seconds
+        return DMConstants.AGUI.TOOL_CALL_TIMEOUT_SECONDS
 
     def get_a2a_timeout(self) -> int:
         """Get A2A timeout with fallback to default.
@@ -78,7 +81,10 @@ class InterfaceConfig(BaseModel):
         Returns:
             Timeout in seconds, using override if set, otherwise DMConstants default.
         """
-        return self.a2a_timeout_seconds or DMConstants.A2A.TASK_TIMEOUT_SECONDS
+        # Use explicit None check to allow 0 as a valid timeout override
+        if self.a2a_timeout_seconds is not None:
+            return self.a2a_timeout_seconds
+        return DMConstants.A2A.TASK_TIMEOUT_SECONDS
 
 
 class AgentOSSettings(BaseSettings):

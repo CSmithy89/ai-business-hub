@@ -1093,9 +1093,11 @@ async def a2a_rpc(agent_id: str, rpc_request: JSONRPCRequest, request: Request):
             ),
         )
 
-    # Get the team/agent
+    # Get the team/agent - check both registry and PM adapters
     team = registry.get_team(agent_id)
-    if not team:
+    pm_adapter = get_pm_adapter(agent_id) if not team else None
+
+    if not team and not pm_adapter:
         return JSONRPCResponse(
             id=rpc_request.id,
             error=JSONRPCError(
@@ -1125,16 +1127,29 @@ async def a2a_rpc(agent_id: str, rpc_request: JSONRPCRequest, request: Request):
 
             logger.info(f"A2A RPC: {caller_id} -> {agent_id}: {task[:50]}...")
 
-            response = await asyncio.wait_for(
-                team.arun(message=task),
-                timeout=TEAM_EXECUTION_TIMEOUT
-            )
+            # Route to team or PM adapter
+            if team:
+                response = await asyncio.wait_for(
+                    team.arun(message=task),
+                    timeout=TEAM_EXECUTION_TIMEOUT
+                )
+                content = response.content
+                tool_calls = []
+            else:
+                # Use PM adapter
+                timeout = pm_adapter.get_timeout()
+                result = await asyncio.wait_for(
+                    pm_adapter.handle_a2a_task(task, context),
+                    timeout=timeout
+                )
+                content = result.get("content", "")
+                tool_calls = result.get("tool_calls", [])
 
             return JSONRPCResponse(
                 id=rpc_request.id,
                 result=JSONRPCResult(
-                    content=response.content,
-                    tool_calls=[],
+                    content=content,
+                    tool_calls=tool_calls,
                     artifacts=[]
                 )
             )

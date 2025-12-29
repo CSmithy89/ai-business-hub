@@ -81,6 +81,29 @@ def _normalize_hint_to_task_type(hint: str) -> Optional[TaskType]:
     return None
 
 
+def _count_keyword_matches(message_lower: str, words: set, keywords: frozenset) -> int:
+    """
+    Count keyword matches including multi-word phrases.
+
+    Args:
+        message_lower: Lowercase message text
+        words: Set of individual words in message
+        keywords: Keyword set to match against
+
+    Returns:
+        Count of matches (multi-word phrases count as 2)
+    """
+    count = 0
+    for keyword in keywords:
+        if " " in keyword:
+            # Multi-word phrase - check if it exists in the message
+            if keyword in message_lower:
+                count += 2  # Weight multi-word matches higher
+        elif keyword in words:
+            count += 1
+    return count
+
+
 def classify_by_keywords(message: str) -> Optional[TaskType]:
     """
     Classify task type by keyword matching.
@@ -99,14 +122,16 @@ def classify_by_keywords(message: str) -> Optional[TaskType]:
     message_lower = message.lower()
     words = set(message_lower.split())
 
-    # Count matches for each category
-    reasoning_matches = len(words & DMConstants.TASK_CLASSIFICATION.REASONING_KEYWORDS)
-    code_matches = len(words & DMConstants.TASK_CLASSIFICATION.CODE_KEYWORDS)
-    context_matches = len(words & DMConstants.TASK_CLASSIFICATION.LONG_CONTEXT_KEYWORDS)
-
-    # Also check for phrase matches (e.g., "write code")
-    if "write code" in message_lower or "generate code" in message_lower:
-        code_matches += 2
+    # Count matches for each category (handles both single words and phrases)
+    reasoning_matches = _count_keyword_matches(
+        message_lower, words, DMConstants.TASK_CLASSIFICATION.REASONING_KEYWORDS
+    )
+    code_matches = _count_keyword_matches(
+        message_lower, words, DMConstants.TASK_CLASSIFICATION.CODE_KEYWORDS
+    )
+    context_matches = _count_keyword_matches(
+        message_lower, words, DMConstants.TASK_CLASSIFICATION.LONG_CONTEXT_KEYWORDS
+    )
 
     # Determine winner
     max_matches = max(reasoning_matches, code_matches, context_matches)
