@@ -56,7 +56,7 @@ development_status:
   # Phase 1 | 8 stories | 44 points
   # CopilotKit, AG-UI, Slots, Widgets, CCR UI
   # ===========================================
-  dm-01: contexted
+  dm-01: complete
   dm-01-1-copilotkit-installation: done
   dm-01-2-slot-system-foundation: done
   dm-01-3-base-widget-components: done
