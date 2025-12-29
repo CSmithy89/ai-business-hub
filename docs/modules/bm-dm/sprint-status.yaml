@@ -102,7 +102,7 @@ development_status:
   dm-03: contexted
   dm-03-1-a2a-client-setup: done
   dm-03-2-dashboard-agent-orchestration: done
-  dm-03-3-widget-rendering-pipeline: backlog
+  dm-03-3-widget-rendering-pipeline: done
   dm-03-4-dashboard-page-integration: backlog
   dm-03-5-end-to-end-testing: backlog
   dm-03-retrospective: optional

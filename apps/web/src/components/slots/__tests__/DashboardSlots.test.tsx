@@ -67,7 +67,7 @@ describe('DashboardSlots', () => {
     expect(config.available).toBe('disabled');
   });
 
-  it('includes type parameter description with widget types', () => {
+  it('includes type parameter description with all widget types', () => {
     render(<DashboardSlots />);
 
     const config = mockUseCopilotAction.mock.calls[0][0];
@@ -77,6 +77,7 @@ describe('DashboardSlots', () => {
     expect(typeParam.description).toContain('TaskList');
     expect(typeParam.description).toContain('Metrics');
     expect(typeParam.description).toContain('Alert');
+    expect(typeParam.description).toContain('TeamActivity');
   });
 });
 
@@ -94,14 +95,16 @@ describe('DashboardSlots render function', () => {
         type: 'ProjectStatus',
         data: { projectId: '123', projectName: 'Test' },
       },
+      status: 'complete',
     });
 
-    // Should return a React element (not null or error fallback)
+    // Should return a React element (wrapped in error boundary)
     expect(renderResult).toBeTruthy();
-    expect(renderResult.type.name).not.toBe('WidgetErrorFallback');
+    expect(renderResult.type.name).toBe('WidgetErrorBoundary');
+    expect(renderResult.props.widgetType).toBe('ProjectStatus');
   });
 
-  it('renders error fallback for invalid widget type', () => {
+  it('renders error widget for invalid widget type', () => {
     render(<DashboardSlots />);
 
     const config = mockUseCopilotAction.mock.calls[0][0];
@@ -110,12 +113,69 @@ describe('DashboardSlots render function', () => {
         type: 'InvalidType',
         data: {},
       },
+      status: 'complete',
     });
 
-    // Should return WidgetErrorFallback
+    // Should return ErrorWidget
     expect(renderResult).toBeTruthy();
-    // The component should have widgetType prop
+    expect(renderResult.type.name).toBe('ErrorWidget');
     expect(renderResult.props.widgetType).toBe('InvalidType');
+    expect(renderResult.props.message).toContain('Unknown widget type');
+    expect(renderResult.props.availableTypes).toBeDefined();
+  });
+
+  it('renders loading widget when status is inProgress', () => {
+    render(<DashboardSlots />);
+
+    const config = mockUseCopilotAction.mock.calls[0][0];
+    const renderResult = config.render({
+      args: {
+        type: 'ProjectStatus',
+        data: {},
+      },
+      status: 'inProgress',
+    });
+
+    // Should return LoadingWidget
+    expect(renderResult).toBeTruthy();
+    expect(renderResult.type.name).toBe('LoadingWidget');
+    expect(renderResult.props.type).toBe('ProjectStatus');
+  });
+
+  it('renders loading widget when status is executing', () => {
+    render(<DashboardSlots />);
+
+    const config = mockUseCopilotAction.mock.calls[0][0];
+    const renderResult = config.render({
+      args: {
+        type: 'Metrics',
+        data: {},
+      },
+      status: 'executing',
+    });
+
+    // Should return LoadingWidget
+    expect(renderResult).toBeTruthy();
+    expect(renderResult.type.name).toBe('LoadingWidget');
+  });
+
+  it('renders error widget when data contains error field', () => {
+    render(<DashboardSlots />);
+
+    const config = mockUseCopilotAction.mock.calls[0][0];
+    const renderResult = config.render({
+      args: {
+        type: 'ProjectStatus',
+        data: { error: 'Failed to load project data' },
+      },
+      status: 'complete',
+    });
+
+    // Should return ErrorWidget with the error message
+    expect(renderResult).toBeTruthy();
+    expect(renderResult.type.name).toBe('ErrorWidget');
+    expect(renderResult.props.message).toBe('Failed to load project data');
+    expect(renderResult.props.widgetType).toBe('ProjectStatus');
   });
 
   it('wraps valid widgets in error boundary', () => {
@@ -127,10 +187,33 @@ describe('DashboardSlots render function', () => {
         type: 'ProjectStatus',
         data: { projectId: '123' },
       },
+      status: 'complete',
     });
 
     // Should be wrapped in WidgetErrorBoundary
     expect(renderResult.type.name).toBe('WidgetErrorBoundary');
     expect(renderResult.props.widgetType).toBe('ProjectStatus');
+  });
+
+  it('renders TeamActivity widget correctly', () => {
+    render(<DashboardSlots />);
+
+    const config = mockUseCopilotAction.mock.calls[0][0];
+    const renderResult = config.render({
+      args: {
+        type: 'TeamActivity',
+        data: {
+          activities: [
+            { user: 'John', action: 'completed', target: 'Task 1', time: '2h ago' },
+          ],
+        },
+      },
+      status: 'complete',
+    });
+
+    // Should be wrapped in WidgetErrorBoundary
+    expect(renderResult).toBeTruthy();
+    expect(renderResult.type.name).toBe('WidgetErrorBoundary');
+    expect(renderResult.props.widgetType).toBe('TeamActivity');
   });
 });

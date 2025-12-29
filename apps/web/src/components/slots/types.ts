@@ -15,7 +15,7 @@ import type { ReactNode } from 'react';
  * Valid widget types that can be rendered by agents.
  * Add new widget types here as they are implemented.
  */
-export type WidgetType = 'ProjectStatus' | 'TaskList' | 'Metrics' | 'Alert';
+export type WidgetType = 'ProjectStatus' | 'TaskList' | 'Metrics' | 'Alert' | 'TeamActivity';
 
 /**
  * Base widget data interface.
@@ -117,6 +117,19 @@ export interface AlertData extends WidgetData {
   title: string;
   message: string;
   action?: { label: string; href: string };
+}
+
+/**
+ * Data for TeamActivityWidget
+ * Shows recent team activity feed
+ */
+export interface TeamActivityData extends WidgetData {
+  activities: Array<{
+    user: string;
+    action: string;
+    target?: string;
+    time: string;
+  }>;
 }
 
 /**
