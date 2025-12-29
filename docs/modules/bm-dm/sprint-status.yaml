@@ -85,7 +85,7 @@ development_status:
   dm-02-5-existing-agent-protocol-updates: done
   dm-02-6-ccr-installation-configuration: done
   dm-02-7-ccr-agno-integration: done
-  dm-02-8-ccr-task-based-routing: backlog
+  dm-02-8-ccr-task-based-routing: done
   dm-02-9-ccr-usage-monitoring-alerts: backlog
   dm-02-retrospective: optional
 

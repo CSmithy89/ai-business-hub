@@ -13,6 +13,13 @@ from .selector import (
     select_model_for_agent,
     AGENT_MODEL_PREFERENCES,
 )
+from .task_classifier import (
+    TaskType,
+    classify_task,
+    get_task_type_for_agent,
+    extract_explicit_hints,
+    classify_by_keywords,
+)
 
 __all__ = [
     # CCR Provider
@@ -22,4 +29,10 @@ __all__ = [
     # Model Selector
     "select_model_for_agent",
     "AGENT_MODEL_PREFERENCES",
+    # Task Classifier
+    "TaskType",
+    "classify_task",
+    "get_task_type_for_agent",
+    "extract_explicit_hints",
+    "classify_by_keywords",
 ]

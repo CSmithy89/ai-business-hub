@@ -36,6 +36,10 @@ class CCRModel(OpenAIChat):  # type: ignore[misc]
 
     CCR provides OpenAI-compatible API, so we extend OpenAIChat.
     Task type hints are passed via X-CCR-Task-Type header.
+
+    Supports auto-classification: if task_type is None, it will be
+    inferred from message content when get_request_headers is called
+    with a message context.
     """
 
     def __init__(
@@ -43,6 +47,7 @@ class CCRModel(OpenAIChat):  # type: ignore[misc]
         model_id: str = "auto",
         task_type: Optional[str] = None,
         agent_id: Optional[str] = None,
+        auto_classify: bool = True,
         **kwargs: Any,
     ):
         """
@@ -52,6 +57,7 @@ class CCRModel(OpenAIChat):  # type: ignore[misc]
             model_id: Model to request, or "auto" for CCR routing
             task_type: Hint for CCR routing (reasoning, code_generation, etc.)
             agent_id: Agent identifier for logging
+            auto_classify: Auto-classify task type from message content
             **kwargs: Additional OpenAI parameters
         """
         if not AGNO_AVAILABLE:
@@ -70,6 +76,8 @@ class CCRModel(OpenAIChat):  # type: ignore[misc]
         self.task_type = task_type
         self._agent_id = agent_id
         self._ccr_url = settings.ccr_url
+        self._auto_classify = auto_classify
+        self._last_message: Optional[str] = None
 
         logger.debug(
             "CCRModel initialized",
@@ -77,22 +85,60 @@ class CCRModel(OpenAIChat):  # type: ignore[misc]
                 "model_id": model_id,
                 "task_type": task_type,
                 "agent_id": agent_id,
+                "auto_classify": auto_classify,
                 "ccr_url": settings.ccr_url,
             },
         )
 
+    def classify_message(self, message: str) -> str:
+        """
+        Classify a message to determine task type for CCR routing.
+
+        Args:
+            message: The message content to classify
+
+        Returns:
+            Task type string for CCR routing
+        """
+        from agents.models.task_classifier import get_task_type_for_agent
+
+        task_type = get_task_type_for_agent(
+            agent_id=self._agent_id or "unknown",
+            message=message,
+        )
+        return task_type.value
+
+    def set_message_context(self, message: str) -> None:
+        """
+        Set message context for auto-classification.
+
+        Call this before making a request to enable auto-classification.
+
+        Args:
+            message: The message content for classification
+        """
+        self._last_message = message
+
     def get_request_headers(self) -> Dict[str, str]:
         """
         Get headers for CCR request.
+
+        If task_type is not set and auto_classify is enabled,
+        uses last_message to classify the task type.
 
         Returns:
             Headers dict with CCR-specific routing hints
         """
         headers: Dict[str, str] = {}
 
+        # Determine task type (explicit or auto-classified)
+        task_type = self.task_type
+        if not task_type and self._auto_classify and self._last_message:
+            task_type = self.classify_message(self._last_message)
+
         # Add task type hint for CCR routing
-        if self.task_type:
-            headers["X-CCR-Task-Type"] = self.task_type
+        if task_type:
+            headers["X-CCR-Task-Type"] = task_type
 
         # Add agent identifier for tracking
         if self._agent_id:

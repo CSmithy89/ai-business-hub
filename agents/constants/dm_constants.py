@@ -59,3 +59,33 @@ class DMConstants:
         P95_RESPONSE_TARGET_MS = 500
         P99_RESPONSE_TARGET_MS = 1000
         MAX_MEMORY_MB = 512
+
+    # Task Classification (for DM-02.8)
+    class TASK_CLASSIFICATION:
+        # Keywords that indicate task types
+        REASONING_KEYWORDS = frozenset([
+            "analyze", "reason", "think", "plan", "strategy",
+            "evaluate", "assess", "consider", "determine", "decide",
+            "compare", "prioritize", "recommend", "advise", "explain",
+        ])
+        CODE_KEYWORDS = frozenset([
+            "code", "implement", "function", "class", "method",
+            "debug", "fix", "refactor", "test", "write code",
+            "programming", "developer", "software", "api", "endpoint",
+        ])
+        LONG_CONTEXT_KEYWORDS = frozenset([
+            "document", "summarize", "summary", "file", "pdf",
+            "article", "paper", "report", "review", "read",
+            "extract", "comprehend", "understand", "context",
+        ])
+
+        # Explicit hint patterns (e.g., "[code]", "[reasoning]")
+        EXPLICIT_HINT_PATTERN = r"\[(\w+)\]"
+
+        # Valid task types for CCR routing
+        VALID_TASK_TYPES = frozenset([
+            "reasoning",
+            "code_generation",
+            "long_context",
+            "general",
+        ])

@@ -1,136 +1,171 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/test_dm_02_7_ccr_provider.py",
+      "moduleId": "tests/test_dm_02_8_task_classifier.py",
       "tests": [
         {
-          "name": "test_preferences_exist_for_key_agents",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_preferences_exist_for_key_agents",
+          "name": "test_task_type_values",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestTaskType::test_task_type_values",
           "state": "passed"
         },
         {
-          "name": "test_dashboard_gateway_uses_reasoning",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_dashboard_gateway_uses_reasoning",
+          "name": "test_task_type_is_string_enum",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestTaskType::test_task_type_is_string_enum",
           "state": "passed"
         },
         {
-          "name": "test_navi_uses_reasoning",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_navi_uses_reasoning",
+          "name": "test_extracts_code_hint",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_extracts_code_hint",
           "state": "passed"
         },
         {
-          "name": "test_sage_uses_code_generation",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_sage_uses_code_generation",
+          "name": "test_extracts_reasoning_hint",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_extracts_reasoning_hint",
           "state": "passed"
         },
         {
-          "name": "test_scribe_uses_long_context",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_scribe_uses_long_context",
+          "name": "test_extracts_hint_from_middle",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_extracts_hint_from_middle",
           "state": "passed"
         },
         {
-          "name": "test_all_preferences_have_description",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_all_preferences_have_description",
+          "name": "test_case_insensitive",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_case_insensitive",
           "state": "passed"
         },
         {
-          "name": "test_known_agent_returns_task_type",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetAgentTaskType::test_known_agent_returns_task_type",
+          "name": "test_no_hint_returns_none",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_no_hint_returns_none",
           "state": "passed"
         },
         {
-          "name": "test_unknown_agent_returns_default",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetAgentTaskType::test_unknown_agent_returns_default",
+          "name": "test_empty_message_returns_none",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_empty_message_returns_none",
           "state": "passed"
         },
         {
-          "name": "test_returns_copy",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetAllAgentPreferences::test_returns_copy",
+          "name": "test_classifies_reasoning_keywords",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_classifies_reasoning_keywords",
           "state": "passed"
         },
         {
-          "name": "test_contains_all_preferences",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetAllAgentPreferences::test_contains_all_preferences",
+          "name": "test_classifies_code_keywords",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_classifies_code_keywords",
           "state": "passed"
         },
         {
-          "name": "test_ccr_default_port_exists",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestDMConstantsUsage::test_ccr_default_port_exists",
+          "name": "test_classifies_long_context_keywords",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_classifies_long_context_keywords",
           "state": "passed"
         },
         {
-          "name": "test_ccr_health_check_interval_exists",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestDMConstantsUsage::test_ccr_health_check_interval_exists",
+          "name": "test_write_code_phrase",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_write_code_phrase",
           "state": "passed"
         },
         {
-          "name": "test_ccr_provider_timeout_exists",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestDMConstantsUsage::test_ccr_provider_timeout_exists",
+          "name": "test_generate_code_phrase",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_generate_code_phrase",
           "state": "passed"
         },
         {
-          "name": "test_ccr_model_init_with_defaults",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestCCRModelInit::test_ccr_model_init_with_defaults",
+          "name": "test_no_keywords_returns_none",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_no_keywords_returns_none",
           "state": "passed"
         },
         {
-          "name": "test_ccr_model_init_with_task_type",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestCCRModelInit::test_ccr_model_init_with_task_type",
+          "name": "test_empty_message_returns_none",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_empty_message_returns_none",
           "state": "passed"
         },
         {
-          "name": "test_ccr_disabled_returns_false",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestShouldUseCCR::test_ccr_disabled_returns_false",
+          "name": "test_explicit_hint_priority",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_explicit_hint_priority",
           "state": "passed"
         },
         {
-          "name": "test_ccr_enabled_but_unhealthy_returns_false",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestShouldUseCCR::test_ccr_enabled_but_unhealthy_returns_false",
+          "name": "test_agent_default_used",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_agent_default_used",
           "state": "passed"
         },
         {
-          "name": "test_user_prefers_byoai_returns_false",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestShouldUseCCR::test_user_prefers_byoai_returns_false",
+          "name": "test_keyword_classification_fallback",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_keyword_classification_fallback",
           "state": "passed"
         },
         {
-          "name": "test_validation_skipped_when_disabled[asyncio]",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestValidateCCRConnection::test_validation_skipped_when_disabled[asyncio]",
+          "name": "test_general_fallback",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_general_fallback",
           "state": "passed"
         },
         {
-          "name": "test_validation_succeeds_when_healthy[asyncio]",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestValidateCCRConnection::test_validation_succeeds_when_healthy[asyncio]",
+          "name": "test_no_message_uses_agent_default",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_no_message_uses_agent_default",
           "state": "passed"
         },
         {
-          "name": "test_validation_fails_when_unhealthy[asyncio]",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestValidateCCRConnection::test_validation_fails_when_unhealthy[asyncio]",
+          "name": "test_basic_classification",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyTask::test_basic_classification",
           "state": "passed"
         },
         {
-          "name": "test_returns_ccr_model_when_ccr_enabled",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetModelForAgent::test_returns_ccr_model_when_ccr_enabled",
+          "name": "test_with_agent_id",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyTask::test_with_agent_id",
           "state": "passed"
         },
         {
-          "name": "test_returns_byoai_model_when_ccr_disabled",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetModelForAgent::test_returns_byoai_model_when_ccr_disabled",
+          "name": "test_without_agent_id",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyTask::test_without_agent_id",
           "state": "passed"
         },
         {
-          "name": "test_returns_none_with_model_override",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestSelectModelForAgent::test_returns_none_with_model_override",
+          "name": "test_reasoning_keywords_exist",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_reasoning_keywords_exist",
           "state": "passed"
         },
         {
-          "name": "test_uses_agent_preferences",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestSelectModelForAgent::test_uses_agent_preferences",
+          "name": "test_code_keywords_exist",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_code_keywords_exist",
           "state": "passed"
         },
         {
-          "name": "test_task_type_override",
-          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestSelectModelForAgent::test_task_type_override",
+          "name": "test_long_context_keywords_exist",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_long_context_keywords_exist",
+          "state": "passed"
+        },
+        {
+          "name": "test_explicit_hint_pattern_exists",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_explicit_hint_pattern_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_valid_task_types_exist",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_valid_task_types_exist",
+          "state": "passed"
+        },
+        {
+          "name": "test_mixed_keywords",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_mixed_keywords",
+          "state": "passed"
+        },
+        {
+          "name": "test_very_long_message",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_very_long_message",
+          "state": "passed"
+        },
+        {
+          "name": "test_special_characters",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_special_characters",
+          "state": "passed"
+        },
+        {
+          "name": "test_unicode_message",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_unicode_message",
+          "state": "passed"
+        },
+        {
+          "name": "test_normalize_hint_aliases",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_normalize_hint_aliases",
           "state": "passed"
         }
       ]
