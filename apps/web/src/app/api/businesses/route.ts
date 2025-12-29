@@ -196,6 +196,9 @@ export async function GET(req: Request) {
  * Create a new business from onboarding wizard data.
  * Creates Business record and ValidationSession with initial idea data.
  *
+ * Supports explicit workspaceId in request body for onboarding scenarios
+ * where session cookie cache may be stale after workspace creation.
+ *
  * Story: 08.3 - Implement Onboarding Wizard UI
  */
 export async function POST(req: Request) {
@@ -211,19 +214,6 @@ export async function POST(req: Request) {
           message: 'You must be signed in to create a business',
         },
         { status: 401 }
-      )
-    }
-
-    const workspaceId = session.session.activeWorkspaceId
-
-    if (!workspaceId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'NO_WORKSPACE',
-          message: 'No active workspace selected',
-        },
-        { status: 400 }
       )
     }
 
@@ -243,7 +233,47 @@ export async function POST(req: Request) {
       )
     }
 
-    const { name, description, hasDocuments, ideaDescription } = validation.data
+    const { name, description, hasDocuments, ideaDescription, workspaceId: explicitWorkspaceId } = validation.data
+
+    // Resolve workspaceId: prefer explicit, fall back to session
+    // This handles onboarding scenarios where session cookie cache may be stale
+    let workspaceId = session.session.activeWorkspaceId || explicitWorkspaceId
+
+    // If explicit workspaceId provided but session has different value, verify user membership
+    if (explicitWorkspaceId && explicitWorkspaceId !== session.session.activeWorkspaceId) {
+      const membership = await prisma.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: session.user.id,
+            workspaceId: explicitWorkspaceId,
+          },
+        },
+      })
+
+      if (!membership) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'FORBIDDEN',
+            message: 'You do not have access to this workspace',
+          },
+          { status: 403 }
+        )
+      }
+
+      workspaceId = explicitWorkspaceId
+    }
+
+    if (!workspaceId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'NO_WORKSPACE',
+          message: 'No active workspace selected',
+        },
+        { status: 400 }
+      )
+    }
 
     // Create business with ValidationSession in a single transaction
     // This prevents race conditions where duplicate check passes but create fails

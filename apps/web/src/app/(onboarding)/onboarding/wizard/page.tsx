@@ -24,6 +24,7 @@ import {
   useOnboardingWizardStore,
   useOnboardingWizardStoreHydrated,
 } from '@/stores/onboarding-wizard-store'
+import { useAccountOnboardingStore, useAccountOnboardingStoreHydrated } from '@/stores/account-onboarding-store'
 import { WizardProgress } from '@/components/onboarding/WizardProgress'
 import { WizardStepChoice } from '@/components/onboarding/WizardStepChoice'
 import { WizardStepDetails } from '@/components/onboarding/WizardStepDetails'
@@ -35,7 +36,11 @@ import { Loader2 } from 'lucide-react'
 function WizardPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const isHydrated = useOnboardingWizardStoreHydrated()
+  const isWizardHydrated = useOnboardingWizardStoreHydrated()
+  const isAccountHydrated = useAccountOnboardingStoreHydrated()
+
+  // Both stores need to be hydrated before we can proceed
+  const isHydrated = isWizardHydrated && isAccountHydrated
 
   const {
     currentStep,
@@ -144,9 +149,13 @@ function WizardPageContent() {
   }
 
   // Step 4: Launch handler
+  // Get workspaceId from account setup wizard (in case session cookie cache is stale)
+  const { workspaceId: accountWorkspaceId } = useAccountOnboardingStore()
+
   const handleLaunch = async () => {
     try {
       // Call API to create business
+      // Include workspaceId explicitly to handle session cookie cache staleness after workspace creation
       const response = await fetch('/api/businesses', {
         method: 'POST',
         headers: {
@@ -166,6 +175,9 @@ function WizardPageContent() {
             targetCustomer,
             proposedSolution,
           },
+          // Pass workspaceId explicitly from account setup wizard
+          // This ensures business creation works even if session cookie cache is stale
+          workspaceId: accountWorkspaceId || undefined,
         }),
       })
 

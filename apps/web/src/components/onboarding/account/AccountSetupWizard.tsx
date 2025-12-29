@@ -44,7 +44,6 @@ export function AccountSetupWizard({ userName }: AccountSetupWizardProps) {
     setAiKeyVerified,
     setSkippedAiSetup,
     markComplete,
-    reset,
   } = useAccountOnboardingStore();
 
   // Redirect if already complete
@@ -94,9 +93,10 @@ export function AccountSetupWizard({ userName }: AccountSetupWizardProps) {
   };
 
   // Step 4: All done
+  // Note: Don't call reset() here - we need to preserve workspaceId for the business wizard
+  // The store will be reset when the user explicitly starts over or completes business creation
   const handleComplete = () => {
     markComplete();
-    reset(); // Clear the store for next time
   };
 
   return (

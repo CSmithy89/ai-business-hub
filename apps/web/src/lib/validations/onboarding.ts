@@ -132,6 +132,7 @@ export const businessIdeaSchema = z.object({
  *
  * Used to validate the complete payload sent to POST /api/businesses
  * Note: description is optional to match the Step 2 form schema
+ * Note: workspaceId is optional - used during onboarding when session cache may be stale
  */
 export const businessCreateSchema = z.object({
   name: z.string().min(3).max(100),
@@ -146,6 +147,8 @@ export const businessCreateSchema = z.object({
     targetCustomer: z.string().min(5).max(200),
     proposedSolution: z.string().min(10).max(300),
   }),
+  // Optional explicit workspaceId - used during onboarding when session cookie cache may be stale
+  workspaceId: z.string().cuid().optional(),
 })
 
 /**
