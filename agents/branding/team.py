@@ -25,8 +25,8 @@ from typing import Optional
 from agno.agent import Agent
 from agno.team import Team
 from agno.models.anthropic import Claude
-from agno.storage.postgres import PostgresStorage
-from agno.tools.web import WebSearchTool
+from agno.db.postgres import PostgresDb
+from agno.tools.duckduckgo import DuckDuckGoTools
 
 # Import agent configurations
 from .brand_orchestrator_agent import (
@@ -73,7 +73,7 @@ def get_postgres_url() -> str:
 
 def create_bella_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Bella - Branding Team Lead & Orchestrator.
@@ -91,7 +91,7 @@ def create_bella_agent(
             "Guide users through brand development with creative expertise.",
             "Synthesize brand guidelines that are practical and usable.",
         ],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -99,7 +99,7 @@ def create_bella_agent(
 
 def create_sage_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Sage - Brand Strategist.
@@ -117,8 +117,8 @@ def create_sage_agent(
             "Create core values that are specific and actionable.",
             "Develop messaging pillars with supporting proof points.",
         ],
-        tools=[WebSearchTool()],  # For competitor research
-        storage=storage,
+        tools=[DuckDuckGoTools()],  # For competitor research
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -126,7 +126,7 @@ def create_sage_agent(
 
 def create_vox_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Vox - Voice Architect.
@@ -144,7 +144,7 @@ def create_vox_agent(
             "Build vocabulary and language rules.",
             "Develop practical messaging templates.",
         ],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -152,7 +152,7 @@ def create_vox_agent(
 
 def create_iris_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Iris - Visual Identity Designer.
@@ -170,7 +170,7 @@ def create_iris_agent(
             "Define typography systems for readability and personality.",
             "Establish visual principles that guide all design decisions.",
         ],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -178,7 +178,7 @@ def create_iris_agent(
 
 def create_artisan_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Artisan - Asset Generator.
@@ -196,7 +196,7 @@ def create_artisan_agent(
             "Create organized package structure.",
             "Ensure production-ready specifications.",
         ],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -204,7 +204,7 @@ def create_artisan_agent(
 
 def create_audit_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Audit - Brand Auditor.
@@ -222,7 +222,7 @@ def create_audit_agent(
             "Identify gaps and inconsistencies objectively.",
             "Provide actionable recommendations with priorities.",
         ],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -274,18 +274,18 @@ def create_branding_team(
         )
     """
     # Create storage with session context
-    storage = PostgresStorage(
-        table_name="bmb_branding_sessions",
+    storage = PostgresDb(
+        session_table="bmb_branding_sessions",
         db_url=get_postgres_url(),
     )
 
     # Create all agents with shared storage
-    bella = create_bella_agent(model=model, storage=storage)
-    sage = create_sage_agent(model=model, storage=storage)
-    vox = create_vox_agent(model=model, storage=storage)
-    iris = create_iris_agent(model=model, storage=storage)
-    artisan = create_artisan_agent(model=model, storage=storage)
-    audit = create_audit_agent(model=model, storage=storage)
+    bella = create_bella_agent(model=model, db=db)
+    sage = create_sage_agent(model=model, db=db)
+    vox = create_vox_agent(model=model, db=db)
+    iris = create_iris_agent(model=model, db=db)
+    artisan = create_artisan_agent(model=model, db=db)
+    audit = create_audit_agent(model=model, db=db)
 
     # Build business context instructions
     context_instructions = []
@@ -318,7 +318,7 @@ def create_branding_team(
         session_id=session_id,
         user_id=user_id,
         # Storage for team-level persistence
-        storage=storage,
+        db=db,
         # Debug settings
         debug_mode=debug_mode,
         show_members_responses=debug_mode,

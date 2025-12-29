@@ -120,7 +120,7 @@ class ProviderResolver:
         )
 
         # Use with Agno
-        from agno import Agent
+        from agno.agent import Agent
         agent = Agent(model=provider.model_id)
     """
 

@@ -7,17 +7,20 @@ export const metadata: Metadata = {
 };
 
 /**
- * Help Center Page
+ * Help Center Page (Dashboard Version)
  *
- * Provides help resources and support information for users.
+ * Shows help resources within the authenticated dashboard layout.
+ * Users who are logged in will see this version with the proper header.
  */
 export default function HelpPage() {
   return (
-    <div className="space-y-12">
+    <div className="container max-w-4xl mx-auto py-8 px-4 space-y-12">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900">Help Center</h1>
-        <p className="mt-4 text-lg text-gray-600">
+        <h1 className="text-4xl font-bold text-[rgb(var(--color-text-primary))]">
+          Help Center
+        </h1>
+        <p className="mt-4 text-lg text-[rgb(var(--color-text-secondary))]">
           Find answers to common questions and learn how to get the most out of
           HYVVE.
         </p>
@@ -89,7 +92,7 @@ export default function HelpPage() {
 
       {/* FAQ Section */}
       <section id="faq">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        <h2 className="text-2xl font-bold text-[rgb(var(--color-text-primary))] mb-6">
           Frequently Asked Questions
         </h2>
         <div className="space-y-4">
@@ -118,27 +121,29 @@ export default function HelpPage() {
 
       {/* Getting Started Section */}
       <section id="getting-started">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Getting Started</h2>
-        <div className="prose prose-gray max-w-none">
-          <ol>
+        <h2 className="text-2xl font-bold text-[rgb(var(--color-text-primary))] mb-6">
+          Getting Started
+        </h2>
+        <div className="prose prose-gray dark:prose-invert max-w-none">
+          <ol className="space-y-2 text-[rgb(var(--color-text-secondary))]">
             <li>
-              <strong>Create an account</strong> - Sign up with your email or
+              <strong className="text-[rgb(var(--color-text-primary))]">Create an account</strong> - Sign up with your email or
               use Google authentication.
             </li>
             <li>
-              <strong>Complete onboarding</strong> - Tell us about your business
+              <strong className="text-[rgb(var(--color-text-primary))]">Complete onboarding</strong> - Tell us about your business
               and goals.
             </li>
             <li>
-              <strong>Configure AI providers</strong> - Add your API keys in
+              <strong className="text-[rgb(var(--color-text-primary))]">Configure AI providers</strong> - Add your API keys in
               Settings → AI Configuration.
             </li>
             <li>
-              <strong>Set up your workspace</strong> - Invite team members and
+              <strong className="text-[rgb(var(--color-text-primary))]">Set up your workspace</strong> - Invite team members and
               configure roles.
             </li>
             <li>
-              <strong>Start automating</strong> - Enable AI agents and let them
+              <strong className="text-[rgb(var(--color-text-primary))]">Start automating</strong> - Enable AI agents and let them
               handle routine tasks.
             </li>
           </ol>
@@ -147,38 +152,38 @@ export default function HelpPage() {
 
       {/* AI Configuration Section */}
       <section id="ai-configuration">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        <h2 className="text-2xl font-bold text-[rgb(var(--color-text-primary))] mb-6">
           AI Configuration
         </h2>
-        <div className="prose prose-gray max-w-none">
+        <div className="prose prose-gray dark:prose-invert max-w-none text-[rgb(var(--color-text-secondary))]">
           <p>
             HYVVE supports multiple AI providers. Here&apos;s how to configure
             them:
           </p>
-          <h3>Supported Providers</h3>
-          <ul>
+          <h3 className="text-[rgb(var(--color-text-primary))]">Supported Providers</h3>
+          <ul className="space-y-1">
             <li>
-              <strong>Claude (Anthropic)</strong> - Best for strategic analysis
+              <strong className="text-[rgb(var(--color-text-primary))]">Claude (Anthropic)</strong> - Best for strategic analysis
               and content creation
             </li>
             <li>
-              <strong>OpenAI (GPT-4)</strong> - Versatile for various tasks
+              <strong className="text-[rgb(var(--color-text-primary))]">OpenAI (GPT-4)</strong> - Versatile for various tasks
             </li>
             <li>
-              <strong>Gemini (Google)</strong> - Great for research and analysis
+              <strong className="text-[rgb(var(--color-text-primary))]">Gemini (Google)</strong> - Great for research and analysis
             </li>
             <li>
-              <strong>DeepSeek</strong> - Cost-effective option
+              <strong className="text-[rgb(var(--color-text-primary))]">DeepSeek</strong> - Cost-effective option
             </li>
             <li>
-              <strong>OpenRouter</strong> - Access to 100+ models
+              <strong className="text-[rgb(var(--color-text-primary))]">OpenRouter</strong> - Access to 100+ models
             </li>
           </ul>
           <p>
             Navigate to{' '}
             <Link
               href="/settings/ai-config"
-              className="text-[#FF6B6B] hover:underline"
+              className="text-[rgb(var(--color-primary-500))] hover:underline"
             >
               Settings → AI Configuration
             </Link>{' '}
@@ -189,26 +194,26 @@ export default function HelpPage() {
 
       {/* Approvals Section */}
       <section id="approvals">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        <h2 className="text-2xl font-bold text-[rgb(var(--color-text-primary))] mb-6">
           Approvals & Workflows
         </h2>
-        <div className="prose prose-gray max-w-none">
+        <div className="prose prose-gray dark:prose-invert max-w-none text-[rgb(var(--color-text-secondary))]">
           <p>
             The approval system ensures humans stay in control of important
             decisions:
           </p>
-          <h3>Confidence Levels</h3>
-          <ul>
+          <h3 className="text-[rgb(var(--color-text-primary))]">Confidence Levels</h3>
+          <ul className="space-y-1">
             <li>
-              <strong>High Confidence (&gt;85%)</strong> - Auto-executed without
+              <strong className="text-[rgb(var(--color-text-primary))]">High Confidence (&gt;85%)</strong> - Auto-executed without
               human intervention
             </li>
             <li>
-              <strong>Medium Confidence (60-85%)</strong> - Quick approval
+              <strong className="text-[rgb(var(--color-text-primary))]">Medium Confidence (60-85%)</strong> - Quick approval
               needed (one-click)
             </li>
             <li>
-              <strong>Low Confidence (&lt;60%)</strong> - Full review required
+              <strong className="text-[rgb(var(--color-text-primary))]">Low Confidence (&lt;60%)</strong> - Full review required
               before execution
             </li>
           </ul>
@@ -216,7 +221,7 @@ export default function HelpPage() {
             View pending approvals in the{' '}
             <Link
               href="/approvals"
-              className="text-[#FF6B6B] hover:underline"
+              className="text-[rgb(var(--color-primary-500))] hover:underline"
             >
               Approvals Dashboard
             </Link>
@@ -226,15 +231,17 @@ export default function HelpPage() {
       </section>
 
       {/* Contact Support */}
-      <section className="bg-gray-50 rounded-lg p-8 text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Need More Help?</h2>
-        <p className="text-gray-600 mb-6">
+      <section className="bg-[rgb(var(--color-bg-secondary))] rounded-lg p-8 text-center">
+        <h2 className="text-2xl font-bold text-[rgb(var(--color-text-primary))] mb-4">
+          Need More Help?
+        </h2>
+        <p className="text-[rgb(var(--color-text-secondary))] mb-6">
           Can&apos;t find what you&apos;re looking for? Our support team is here to
           help.
         </p>
         <a
           href="mailto:support@hyvve.io"
-          className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90"
+          className="inline-flex items-center px-6 py-3 bg-[rgb(var(--color-primary-500))] text-white rounded-lg hover:bg-[rgb(var(--color-primary-600))] transition-colors"
         >
           <svg
             className="w-5 h-5 mr-2"
@@ -270,24 +277,28 @@ function HelpCard({
   return (
     <a
       href={href}
-      className="block p-6 bg-white border border-gray-200 rounded-lg hover:border-primary hover:shadow-md transition-all"
+      className="block p-6 bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg hover:border-[rgb(var(--color-primary-500))] hover:shadow-md transition-all"
     >
-      <div className="w-12 h-12 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-4">
+      <div className="w-12 h-12 bg-[rgb(var(--color-primary-500))]/10 text-[rgb(var(--color-primary-500))] rounded-lg flex items-center justify-center mb-4">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600 text-sm">{description}</p>
+      <h3 className="text-lg font-semibold text-[rgb(var(--color-text-primary))] mb-2">
+        {title}
+      </h3>
+      <p className="text-[rgb(var(--color-text-secondary))] text-sm">{description}</p>
     </a>
   );
 }
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   return (
-    <details className="group border border-gray-200 rounded-lg">
+    <details className="group border border-[rgb(var(--color-border-default))] rounded-lg bg-[rgb(var(--color-bg-surface))]">
       <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
-        <span className="font-medium text-gray-900">{question}</span>
+        <span className="font-medium text-[rgb(var(--color-text-primary))]">
+          {question}
+        </span>
         <svg
-          className="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform"
+          className="w-5 h-5 text-[rgb(var(--color-text-tertiary))] group-open:rotate-180 transition-transform"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -300,7 +311,9 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           />
         </svg>
       </summary>
-      <div className="px-4 pb-4 text-gray-600">{answer}</div>
+      <div className="px-4 pb-4 text-[rgb(var(--color-text-secondary))]">
+        {answer}
+      </div>
     </details>
   );
 }

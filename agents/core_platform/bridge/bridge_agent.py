@@ -12,7 +12,7 @@ BMAD Spec: Epic PM-07 - Integrations & Bridge Agent
 from typing import Optional
 import logging
 
-from agno import Agent
+from agno.agent import Agent
 from agno.db.postgres import PostgresDb
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ def create_bridge_agent(
     """
     logger.info("Creating Bridge agent for workspace=%s", workspace_id)
 
-    db = PostgresDb(database_url=database_url)
+    db = PostgresDb(db_url=database_url)
 
     context = {
         "workspace_id": workspace_id,

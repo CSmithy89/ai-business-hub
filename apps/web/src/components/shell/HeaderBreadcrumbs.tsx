@@ -22,11 +22,16 @@ const segmentNames: Record<string, string> = {
   settings: 'Settings',
   crm: 'CRM',
   projects: 'Projects',
+  pm: 'Projects', // Project Management section
+  kb: 'Knowledge Base',
   profile: 'Profile',
   security: 'Security',
   sessions: 'Sessions',
   appearance: 'Appearance',
   'ai-config': 'AI Configuration',
+  providers: 'AI Providers',
+  'agent-preferences': 'Agent Preferences',
+  usage: 'Token Usage',
   members: 'Members',
   roles: 'Roles',
   general: 'General',
@@ -35,6 +40,7 @@ const segmentNames: Record<string, string> = {
   branding: 'Branding',
   validation: 'Validation',
   new: 'New',
+  help: 'Help',
 };
 
 // Format segment name with proper capitalization

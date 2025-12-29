@@ -25,8 +25,8 @@ from typing import Optional
 from agno.agent import Agent
 from agno.team import Team
 from agno.models.anthropic import Claude
-from agno.storage.postgres import PostgresStorage
-from agno.tools.web import WebSearchTool
+from agno.db.postgres import PostgresDb
+from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.file import FileTools
 
 # Import planning-specific tools
@@ -81,7 +81,7 @@ def get_postgres_url() -> str:
 
 def create_blake_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Blake - Planning Team Lead & Orchestrator.
@@ -99,7 +99,7 @@ def create_blake_agent(
             "Synthesize findings into investor-ready business plans.",
             "Ensure all projections are defensible with clear assumptions.",
         ],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -107,7 +107,7 @@ def create_blake_agent(
 
 def create_model_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Model - Business Model Canvas Expert.
@@ -126,7 +126,7 @@ def create_model_agent(
             "Use generate_business_model_canvas tool to structure output.",
         ],
         tools=[generate_business_model_canvas],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -134,7 +134,7 @@ def create_model_agent(
 
 def create_finance_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Finance - Financial Analyst.
@@ -158,7 +158,7 @@ def create_finance_agent(
             calculate_burn_rate,
             request_financial_approval,
         ],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -166,7 +166,7 @@ def create_finance_agent(
 
 def create_revenue_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Revenue - Monetization Strategist.
@@ -185,7 +185,7 @@ def create_revenue_agent(
             "Consider multiple pricing tiers and expansion revenue.",
         ],
         tools=[calculate_unit_economics],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -193,7 +193,7 @@ def create_revenue_agent(
 
 def create_forecast_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Forecast - Growth Forecaster.
@@ -211,8 +211,8 @@ def create_forecast_agent(
             "Tie growth to specific customer acquisition strategies.",
             "Show sensitivity to key assumptions.",
         ],
-        tools=[WebSearchTool()],  # For market research
-        storage=storage,
+        tools=[DuckDuckGoTools()],  # For market research
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -256,17 +256,17 @@ def create_planning_team(
         )
     """
     # Create storage with session context
-    storage = PostgresStorage(
-        table_name="bmp_planning_sessions",
+    storage = PostgresDb(
+        session_table="bmp_planning_sessions",
         db_url=get_postgres_url(),
     )
 
     # Create all agents with shared storage
-    blake = create_blake_agent(model=model, storage=storage)
-    model_agent = create_model_agent(model=model, storage=storage)
-    finance = create_finance_agent(model=model, storage=storage)
-    revenue = create_revenue_agent(model=model, storage=storage)
-    forecast = create_forecast_agent(model=model, storage=storage)
+    blake = create_blake_agent(model=model, db=db)
+    model_agent = create_model_agent(model=model, db=db)
+    finance = create_finance_agent(model=model, db=db)
+    revenue = create_revenue_agent(model=model, db=db)
+    forecast = create_forecast_agent(model=model, db=db)
 
     # Create team with Blake as leader
     team = Team(
@@ -287,7 +287,7 @@ def create_planning_team(
         session_id=session_id,
         user_id=user_id,
         # Storage for team-level persistence
-        storage=storage,
+        db=db,
         # Debug settings
         debug_mode=debug_mode,
         show_members_responses=debug_mode,

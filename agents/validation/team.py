@@ -25,8 +25,8 @@ from typing import Optional, Dict, Any
 from agno.agent import Agent
 from agno.team import Team
 from agno.models.anthropic import Claude
-from agno.storage.postgres import PostgresStorage
-from agno.tools.web import WebSearchTool
+from agno.db.postgres import PostgresDb
+from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.file import FileTools
 
 # Import validation-specific tools
@@ -79,7 +79,7 @@ def get_postgres_url() -> str:
 
 def create_vera_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Vera - Validation Team Lead & Orchestrator.
@@ -97,7 +97,7 @@ def create_vera_agent(
             "Synthesize findings into actionable go/no-go recommendations.",
             "Present confidence scores honestly - uncertainty is information.",
         ],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -105,7 +105,7 @@ def create_vera_agent(
 
 def create_marco_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Marco - Market Research Specialist.
@@ -127,8 +127,8 @@ def create_marco_agent(
             "Sources must be from reputable providers (Gartner, Forrester, govt data).",
             "Sources older than 24 months should be marked as potentially outdated.",
         ],
-        tools=[WebSearchTool(), record_source, verify_sources],
-        storage=storage,
+        tools=[DuckDuckGoTools(), record_source, verify_sources],
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -136,7 +136,7 @@ def create_marco_agent(
 
 def create_cipher_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Cipher - Competitive Intelligence Specialist.
@@ -157,8 +157,8 @@ def create_cipher_agent(
             "Include competitor website URLs as sources.",
             "Distinguish between verified facts and competitive intelligence estimates.",
         ],
-        tools=[WebSearchTool(), record_source],
-        storage=storage,
+        tools=[DuckDuckGoTools(), record_source],
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -166,7 +166,7 @@ def create_cipher_agent(
 
 def create_persona_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Persona - Customer Research Specialist.
@@ -183,8 +183,8 @@ def create_persona_agent(
             "Apply Jobs-to-be-Done framework to understand core needs.",
             "Validate willingness to pay, not just interest.",
         ],
-        tools=[WebSearchTool()],
-        storage=storage,
+        tools=[DuckDuckGoTools()],
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -192,7 +192,7 @@ def create_persona_agent(
 
 def create_risk_agent(
     model: Optional[str] = None,
-    storage: Optional[PostgresStorage] = None,
+    db: Optional[PostgresDb] = None,
 ) -> Agent:
     """
     Create Risk - Feasibility Analyst.
@@ -214,7 +214,7 @@ def create_risk_agent(
             "Present confidence honestly - uncertainty is valuable information.",
         ],
         tools=[request_validation_approval],
-        storage=storage,
+        db=db,
         add_datetime_to_instructions=True,
         markdown=True,
     )
@@ -258,17 +258,17 @@ def create_validation_team(
         )
     """
     # Create storage with session context
-    storage = PostgresStorage(
-        table_name="bmv_validation_sessions",
+    storage = PostgresDb(
+        session_table="bmv_validation_sessions",
         db_url=get_postgres_url(),
     )
 
     # Create all agents with shared storage
-    vera = create_vera_agent(model=model, storage=storage)
-    marco = create_marco_agent(model=model, storage=storage)
-    cipher = create_cipher_agent(model=model, storage=storage)
-    persona = create_persona_agent(model=model, storage=storage)
-    risk = create_risk_agent(model=model, storage=storage)
+    vera = create_vera_agent(model=model, db=db)
+    marco = create_marco_agent(model=model, db=db)
+    cipher = create_cipher_agent(model=model, db=db)
+    persona = create_persona_agent(model=model, db=db)
+    risk = create_risk_agent(model=model, db=db)
 
     # Create team with Vera as leader
     team = Team(
@@ -289,7 +289,7 @@ def create_validation_team(
         session_id=session_id,
         user_id=user_id,
         # Storage for team-level persistence
-        storage=storage,
+        db=db,
         # Debug settings
         debug_mode=debug_mode,
         show_members_responses=debug_mode,

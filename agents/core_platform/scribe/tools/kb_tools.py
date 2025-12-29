@@ -5,7 +5,7 @@ Page CRUD operations for knowledge base management.
 
 from typing import Optional
 import logging
-from agno import tool
+from agno.tools import tool
 
 from .http_utils import api_get, api_post, api_patch, API_BASE_URL
 

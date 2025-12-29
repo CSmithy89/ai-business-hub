@@ -36,7 +36,7 @@ from providers import resolve_and_create_model, get_provider_resolver, ResolvedP
 from providers.byoai_client import BYOAIClient
 
 # Import platform agents
-from platform.approval_agent import ApprovalAgent
+from core_platform.approval_agent import ApprovalAgent
 
 # Import team factories
 from validation.team import create_validation_team
@@ -383,16 +383,16 @@ async def _record_usage(
 async def _run_team(
     team_name: str,
     request_data: TeamRunRequest,
-    req: Request,
+    request: Request,
 ) -> TeamRunResponse:
     """Run agent team and return JSON response."""
     config = TEAM_CONFIG.get(team_name)
     if not config:
         raise HTTPException(status_code=400, detail=f"Unknown team: {team_name}")
 
-    workspace_id = getattr(req.state, "workspace_id", None)
-    user_id = getattr(req.state, "user_id", None)
-    jwt_token = getattr(req.state, "jwt_token", None)
+    workspace_id = getattr(request.state, "workspace_id", None)
+    user_id = getattr(request.state, "user_id", None)
+    jwt_token = getattr(request.state, "jwt_token", None)
 
     if not workspace_id or not user_id:
         raise HTTPException(
@@ -471,16 +471,16 @@ async def _run_team(
 async def _run_team_stream(
     team_name: str,
     request_data: TeamRunRequest,
-    req: Request,
+    request: Request,
 ):
     """Run agent team with AG-UI SSE streaming."""
     config = TEAM_CONFIG.get(team_name)
     if not config:
         raise HTTPException(status_code=400, detail=f"Unknown team: {team_name}")
 
-    workspace_id = getattr(req.state, "workspace_id", None)
-    user_id = getattr(req.state, "user_id", None)
-    jwt_token = getattr(req.state, "jwt_token", None)
+    workspace_id = getattr(request.state, "workspace_id", None)
+    user_id = getattr(request.state, "user_id", None)
+    jwt_token = getattr(request.state, "jwt_token", None)
 
     if not workspace_id or not user_id:
         raise HTTPException(status_code=401, detail="Authentication required.")
@@ -726,7 +726,7 @@ async def a2a_agent_card(agent_id: str):
 
 @app.post("/a2a/{agent_id}/rpc")
 @limiter.limit("20/minute")
-async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
+async def a2a_rpc(agent_id: str, rpc_request: JSONRPCRequest, request: Request):
     """
     A2A JSON-RPC 2.0 Endpoint.
 
@@ -739,9 +739,9 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
         - capabilities: Get agent capabilities
     """
     # Validate JSON-RPC version
-    if request.jsonrpc != "2.0":
+    if rpc_request.jsonrpc != "2.0":
         return JSONRPCResponse(
-            id=request.id,
+            id=rpc_request.id,
             error=JSONRPCError(
                 code=-32600,
                 message="Invalid Request",
@@ -751,11 +751,11 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
 
     # SECURITY: Enforce tenant isolation / authentication for A2A calls.
     # Do not allow unauthenticated callers to execute agent tasks.
-    workspace_id = getattr(req.state, "workspace_id", None)
-    user_id = getattr(req.state, "user_id", None)
+    workspace_id = getattr(request.state, "workspace_id", None)
+    user_id = getattr(request.state, "user_id", None)
     if not workspace_id or not user_id:
         return JSONRPCResponse(
-            id=request.id,
+            id=rpc_request.id,
             error=JSONRPCError(
                 code=-32600,
                 message="Authentication required",
@@ -767,7 +767,7 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
     team = registry.get_team(agent_id)
     if not team:
         return JSONRPCResponse(
-            id=request.id,
+            id=rpc_request.id,
             error=JSONRPCError(
                 code=-32601,
                 message="Method not found",
@@ -776,11 +776,11 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
         )
 
     # Handle methods
-    if request.method == "run":
-        task = request.params.get("task")
+    if rpc_request.method == "run":
+        task = rpc_request.params.get("task")
         if not task:
             return JSONRPCResponse(
-                id=request.id,
+                id=rpc_request.id,
                 error=JSONRPCError(
                     code=-32602,
                     message="Invalid params",
@@ -790,7 +790,7 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
 
         try:
             # Get context from params or request state
-            context = request.params.get("context", {})
+            context = rpc_request.params.get("context", {})
             caller_id = context.get("caller_id", "anonymous")
 
             logger.info(f"A2A RPC: {caller_id} -> {agent_id}: {task[:50]}...")
@@ -801,7 +801,7 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
             )
 
             return JSONRPCResponse(
-                id=request.id,
+                id=rpc_request.id,
                 result=JSONRPCResult(
                     content=response.content,
                     tool_calls=[],
@@ -810,7 +810,7 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
             )
         except asyncio.TimeoutError:
             return JSONRPCResponse(
-                id=request.id,
+                id=rpc_request.id,
                 error=JSONRPCError(
                     code=-32000,
                     message="Execution timeout",
@@ -820,7 +820,7 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
         except Exception as e:
             logger.error(f"A2A RPC error: {e}", exc_info=True)
             return JSONRPCResponse(
-                id=request.id,
+                id=rpc_request.id,
                 error=JSONRPCError(
                     code=-32603,
                     message="Internal error",
@@ -828,23 +828,23 @@ async def a2a_rpc(agent_id: str, request: JSONRPCRequest, req: Request):
                 )
             )
 
-    elif request.method == "health":
+    elif rpc_request.method == "health":
         health = _get_team_health(agent_id)
         return JSONRPCResponse(
-            id=request.id,
+            id=rpc_request.id,
             result=JSONRPCResult(content=json.dumps(health))
         )
 
-    elif request.method == "capabilities":
+    elif rpc_request.method == "capabilities":
         card = registry.get_card(agent_id)
         return JSONRPCResponse(
-            id=request.id,
+            id=rpc_request.id,
             result=JSONRPCResult(content=card.model_dump_json() if card else "{}")
         )
 
     else:
         return JSONRPCResponse(
-            id=request.id,
+            id=rpc_request.id,
             error=JSONRPCError(
                 code=-32601,
                 message="Method not found",
@@ -897,11 +897,11 @@ async def control_plane_sessions(request: Request):
 
 @app.post("/agents/approval/runs", response_model=AgentRunResponse)
 @limiter.limit("10/minute")
-async def run_approval_agent(request_data: AgentRunRequest, req: Request):
+async def run_approval_agent(request_data: AgentRunRequest, request: Request):
     """Run the ApprovalAgent."""
-    workspace_id = getattr(req.state, "workspace_id", None)
-    user_id = getattr(req.state, "user_id", None)
-    jwt_token = getattr(req.state, "jwt_token", None)
+    workspace_id = getattr(request.state, "workspace_id", None)
+    user_id = getattr(request.state, "user_id", None)
+    jwt_token = getattr(request.state, "jwt_token", None)
 
     if not workspace_id or not user_id:
         raise HTTPException(status_code=401, detail="Authentication required.")
@@ -945,7 +945,7 @@ async def approval_agent_info():
 
 @app.post("/agents/validation/runs")
 @limiter.limit("10/minute")
-async def run_validation_team(request_data: TeamRunRequest, req: Request):
+async def run_validation_team(request_data: TeamRunRequest, request: Request):
     """Run Validation Team. Set stream=true for SSE."""
     await validate_business_ownership(req, request_data.business_id)
     if request_data.stream:
@@ -961,7 +961,7 @@ async def validation_team_health():
 
 @app.post("/agents/planning/runs")
 @limiter.limit("10/minute")
-async def run_planning_team(request_data: TeamRunRequest, req: Request):
+async def run_planning_team(request_data: TeamRunRequest, request: Request):
     """Run Planning Team. Set stream=true for SSE."""
     await validate_business_ownership(req, request_data.business_id)
     if request_data.stream:
@@ -977,7 +977,7 @@ async def planning_team_health():
 
 @app.post("/agents/branding/runs")
 @limiter.limit("10/minute")
-async def run_branding_team(request_data: TeamRunRequest, req: Request):
+async def run_branding_team(request_data: TeamRunRequest, request: Request):
     """Run Branding Team. Set stream=true for SSE."""
     await validate_business_ownership(req, request_data.business_id)
     if request_data.stream:
@@ -1034,15 +1034,15 @@ class SearchKnowledgeRequest(BaseModel):
 @limiter.limit("20/minute")
 async def ingest_knowledge_document(
     request_data: IngestDocumentRequest,
-    req: Request,
+    request: Request,
 ):
     """
     Ingest a document into the workspace knowledge base.
 
     Supports: PDF, CSV, Markdown, DOCX, PPTX, JSON, URLs, YouTube, ArXiv
     """
-    workspace_id = getattr(req.state, "workspace_id", None)
-    jwt_token = getattr(req.state, "jwt_token", None)
+    workspace_id = getattr(request.state, "workspace_id", None)
+    jwt_token = getattr(request.state, "jwt_token", None)
 
     if not workspace_id:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -1072,11 +1072,11 @@ async def ingest_knowledge_document(
 @limiter.limit("30/minute")
 async def ingest_knowledge_text(
     request_data: IngestTextRequest,
-    req: Request,
+    request: Request,
 ):
     """Ingest raw text into the workspace knowledge base."""
-    workspace_id = getattr(req.state, "workspace_id", None)
-    jwt_token = getattr(req.state, "jwt_token", None)
+    workspace_id = getattr(request.state, "workspace_id", None)
+    jwt_token = getattr(request.state, "jwt_token", None)
 
     if not workspace_id:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -1105,15 +1105,15 @@ async def ingest_knowledge_text(
 @limiter.limit("60/minute")
 async def search_workspace_knowledge(
     request_data: SearchKnowledgeRequest,
-    req: Request,
+    request: Request,
 ):
     """
     Search the workspace knowledge base.
 
     Returns relevant documents based on semantic similarity.
     """
-    workspace_id = getattr(req.state, "workspace_id", None)
-    jwt_token = getattr(req.state, "jwt_token", None)
+    workspace_id = getattr(request.state, "workspace_id", None)
+    jwt_token = getattr(request.state, "jwt_token", None)
 
     if not workspace_id:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -1134,10 +1134,10 @@ async def search_workspace_knowledge(
 
 
 @app.get("/knowledge/status")
-async def knowledge_status(req: Request):
+async def knowledge_status(request: Request):
     """Get knowledge base status for the workspace."""
-    workspace_id = getattr(req.state, "workspace_id", None)
-    jwt_token = getattr(req.state, "jwt_token", None)
+    workspace_id = getattr(request.state, "workspace_id", None)
+    jwt_token = getattr(request.state, "jwt_token", None)
 
     if not workspace_id:
         raise HTTPException(status_code=401, detail="Authentication required")

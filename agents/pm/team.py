@@ -26,7 +26,7 @@ import re
 from typing import Optional
 from agno.team import Team
 from agno.models.anthropic import Claude
-from agno.storage.postgres import PostgresStorage
+from agno.db.postgres import PostgresDb
 from agno.memory import Memory
 
 from .navi import create_navi_agent
@@ -119,7 +119,7 @@ def create_pm_team(
     # Create shared memory for team context
     # Each workspace gets its own memory table for isolation
     shared_memory = Memory(
-        db=PostgresStorage(
+        db=PostgresDb(
             table_name=f"pm_agent_memory_{validated_workspace_id}",
             schema="agent_memory",
             db_url=get_postgres_url(),
