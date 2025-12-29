@@ -46,6 +46,15 @@ from branding.team import create_branding_team
 # Import Dashboard Gateway Agent
 from gateway import create_dashboard_gateway_agent, get_agent_metadata
 
+# Import PM agent A2A adapter factories (DM-02.5)
+from pm import (
+    PMA2AAdapter,
+    create_navi_a2a_adapter,
+    create_vitals_a2a_adapter,
+    create_herald_a2a_adapter,
+)
+from agno.memory import Memory
+
 # Import AgentOS multi-interface support
 from agentos import (
     create_agui_interface,
@@ -664,6 +673,9 @@ async def startup_event():
     # Initialize Dashboard Gateway Agent
     await startup_dashboard_gateway()
 
+    # Initialize PM Agent A2A interfaces (DM-02.5)
+    await startup_pm_agents_a2a()
+
 
 # =============================================================================
 # Dashboard Gateway Agent Setup
@@ -749,6 +761,100 @@ logger.info("A2A discovery endpoints mounted")
 
 
 # =============================================================================
+# PM Agent A2A Setup (DM-02.5)
+# =============================================================================
+
+# Global reference to PM agent A2A adapters
+_pm_adapters: Dict[str, PMA2AAdapter] = {}
+
+
+async def startup_pm_agents_a2a():
+    """
+    Initialize PM agent A2A interfaces on startup.
+
+    Creates A2A adapters for Navi, Vitals, and Herald agents
+    and stores them for A2A task routing according to INTERFACE_CONFIGS.
+
+    Note: This does NOT create new agent instances per-request - it creates
+    shared adapter instances that can handle A2A tasks. The actual agent
+    instances are created with workspace/project context per-request in
+    the existing REST endpoints.
+
+    For A2A, we use a "system" context that the Dashboard Gateway will
+    override with proper workspace/project context when routing requests.
+    """
+    global _pm_adapters
+
+    agentos_settings = get_agentos_settings()
+
+    # Skip if A2A is globally disabled
+    if not agentos_settings.a2a_enabled:
+        logger.info("A2A globally disabled, skipping PM agent A2A setup")
+        return
+
+    # Create shared memory for PM team (system context)
+    # In production, this would be replaced with proper per-workspace memory
+    shared_memory = Memory()
+
+    # PM agent configurations
+    pm_agents = [
+        {
+            "config_id": "navi",
+            "adapter_factory": create_navi_a2a_adapter,
+        },
+        {
+            "config_id": "pulse",  # Maps to Vitals implementation
+            "adapter_factory": create_vitals_a2a_adapter,
+        },
+        {
+            "config_id": "herald",
+            "adapter_factory": create_herald_a2a_adapter,
+        },
+    ]
+
+    for pm_config in pm_agents:
+        config_id = pm_config["config_id"]
+        config = get_interface_config(config_id)
+
+        if not config or not config.a2a_enabled:
+            logger.debug(f"Skipping {config_id} - A2A not enabled in config")
+            continue
+
+        try:
+            # Create adapter with system context
+            adapter = pm_config["adapter_factory"](
+                workspace_id="system",
+                project_id="system",
+                shared_memory=shared_memory,
+            )
+
+            # Set the A2A path on the adapter
+            adapter.a2a_path = config.a2a_path
+
+            _pm_adapters[config_id] = adapter
+
+            logger.info(f"PM agent A2A adapter created: {config_id} -> {config.a2a_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to create A2A adapter for {config_id}: {e}")
+
+    logger.info(f"PM agent A2A setup complete: {len(_pm_adapters)} adapters created")
+
+
+def get_pm_adapter(agent_id: str) -> Optional[PMA2AAdapter]:
+    """
+    Get a PM agent A2A adapter by agent ID.
+
+    Args:
+        agent_id: The agent identifier (navi, pulse, herald)
+
+    Returns:
+        The PMA2AAdapter instance or None if not found
+    """
+    return _pm_adapters.get(agent_id)
+
+
+# =============================================================================
 # Dashboard Gateway Health Endpoint
 # =============================================================================
 
@@ -790,6 +896,36 @@ async def dashboard_gateway_health():
             for name, iface in _dashboard_interfaces.items()
         },
         "widget_types": metadata["widget_types"],
+    }
+
+
+# =============================================================================
+# PM Agent A2A Health Endpoint (DM-02.5)
+# =============================================================================
+
+
+@app.get(
+    "/agents/pm/a2a/status",
+    tags=["health", "a2a"],
+    summary="PM Agents A2A Status",
+)
+async def pm_agents_a2a_status():
+    """
+    Get A2A status for PM agents.
+
+    Returns which PM agents have A2A adapters registered and their paths.
+    """
+    return {
+        "status": "enabled" if _pm_adapters else "disabled",
+        "adapters": {
+            agent_id: {
+                "registered": True,
+                "info": adapter.get_agent_info(),
+                "capabilities": adapter.get_capabilities(),
+            }
+            for agent_id, adapter in _pm_adapters.items()
+        },
+        "count": len(_pm_adapters),
     }
 
 

@@ -1,0 +1,896 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-02.5 - Existing Agent Protocol Updates
+  Generated: 2025-12-30
+  Epic: DM-02 | Story: 5 of 9 | Points: 5
+-->
+<story-context>
+  <metadata>
+    <story-id>DM-02.5</story-id>
+    <story-title>Existing Agent Protocol Updates</story-title>
+    <epic>DM-02 - Agno Multi-Interface Backend</epic>
+    <points>5</points>
+    <status>drafted</status>
+    <priority>High (PM agent A2A compatibility)</priority>
+    <dependencies>
+      <dependency status="complete">DM-02.2 - AgentOS Multi-Interface Setup</dependency>
+      <dependency status="complete">DM-02.3 - A2A AgentCard Discovery</dependency>
+      <dependency status="complete">DM-02.4 - Dashboard Gateway Agent</dependency>
+    </dependencies>
+  </metadata>
+
+  <summary>
+    Update existing PM agents (Navi, Vitals, Herald) to support A2A protocol for
+    inter-agent communication. These agents have A2A enabled in INTERFACE_CONFIGS
+    but currently lack the protocol integration code needed to expose them via
+    A2A endpoints.
+
+    Key Deliverables:
+    - A2A adapter module for wrapping PM agents with A2A protocol support
+    - Updated Navi agent with A2A interface registration
+    - Updated Vitals agent with A2A interface registration (note: "pulse" config maps to "vitals")
+    - Updated Herald agent with A2A interface registration (with pushNotifications)
+    - A2A interface mounting in main.py for all PM agents
+    - Unit tests verifying A2A compatibility and backward compatibility
+
+    Agent Naming Note:
+    - INTERFACE_CONFIGS uses "pulse" but implementation is "vitals" (renamed to avoid
+      collision with BM-Social.Pulse)
+    - A2A path remains /a2a/pulse for external API stability
+  </summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">Navi agent updated with A2A protocol support at /a2a/navi</criterion>
+    <criterion id="AC2">Vitals agent updated with A2A protocol support at /a2a/pulse (preserving config naming)</criterion>
+    <criterion id="AC3">Herald agent updated with A2A protocol support at /a2a/herald (with pushNotifications capability)</criterion>
+    <criterion id="AC4">A2A interfaces registered for all PM agents in AgentOS startup</criterion>
+    <criterion id="AC5">Backward compatibility maintained - existing REST endpoints continue to work unchanged</criterion>
+    <criterion id="AC6">Unit tests verify A2A compatibility for all three agents</criterion>
+  </acceptance-criteria>
+
+  <!-- ========================================================================
+       EXISTING PM AGENT CODE
+       ======================================================================== -->
+
+  <existing-code>
+    <file path="agents/pm/navi.py" purpose="PM Orchestration Assistant - needs A2A adapter factory">
+      <![CDATA[
+"""
+Navi Agent - PM Orchestration Assistant
+AI Business Hub - Project Management Module
+
+Navi is the team leader for PM operations, providing contextual help
+and orchestrating project management tasks through natural language.
+"""
+
+from typing import Optional
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.db.postgres import PostgresDb
+from agno.memory import Memory
+
+from .tools.pm_tools import get_project_status, list_tasks, search_kb
+from .tools.slash_commands import (
+    parse_slash_command,
+    create_task_from_command,
+    assign_task_from_command,
+    set_priority_from_command,
+    move_task_to_phase_from_command,
+    get_available_commands,
+)
+
+
+# Navi agent instructions
+NAVI_INSTRUCTIONS = [
+    "You are Navi, the PM orchestration assistant for HYVVE projects.",
+    "Help users manage their projects through natural language conversation.",
+    "Always suggest actions, never execute directly.",
+    "Use KB search to provide context-aware answers when appropriate.",
+    "Keep responses concise and actionable.",
+    "When asked about project status, use get_project_status tool.",
+    "When asked about tasks, use list_tasks tool with appropriate filters.",
+    "When you need project-specific context, use search_kb tool.",
+    "Provide helpful, conversational responses that guide users.",
+    "",
+    "# Slash Commands",
+    "You can recognize and handle slash commands that start with '/':",
+    "- /create-task [title] --desc [description] --priority [URGENT|HIGH|MEDIUM|LOW]",
+    "- /assign [task] to [assignee_name]",
+    "- /set-priority [task] [URGENT|HIGH|MEDIUM|LOW]",
+    "- /move-phase [task] to [phase_name]",
+    "- /help - Show available commands",
+    "",
+    "When you receive a slash command:",
+    "1. Use the appropriate command tool (create_task_from_command, assign_task_from_command, etc.)",
+    "2. The tool will return a suggestion object or an error",
+    "3. If successful, present the suggestion to the user for approval",
+    "4. If error, explain what went wrong and how to fix it",
+    "",
+    "Always explain what the slash command will do before creating the suggestion.",
+]
+
+
+def create_navi_agent(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> Agent:
+    """
+    Create Navi agent for PM orchestration.
+
+    Args:
+        workspace_id: Workspace/tenant identifier for multi-tenant isolation
+        project_id: Project context for scoped operations
+        shared_memory: Shared memory for team context
+        model: Optional model override (default: claude-sonnet-4-20250514)
+
+    Returns:
+        Configured Navi agent
+    """
+    return Agent(
+        name="Navi",
+        role="PM Orchestration Assistant",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=NAVI_INSTRUCTIONS + [
+            f"Workspace ID: {workspace_id}",
+            f"Project ID: {project_id}",
+        ],
+        tools=[
+            get_project_status,
+            list_tasks,
+            search_kb,
+            create_task_from_command,
+            assign_task_from_command,
+            set_priority_from_command,
+            move_task_to_phase_from_command,
+            get_available_commands,
+        ],
+        memory=shared_memory,
+        add_datetime_to_instructions=True,
+        markdown=True,
+    )
+      ]]>
+      <modification-required>
+        Add import for A2A adapter and create_navi_a2a_adapter factory function
+        that wraps the agent with PMA2AAdapter using agent_id="navi"
+      </modification-required>
+    </file>
+
+    <file path="agents/pm/vitals.py" purpose="Health Monitoring Specialist - needs A2A adapter factory with 'pulse' agent_id">
+      <![CDATA[
+"""
+Vitals Agent - Health Monitoring Specialist
+AI Business Hub - Project Management Module
+
+Vitals is the project health monitoring specialist for PM operations, providing
+continuous health tracking, risk detection, and early warning alerts.
+
+Note: Renamed from Pulse to avoid collision with BM-Social.Pulse (now Metrics).
+"""
+
+from typing import Optional
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.memory import Memory
+
+from .tools.health_tools import (
+    detect_risks,
+    calculate_health_score,
+    check_team_capacity,
+    analyze_velocity,
+    detect_blocker_chains,
+    get_overdue_tasks,
+)
+
+
+# Vitals agent instructions
+VITALS_INSTRUCTIONS = [
+    "You are Vitals, the project health monitoring specialist for HYVVE projects.",
+    "Continuously monitor project health and detect risks early.",
+    "Your core responsibilities:",
+    "- Calculate project health scores (0-100) with factor breakdown",
+    "- Detect and alert on four risk types",
+    "- Monitor team capacity and workload",
+    "- Track velocity trends vs baseline",
+    "- Provide actionable improvement suggestions",
+    "",
+    "# Risk Types to Detect",
+    "1. 48-hour deadline warning: Tasks due in next 48 hours",
+    "2. Blocker chain detected: 3+ tasks blocked by same dependency",
+    "3. Team member overloaded: >40 hours assigned this week",
+    "4. Velocity drop: 30% below 4-week baseline",
+    # ... (truncated for brevity)
+    "Keep responses data-driven, actionable, and focused on prevention over reaction.",
+]
+
+
+def create_vitals_agent(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> Agent:
+    """
+    Create Vitals agent for project health monitoring.
+
+    Args:
+        workspace_id: Workspace/tenant identifier for multi-tenant isolation
+        project_id: Project context for scoped operations
+        shared_memory: Shared memory for team context
+        model: Optional model override (default: claude-sonnet-4-20250514)
+
+    Returns:
+        Configured Vitals agent
+    """
+    return Agent(
+        name="Vitals",
+        role="Project Health Monitoring Specialist",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=VITALS_INSTRUCTIONS + [
+            f"Workspace ID: {workspace_id}",
+            f"Project ID: {project_id}",
+        ],
+        tools=[
+            detect_risks,
+            calculate_health_score,
+            check_team_capacity,
+            analyze_velocity,
+            detect_blocker_chains,
+            get_overdue_tasks,
+        ],
+        memory=shared_memory,
+        add_datetime_to_instructions=True,
+        markdown=True,
+    )
+      ]]>
+      <modification-required>
+        Add import for A2A adapter and create_vitals_a2a_adapter factory function
+        that wraps the agent with PMA2AAdapter using agent_id="pulse" (NOT "vitals")
+        to match INTERFACE_CONFIGS for external API stability
+      </modification-required>
+    </file>
+
+    <file path="agents/pm/herald.py" purpose="Automated Reporting Specialist - needs A2A adapter factory with pushNotifications">
+      <![CDATA[
+"""
+Herald Agent - Automated Reporting Specialist
+AI Business Hub - Project Management Module
+
+Herald is the automated reporting specialist for PM operations, generating
+clear, concise reports for project status, health, and progress.
+"""
+
+from typing import Optional
+from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.memory import Memory
+
+from .tools.report_tools import (
+    generate_project_report,
+    generate_health_report,
+    generate_progress_report,
+    get_report_history,
+)
+
+
+# Herald agent instructions
+HERALD_INSTRUCTIONS = [
+    "You are Herald, the automated reporting specialist for HYVVE projects.",
+    "Generate clear, concise reports for different audiences and purposes.",
+    "Always provide accurate, data-driven insights based on project metrics.",
+    "",
+    "# Report Types",
+    "You can generate three types of reports:",
+    "",
+    "1. **Project Status Report** - Overall project health and progress",
+    "2. **Health Report** - Detailed health analysis",
+    "3. **Progress Report** - Timeline and completion focus",
+    # ... (truncated for brevity)
+]
+
+
+def create_herald_agent(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> Agent:
+    """
+    Create Herald agent for automated report generation.
+
+    Args:
+        workspace_id: Workspace/tenant identifier for multi-tenant isolation
+        project_id: Project context for scoped operations
+        shared_memory: Shared memory for team context
+        model: Optional model override (default: claude-sonnet-4-20250514)
+
+    Returns:
+        Configured Herald agent
+    """
+    return Agent(
+        name="Herald",
+        role="Automated Reporting Specialist",
+        model=Claude(id=model or "claude-sonnet-4-20250514"),
+        instructions=HERALD_INSTRUCTIONS + [
+            f"Workspace ID: {workspace_id}",
+            f"Project ID: {project_id}",
+        ],
+        tools=[
+            generate_project_report,
+            generate_health_report,
+            generate_progress_report,
+            get_report_history,
+        ],
+        memory=shared_memory,
+        add_datetime_to_instructions=True,
+        markdown=True,
+    )
+      ]]>
+      <modification-required>
+        Add import for A2A adapter and create_herald_a2a_adapter factory function
+        that wraps the agent with PMA2AAdapter using agent_id="herald".
+        Note: Herald has pushNotifications capability enabled in AGENT_METADATA.
+      </modification-required>
+    </file>
+  </existing-code>
+
+  <!-- ========================================================================
+       INFRASTRUCTURE CODE
+       ======================================================================== -->
+
+  <infrastructure-code>
+    <file path="agents/agentos/config.py" purpose="Interface configuration - already has PM agents defined">
+      <![CDATA[
+# Default interface configurations for known agents
+INTERFACE_CONFIGS: List[InterfaceConfig] = [
+    InterfaceConfig(
+        agent_id="dashboard_gateway",
+        agui_enabled=True,
+        agui_path="/agui",
+        a2a_enabled=True,
+        a2a_path="/a2a/dashboard",
+    ),
+    InterfaceConfig(
+        agent_id="navi",
+        agui_enabled=False,  # PM agents don't have AG-UI
+        a2a_enabled=True,
+        a2a_path="/a2a/navi",
+    ),
+    InterfaceConfig(
+        agent_id="pulse",  # Maps to Vitals implementation
+        agui_enabled=False,
+        a2a_enabled=True,
+        a2a_path="/a2a/pulse",
+    ),
+    InterfaceConfig(
+        agent_id="herald",
+        agui_enabled=False,
+        a2a_enabled=True,
+        a2a_path="/a2a/herald",
+    ),
+]
+
+
+def get_interface_config(agent_id: str) -> Optional[InterfaceConfig]:
+    """Get interface configuration for a specific agent."""
+    for config in INTERFACE_CONFIGS:
+        if config.agent_id == agent_id:
+            return config
+    return None
+      ]]>
+      <key-insight>
+        PM agents (navi, pulse, herald) have:
+        - agui_enabled=False (they are called by Dashboard Gateway, not frontend)
+        - a2a_enabled=True (for inter-agent communication)
+
+        Note: "pulse" agent_id maps to Vitals implementation
+      </key-insight>
+    </file>
+
+    <file path="agents/a2a/agent_card.py" purpose="A2A AgentCard metadata - already has PM agents defined">
+      <![CDATA[
+# Agent metadata for card generation
+AGENT_METADATA: Dict[str, Dict[str, Any]] = {
+    "dashboard_gateway": {
+        "name": "dashboard_gateway",
+        "description": "Dashboard Gateway agent for HYVVE...",
+        "skills": [...],
+        "capabilities": Capabilities(streaming=True, pushNotifications=False, stateTransfer=False),
+    },
+    "navi": {
+        "name": "navi",
+        "description": "Navi - Project Navigator agent for HYVVE PM module...",
+        "skills": [
+            Skill(id="get_project_context", name="Get Project Context", ...),
+            Skill(id="create_task", name="Create Task", ...),
+            Skill(id="update_task_status", name="Update Task Status", ...),
+        ],
+        "capabilities": Capabilities(streaming=True, pushNotifications=False, stateTransfer=False),
+    },
+    "pulse": {
+        "name": "pulse",
+        "description": "Pulse - Project Health Monitor agent for HYVVE PM module...",
+        "skills": [
+            Skill(id="get_project_health", name="Get Project Health", ...),
+            Skill(id="check_deadlines", name="Check Deadlines", ...),
+        ],
+        "capabilities": Capabilities(streaming=True, pushNotifications=False, stateTransfer=False),
+    },
+    "herald": {
+        "name": "herald",
+        "description": "Herald - Communication Coordinator agent for HYVVE PM module...",
+        "skills": [
+            Skill(id="send_notification", name="Send Notification", ...),
+            Skill(id="generate_status_update", name="Generate Status Update", ...),
+        ],
+        "capabilities": Capabilities(
+            streaming=True,
+            pushNotifications=True,  # Herald has push notifications!
+            stateTransfer=False,
+        ),
+    },
+}
+      ]]>
+      <key-insight>
+        Herald is the ONLY PM agent with pushNotifications=True capability.
+        This enables proactive status update delivery to other agents.
+      </key-insight>
+    </file>
+
+    <file path="agents/gateway/agent.py" purpose="Dashboard Gateway pattern - reference for interface mounting">
+      <![CDATA[
+"""
+Dashboard Gateway Agent
+
+The Dashboard Gateway is the primary interface between the frontend CopilotKit
+and the backend agent system. It orchestrates dashboard widgets by coordinating
+with specialist agents and rendering visual components.
+
+Key Responsibilities:
+1. UNDERSTAND user requests about their workspace, projects, or business
+2. ORCHESTRATE data gathering from specialist agents via A2A
+3. RENDER visual widgets on the user's dashboard
+
+This agent has BOTH interfaces enabled:
+- AG-UI: For CopilotKit frontend streaming (at /agui)
+- A2A: For backend agent orchestration (at /a2a/dashboard)
+"""
+
+
+def create_dashboard_gateway_agent(
+    workspace_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+):
+    """Create a Dashboard Gateway agent instance."""
+    try:
+        from agno.agent import Agent
+        from agno.models.anthropic import Claude
+        AGNO_AVAILABLE = True
+    except ImportError:
+        AGNO_AVAILABLE = False
+
+    if not AGNO_AVAILABLE:
+        return _create_mock_agent(workspace_id, model_id, user_id)
+
+    # Build agent with instructions and tools
+    agent = Agent(
+        name="dashboard_gateway",
+        role="Dashboard Gateway",
+        description="...",
+        model=Claude(id=model_id or "claude-sonnet-4-20250514"),
+        instructions=instructions,
+        tools=get_all_tools(),
+        add_datetime_to_instructions=True,
+        markdown=True,
+        show_tool_calls=True,
+    )
+
+    return agent
+
+
+def get_agent_metadata() -> Dict[str, Any]:
+    """Get metadata about the Dashboard Gateway agent."""
+    return {
+        "name": "dashboard_gateway",
+        "description": "Dashboard Gateway agent for HYVVE...",
+        "tools": ["render_dashboard_widget", "get_dashboard_capabilities", "route_to_agent"],
+        "interfaces": {
+            "agui": {"enabled": True, "path": "/agui"},
+            "a2a": {"enabled": True, "path": "/a2a/dashboard"},
+        },
+        "widget_types": WIDGET_TYPES,
+    }
+      ]]>
+      <key-insight>
+        Dashboard Gateway shows the pattern for interface-aware agents.
+        PM agents are simpler - A2A only, no AG-UI.
+      </key-insight>
+    </file>
+
+    <file path="agents/main.py" purpose="AgentOS main entry - where PM A2A interfaces need to be mounted">
+      <key-sections>
+        <section name="Dashboard Gateway Setup">
+          <![CDATA[
+# Global reference to the dashboard agent
+_dashboard_agent = None
+_dashboard_interfaces = {}
+
+
+async def startup_dashboard_gateway():
+    """Initialize Dashboard Gateway agent and mount interfaces on startup."""
+    global _dashboard_agent, _dashboard_interfaces
+
+    agentos_settings = get_agentos_settings()
+    config = get_interface_config("dashboard_gateway")
+
+    # Create the Dashboard Gateway agent
+    _dashboard_agent = create_dashboard_gateway_agent(workspace_id="system")
+
+    # Mount AG-UI interface if enabled
+    if config.agui_enabled and config.agui_path and agentos_settings.agui_enabled:
+        agui_interface = create_agui_interface(
+            agent=_dashboard_agent,
+            path=config.agui_path,
+            timeout_seconds=config.get_agui_timeout(),
+        )
+        _dashboard_interfaces["agui"] = agui_interface
+        if hasattr(agui_interface, "router"):
+            app.include_router(agui_interface.router, tags=["ag-ui"])
+
+    # Mount A2A interface if enabled
+    if config.a2a_enabled and config.a2a_path and agentos_settings.a2a_enabled:
+        a2a_interface = create_a2a_interface(
+            agent=_dashboard_agent,
+            path=config.a2a_path,
+            timeout_seconds=config.get_a2a_timeout(),
+        )
+        _dashboard_interfaces["a2a"] = a2a_interface
+        if hasattr(a2a_interface, "router"):
+            app.include_router(a2a_interface.router, tags=["a2a"])
+          ]]>
+        </section>
+        <section name="Startup Event">
+          <![CDATA[
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services and register agents on startup."""
+    logger.info("AgentOS starting up...")
+
+    # Register teams in the A2A registry
+    for team_name, config in TEAM_CONFIG.items():
+        team = config["factory"](session_id="registry", user_id="system")
+        registry.register_team(team, override_id=team_name)
+
+    # Initialize Dashboard Gateway Agent
+    await startup_dashboard_gateway()
+          ]]>
+        </section>
+      </key-sections>
+      <modification-required>
+        Add PM agent A2A interface mounting:
+        - Import create_*_a2a_adapter factories from pm module
+        - Create startup_pm_agents_a2a() function similar to Dashboard Gateway pattern
+        - Call it from startup_event()
+        - Store adapters in global _pm_adapters dict
+        - Add /agents/pm/a2a/status health endpoint
+      </modification-required>
+    </file>
+
+    <file path="agents/constants/dm_constants.py" purpose="All magic numbers - use these values">
+      <![CDATA[
+class DMConstants:
+    """Dynamic Module System constants - no magic numbers in code."""
+
+    # A2A Protocol
+    class A2A:
+        PROTOCOL_VERSION = "0.3.0"
+        TASK_TIMEOUT_SECONDS = 300
+        MAX_TASK_QUEUE_SIZE = 1000
+        AGENT_DISCOVERY_CACHE_TTL_SECONDS = 300
+        HEARTBEAT_INTERVAL_SECONDS = 30
+        MAX_MESSAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+    # AgentOS Configuration
+    class AGENTOS:
+        DEFAULT_PORT = 8000
+        WORKER_COUNT = 4
+        REQUEST_TIMEOUT_SECONDS = 30
+        KEEP_ALIVE_SECONDS = 65
+        MAX_CONCURRENT_TASKS = 100
+      ]]>
+      <usage-note>
+        All timeout values and configuration numbers MUST come from DMConstants.
+        Example: DMConstants.A2A.TASK_TIMEOUT_SECONDS instead of hardcoded 300
+      </usage-note>
+    </file>
+  </infrastructure-code>
+
+  <!-- ========================================================================
+       TECH SPEC REFERENCE (Section 3.5)
+       ======================================================================== -->
+
+  <tech-spec-reference section="3.5">
+    <title>Story DM-02.5: Existing Agent Protocol Updates</title>
+    <objective>Update existing PM agents for A2A compatibility</objective>
+
+    <a2a-adapter-pattern>
+      <![CDATA[
+"""A2A protocol adapter for PM agents."""
+from typing import Optional, Dict, Any
+from agno.agent import Agent
+from agno.os.interfaces.a2a import A2AInterface
+
+from agents.constants.dm_constants import DMConstants
+
+
+class PMA2AAdapter:
+    """
+    Adapter to expose PM agents via A2A protocol.
+
+    This maintains backward compatibility with existing REST endpoints
+    while adding A2A interface support.
+    """
+
+    def __init__(self, agent: Agent, agent_id: str):
+        self.agent = agent
+        self.agent_id = agent_id
+        self._a2a_interface: Optional[A2AInterface] = None
+
+    def create_a2a_interface(self, path: str) -> A2AInterface:
+        """Create A2A interface for this agent."""
+        self._a2a_interface = A2AInterface(
+            agent=self.agent,
+            path=path,
+            timeout=DMConstants.A2A.TASK_TIMEOUT_SECONDS,
+            max_concurrent=DMConstants.AGENTOS.MAX_CONCURRENT_TASKS,
+        )
+        return self._a2a_interface
+
+    async def handle_a2a_task(
+        self,
+        task_message: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Handle an A2A task request."""
+        response = await self.agent.arun(message=task_message)
+
+        return {
+            "content": response.content,
+            "tool_calls": getattr(response, 'tool_calls', []),
+            "artifacts": [],
+        }
+      ]]>
+    </a2a-adapter-pattern>
+
+    <main-py-update-pattern>
+      <![CDATA[
+# Update startup_event to register PM agents for A2A
+from pm.navi import create_navi_a2a_adapter
+from pm.pulse import create_pulse_a2a_adapter
+from pm.herald import create_herald_a2a_adapter
+
+# Create A2A adapters for PM agents
+navi_adapter = create_navi_a2a_adapter(...)
+pulse_adapter = create_pulse_a2a_adapter(...)
+herald_adapter = create_herald_a2a_adapter(...)
+
+# Register A2A interfaces
+app.include_router(navi_adapter.create_a2a_interface("/a2a/navi").router)
+app.include_router(pulse_adapter.create_a2a_interface("/a2a/pulse").router)
+app.include_router(herald_adapter.create_a2a_interface("/a2a/herald").router)
+      ]]>
+    </main-py-update-pattern>
+
+    <definition-of-done>
+      <item>Navi, Pulse, Herald respond to A2A Tasks</item>
+      <item>Existing REST endpoints unchanged</item>
+      <item>A2A responses properly formatted</item>
+      <item>No breaking changes to current PM workflows</item>
+    </definition-of-done>
+  </tech-spec-reference>
+
+  <!-- ========================================================================
+       FILES TO CREATE/MODIFY
+       ======================================================================== -->
+
+  <implementation-plan>
+    <files-to-create>
+      <file path="agents/pm/a2a_adapter.py" purpose="A2A adapter class for wrapping PM agents">
+        <content-outline>
+          - PMA2AAdapter class with handle_a2a_task method
+          - get_agent_info() for discovery
+          - get_capabilities() with Herald pushNotifications
+          - create_pm_a2a_adapter() factory function
+        </content-outline>
+      </file>
+      <file path="agents/tests/test_dm_02_5_pm_agents_a2a.py" purpose="Comprehensive unit tests">
+        <test-classes>
+          - TestPMA2AAdapter (7 tests)
+          - TestCreatePmA2aAdapter (1 test)
+          - TestNaviA2AAdapter (2 tests)
+          - TestVitalsA2AAdapter (2 tests) - verify uses "pulse" agent_id
+          - TestHeraldA2AAdapter (2 tests) - verify pushNotifications
+          - TestInterfaceConfigAlignment (4 tests)
+          - TestAgentMetadataAlignment (4 tests)
+          - TestBackwardCompatibility (3 tests)
+          - TestDMConstantsUsage (1 test)
+        </test-classes>
+      </file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file path="agents/pm/navi.py">
+        Add import of A2A adapter
+        Add create_navi_a2a_adapter() factory function
+      </file>
+      <file path="agents/pm/vitals.py">
+        Add import of A2A adapter
+        Add create_vitals_a2a_adapter() factory (uses "pulse" agent_id)
+      </file>
+      <file path="agents/pm/herald.py">
+        Add import of A2A adapter
+        Add create_herald_a2a_adapter() factory
+      </file>
+      <file path="agents/pm/__init__.py">
+        Export adapter factories (currently empty)
+      </file>
+      <file path="agents/main.py">
+        Add PM agent A2A adapter creation at startup
+        Add /agents/pm/a2a/status health endpoint
+      </file>
+    </files-to-modify>
+  </implementation-plan>
+
+  <!-- ========================================================================
+       TESTING REQUIREMENTS
+       ======================================================================== -->
+
+  <testing-requirements>
+    <unit-tests minimum-coverage="80%">
+      <test-suite name="TestPMA2AAdapter">
+        <test>test_adapter_creation - Verify adapter can be created with agent and agent_id</test>
+        <test>test_adapter_get_agent_info - Verify get_agent_info returns expected structure</test>
+        <test>test_adapter_get_capabilities_default - Verify default capabilities for non-Herald</test>
+        <test>test_adapter_get_capabilities_herald - Verify Herald has pushNotifications enabled</test>
+        <test>test_handle_a2a_task_success - Verify successful A2A task handling</test>
+        <test>test_handle_a2a_task_with_context - Verify A2A task with context formatting</test>
+        <test>test_handle_a2a_task_failure - Verify graceful exception handling</test>
+      </test-suite>
+
+      <test-suite name="TestInterfaceConfigAlignment">
+        <test>test_navi_config_exists - Verify INTERFACE_CONFIGS has navi with correct paths</test>
+        <test>test_pulse_config_exists - Verify INTERFACE_CONFIGS has pulse (maps to Vitals)</test>
+        <test>test_herald_config_exists - Verify INTERFACE_CONFIGS has herald</test>
+        <test>test_pm_agents_no_agui - Verify PM agents don't have AG-UI enabled</test>
+      </test-suite>
+
+      <test-suite name="TestAgentMetadataAlignment">
+        <test>test_navi_metadata_exists - Verify AGENT_METADATA has navi</test>
+        <test>test_pulse_metadata_exists - Verify AGENT_METADATA has pulse</test>
+        <test>test_herald_metadata_exists - Verify AGENT_METADATA has herald</test>
+        <test>test_herald_metadata_push_notifications - Verify Herald has pushNotifications=true</test>
+      </test-suite>
+
+      <test-suite name="TestBackwardCompatibility">
+        <test>test_navi_agent_unchanged - Verify create_navi_agent still works without A2A</test>
+        <test>test_vitals_agent_unchanged - Verify create_vitals_agent still works</test>
+        <test>test_herald_agent_unchanged - Verify create_herald_agent still works</test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test>test_a2a_navi_endpoint_responds - Verify /a2a/navi accepts A2A requests</test>
+      <test>test_a2a_pulse_endpoint_responds - Verify /a2a/pulse accepts A2A requests</test>
+      <test>test_a2a_herald_endpoint_responds - Verify /a2a/herald accepts A2A requests</test>
+      <test>test_rest_endpoints_unchanged - Verify existing REST endpoints still work</test>
+      <test>test_discovery_includes_pm_agents - Verify /.well-known/agent.json includes PM agents</test>
+    </integration-tests>
+  </testing-requirements>
+
+  <!-- ========================================================================
+       KEY IMPLEMENTATION NOTES
+       ======================================================================== -->
+
+  <implementation-notes>
+    <note id="1" importance="critical">
+      <title>Agent ID Mapping</title>
+      <content>
+        INTERFACE_CONFIGS uses "pulse" but implementation is "Vitals".
+        The create_vitals_a2a_adapter() function MUST use agent_id="pulse"
+        to preserve external API stability at /a2a/pulse.
+      </content>
+    </note>
+
+    <note id="2" importance="high">
+      <title>Herald Push Notifications</title>
+      <content>
+        Herald is the ONLY PM agent with pushNotifications=True capability.
+        The PMA2AAdapter.get_capabilities() method must check agent_id and
+        return pushNotifications=True only for "herald".
+      </content>
+    </note>
+
+    <note id="3" importance="high">
+      <title>Backward Compatibility</title>
+      <content>
+        The A2A adapters WRAP existing agents without modifying core logic:
+        1. create_navi_agent() must continue working unchanged
+        2. create_navi_a2a_adapter() is a NEW function that calls create_navi_agent()
+           and wraps the result
+        3. Existing REST endpoints remain functional
+      </content>
+    </note>
+
+    <note id="4" importance="medium">
+      <title>System Context for A2A</title>
+      <content>
+        A2A adapters are created with "system" workspace/project context at startup.
+        The Dashboard Gateway will override with proper per-request context when
+        routing A2A tasks to PM agents.
+      </content>
+    </note>
+
+    <note id="5" importance="high">
+      <title>DMConstants Usage</title>
+      <content>
+        All timeout and configuration values MUST use DMConstants:
+        - DMConstants.A2A.TASK_TIMEOUT_SECONDS
+        - DMConstants.AGENTOS.MAX_CONCURRENT_TASKS
+        NO hardcoded magic numbers allowed in the implementation.
+      </content>
+    </note>
+  </implementation-notes>
+
+  <!-- ========================================================================
+       A2A TASK COMMUNICATION PATTERN
+       ======================================================================== -->
+
+  <communication-pattern>
+    <sequence-diagram>
+      <![CDATA[
+Dashboard Gateway              PM Agent (via A2A Adapter)
+       |                                |
+       | -- A2A Task Request --------> |
+       |    (JSON-RPC 2.0)              |
+       |    {                           |
+       |      "jsonrpc": "2.0",         |
+       |      "method": "tasks/send",   |
+       |      "params": {               |
+       |        "message": {...}        |
+       |      },                        |
+       |      "id": "task-123"          |
+       |    }                           |
+       |                                |
+       |                           Agent.arun()
+       |                                |
+       | <-- A2A Task Response -------- |
+       |    {                           |
+       |      "content": "...",         |
+       |      "tool_calls": [...],      |
+       |      "artifacts": [],          |
+       |      "status": "completed"     |
+       |    }                           |
+      ]]>
+    </sequence-diagram>
+  </communication-pattern>
+
+  <!-- ========================================================================
+       REFERENCES
+       ======================================================================== -->
+
+  <references>
+    <reference type="epic-definition" path="docs/modules/bm-dm/epics/epic-dm-02-agno-multiinterface.md"/>
+    <reference type="tech-spec" path="docs/modules/bm-dm/epics/epic-dm-02-tech-spec.md" section="3.5"/>
+    <reference type="story-dm-02-3" path="docs/modules/bm-dm/stories/dm-02-3-a2a-agentcard-discovery.md" note="AGENT_METADATA"/>
+    <reference type="story-dm-02-4" path="docs/modules/bm-dm/stories/dm-02-4-dashboard-gateway-agent.md" note="Interface mounting pattern"/>
+    <reference type="config" path="agents/agentos/config.py" note="INTERFACE_CONFIGS"/>
+    <reference type="agent-card" path="agents/a2a/agent_card.py" note="AGENT_METADATA"/>
+    <reference type="navi-agent" path="agents/pm/navi.py"/>
+    <reference type="vitals-agent" path="agents/pm/vitals.py"/>
+    <reference type="herald-agent" path="agents/pm/herald.py"/>
+    <reference type="constants" path="agents/constants/dm_constants.py"/>
+    <reference type="external" url="https://github.com/google/a2a-protocol" note="A2A Protocol Spec"/>
+  </references>
+</story-context>

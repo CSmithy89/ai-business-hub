@@ -17,6 +17,7 @@ from .tools.report_tools import (
     generate_progress_report,
     get_report_history,
 )
+from .a2a_adapter import PMA2AAdapter, create_pm_a2a_adapter
 
 
 # Herald agent instructions
@@ -117,3 +118,33 @@ def create_herald_agent(
         add_datetime_to_instructions=True,
         markdown=True,
     )
+
+
+def create_herald_a2a_adapter(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> PMA2AAdapter:
+    """
+    Create Herald agent with A2A adapter.
+
+    Herald has pushNotifications capability enabled, allowing it to
+    send proactive status updates to other agents via A2A protocol.
+
+    Args:
+        workspace_id: Workspace identifier for multi-tenant isolation
+        project_id: Project context for scoped operations
+        shared_memory: Shared memory for team context
+        model: Optional model override
+
+    Returns:
+        PMA2AAdapter wrapping the Herald agent (with pushNotifications)
+
+    Example:
+        >>> adapter = create_herald_a2a_adapter("ws_123", "proj_456", memory)
+        >>> capabilities = adapter.get_capabilities()
+        >>> assert capabilities["pushNotifications"] is True
+    """
+    agent = create_herald_agent(workspace_id, project_id, shared_memory, model)
+    return create_pm_a2a_adapter(agent=agent, agent_id="herald")

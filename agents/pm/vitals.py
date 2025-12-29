@@ -21,6 +21,7 @@ from .tools.health_tools import (
     detect_blocker_chains,
     get_overdue_tasks,
 )
+from .a2a_adapter import PMA2AAdapter, create_pm_a2a_adapter
 
 
 # Vitals agent instructions
@@ -127,3 +128,35 @@ def create_vitals_agent(
         add_datetime_to_instructions=True,
         markdown=True,
     )
+
+
+def create_vitals_a2a_adapter(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> PMA2AAdapter:
+    """
+    Create Vitals agent with A2A adapter.
+
+    Note: The A2A interface uses agent_id="pulse" for external API stability,
+    even though the implementation is "Vitals" (renamed from Pulse to avoid
+    collision with BM-Social.Pulse).
+
+    Args:
+        workspace_id: Workspace identifier for multi-tenant isolation
+        project_id: Project context for scoped operations
+        shared_memory: Shared memory for team context
+        model: Optional model override
+
+    Returns:
+        PMA2AAdapter wrapping the Vitals agent with agent_id="pulse"
+
+    Example:
+        >>> adapter = create_vitals_a2a_adapter("ws_123", "proj_456", memory)
+        >>> # Mount at /a2a/pulse (config path, not implementation name)
+        >>> assert adapter.agent_id == "pulse"
+    """
+    agent = create_vitals_agent(workspace_id, project_id, shared_memory, model)
+    # Use "pulse" as agent_id to match INTERFACE_CONFIGS
+    return create_pm_a2a_adapter(agent=agent, agent_id="pulse")

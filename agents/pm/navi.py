@@ -21,6 +21,7 @@ from .tools.slash_commands import (
     move_task_to_phase_from_command,
     get_available_commands,
 )
+from .a2a_adapter import PMA2AAdapter, create_pm_a2a_adapter
 
 
 # Navi agent instructions
@@ -93,3 +94,33 @@ def create_navi_agent(
         add_datetime_to_instructions=True,
         markdown=True,
     )
+
+
+def create_navi_a2a_adapter(
+    workspace_id: str,
+    project_id: str,
+    shared_memory: Memory,
+    model: Optional[str] = None,
+) -> PMA2AAdapter:
+    """
+    Create Navi agent with A2A adapter.
+
+    This factory creates a Navi agent and wraps it in an A2A adapter,
+    enabling A2A protocol communication while maintaining full agent
+    functionality.
+
+    Args:
+        workspace_id: Workspace identifier for multi-tenant isolation
+        project_id: Project context for scoped operations
+        shared_memory: Shared memory for team context
+        model: Optional model override
+
+    Returns:
+        PMA2AAdapter wrapping the Navi agent
+
+    Example:
+        >>> adapter = create_navi_a2a_adapter("ws_123", "proj_456", memory)
+        >>> info = adapter.get_agent_info()
+    """
+    agent = create_navi_agent(workspace_id, project_id, shared_memory, model)
+    return create_pm_a2a_adapter(agent=agent, agent_id="navi")
