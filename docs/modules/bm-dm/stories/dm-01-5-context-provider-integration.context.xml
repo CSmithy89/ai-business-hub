@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="dm-01-5-context-provider-integration">
+  <metadata>
+    <epic>DM-01</epic>
+    <story>DM-01.5</story>
+    <title>Context Provider Integration</title>
+    <points>5</points>
+    <status>drafted</status>
+    <generated>2025-12-29T00:00:00Z</generated>
+    <dependencies>
+      <dependency>DM-01.1 (CopilotKit Installation) - DONE</dependency>
+    </dependencies>
+  </metadata>
+
+  <story-requirements>
+    <summary>
+      Implement CopilotKit's useCopilotReadable hook to provide context awareness for AI agents.
+      This story creates a context provider system that supplies agents with information about:
+      - Active project (id, name, status, phase, progress)
+      - Current page/view (pathname, section, params)
+      - Selected tasks (ids, summaries)
+    </summary>
+
+    <acceptance-criteria>
+      <criterion id="AC1">Active project context available to agents - When a user is viewing a project, the agent receives project ID, name, status, and phase information</criterion>
+      <criterion id="AC2">Current page/view context provided - The agent knows which section (dashboard, projects, settings, etc.) and specific page the user is viewing</criterion>
+      <criterion id="AC3">Selected items context provided - When tasks are selected in list/kanban views, the agent receives selected task information</criterion>
+      <criterion id="AC4">Context updates reactively - Context automatically updates when user navigates or changes selection without page reload</criterion>
+    </acceptance-criteria>
+
+    <context-hierarchy>
+      <level name="Global Context (always available)">
+        <provider name="useCopilotPageContext">
+          <field>pathname - Current URL pathname</field>
+          <field>section - High-level section identifier (dashboard, projects, project-detail, tasks, knowledge-base, settings, onboarding, other)</field>
+          <field>params - URL parameters (projectSlug, taskId, etc.)</field>
+          <field>searchParams - Query string parameters</field>
+        </provider>
+      </level>
+      <level name="Project Context (when viewing a project)">
+        <provider name="useCopilotProjectContext">
+          <field>id - Project ID</field>
+          <field>slug - Project slug (URL-friendly identifier)</field>
+          <field>name - Project display name</field>
+          <field>status - Current project status</field>
+          <field>type - Project type</field>
+          <field>progress - { totalTasks, completedTasks, percentage }</field>
+          <field>currentPhase - { id, name, phaseNumber } | null</field>
+          <field>targetDate - Target completion date | null</field>
+        </provider>
+      </level>
+      <level name="Selection Context (in task views)">
+        <provider name="useCopilotSelectionContext">
+          <field>count - Number of selected items</field>
+          <field>taskIds - Array of selected task IDs</field>
+          <field>tasks - Array of { id, title, status, priority, type }</field>
+        </provider>
+      </level>
+    </context-hierarchy>
+  </story-requirements>
+
+  <existing-code>
+    <file path="apps/web/src/components/copilot/CopilotKitProvider.tsx">
+      <description>CopilotKit provider wrapper configured for AG-UI protocol</description>
+      <code><![CDATA[
+'use client';
+
+import { CopilotKit } from '@copilotkit/react-core';
+
+interface CopilotKitProviderProps {
+  children: React.ReactNode;
+}
+
+/**
+ * CopilotKit Provider Wrapper
+ *
+ * Configuration:
+ * - Uses NEXT_PUBLIC_AGNO_URL for Agno backend connection (appends /agui)
+ * - Falls back to /api/copilotkit mock route for local development
+ * - Optional NEXT_PUBLIC_COPILOTKIT_KEY for CopilotKit Cloud features
+ */
+export function CopilotKitProvider({ children }: CopilotKitProviderProps) {
+  const runtimeUrl = process.env.NEXT_PUBLIC_AGNO_URL
+    ? `${process.env.NEXT_PUBLIC_AGNO_URL}/agui`
+    : '/api/copilotkit';
+
+  return (
+    <CopilotKit
+      runtimeUrl={runtimeUrl}
+      publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_KEY}
+    >
+      {children}
+    </CopilotKit>
+  );
+}
+      ]]></code>
+    </file>
+
+    <file path="apps/web/src/components/copilot/index.ts">
+      <description>CopilotKit components barrel export - add new context exports here</description>
+      <exports>
+        <export>CopilotKitProvider</export>
+        <export>CopilotChat</export>
+        <export>CopilotChatButton</export>
+        <export>CopilotKeyboardShortcut</export>
+        <export>useCopilotChatState</export>
+      </exports>
+    </file>
+
+    <file path="apps/web/src/app/(dashboard)/layout.tsx">
+      <description>Dashboard layout - already a client component with hooks. Add useCopilotPageContext here.</description>
+      <key-imports>
+        <import>DashboardSlots from '@/components/slots'</import>
+        <import>CopilotChat, CopilotKeyboardShortcut from '@/components/copilot'</import>
+      </key-imports>
+      <notes>
+        - Layout is already 'use client'
+        - Uses useResponsiveLayout hook for responsive behavior
+        - DashboardSlots already integrated for widget rendering
+        - CopilotChat and CopilotKeyboardShortcut already integrated
+        - Add useCopilotPageContext() call after existing hooks
+      </notes>
+    </file>
+
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/project-shell.tsx">
+      <description>Project shell wrapper - ideal place for useCopilotProjectContext</description>
+      <code><![CDATA[
+'use client'
+
+import { useParams } from 'next/navigation'
+import { usePmProject } from '@/hooks/use-pm-projects'
+
+export function ProjectShell({ children }: { children: React.ReactNode }) {
+  const params = useParams<{ slug: string }>()
+  const slug = params?.slug
+
+  const { data } = usePmProject(slug)
+  const project = data?.data
+
+  // ... rest of component (quick capture dialog)
+
+  // ADD: useCopilotProjectContext(project) here
+}
+      ]]></code>
+      <notes>
+        - Already fetches project data via usePmProject hook
+        - Project data available as `project` (data?.data)
+        - Add useCopilotProjectContext(project ?? null) after usePmProject call
+      </notes>
+    </file>
+
+    <file path="apps/web/src/hooks/use-pm-projects.ts">
+      <description>Project hooks with React Query - provides project data types</description>
+      <key-types>
+        <type name="ProjectDetailResponse">
+          <field>data.id: string</field>
+          <field>data.slug: string</field>
+          <field>data.name: string</field>
+          <field>data.status: ProjectStatus</field>
+          <field>data.type: ProjectType</field>
+          <field>data.totalTasks: number</field>
+          <field>data.completedTasks: number</field>
+          <field>data.startDate: string | null</field>
+          <field>data.targetDate: string | null</field>
+          <field>data.phases: Array&lt;{ id, name, phaseNumber, status }&gt;</field>
+        </type>
+      </key-types>
+      <hooks>
+        <hook name="usePmProject(slug: string)">Returns UseQueryResult&lt;ProjectDetailResponse&gt;</hook>
+        <hook name="usePmProjects(filters)">Returns UseQueryResult&lt;ProjectsListResponse&gt;</hook>
+      </hooks>
+    </file>
+
+    <file path="apps/web/src/hooks/use-pm-tasks.ts">
+      <description>Task hooks with React Query - provides task data types</description>
+      <key-types>
+        <type name="TaskListItem">
+          <field>id: string</field>
+          <field>title: string</field>
+          <field>status: TaskStatus</field>
+          <field>priority: TaskPriority</field>
+          <field>type: TaskType</field>
+          <field>assigneeId: string | null</field>
+          <field>dueDate: string | null</field>
+        </type>
+        <type name="TaskStatus">'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'AWAITING_APPROVAL' | 'DONE' | 'CANCELLED'</type>
+        <type name="TaskPriority">'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'</type>
+        <type name="TaskType">'EPIC' | 'STORY' | 'TASK' | 'SUBTASK' | 'BUG' | 'RESEARCH' | 'CONTENT' | 'AGENT_REVIEW'</type>
+      </key-types>
+      <hooks>
+        <hook name="usePmTasks(query: ListTasksQuery)">Returns UseQueryResult&lt;TasksListResponse&gt;</hook>
+        <hook name="usePmTask(taskId: string | null)">Returns UseQueryResult&lt;TaskDetailResponse&gt;</hook>
+      </hooks>
+    </file>
+
+    <file path="apps/web/src/hooks/index.ts">
+      <description>Hooks barrel export - add new copilot context exports here</description>
+      <notes>
+        - Export the new useCopilotContext re-export file
+        - Or export individual context hooks from copilot-context module
+      </notes>
+    </file>
+  </existing-code>
+
+  <copilotkit-api>
+    <hook name="useCopilotReadable">
+      <description>
+        CopilotKit's useCopilotReadable hook provides a declarative way to share application state with agents.
+        Context is registered when component mounts and removed when unmounted.
+        Changes to the value trigger automatic updates to the agent.
+      </description>
+      <import>import { useCopilotReadable } from "@copilotkit/react-core";</import>
+      <signature><![CDATA[
+useCopilotReadable({
+  description: string,       // Human-readable description of what this context represents
+  value: any,               // The actual data object (should be JSON-serializable)
+  parentId?: string,        // Optional parent context ID for hierarchical structure
+  categories?: string[],    // Optional categories for filtering
+  available?: 'enabled' | 'disabled',  // Optional availability control
+  convert?: (description: string, value: any) => string,  // Optional custom serialization
+}): string                  // Returns context ID (useful for parentId)
+      ]]></signature>
+      <example><![CDATA[
+import { useCopilotReadable } from "@copilotkit/react-core";
+
+export function MyComponent() {
+  const [employees, setEmployees] = useState([]);
+
+  useCopilotReadable({
+    description: "The list of employees",
+    value: employees,
+  });
+}
+      ]]></example>
+      <best-practices>
+        <practice>Keep descriptions clear and suggest when to use the context</practice>
+        <practice>Value should be JSON-serializable (no circular references or class instances)</practice>
+        <practice>Context is only available while the hook is mounted</practice>
+        <practice>Use parentId for hierarchical context (e.g., project > phase > task)</practice>
+      </best-practices>
+    </hook>
+  </copilotkit-api>
+
+  <implementation-patterns>
+    <pattern name="Page Context Provider">
+      <description>Track navigation using Next.js hooks</description>
+      <code><![CDATA[
+'use client';
+
+import { useCopilotReadable } from '@copilotkit/react-core';
+import { usePathname, useParams, useSearchParams } from 'next/navigation';
+import type { PageContext, PageSection } from './types';
+
+function getSection(pathname: string): PageSection {
+  if (pathname.startsWith('/dashboard/pm/projects/')) return 'project-detail';
+  if (pathname.startsWith('/dashboard/pm/tasks')) return 'tasks';
+  if (pathname.startsWith('/dashboard/pm')) return 'projects';
+  if (pathname.startsWith('/dashboard/kb')) return 'knowledge-base';
+  if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname.startsWith('/onboarding')) return 'onboarding';
+  if (pathname === '/dashboard' || pathname === '/') return 'dashboard';
+  return 'other';
+}
+
+export function useCopilotPageContext(): void {
+  const pathname = usePathname();
+  const params = useParams();
+  const searchParams = useSearchParams();
+
+  const section = getSection(pathname);
+
+  // Convert params to plain object
+  const paramsObject: Record<string, string> = {};
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      paramsObject[key] = Array.isArray(value) ? value.join('/') : value;
+    }
+  }
+
+  // Convert searchParams to plain object
+  const searchParamsObject: Record<string, string> = {};
+  searchParams.forEach((value, key) => {
+    searchParamsObject[key] = value;
+  });
+
+  useCopilotReadable({
+    description: `Current page context: The user is viewing the "${section}" section at path "${pathname}".`,
+    value: { pathname, section, params: paramsObject, searchParams: searchParamsObject },
+  });
+}
+      ]]></code>
+    </pattern>
+
+    <pattern name="Project Context Provider">
+      <description>Provide active project context when viewing a project</description>
+      <code><![CDATA[
+'use client';
+
+import { useCopilotReadable } from '@copilotkit/react-core';
+import type { ProjectDetailResponse } from '@/hooks/use-pm-projects';
+import type { ProjectContext } from './types';
+
+export function useCopilotProjectContext(
+  project: ProjectDetailResponse['data'] | null
+): void {
+  const context = project ? {
+    id: project.id,
+    slug: project.slug,
+    name: project.name,
+    status: project.status,
+    type: project.type,
+    progress: {
+      totalTasks: project.totalTasks,
+      completedTasks: project.completedTasks,
+      percentage: project.totalTasks > 0
+        ? Math.round((project.completedTasks / project.totalTasks) * 100)
+        : 0,
+    },
+    currentPhase: project.phases?.find(p => p.status !== 'COMPLETED')
+      ?? project.phases?.[project.phases.length - 1]
+      ?? null,
+    targetDate: project.targetDate,
+  } : null;
+
+  useCopilotReadable({
+    description: context
+      ? `Active project: "${context.name}" (${context.status}). ${context.progress.percentage}% complete.`
+      : 'No project is currently selected.',
+    value: context,
+  });
+}
+      ]]></code>
+    </pattern>
+
+    <pattern name="Selection Context Provider">
+      <description>Track selected tasks in list/kanban views</description>
+      <code><![CDATA[
+'use client';
+
+import { useCopilotReadable } from '@copilotkit/react-core';
+import type { SelectionContext, SelectedTaskSummary } from './types';
+
+export function useCopilotSelectionContext(
+  selectedIds: string[],
+  taskSummaries: SelectedTaskSummary[]
+): void {
+  const count = selectedIds.length;
+
+  let description: string;
+  if (count === 0) {
+    description = 'No tasks are currently selected.';
+  } else if (count === 1) {
+    const task = taskSummaries[0];
+    description = `One task selected: "${task?.title}" (${task?.status}).`;
+  } else {
+    description = `${count} tasks selected.`;
+  }
+
+  useCopilotReadable({
+    description,
+    value: { count, taskIds: selectedIds, tasks: taskSummaries },
+  });
+}
+      ]]></code>
+    </pattern>
+
+    <pattern name="Client Wrapper for Server Layouts">
+      <description>If layout is a server component, use a client wrapper</description>
+      <code><![CDATA[
+'use client';
+
+import { useCopilotPageContext } from '@/hooks/useCopilotContext';
+
+export function CopilotPageContextProvider({ children }: { children: React.ReactNode }) {
+  useCopilotPageContext();
+  return <>{children}</>;
+}
+      ]]></code>
+    </pattern>
+  </implementation-patterns>
+
+  <files-to-create>
+    <file path="apps/web/src/hooks/copilot-context/types.ts">
+      <purpose>TypeScript interfaces for all context data shapes</purpose>
+      <types>
+        <type>PageContext - pathname, section, params, searchParams</type>
+        <type>PageSection - union type for section identifiers</type>
+        <type>ProjectContext - project details for agent context</type>
+        <type>SelectionContext - selected task information</type>
+        <type>SelectedTaskSummary - minimal task info for selections</type>
+      </types>
+    </file>
+
+    <file path="apps/web/src/hooks/copilot-context/use-copilot-page-context.ts">
+      <purpose>Page/navigation context hook using Next.js navigation hooks</purpose>
+      <exports>useCopilotPageContext()</exports>
+    </file>
+
+    <file path="apps/web/src/hooks/copilot-context/use-copilot-project-context.ts">
+      <purpose>Active project context hook consuming project data</purpose>
+      <exports>useCopilotProjectContext(project: ProjectDetailResponse['data'] | null)</exports>
+    </file>
+
+    <file path="apps/web/src/hooks/copilot-context/use-copilot-selection-context.ts">
+      <purpose>Task selection context hook for list/kanban views</purpose>
+      <exports>useCopilotSelectionContext(selectedIds: string[], taskSummaries: SelectedTaskSummary[])</exports>
+    </file>
+
+    <file path="apps/web/src/hooks/copilot-context/index.ts">
+      <purpose>Barrel export for copilot-context module</purpose>
+      <exports>
+        <export>All types from ./types</export>
+        <export>useCopilotPageContext from ./use-copilot-page-context</export>
+        <export>useCopilotProjectContext from ./use-copilot-project-context</export>
+        <export>useCopilotSelectionContext from ./use-copilot-selection-context</export>
+      </exports>
+    </file>
+
+    <file path="apps/web/src/hooks/useCopilotContext.ts">
+      <purpose>Re-export file for backward compatibility with tech spec path</purpose>
+      <exports>Re-exports all from ./copilot-context</exports>
+    </file>
+
+    <file path="apps/web/src/components/copilot/CopilotPageContextProvider.tsx">
+      <purpose>Optional client wrapper component for server layouts</purpose>
+      <exports>CopilotPageContextProvider</exports>
+      <notes>Only needed if layout is a server component (current layout is already client)</notes>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/src/app/(dashboard)/layout.tsx">
+      <change>Add useCopilotPageContext() hook call</change>
+      <location>After existing hooks (useUIStore, useResponsiveLayout), before return statement</location>
+      <import>import { useCopilotPageContext } from '@/hooks/useCopilotContext';</import>
+      <code-addition>useCopilotPageContext();</code-addition>
+    </file>
+
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/project-shell.tsx">
+      <change>Add useCopilotProjectContext() hook call</change>
+      <location>After usePmProject(slug) call, when project data is available</location>
+      <import>import { useCopilotProjectContext } from '@/hooks/useCopilotContext';</import>
+      <code-addition>useCopilotProjectContext(project ?? null);</code-addition>
+    </file>
+
+    <file path="apps/web/src/components/copilot/index.ts">
+      <change>Export CopilotPageContextProvider (optional)</change>
+      <export>export { CopilotPageContextProvider } from './CopilotPageContextProvider';</export>
+    </file>
+
+    <file path="apps/web/src/hooks/index.ts">
+      <change>Export copilot context hooks</change>
+      <exports>
+        <export>export { useCopilotPageContext, useCopilotProjectContext, useCopilotSelectionContext } from './useCopilotContext';</export>
+        <export>export type { PageContext, PageSection, ProjectContext, SelectionContext, SelectedTaskSummary } from './useCopilotContext';</export>
+      </exports>
+    </file>
+  </files-to-modify>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-file path="apps/web/src/hooks/copilot-context/__tests__/use-copilot-page-context.test.ts">
+        <test-case>identifies dashboard section correctly - /dashboard maps to 'dashboard'</test-case>
+        <test-case>identifies project detail section correctly - /dashboard/pm/projects/my-project maps to 'project-detail'</test-case>
+        <test-case>identifies tasks section correctly - /dashboard/pm/tasks maps to 'tasks'</test-case>
+        <test-case>identifies knowledge-base section correctly - /dashboard/kb/pages maps to 'knowledge-base'</test-case>
+        <test-case>identifies settings section correctly - /settings/profile maps to 'settings'</test-case>
+        <test-case>extracts params correctly - projectSlug param extracted from URL</test-case>
+        <test-case>extracts searchParams correctly - Query string params included in context</test-case>
+      </test-file>
+
+      <test-file path="apps/web/src/hooks/copilot-context/__tests__/use-copilot-project-context.test.ts">
+        <test-case>provides null context when no project</test-case>
+        <test-case>transforms project data correctly - all fields mapped</test-case>
+        <test-case>calculates progress percentage - 50/100 tasks = 50%</test-case>
+        <test-case>handles zero tasks - 0/0 tasks = 0% (no division by zero)</test-case>
+        <test-case>identifies current phase - first non-completed phase selected</test-case>
+        <test-case>handles project with no phases - currentPhase is null</test-case>
+      </test-file>
+
+      <test-file path="apps/web/src/hooks/copilot-context/__tests__/use-copilot-selection-context.test.ts">
+        <test-case>provides empty selection context - empty array results in count=0</test-case>
+        <test-case>provides single selection context - one ID results in count=1</test-case>
+        <test-case>provides multi-selection context - multiple IDs results in correct count</test-case>
+        <test-case>generates status summary - status distribution calculated correctly</test-case>
+      </test-file>
+    </unit-tests>
+
+    <mock-setup path="apps/web/src/hooks/copilot-context/__tests__/__mocks__/copilotkit.ts">
+      <code><![CDATA[
+import { vi } from 'vitest';
+
+export const mockUseCopilotReadable = vi.fn();
+
+vi.mock('@copilotkit/react-core', () => ({
+  useCopilotReadable: (options: { description: string; value: unknown }) => {
+    mockUseCopilotReadable(options);
+  },
+}));
+      ]]></code>
+    </mock-setup>
+  </testing-requirements>
+
+  <technical-notes>
+    <note category="CopilotKit Behavior">
+      Context is only available while the hook is mounted. If a user navigates away from a project, project context is removed automatically.
+    </note>
+    <note category="Value Serialization">
+      The value passed to useCopilotReadable should be JSON-serializable. Avoid circular references or class instances.
+    </note>
+    <note category="Description Quality">
+      The description field significantly impacts how well agents use the context. Be descriptive and suggest when to use it (e.g., "Use this context when the user asks about 'this project'").
+    </note>
+    <note category="Performance">
+      Context hooks are lightweight - they register context without heavy computation. Page context runs on every navigation but uses simple string operations.
+    </note>
+    <note category="Future Enhancements">
+      Story DM-06 (Contextual Intelligence) will extend these context providers with deep context, RAG integration, and bidirectional knowledge sync.
+    </note>
+  </technical-notes>
+
+  <definition-of-done>
+    <item>All context types defined in types.ts</item>
+    <item>useCopilotPageContext hook implemented and tested</item>
+    <item>useCopilotProjectContext hook implemented and tested</item>
+    <item>useCopilotSelectionContext hook implemented and tested</item>
+    <item>Barrel exports created in index.ts</item>
+    <item>Re-export file useCopilotContext.ts created</item>
+    <item>Page context integrated into dashboard layout</item>
+    <item>Project context integrated into project-shell.tsx</item>
+    <item>Context updates reactively on navigation (verified manually)</item>
+    <item>Context updates when project data loads (verified manually)</item>
+    <item>All unit tests passing (>80% coverage)</item>
+    <item>No TypeScript errors</item>
+    <item>No ESLint warnings</item>
+    <item>Code reviewed and approved</item>
+    <item>Story marked as done in sprint-status.yaml</item>
+  </definition-of-done>
+
+  <references>
+    <reference type="story">docs/modules/bm-dm/stories/dm-01-5-context-provider-integration.md</reference>
+    <reference type="tech-spec">docs/modules/bm-dm/epics/epic-dm-01-tech-spec.md - Section 6</reference>
+    <reference type="architecture">docs/architecture/dynamic-module-system.md - Phase 5 Context Awareness</reference>
+    <reference type="external">https://docs.copilotkit.ai/reference/hooks/useCopilotReadable</reference>
+    <reference type="external">https://nextjs.org/docs/app/api-reference/functions/use-pathname</reference>
+  </references>
+</story-context>

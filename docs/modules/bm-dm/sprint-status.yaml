@@ -61,7 +61,7 @@ development_status:
   dm-01-2-slot-system-foundation: done
   dm-01-3-base-widget-components: done
   dm-01-4-copilotkit-chat-integration: done
-  dm-01-5-context-provider-integration: backlog
+  dm-01-5-context-provider-integration: done
   dm-01-6-ccr-routing-settings-ui: backlog
   dm-01-7-ccr-connection-status: backlog
   dm-01-8-ccr-quota-usage-display: backlog

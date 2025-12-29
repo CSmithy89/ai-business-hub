@@ -47,6 +47,7 @@ import {
   CopilotChat,
   CopilotKeyboardShortcut,
 } from '@/components/copilot';
+import { useCopilotPageContext } from '@/hooks/useCopilotContext';
 
 // Lazy load ChatPanel to reduce initial bundle size (~75KB gzipped: react-markdown, remark-gfm, dompurify)
 const ChatPanel = dynamic(
@@ -71,6 +72,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     isTablet,
     isMobile,
   } = useResponsiveLayout();
+
+  // CopilotKit page context - provides navigation context to AI agents (Story DM-01.5)
+  useCopilotPageContext();
 
   // Tablet-specific drawer states
   const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
