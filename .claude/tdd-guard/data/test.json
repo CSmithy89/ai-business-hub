@@ -1,6 +1,461 @@
 {
   "testModules": [
     {
+      "moduleId": "tests/test_dm_02_6_ccr_health.py",
+      "tests": [
+        {
+          "name": "test_health_status_values",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestHealthStatus::test_health_status_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_health_status_from_string",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestHealthStatus::test_health_status_from_string",
+          "state": "passed"
+        },
+        {
+          "name": "test_provider_status_values",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestProviderStatus::test_provider_status_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_state",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthState::test_default_state",
+          "state": "passed"
+        },
+        {
+          "name": "test_custom_state",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthState::test_custom_state",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_with_defaults",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerInit::test_init_with_defaults",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_with_custom_values",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerInit::test_init_with_custom_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_uses_dm_constants",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerInit::test_init_uses_dm_constants",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_instance_creates_singleton[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerSingleton::test_get_instance_creates_singleton[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_instance_requires_url_first_time[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerSingleton::test_get_instance_requires_url_first_time[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_instance[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerSingleton::test_reset_instance[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_health_success[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerCheckHealth::test_check_health_success[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_health_connection_error[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerCheckHealth::test_check_health_connection_error[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_health_timeout_error[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerCheckHealth::test_check_health_timeout_error[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_health_consecutive_failures[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerCheckHealth::test_check_health_consecutive_failures[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_when_disabled[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerStartStop::test_start_when_disabled[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_when_not_running[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerStartStop::test_stop_when_not_running[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_none_when_not_initialized[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestGetCCRHealthChecker::test_returns_none_when_not_initialized[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_instance_when_initialized[asyncio]",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestGetCCRHealthChecker::test_returns_instance_when_initialized[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_initial_state",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerState::test_initial_state",
+          "state": "passed"
+        },
+        {
+          "name": "test_is_healthy_property",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerState::test_is_healthy_property",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_provider_status",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerState::test_get_provider_status",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict_basic",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerToDict::test_to_dict_basic",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict_with_providers",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerToDict::test_to_dict_with_providers",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict_with_last_check",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestCCRHealthCheckerToDict::test_to_dict_with_last_check",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_check_interval_uses_constant",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestDMConstantsUsage::test_default_check_interval_uses_constant",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_default_port_constant_exists",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestDMConstantsUsage::test_ccr_default_port_constant_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_max_retries_constant_exists",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestDMConstantsUsage::test_ccr_max_retries_constant_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_provider_timeout_constant_exists",
+          "fullName": "tests/test_dm_02_6_ccr_health.py::TestDMConstantsUsage::test_ccr_provider_timeout_constant_exists",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_dm_02_7_ccr_provider.py",
+      "tests": [
+        {
+          "name": "test_preferences_exist_for_key_agents",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_preferences_exist_for_key_agents",
+          "state": "passed"
+        },
+        {
+          "name": "test_dashboard_gateway_uses_reasoning",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_dashboard_gateway_uses_reasoning",
+          "state": "passed"
+        },
+        {
+          "name": "test_navi_uses_reasoning",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_navi_uses_reasoning",
+          "state": "passed"
+        },
+        {
+          "name": "test_sage_uses_code_generation",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_sage_uses_code_generation",
+          "state": "passed"
+        },
+        {
+          "name": "test_scribe_uses_long_context",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_scribe_uses_long_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_all_preferences_have_description",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestAgentModelPreferences::test_all_preferences_have_description",
+          "state": "passed"
+        },
+        {
+          "name": "test_known_agent_returns_task_type",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetAgentTaskType::test_known_agent_returns_task_type",
+          "state": "passed"
+        },
+        {
+          "name": "test_unknown_agent_returns_default",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetAgentTaskType::test_unknown_agent_returns_default",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_copy",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetAllAgentPreferences::test_returns_copy",
+          "state": "passed"
+        },
+        {
+          "name": "test_contains_all_preferences",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetAllAgentPreferences::test_contains_all_preferences",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_default_port_exists",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestDMConstantsUsage::test_ccr_default_port_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_health_check_interval_exists",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestDMConstantsUsage::test_ccr_health_check_interval_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_provider_timeout_exists",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestDMConstantsUsage::test_ccr_provider_timeout_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_model_init_with_defaults",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestCCRModelInit::test_ccr_model_init_with_defaults",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_model_init_with_task_type",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestCCRModelInit::test_ccr_model_init_with_task_type",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_disabled_returns_false",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestShouldUseCCR::test_ccr_disabled_returns_false",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_enabled_but_unhealthy_returns_false",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestShouldUseCCR::test_ccr_enabled_but_unhealthy_returns_false",
+          "state": "passed"
+        },
+        {
+          "name": "test_user_prefers_byoai_returns_false",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestShouldUseCCR::test_user_prefers_byoai_returns_false",
+          "state": "passed"
+        },
+        {
+          "name": "test_validation_skipped_when_disabled[asyncio]",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestValidateCCRConnection::test_validation_skipped_when_disabled[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_validation_succeeds_when_healthy[asyncio]",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestValidateCCRConnection::test_validation_succeeds_when_healthy[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_validation_fails_when_unhealthy[asyncio]",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestValidateCCRConnection::test_validation_fails_when_unhealthy[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_ccr_model_when_ccr_enabled",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetModelForAgent::test_returns_ccr_model_when_ccr_enabled",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_byoai_model_when_ccr_disabled",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestGetModelForAgent::test_returns_byoai_model_when_ccr_disabled",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_none_with_model_override",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestSelectModelForAgent::test_returns_none_with_model_override",
+          "state": "passed"
+        },
+        {
+          "name": "test_uses_agent_preferences",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestSelectModelForAgent::test_uses_agent_preferences",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_type_override",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py::TestSelectModelForAgent::test_task_type_override",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_dm_02_8_task_classifier.py",
+      "tests": [
+        {
+          "name": "test_task_type_values",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestTaskType::test_task_type_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_type_is_string_enum",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestTaskType::test_task_type_is_string_enum",
+          "state": "passed"
+        },
+        {
+          "name": "test_extracts_code_hint",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_extracts_code_hint",
+          "state": "passed"
+        },
+        {
+          "name": "test_extracts_reasoning_hint",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_extracts_reasoning_hint",
+          "state": "passed"
+        },
+        {
+          "name": "test_extracts_hint_from_middle",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_extracts_hint_from_middle",
+          "state": "passed"
+        },
+        {
+          "name": "test_case_insensitive",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_case_insensitive",
+          "state": "passed"
+        },
+        {
+          "name": "test_no_hint_returns_none",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_no_hint_returns_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_message_returns_none",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestExtractExplicitHints::test_empty_message_returns_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_classifies_reasoning_keywords",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_classifies_reasoning_keywords",
+          "state": "passed"
+        },
+        {
+          "name": "test_classifies_code_keywords",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_classifies_code_keywords",
+          "state": "passed"
+        },
+        {
+          "name": "test_classifies_long_context_keywords",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_classifies_long_context_keywords",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_code_phrase",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_write_code_phrase",
+          "state": "passed"
+        },
+        {
+          "name": "test_generate_code_phrase",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_generate_code_phrase",
+          "state": "passed"
+        },
+        {
+          "name": "test_no_keywords_returns_none",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_no_keywords_returns_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_message_returns_none",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyByKeywords::test_empty_message_returns_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_explicit_hint_priority",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_explicit_hint_priority",
+          "state": "passed"
+        },
+        {
+          "name": "test_agent_default_used",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_agent_default_used",
+          "state": "passed"
+        },
+        {
+          "name": "test_keyword_classification_fallback",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_keyword_classification_fallback",
+          "state": "passed"
+        },
+        {
+          "name": "test_general_fallback",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_general_fallback",
+          "state": "passed"
+        },
+        {
+          "name": "test_no_message_uses_agent_default",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestGetTaskTypeForAgent::test_no_message_uses_agent_default",
+          "state": "passed"
+        },
+        {
+          "name": "test_basic_classification",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyTask::test_basic_classification",
+          "state": "passed"
+        },
+        {
+          "name": "test_with_agent_id",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyTask::test_with_agent_id",
+          "state": "passed"
+        },
+        {
+          "name": "test_without_agent_id",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestClassifyTask::test_without_agent_id",
+          "state": "passed"
+        },
+        {
+          "name": "test_reasoning_keywords_exist",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_reasoning_keywords_exist",
+          "state": "passed"
+        },
+        {
+          "name": "test_code_keywords_exist",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_code_keywords_exist",
+          "state": "passed"
+        },
+        {
+          "name": "test_long_context_keywords_exist",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_long_context_keywords_exist",
+          "state": "passed"
+        },
+        {
+          "name": "test_explicit_hint_pattern_exists",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_explicit_hint_pattern_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_valid_task_types_exist",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestDMConstantsUsage::test_valid_task_types_exist",
+          "state": "passed"
+        },
+        {
+          "name": "test_mixed_keywords",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_mixed_keywords",
+          "state": "passed"
+        },
+        {
+          "name": "test_very_long_message",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_very_long_message",
+          "state": "passed"
+        },
+        {
+          "name": "test_special_characters",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_special_characters",
+          "state": "passed"
+        },
+        {
+          "name": "test_unicode_message",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_unicode_message",
+          "state": "passed"
+        },
+        {
+          "name": "test_normalize_hint_aliases",
+          "fullName": "tests/test_dm_02_8_task_classifier.py::TestEdgeCases::test_normalize_hint_aliases",
+          "state": "passed"
+        }
+      ]
+    },
+    {
       "moduleId": "tests/test_dm_02_9_ccr_usage.py",
       "tests": [
         {
