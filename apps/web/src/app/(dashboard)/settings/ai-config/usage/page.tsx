@@ -1,5 +1,6 @@
 import { SettingsLayout } from '@/components/layouts/settings-layout'
 import { TokenUsageDashboard } from '@/components/settings/token-usage-dashboard'
+import { CCRQuotaDisplay } from '@/components/settings/ccr-quota-display'
 import { AIConfigSubnav } from '@/components/settings/ai-config-subnav'
 import { WorkspaceRequired } from '@/components/settings/workspace-required'
 import { getSession } from '@/lib/auth-server'
@@ -19,7 +20,14 @@ export default async function SettingsUsagePage() {
       description="View and analyze your AI token consumption"
     >
       <AIConfigSubnav />
-      {workspaceId != null ? <TokenUsageDashboard /> : <WorkspaceRequired />}
+      {workspaceId != null ? (
+        <div className="space-y-6">
+          <CCRQuotaDisplay />
+          <TokenUsageDashboard />
+        </div>
+      ) : (
+        <WorkspaceRequired />
+      )}
     </SettingsLayout>
   )
 }

@@ -64,7 +64,7 @@ development_status:
   dm-01-5-context-provider-integration: done
   dm-01-6-ccr-routing-settings-ui: done
   dm-01-7-ccr-connection-status: done
-  dm-01-8-ccr-quota-usage-display: backlog
+  dm-01-8-ccr-quota-usage-display: done
   dm-01-retrospective: optional
 
   # ===========================================
