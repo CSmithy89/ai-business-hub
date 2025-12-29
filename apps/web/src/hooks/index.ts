@@ -25,3 +25,18 @@ export {
 // PM module hooks (Epic PM-05)
 export { usePmRisks, type RiskEntry } from './use-pm-risks';
 export { usePhaseTransition } from './use-phase-transition';
+
+// CopilotKit context hooks (Story DM-01.5)
+export {
+  useCopilotPageContext,
+  useCopilotProjectContext,
+  useCopilotSelectionContext,
+  getSection,
+  type PageSection,
+  type PageContext,
+  type ProjectProgress,
+  type ProjectPhaseInfo,
+  type ProjectContext,
+  type SelectedTaskSummary,
+  type SelectionContext,
+} from './useCopilotContext';

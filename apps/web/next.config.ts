@@ -95,8 +95,17 @@ const nextConfig: NextConfig & { typedRoutes?: boolean } = {
     ],
   },
 
-  // Transpile shared workspace packages
-  transpilePackages: ['@hyvve/shared', '@hyvve/ui'],
+  // Transpile shared workspace packages and CopilotKit (ESM compatibility)
+  transpilePackages: [
+    '@hyvve/shared',
+    '@hyvve/ui',
+    // CopilotKit and its dependencies require ESM transpilation (Story DM-01.4)
+    '@copilotkit/react-core',
+    '@copilotkit/react-ui',
+    '@copilotkitnext/react',
+    'streamdown',
+    'shiki',
+  ],
 };
 
 export default nextConfig;

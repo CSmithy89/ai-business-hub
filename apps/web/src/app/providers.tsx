@@ -8,6 +8,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeErrorTracking } from '@/lib/telemetry/error-tracking';
 import { RealtimeProvider } from '@/lib/realtime';
 import { useCsrfRefresh } from '@/hooks/use-csrf-refresh';
+import { CopilotKitProvider } from '@/components/copilot/CopilotKitProvider';
 
 function CsrfRefresher() {
   useCsrfRefresh();
@@ -62,10 +63,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <RealtimeProvider>
-          <TooltipProvider delayDuration={300}>
-            <CsrfRefresher />
-            {children}
-          </TooltipProvider>
+          <CopilotKitProvider>
+            <TooltipProvider delayDuration={300}>
+              <CsrfRefresher />
+              {children}
+            </TooltipProvider>
+          </CopilotKitProvider>
         </RealtimeProvider>
         <Toaster richColors position="top-right" />
       </ThemeProvider>

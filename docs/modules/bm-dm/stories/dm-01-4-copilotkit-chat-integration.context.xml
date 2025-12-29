@@ -1,0 +1,614 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="dm-01-4-copilotkit-chat-integration">
+  <metadata>
+    <epic>DM-01</epic>
+    <story>DM-01.4</story>
+    <title>CopilotKit Chat Integration</title>
+    <points>5</points>
+    <dependencies>DM-01.1 (CopilotKit Installation)</dependencies>
+    <generated>2025-12-29</generated>
+  </metadata>
+
+  <story-requirements>
+    <summary>
+      Add CopilotKit's pre-built chat UI to the HYVVE application, enabling users to
+      interact with AI agents via natural language throughout the dashboard.
+    </summary>
+
+    <acceptance-criteria>
+      <criterion id="AC1">Chat UI available globally - CopilotKit chat component renders on all dashboard pages</criterion>
+      <criterion id="AC2">Styling matches HYVVE theme - Chat colors, typography, and spacing follow design tokens</criterion>
+      <criterion id="AC3">Keyboard shortcut works - Cmd+/ (Mac) / Ctrl+/ (Windows) toggles the chat panel</criterion>
+      <criterion id="AC4">Chat persists across navigation - Conversation history maintained when navigating between pages</criterion>
+    </acceptance-criteria>
+
+    <tasks>
+      <task id="1" points="2">Create CopilotChat component wrapper with CopilotSidebar</task>
+      <task id="2" points="1">Create Zustand store hook for chat open/close state</task>
+      <task id="3" points="1">Create keyboard shortcut handler component (Cmd+/)</task>
+      <task id="4" points="0.5">Create toggle button component for header placement</task>
+      <task id="5" points="0.5">Add HYVVE theme CSS variables for CopilotKit styling</task>
+      <task id="6">Integrate components into dashboard layout</task>
+      <task id="7">Create barrel export in copilot/index.ts</task>
+    </tasks>
+
+    <component-choice>
+      <recommended>CopilotSidebar</recommended>
+      <rationale>
+        - Integrates well with existing dashboard layout (right-side panel support)
+        - Provides built-in message history and streaming support
+        - Includes accessibility features (keyboard navigation, ARIA labels)
+        - Existing ChatPanel uses right-side panel pattern
+      </rationale>
+      <alternative>CopilotPopup - floating experience if sidebar feels intrusive</alternative>
+    </component-choice>
+
+    <keyboard-shortcut-decision>
+      <recommended-shortcut>Cmd+/ (Mac) / Ctrl+/ (Windows)</recommended-shortcut>
+      <rationale>
+        - Existing KeyboardShortcuts.tsx already uses Cmd+K for Command Palette
+        - Cmd+/ already toggles existing ChatPanel in KeyboardShortcuts.tsx
+        - Using same shortcut maintains consistency - CopilotChat replaces/enhances ChatPanel
+        - Escape key closes chat (standard pattern)
+      </rationale>
+    </keyboard-shortcut-decision>
+
+    <state-persistence>
+      <mechanism>CopilotKit internal state management via React context</mechanism>
+      <rationale>CopilotKitProvider wraps entire application in providers.tsx, so state persists across navigation</rationale>
+    </state-persistence>
+  </story-requirements>
+
+  <existing-code>
+    <copilotkit-provider path="apps/web/src/components/copilot/CopilotKitProvider.tsx">
+      <![CDATA[
+'use client';
+
+import { CopilotKit } from '@copilotkit/react-core';
+
+interface CopilotKitProviderProps {
+  children: React.ReactNode;
+}
+
+export function CopilotKitProvider({ children }: CopilotKitProviderProps) {
+  const runtimeUrl = process.env.NEXT_PUBLIC_AGNO_URL
+    ? `${process.env.NEXT_PUBLIC_AGNO_URL}/agui`
+    : '/api/copilotkit';
+
+  return (
+    <CopilotKit
+      runtimeUrl={runtimeUrl}
+      publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_KEY}
+    >
+      {children}
+    </CopilotKit>
+  );
+}
+      ]]>
+    </copilotkit-provider>
+
+    <dashboard-layout path="apps/web/src/app/(dashboard)/layout.tsx">
+      <key-imports>
+        <![CDATA[
+import dynamic from 'next/dynamic';
+import { Header } from '@/components/shell/Header';
+import { Sidebar } from '@/components/shell/Sidebar';
+import { CommandPalette } from '@/components/command';
+import { KeyboardShortcuts } from '@/components/keyboard';
+import { useUIStore } from '@/stores/ui';
+import { DashboardSlots } from '@/components/slots';
+
+// Lazy load ChatPanel
+const ChatPanel = dynamic(
+  () => import('@/components/shell/ChatPanel').then((mod) => mod.ChatPanel),
+  { ssr: false, loading: () => null }
+);
+        ]]>
+      </key-imports>
+      <integration-points>
+        <point>DashboardSlots is already integrated in the layout (line 185)</point>
+        <point>ChatPanel is conditionally rendered for desktop/medium screens (lines 187-192)</point>
+        <point>KeyboardShortcuts component handles global shortcuts (line 227)</point>
+        <point>CommandPalette uses Cmd+K shortcut (line 224)</point>
+        <point>Layout uses useResponsiveLayout hook for responsive behavior</point>
+      </integration-points>
+    </dashboard-layout>
+
+    <ui-store path="apps/web/src/stores/ui.ts">
+      <zustand-pattern>
+        <![CDATA[
+// Example Zustand store pattern from existing codebase
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export const UI_STORE_KEY = 'hyvve-ui-state' as const;
+
+interface UIState {
+  chatPanelOpen: boolean;
+  toggleChatPanel: () => void;
+  // ... other state
+}
+
+export const useUIStore = create<UIState>()(
+  persist(
+    (set, get) => ({
+      chatPanelOpen: true,
+      toggleChatPanel: () => {
+        const state = get();
+        if (state.chatPanelPosition === 'collapsed') {
+          set({ chatPanelPosition: state.chatPanelPreviousPosition, chatPanelOpen: true });
+        } else {
+          set({ chatPanelPreviousPosition: state.chatPanelPosition, chatPanelPosition: 'collapsed', chatPanelOpen: false });
+        }
+      },
+    }),
+    { name: UI_STORE_KEY, skipHydration: true }
+  )
+);
+        ]]>
+      </zustand-pattern>
+    </ui-store>
+
+    <keyboard-shortcuts path="apps/web/src/components/keyboard/KeyboardShortcuts.tsx">
+      <existing-shortcuts>
+        <shortcut key="Cmd+K" action="toggleCommandPalette" />
+        <shortcut key="Cmd+B" action="toggleSidebar" />
+        <shortcut key="Cmd+/" action="toggleChatPanel" />
+        <shortcut key="/" action="expandChatPanel and focus input" />
+        <shortcut key="?" action="show help overlay" />
+        <shortcut key="Escape" action="close help overlay" />
+      </existing-shortcuts>
+      <note>Cmd+/ already toggles ChatPanel - CopilotChat should integrate with this</note>
+    </keyboard-shortcuts>
+
+    <dm-constants path="apps/web/src/lib/dm-constants.ts">
+      <![CDATA[
+export const DM_CONSTANTS = {
+  CHAT: {
+    MAX_MESSAGE_LENGTH: 10000,
+    MAX_HISTORY_MESSAGES: 100,
+    TYPING_INDICATOR_DELAY_MS: 500,
+    AUTO_SCROLL_THRESHOLD_PX: 100,
+    KEYBOARD_SHORTCUT: 'k',  // Note: Story recommends using '/' instead
+    KEYBOARD_MODIFIER: 'meta',
+  },
+  Z_INDEX: {
+    COPILOT_CHAT: 60,
+    WIDGET_OVERLAY: 55,
+  },
+} as const;
+      ]]>
+    </dm-constants>
+
+    <slots-index path="apps/web/src/components/slots/index.ts">
+      <note>Export pattern to follow for copilot/index.ts</note>
+      <![CDATA[
+export { DashboardSlots } from './DashboardSlots';
+export { WidgetErrorBoundary } from './WidgetErrorBoundary';
+export { WidgetErrorFallback } from './WidgetErrorFallback';
+// ... component exports
+      ]]>
+    </slots-index>
+
+    <existing-chat-panel path="apps/web/src/components/shell/ChatPanel.tsx">
+      <description>
+        Existing chat panel with multiple position options (right, bottom, floating, collapsed).
+        CopilotChat should either replace or coexist with this component.
+        Story recommends starting with CopilotChat as primary AI interface.
+      </description>
+      <features>
+        - Position options: right, bottom, floating, collapsed
+        - Agent selector dropdown
+        - Message list with streaming support
+        - Chat input with @mention support
+        - Drag-and-drop for floating position
+        - Keyboard shortcut Cmd+/ for toggle
+      </features>
+    </existing-chat-panel>
+  </existing-code>
+
+  <copilotkit-api>
+    <installed-version>@copilotkit/react-ui@1.50.1</installed-version>
+
+    <copilot-sidebar>
+      <import>import { CopilotSidebar } from '@copilotkit/react-ui';</import>
+      <styles-import>import '@copilotkit/react-ui/styles.css';</styles-import>
+
+      <props interface="CopilotModalProps">
+        <prop name="defaultOpen" type="boolean" description="Initial open state" />
+        <prop name="onOpenChange" type="(open: boolean) => void" description="Callback when open state changes" />
+        <prop name="className" type="string" description="Additional CSS classes" />
+        <prop name="children" type="ReactNode" description="Optional custom children" />
+        <prop name="hitEscapeToClose" type="boolean" description="Close on Escape key" />
+        <prop name="clickOutsideToClose" type="boolean" description="Close on outside click" />
+        <prop name="shortcut" type="string" description="Keyboard shortcut to toggle" />
+      </props>
+
+      <labels-prop>
+        <![CDATA[
+labels={{
+  title: 'HYVVE Assistant',
+  placeholder: 'Ask anything about your workspace...',
+}}
+        ]]>
+      </labels-prop>
+    </copilot-sidebar>
+
+    <observability-hooks>
+      <hook name="onMessageSent" params="(message: string) => void" />
+      <hook name="onChatMinimized" params="() => void" />
+      <hook name="onChatExpanded" params="() => void" />
+      <hook name="onError" params="(errorEvent: CopilotErrorEvent) => void" />
+      <hook name="onChatStarted" params="() => void" />
+      <hook name="onChatStopped" params="() => void" />
+    </observability-hooks>
+
+    <css-customization>
+      <note>
+        CopilotKit uses CSS custom properties for theming.
+        Apply custom class and override variables to match HYVVE design.
+      </note>
+      <default-variables>
+        --copilot-kit-primary-color
+        --copilot-kit-background-color
+        --copilot-kit-text-color
+        --copilot-kit-border-color
+      </default-variables>
+    </css-customization>
+  </copilotkit-api>
+
+  <css-variables path="apps/web/src/app/globals.css">
+    <existing-theme-variables>
+      <![CDATA[
+/* Available color tokens from tokens.css (via globals.css import) */
+--color-primary-500
+--color-primary-600
+--color-primary-50
+--color-primary-900
+--color-primary-400
+--color-primary-300
+
+--color-bg-primary
+--color-bg-surface
+--color-bg-muted
+--color-bg-tertiary
+--color-slate-800
+--color-slate-900
+
+--color-text-primary
+--color-text-secondary
+--color-text-muted
+
+--color-border
+--color-border-default
+--color-border-subtle
+
+/* Typography */
+--font-sans
+--text-sm
+--text-base
+
+/* Animation */
+--duration-default
+--duration-fast
+--ease-out
+
+/* Radius */
+--radius-sm
+--radius-md
+--radius-lg
+      ]]>
+    </existing-theme-variables>
+
+    <proposed-copilot-styles>
+      <![CDATA[
+/* ============================================
+ * COPILOTKIT CHAT THEMING - Story DM-01.4
+ * Custom styling for CopilotKit components
+ * ============================================ */
+
+.copilot-chat {
+  /* Primary colors */
+  --copilot-primary-color: rgb(var(--color-primary-500));
+  --copilot-primary-hover: rgb(var(--color-primary-600));
+
+  /* Background colors */
+  --copilot-background-color: rgb(var(--color-bg-surface));
+  --copilot-sidebar-background: rgb(var(--color-bg-primary));
+
+  /* Text colors */
+  --copilot-text-color: rgb(var(--color-text-primary));
+  --copilot-text-muted: rgb(var(--color-text-muted));
+
+  /* Border and dividers */
+  --copilot-border-color: rgb(var(--color-border-default));
+  --copilot-divider-color: rgb(var(--color-border-subtle));
+
+  /* Input styling */
+  --copilot-input-background: rgb(var(--color-bg-muted));
+  --copilot-input-border: rgb(var(--color-border-default));
+  --copilot-input-focus-border: rgb(var(--color-primary-500));
+
+  /* Message bubbles */
+  --copilot-message-user-bg: rgb(var(--color-primary-50));
+  --copilot-message-user-text: rgb(var(--color-text-primary));
+  --copilot-message-assistant-bg: rgb(var(--color-bg-surface));
+  --copilot-message-assistant-text: rgb(var(--color-text-primary));
+
+  /* Typography */
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+
+  /* Transitions */
+  transition: transform var(--duration-default) var(--ease-out);
+}
+
+/* Dark mode overrides */
+.dark .copilot-chat {
+  --copilot-message-user-bg: rgb(var(--color-primary-900));
+  --copilot-input-background: rgb(var(--color-slate-800));
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .copilot-chat {
+    transition: none;
+  }
+}
+
+/* Focus indicators for accessibility */
+.copilot-chat *:focus-visible {
+  outline: 2px solid rgb(var(--color-primary-500));
+  outline-offset: 2px;
+}
+      ]]>
+    </proposed-copilot-styles>
+  </css-variables>
+
+  <implementation-patterns>
+    <zustand-store-pattern>
+      <![CDATA[
+// apps/web/src/components/copilot/use-copilot-chat-state.ts
+import { create } from 'zustand';
+
+interface CopilotChatState {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  toggle: () => void;
+}
+
+export const useCopilotChatState = create<CopilotChatState>((set) => ({
+  isOpen: false,
+  setIsOpen: (open) => set({ isOpen: open }),
+  toggle: () => set((state) => ({ isOpen: !state.isOpen })),
+}));
+      ]]>
+    </zustand-store-pattern>
+
+    <keyboard-shortcut-pattern>
+      <![CDATA[
+// apps/web/src/components/copilot/CopilotKeyboardShortcut.tsx
+'use client';
+
+import { useEffect } from 'react';
+import { useCopilotChatState } from './use-copilot-chat-state';
+
+export function CopilotKeyboardShortcut() {
+  const toggle = useCopilotChatState((state) => state.toggle);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Cmd+/ (Mac) or Ctrl+/ (Windows)
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modifier = isMac ? event.metaKey : event.ctrlKey;
+
+      if (modifier && event.key === '/') {
+        event.preventDefault();
+        toggle();
+      }
+
+      // Escape to close
+      if (event.key === 'Escape') {
+        useCopilotChatState.getState().setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [toggle]);
+
+  return null;
+}
+      ]]>
+    </keyboard-shortcut-pattern>
+
+    <chat-button-pattern>
+      <![CDATA[
+// apps/web/src/components/copilot/CopilotChatButton.tsx
+'use client';
+
+import { MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useCopilotChatState } from './use-copilot-chat-state';
+
+export function CopilotChatButton() {
+  const toggle = useCopilotChatState((state) => state.toggle);
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggle}
+          aria-label="Toggle AI Assistant"
+          data-testid="copilot-chat-button"
+        >
+          <MessageCircle className="h-5 w-5" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>AI Assistant <kbd className="ml-2 text-xs">Cmd+/</kbd></p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+      ]]>
+    </chat-button-pattern>
+
+    <dynamic-import-pattern>
+      <![CDATA[
+// For bundle size optimization, use dynamic import if needed
+const CopilotSidebar = dynamic(
+  () => import('@copilotkit/react-ui').then((mod) => mod.CopilotSidebar),
+  { ssr: false }
+);
+      ]]>
+    </dynamic-import-pattern>
+  </implementation-patterns>
+
+  <files-to-create>
+    <file path="apps/web/src/components/copilot/CopilotChat.tsx" task="1">
+      Main chat wrapper component using CopilotSidebar
+    </file>
+    <file path="apps/web/src/components/copilot/use-copilot-chat-state.ts" task="2">
+      Zustand store for chat open/close state management
+    </file>
+    <file path="apps/web/src/components/copilot/CopilotKeyboardShortcut.tsx" task="3">
+      Keyboard shortcut handler for Cmd+/ toggle
+    </file>
+    <file path="apps/web/src/components/copilot/CopilotChatButton.tsx" task="4">
+      Toggle button component for header placement
+    </file>
+    <file path="apps/web/src/components/copilot/__tests__/CopilotChat.test.tsx">
+      Unit tests for CopilotChat component
+    </file>
+    <file path="apps/web/src/components/copilot/__tests__/CopilotKeyboardShortcut.test.tsx">
+      Unit tests for keyboard shortcut handler
+    </file>
+    <file path="apps/web/src/components/copilot/__tests__/CopilotChatButton.test.tsx">
+      Unit tests for toggle button
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/src/components/copilot/index.ts" task="7">
+      <action>Create barrel export file with all copilot component exports</action>
+      <exports>
+        - CopilotKitProvider (existing)
+        - CopilotChat (new)
+        - CopilotChatButton (new)
+        - CopilotKeyboardShortcut (new)
+        - useCopilotChatState (new)
+      </exports>
+    </file>
+    <file path="apps/web/src/app/globals.css" task="5">
+      <action>Append CopilotKit theme CSS variables at end of file</action>
+    </file>
+    <file path="apps/web/src/app/(dashboard)/layout.tsx" task="6">
+      <action>Import and render CopilotChat and CopilotKeyboardShortcut components</action>
+      <considerations>
+        - CopilotChat can coexist or replace existing ChatPanel
+        - CopilotKeyboardShortcut should be rendered alongside KeyboardShortcuts
+        - Consider if Cmd+/ should toggle CopilotChat instead of ChatPanel
+      </considerations>
+    </file>
+  </files-to-modify>
+
+  <testing-requirements>
+    <unit-tests>
+      <test file="CopilotChat.test.tsx">
+        <case>renders without error</case>
+        <case>applies HYVVE theme class (copilot-chat className)</case>
+        <case>syncs open state with Zustand store</case>
+      </test>
+      <test file="CopilotKeyboardShortcut.test.tsx">
+        <case>Cmd+/ toggles chat on Mac</case>
+        <case>Ctrl+/ toggles chat on Windows</case>
+        <case>Escape closes chat</case>
+        <case>prevents default browser behavior</case>
+      </test>
+      <test file="CopilotChatButton.test.tsx">
+        <case>renders toggle button with icon</case>
+        <case>has accessible label (aria-label)</case>
+        <case>clicking toggles chat state</case>
+        <case>shows tooltip with keyboard shortcut</case>
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>chat available in dashboard context</test>
+      <test>keyboard shortcut works with full layout</test>
+      <test>state persists across React re-renders</test>
+    </integration-tests>
+
+    <e2e-tests file="e2e/copilot-chat.spec.ts">
+      <test>chat panel opens with keyboard shortcut</test>
+      <test>chat panel closes with Escape</test>
+      <test>chat panel persists across navigation</test>
+      <test>chat button toggles panel</test>
+    </e2e-tests>
+
+    <accessibility-tests>
+      <test>chat panel has no WCAG violations (axe-core)</test>
+      <test>focus moves to chat input when opened</test>
+    </accessibility-tests>
+  </testing-requirements>
+
+  <performance-budget>
+    <metric name="Chat open animation" target="less than 200ms" />
+    <metric name="Time to interactive after open" target="less than 100ms" />
+    <metric name="Bundle impact" target="less than 100KB gzipped" />
+  </performance-budget>
+
+  <definition-of-done>
+    <item>CopilotChat component created and renders CopilotSidebar</item>
+    <item>Chat state managed via Zustand store</item>
+    <item>Keyboard shortcut Cmd+/ toggles chat panel</item>
+    <item>Escape key closes chat panel</item>
+    <item>CopilotChatButton component created with tooltip</item>
+    <item>HYVVE theme CSS variables added to globals.css</item>
+    <item>Dark mode styling works correctly</item>
+    <item>Components integrated into dashboard layout</item>
+    <item>Chat persists across page navigation (verified manually)</item>
+    <item>All unit tests passing</item>
+    <item>E2E tests for keyboard shortcuts passing</item>
+    <item>Accessibility audit shows no violations</item>
+    <item>No TypeScript errors</item>
+    <item>No ESLint warnings</item>
+    <item>Code reviewed and approved</item>
+    <item>Story marked as done in sprint-status.yaml</item>
+  </definition-of-done>
+
+  <technical-notes>
+    <note type="bundle-size">
+      CopilotKit UI adds approximately 75-100KB gzipped. Use dynamic import if needed:
+      const CopilotSidebar = dynamic(() => import('@copilotkit/react-ui').then((mod) => mod.CopilotSidebar), { ssr: false });
+    </note>
+    <note type="existing-chat-coordination">
+      The dashboard already has a ChatPanel component for workspace chat. Options:
+      1. Replace - Remove existing ChatPanel, use CopilotChat exclusively
+      2. Coexist - Keep both, different keyboard shortcuts
+      3. Integrate - CopilotChat handles AI, ChatPanel handles team chat
+      Recommendation: Start with CopilotChat as primary AI interface. Future story can address integration.
+    </note>
+    <note type="keyboard-conflict">
+      Existing KeyboardShortcuts.tsx uses Cmd+/ for toggleChatPanel.
+      Need to decide: replace ChatPanel toggle with CopilotChat toggle, or use different shortcut.
+      Story recommends using Cmd+/ for CopilotKit chat (consistent with existing pattern).
+    </note>
+    <note type="z-index">
+      Use DM_CONSTANTS.Z_INDEX.COPILOT_CHAT (60) for proper layering.
+    </note>
+  </technical-notes>
+
+  <references>
+    <reference>docs/modules/bm-dm/stories/dm-01-4-copilotkit-chat-integration.md</reference>
+    <reference>docs/modules/bm-dm/epics/epic-dm-01-tech-spec.md - Section 6: Story DM-01.4</reference>
+    <reference>https://docs.copilotkit.ai/reference/components/chat</reference>
+    <reference>apps/web/src/app/(dashboard)/layout.tsx</reference>
+    <reference>apps/web/src/stores/ui.ts</reference>
+    <reference>apps/web/src/components/keyboard/KeyboardShortcuts.tsx</reference>
+  </references>
+</story-context>

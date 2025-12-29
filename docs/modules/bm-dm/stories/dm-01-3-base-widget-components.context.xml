@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="dm-01-3-base-widget-components">
+  <metadata>
+    <epic>DM-01</epic>
+    <story>DM-01.3</story>
+    <title>Base Widget Components</title>
+    <points>8</points>
+    <generated>2025-12-29T00:00:00Z</generated>
+    <dependencies>
+      <dependency status="done">DM-01.2 (Slot System Foundation)</dependency>
+    </dependencies>
+  </metadata>
+
+  <story-requirements>
+    <summary>
+      Create four foundational widget components for the Slot System that AI agents can render
+      dynamically on the dashboard. Each widget must follow shadcn/ui patterns, handle all UI
+      states (loading, error, empty, data), and support responsive design.
+    </summary>
+
+    <widgets-to-implement>
+      <widget name="ProjectStatusWidget" points="2">
+        Displays project health, progress bar, and status indicators with due date
+      </widget>
+      <widget name="TaskListWidget" points="2">
+        Shows a compact scrollable list of tasks with status icons and priority badges
+      </widget>
+      <widget name="MetricsWidget" points="2">
+        Renders key metrics in a responsive grid with optional change indicators
+      </widget>
+      <widget name="AlertWidget" points="2">
+        Displays alerts/notifications with severity levels and optional action buttons
+      </widget>
+    </widgets-to-implement>
+
+    <shared-components>
+      <component name="WidgetSkeleton">
+        Loading skeleton with variants: default, compact, metrics, alert
+      </component>
+      <component name="WidgetEmpty">
+        Empty state with customizable message and icon
+      </component>
+    </shared-components>
+
+    <acceptance-criteria>
+      <criterion>All widgets follow shadcn/ui patterns</criterion>
+      <criterion>Widgets accept typed data props from types.ts</criterion>
+      <criterion>Responsive design for all screen sizes (min-width: 280px)</criterion>
+      <criterion>Loading states handled via WidgetSkeleton</criterion>
+      <criterion>Empty states handled via WidgetEmpty</criterion>
+      <criterion>Error states caught by WidgetErrorBoundary (from DM-01.2)</criterion>
+      <criterion>All widgets have data-testid attributes</criterion>
+      <criterion>ARIA attributes present for accessibility</criterion>
+      <criterion>Keyboard navigable</criterion>
+    </acceptance-criteria>
+  </story-requirements>
+
+  <existing-code>
+    <file path="apps/web/src/components/slots/types.ts">
+      <description>Widget type definitions already defined</description>
+      <content><![CDATA[
+/**
+ * Valid widget types that can be rendered by agents.
+ */
+export type WidgetType = 'ProjectStatus' | 'TaskList' | 'Metrics' | 'Alert';
+
+/**
+ * Base widget data interface.
+ */
+export interface WidgetData {
+  id?: string;
+  title?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Data for ProjectStatusWidget
+ */
+export interface ProjectStatusData extends WidgetData {
+  projectId: string;
+  projectName: string;
+  status: 'on_track' | 'at_risk' | 'behind';
+  progress: number; // 0-100
+  dueDate?: string;
+  tasksCompleted: number;
+  tasksTotal: number;
+}
+
+/**
+ * Data for TaskListWidget
+ */
+export interface TaskListData extends WidgetData {
+  tasks: Array<{
+    id: string;
+    title: string;
+    status: 'todo' | 'in_progress' | 'done';
+    priority: 'low' | 'medium' | 'high';
+    assignee?: string;
+  }>;
+  limit?: number;
+}
+
+/**
+ * Data for MetricsWidget
+ */
+export interface MetricsData extends WidgetData {
+  metrics: Array<{
+    label: string;
+    value: number | string;
+    change?: { value: number; direction: 'up' | 'down' };
+    icon?: string;
+  }>;
+}
+
+/**
+ * Data for AlertWidget
+ */
+export interface AlertData extends WidgetData {
+  severity: 'info' | 'warning' | 'error' | 'success';
+  title: string;
+  message: string;
+  action?: { label: string; href: string };
+}
+]]></content>
+    </file>
+
+    <file path="apps/web/src/components/slots/widget-registry.tsx">
+      <description>Current widget registry with placeholder components - to be updated</description>
+      <content><![CDATA[
+/**
+ * Widget Registry - Maps widget types to React components.
+ * Currently uses PlaceholderWidget for all types.
+ * This story replaces placeholders with actual implementations.
+ */
+export const WIDGET_REGISTRY: Record<WidgetType, ComponentType<PlaceholderWidgetProps>> = {
+  ProjectStatus: PlaceholderWidget,
+  TaskList: PlaceholderWidget,
+  Metrics: PlaceholderWidget,
+  Alert: PlaceholderWidget,
+};
+
+export function isValidWidgetType(type: string): type is WidgetType {
+  return type in WIDGET_REGISTRY;
+}
+
+export function getWidgetComponent(type: string): ComponentType<PlaceholderWidgetProps> | undefined {
+  if (isValidWidgetType(type)) {
+    return WIDGET_REGISTRY[type];
+  }
+  return undefined;
+}
+]]></content>
+    </file>
+
+    <file path="apps/web/src/components/slots/DashboardSlots.tsx">
+      <description>Dashboard slot component that renders widgets via CopilotKit</description>
+      <note>Already passes type and data props to widgets. Update may be needed for new props interface.</note>
+    </file>
+
+    <available-shadcn-components>
+      <component name="Card" path="@/components/ui/card">
+        Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+        Supports interactive variant with hover/focus states
+      </component>
+      <component name="Badge" path="@/components/ui/badge">
+        Variants: default, secondary, destructive, outline, success
+      </component>
+      <component name="Progress" path="@/components/ui/progress">
+        Radix-based progress bar with indicatorClassName prop
+      </component>
+      <component name="Alert" path="@/components/ui/alert">
+        Alert, AlertTitle, AlertDescription - variants: default, destructive
+      </component>
+      <component name="Skeleton" path="@/components/ui/skeleton">
+        Simple animated skeleton with animate-pulse
+      </component>
+      <component name="ScrollArea" path="@/components/ui/scroll-area">
+        Radix-based scroll area with vertical/horizontal scrollbars
+      </component>
+      <component name="Button" path="@/components/ui/button">
+        Standard button with variants
+      </component>
+      <component name="Checkbox" path="@/components/ui/checkbox">
+        Checkbox input component
+      </component>
+    </available-shadcn-components>
+  </existing-code>
+
+  <widget-specifications>
+    <widget name="ProjectStatusWidget">
+      <props-interface>
+        <prop name="data" type="ProjectStatusData" required="true" />
+        <prop name="isLoading" type="boolean" required="false" />
+      </props-interface>
+
+      <visual-elements>
+        <element>Card container with CardHeader and CardContent</element>
+        <element>Project name in CardTitle (truncate with line-clamp-1)</element>
+        <element>Status badge (On Track/At Risk/Behind) with color-coded styling</element>
+        <element>Progress bar with percentage label</element>
+        <element>Task count display (completed/total)</element>
+        <element>Due date with calendar icon (optional)</element>
+      </visual-elements>
+
+      <status-badge-config>
+        <status value="on_track" label="On Track" color="green" icon="CheckCircle2Icon" />
+        <status value="at_risk" label="At Risk" color="yellow" icon="AlertTriangleIcon" />
+        <status value="behind" label="Behind" color="red" icon="XCircleIcon" />
+      </status-badge-config>
+
+      <states>
+        <loading>Return WidgetSkeleton variant="default"</loading>
+        <empty>Return WidgetEmpty when !data or !data.projectName</empty>
+        <data>Render full widget with all elements</data>
+      </states>
+
+      <accessibility>
+        <requirement>Progress bar has aria-label with percentage</requirement>
+        <requirement>Icons have aria-hidden="true"</requirement>
+        <requirement>data-testid="project-status-widget"</requirement>
+      </accessibility>
+    </widget>
+
+    <widget name="TaskListWidget">
+      <props-interface>
+        <prop name="data" type="TaskListData" required="true" />
+        <prop name="isLoading" type="boolean" required="false" />
+      </props-interface>
+
+      <visual-elements>
+        <element>Card container with CardHeader showing title and task count</element>
+        <element>ScrollArea for scrollable task list (max-h-64)</element>
+        <element>Task items with status icon, title, assignee, and priority badge</element>
+        <element>"More tasks" indicator when limit is exceeded</element>
+      </visual-elements>
+
+      <status-icon-config>
+        <status value="todo" icon="CircleIcon" color="muted-foreground" />
+        <status value="in_progress" icon="CircleDotIcon" color="blue-500" />
+        <status value="done" icon="CheckCircle2Icon" color="green-500" />
+      </status-icon-config>
+
+      <priority-badge-config>
+        <priority value="high" label="High" color="red" />
+        <priority value="medium" label="Medium" color="yellow" />
+        <priority value="low" label="Low" color="blue" />
+      </priority-badge-config>
+
+      <states>
+        <loading>Return WidgetSkeleton variant="default"</loading>
+        <empty>Return WidgetEmpty when !data?.tasks or tasks.length === 0</empty>
+        <data>Render task list with limit support</data>
+      </states>
+
+      <accessibility>
+        <requirement>ul with role="list" and aria-label="Task list"</requirement>
+        <requirement>Status icons have aria-label describing status</requirement>
+        <requirement>data-testid="task-list-widget"</requirement>
+      </accessibility>
+    </widget>
+
+    <widget name="MetricsWidget">
+      <props-interface>
+        <prop name="data" type="MetricsData" required="true" />
+        <prop name="isLoading" type="boolean" required="false" />
+      </props-interface>
+
+      <visual-elements>
+        <element>Card container with optional CardHeader for title</element>
+        <element>Responsive grid of metrics (2-4 columns based on count)</element>
+        <element>Each metric: label, value (large), optional change indicator</element>
+        <element>Change indicators with up/down arrows and percentage</element>
+        <element>Optional icons for each metric</element>
+      </visual-elements>
+
+      <icon-mapping>
+        <icon name="activity" component="ActivityIcon" />
+        <icon name="target" component="TargetIcon" />
+        <icon name="users" component="UsersIcon" />
+        <icon name="clock" component="ClockIcon" />
+        <icon name="tasks" component="CheckSquareIcon" />
+        <icon name="chart" component="BarChart3Icon" />
+      </icon-mapping>
+
+      <states>
+        <loading>Return WidgetSkeleton variant="metrics"</loading>
+        <empty>Return WidgetEmpty when !data?.metrics or metrics.length === 0</empty>
+        <data>Render metrics grid</data>
+      </states>
+
+      <accessibility>
+        <requirement>Icons have aria-hidden="true"</requirement>
+        <requirement>Change indicators use semantic colors (green=up, red=down)</requirement>
+        <requirement>data-testid="metrics-widget"</requirement>
+      </accessibility>
+    </widget>
+
+    <widget name="AlertWidget">
+      <props-interface>
+        <prop name="data" type="AlertData" required="true" />
+        <prop name="isLoading" type="boolean" required="false" />
+      </props-interface>
+
+      <visual-elements>
+        <element>Alert component with severity-based styling</element>
+        <element>Severity icon (Info/Warning/Error/Success)</element>
+        <element>AlertTitle with title text</element>
+        <element>AlertDescription with message and optional action button</element>
+        <element>Action button as Link wrapped in Button</element>
+      </visual-elements>
+
+      <severity-config>
+        <severity value="info" icon="InfoIcon" color="blue" />
+        <severity value="warning" icon="AlertTriangleIcon" color="yellow" />
+        <severity value="error" icon="XCircleIcon" color="red" />
+        <severity value="success" icon="CheckCircle2Icon" color="green" />
+      </severity-config>
+
+      <states>
+        <loading>Return WidgetSkeleton variant="alert"</loading>
+        <empty>Return null when !data?.title or !data?.message</empty>
+        <data>Render styled alert with optional action</data>
+      </states>
+
+      <accessibility>
+        <requirement>Alert has role="alert"</requirement>
+        <requirement>Alert has aria-live="polite"</requirement>
+        <requirement>Action link is keyboard accessible</requirement>
+        <requirement>data-testid="alert-widget"</requirement>
+      </accessibility>
+    </widget>
+  </widget-specifications>
+
+  <design-patterns>
+    <pattern name="shadcn-ui-component-usage">
+      <description>Follow existing component patterns in apps/web/src/components/ui/</description>
+      <guidelines>
+        <guideline>Import from @/components/ui/* paths</guideline>
+        <guideline>Use cn() utility for className merging</guideline>
+        <guideline>Follow existing Card styling (rounded-[16px], border, shadow)</guideline>
+        <guideline>Badge uses outline variant with custom colors via className</guideline>
+      </guidelines>
+    </pattern>
+
+    <pattern name="loading-state">
+      <description>Use WidgetSkeleton component with appropriate variant</description>
+      <example><![CDATA[
+if (isLoading) {
+  return <WidgetSkeleton variant="default" />;
+}
+]]></example>
+    </pattern>
+
+    <pattern name="empty-state">
+      <description>Use WidgetEmpty component with contextual message</description>
+      <example><![CDATA[
+if (!data?.tasks || data.tasks.length === 0) {
+  return <WidgetEmpty message="No tasks to display" />;
+}
+]]></example>
+    </pattern>
+
+    <pattern name="color-coding">
+      <description>Use Tailwind color utilities with opacity modifiers</description>
+      <example><![CDATA[
+// Good: Complete class strings for Tailwind JIT
+className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
+
+// Bad: Dynamic class construction
+className={`bg-${color}-500/10`}  // Won't work with JIT
+]]></example>
+    </pattern>
+
+    <pattern name="responsive-design">
+      <description>Mobile-first with Tailwind breakpoints</description>
+      <guidelines>
+        <guideline>Minimum supported width: 280px</guideline>
+        <guideline>Use grid with responsive columns: grid-cols-2 sm:grid-cols-4</guideline>
+        <guideline>Use truncation (line-clamp, truncate) for text overflow</guideline>
+        <guideline>Test at: 280px (mobile), 768px (tablet), 1280px (desktop)</guideline>
+      </guidelines>
+    </pattern>
+
+    <pattern name="icon-usage">
+      <description>Use lucide-react icons with consistent sizing</description>
+      <guidelines>
+        <guideline>Small icons: h-3 w-3 or h-3.5 w-3.5</guideline>
+        <guideline>Medium icons: h-4 w-4</guideline>
+        <guideline>Large icons: h-5 w-5</guideline>
+        <guideline>Always include aria-hidden="true"</guideline>
+      </guidelines>
+    </pattern>
+
+    <pattern name="dark-mode">
+      <description>Use dark: prefix for dark mode overrides</description>
+      <example><![CDATA[
+className="text-green-600 dark:text-green-400"
+]]></example>
+    </pattern>
+  </design-patterns>
+
+  <files-to-create>
+    <file path="apps/web/src/components/slots/widgets/WidgetSkeleton.tsx">
+      Loading skeleton with variants: default, compact, metrics, alert
+    </file>
+    <file path="apps/web/src/components/slots/widgets/WidgetEmpty.tsx">
+      Empty state component with customizable message and icon
+    </file>
+    <file path="apps/web/src/components/slots/widgets/ProjectStatusWidget.tsx">
+      Project status display with progress bar and status badge
+    </file>
+    <file path="apps/web/src/components/slots/widgets/TaskListWidget.tsx">
+      Scrollable task list with status icons and priority badges
+    </file>
+    <file path="apps/web/src/components/slots/widgets/MetricsWidget.tsx">
+      Metrics grid with change indicators and icons
+    </file>
+    <file path="apps/web/src/components/slots/widgets/AlertWidget.tsx">
+      Alert component with severity styling and action buttons
+    </file>
+    <file path="apps/web/src/components/slots/widgets/index.ts">
+      Barrel export for all widget components
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/src/components/slots/widget-registry.tsx">
+      <change>Replace PlaceholderWidget with actual widget imports</change>
+      <change>Update type signature from PlaceholderWidgetProps to WidgetProps</change>
+    </file>
+    <file path="apps/web/src/components/slots/index.ts">
+      <change>Re-export widget components from widgets/index.ts</change>
+    </file>
+  </files-to-modify>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-file path="apps/web/src/components/slots/widgets/__tests__/WidgetSkeleton.test.tsx">
+        Test all skeleton variants render correctly
+      </test-file>
+      <test-file path="apps/web/src/components/slots/widgets/__tests__/WidgetEmpty.test.tsx">
+        Test default/custom messages and asCard prop
+      </test-file>
+      <test-file path="apps/web/src/components/slots/widgets/__tests__/ProjectStatusWidget.test.tsx">
+        Test data rendering, loading state, empty state, all status types
+      </test-file>
+      <test-file path="apps/web/src/components/slots/widgets/__tests__/TaskListWidget.test.tsx">
+        Test task rendering, limit prop, empty state, status icons
+      </test-file>
+      <test-file path="apps/web/src/components/slots/widgets/__tests__/MetricsWidget.test.tsx">
+        Test metrics grid, change indicators, icon mapping
+      </test-file>
+      <test-file path="apps/web/src/components/slots/widgets/__tests__/AlertWidget.test.tsx">
+        Test severity styling, action buttons, accessibility attributes
+      </test-file>
+    </unit-tests>
+
+    <test-patterns>
+      <pattern>Use Vitest and @testing-library/react</pattern>
+      <pattern>Test all UI states: loading, empty, data</pattern>
+      <pattern>Verify data-testid attributes exist</pattern>
+      <pattern>Test accessibility: role attributes, aria-* attributes</pattern>
+    </test-patterns>
+  </testing-requirements>
+
+  <performance-requirements>
+    <requirement metric="initial-render" target="100ms" critical="200ms" />
+    <requirement metric="widget-update" target="50ms" critical="100ms" />
+    <requirement metric="memory-10-widgets" target="50MB" critical="100MB" />
+    <note>Use performance.mark() for measurement if needed</note>
+  </performance-requirements>
+
+  <definition-of-done>
+    <item>WidgetSkeleton.tsx created with all variants</item>
+    <item>WidgetEmpty.tsx created with customizable message and icon</item>
+    <item>ProjectStatusWidget.tsx implemented with progress bar and status badge</item>
+    <item>TaskListWidget.tsx implemented with scrollable list and limit support</item>
+    <item>MetricsWidget.tsx implemented with responsive grid and change indicators</item>
+    <item>AlertWidget.tsx implemented with severity levels and action buttons</item>
+    <item>widgets/index.ts barrel export created</item>
+    <item>widget-registry.tsx updated with actual widget imports</item>
+    <item>All widgets follow shadcn/ui component patterns</item>
+    <item>All widgets accept typed data props from types.ts</item>
+    <item>Responsive design verified at 280px, 768px, 1280px</item>
+    <item>Loading states use WidgetSkeleton component</item>
+    <item>Empty states use WidgetEmpty component</item>
+    <item>All widgets have data-testid attributes</item>
+    <item>Accessibility: ARIA attributes present, keyboard navigable</item>
+    <item>Unit tests for all widget components pass</item>
+    <item>TypeScript type check passes (pnpm type-check)</item>
+    <item>ESLint passes (pnpm lint)</item>
+    <item>Build succeeds (pnpm build)</item>
+  </definition-of-done>
+
+  <references>
+    <reference name="Story File">docs/modules/bm-dm/stories/dm-01-3-base-widget-components.md</reference>
+    <reference name="Tech Spec">docs/modules/bm-dm/epics/epic-dm-01-tech-spec.md</reference>
+    <reference name="Slot Types">apps/web/src/components/slots/types.ts</reference>
+    <reference name="Widget Registry">apps/web/src/components/slots/widget-registry.tsx</reference>
+    <reference name="shadcn/ui Card">https://ui.shadcn.com/docs/components/card</reference>
+    <reference name="shadcn/ui Alert">https://ui.shadcn.com/docs/components/alert</reference>
+    <reference name="shadcn/ui Progress">https://ui.shadcn.com/docs/components/progress</reference>
+    <reference name="lucide-react Icons">https://lucide.dev/icons/</reference>
+  </references>
+</story-context>

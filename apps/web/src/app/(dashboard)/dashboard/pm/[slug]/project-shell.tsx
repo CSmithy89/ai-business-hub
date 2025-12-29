@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useKeyboardShortcut } from '@/hooks/use-keyboard-shortcut'
 import { usePmProject } from '@/hooks/use-pm-projects'
 import { useCreatePmTask } from '@/hooks/use-pm-tasks'
+import { useCopilotProjectContext } from '@/hooks/useCopilotContext'
 
 export function ProjectShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -18,6 +19,9 @@ export function ProjectShell({ children }: { children: React.ReactNode }) {
 
   const { data } = usePmProject(slug)
   const project = data?.data
+
+  // CopilotKit project context - provides active project info to AI agents (Story DM-01.5)
+  useCopilotProjectContext(project ?? null)
 
   const phases = project?.phases ?? []
   const defaultPhaseId = useMemo(() => {
