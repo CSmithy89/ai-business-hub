@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="dm-01-2-slot-system-foundation">
+  <metadata>
+    <epic>DM-01</epic>
+    <story>DM-01.2</story>
+    <title>Slot System Foundation</title>
+    <points>5</points>
+    <priority>High</priority>
+    <dependency>DM-01.1 (CopilotKit Installation) - COMPLETED</dependency>
+    <generated>2025-12-29</generated>
+  </metadata>
+
+  <story-requirements>
+    <summary>
+      Implement the foundational Slot System using CopilotKit's useRenderToolCall hook.
+      This system enables AI agents to render dynamic UI components (widgets) on the
+      frontend by calling a render_dashboard_widget tool. The Slot System is the core
+      mechanism for Generative UI in the HYVVE platform.
+    </summary>
+
+    <acceptance-criteria>
+      <criterion id="AC1">useRenderToolCall configured for dashboard widgets</criterion>
+      <criterion id="AC2">Widget registry maps types to components</criterion>
+      <criterion id="AC3">Unknown widget types show error component</criterion>
+      <criterion id="AC4">TypeScript types for widget data</criterion>
+    </acceptance-criteria>
+
+    <widget-types>
+      <widget type="ProjectStatus">Project status card with progress</widget>
+      <widget type="TaskList">List of tasks with status and priority</widget>
+      <widget type="Metrics">Multiple metrics with change indicators</widget>
+      <widget type="Alert">Alert message with severity and optional action</widget>
+    </widget-types>
+
+    <key-concept name="Slot System">
+      A "Slot" is a tool definition in the React application that agents can call.
+      When an agent calls render_dashboard_widget, CopilotKit's useRenderToolCall
+      intercepts the call and renders the corresponding React component based on
+      the widget type argument.
+    </key-concept>
+  </story-requirements>
+
+  <existing-code>
+    <file path="apps/web/src/components/copilot/CopilotKitProvider.tsx" purpose="CopilotKit provider setup from DM-01.1">
+      <![CDATA[
+'use client';
+
+import { CopilotKit } from '@copilotkit/react-core';
+
+interface CopilotKitProviderProps {
+  children: React.ReactNode;
+}
+
+/**
+ * CopilotKit Provider Wrapper
+ *
+ * Wraps children with CopilotKit provider configured for AG-UI protocol.
+ * Must be rendered client-side only (SSR-safe via 'use client' directive).
+ */
+export function CopilotKitProvider({ children }: CopilotKitProviderProps) {
+  const runtimeUrl = process.env.NEXT_PUBLIC_AGNO_URL
+    ? `${process.env.NEXT_PUBLIC_AGNO_URL}/agui`
+    : '/api/copilotkit';
+
+  return (
+    <CopilotKit
+      runtimeUrl={runtimeUrl}
+      publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_KEY}
+    >
+      {children}
+    </CopilotKit>
+  );
+}
+      ]]>
+    </file>
+
+    <file path="apps/web/src/app/(dashboard)/layout.tsx" purpose="Dashboard layout where DashboardSlots will be added">
+      <note>
+        Three-panel responsive layout with Header, Sidebar, Main content, and Chat panel.
+        DashboardSlots component should be added INSIDE the main layout div but renders
+        nothing visually - it's purely for side-effects (registering the tool handler).
+        Add it near other error-boundary wrapped components.
+      </note>
+      <insertion-point>
+        Add DashboardSlots after the main content ErrorBoundary, before the ChatPanel.
+        The component renders null but registers the useRenderToolCall hook.
+      </insertion-point>
+      <key-imports>
+        - ErrorBoundary from '@/components/ui/error-boundary'
+        - Dynamic imports used for ChatPanel (ssr: false)
+        - LAYOUT constants from '@/lib/layout-constants'
+      </key-imports>
+    </file>
+
+    <file path="apps/web/src/types/copilotkit.d.ts" purpose="Existing widget type definitions to extend">
+      <![CDATA[
+// Key types already defined:
+export type WidgetType = 'ProjectStatus' | 'TaskList' | 'Metrics' | 'Alert';
+
+export interface WidgetRenderArgs {
+  type: WidgetType;
+  data: Record<string, unknown>;
+}
+
+export interface WidgetData {
+  id?: string;
+  title?: string;
+  [key: string]: unknown;
+}
+
+// Widget-specific data interfaces are already defined:
+// - ProjectStatusWidgetData
+// - TaskListWidgetData
+// - MetricsWidgetData
+// - AlertWidgetData
+      ]]>
+    </file>
+
+    <file path="apps/web/src/lib/dm-constants.ts" purpose="Constants for widget rendering">
+      <![CDATA[
+export const DM_CONSTANTS = {
+  WIDGETS: {
+    MAX_WIDGETS_PER_PAGE: 12,
+    WIDGET_MIN_HEIGHT_PX: 100,
+    WIDGET_MAX_HEIGHT_PX: 600,
+    ANIMATION_DURATION_MS: 200,
+    SKELETON_PULSE_DURATION_MS: 1500,
+    DEBOUNCE_RESIZE_MS: 150,
+  },
+  // ... other constants
+} as const;
+      ]]>
+    </file>
+
+    <file path="apps/web/src/components/ui/card.tsx" purpose="shadcn/ui Card component to use in widgets">
+      <note>
+        Use Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+        from this file for widget error fallback component.
+        Card supports interactive={true} prop for hover states.
+      </note>
+    </file>
+
+    <file path="apps/web/src/components/ui/button.tsx" purpose="shadcn/ui Button component">
+      <note>
+        Use Button component for retry button in error fallback.
+        Supports variants: default, destructive, outline, secondary, ghost, link
+        Supports sizes: default, sm, lg, icon
+      </note>
+    </file>
+  </existing-code>
+
+  <implementation-patterns>
+    <pattern name="Client Component Directive">
+      All slot components must use 'use client' directive since they depend on
+      CopilotKit hooks which are client-side only.
+    </pattern>
+
+    <pattern name="Error Boundary Pattern">
+      Use React class component for WidgetErrorBoundary following the existing
+      ErrorBoundary pattern in apps/web/src/components/ui/error-boundary.tsx
+    </pattern>
+
+    <pattern name="Registry Pattern">
+      Widget registry uses Record&lt;WidgetType, React.ComponentType&lt;any&gt;&gt;
+      with type guard function isValidWidgetType() for runtime type checking.
+    </pattern>
+
+    <pattern name="Side-Effect Component">
+      DashboardSlots renders null - it's purely for registering the useRenderToolCall
+      hook as a side effect. This pattern is used by CopilotKit for tool handlers.
+    </pattern>
+
+    <pattern name="Barrel Export">
+      Create index.ts barrel file exporting all slot system components and types
+      for clean imports: import { DashboardSlots } from '@/components/slots';
+    </pattern>
+
+    <pattern name="Placeholder Widgets">
+      Use placeholder components in the registry until DM-01.3 implements actual
+      widgets. Placeholder shows widget type and JSON data for debugging.
+    </pattern>
+  </implementation-patterns>
+
+  <files-to-create>
+    <file path="apps/web/src/components/slots/types.ts" purpose="TypeScript type definitions">
+      <description>
+        Define WidgetType, WidgetData, RenderWidgetArgs, WidgetErrorFallbackProps,
+        WidgetErrorBoundaryProps, and widget-specific data interfaces (ProjectStatusData,
+        TaskListData, MetricsData, AlertData).
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/slots/widget-registry.ts" purpose="Widget type to component mapping">
+      <description>
+        Export WIDGET_REGISTRY Record mapping widget types to components,
+        isValidWidgetType() type guard, and getWidgetComponent() lookup function.
+        Use placeholder components until DM-01.3.
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/slots/WidgetErrorBoundary.tsx" purpose="Error boundary for widgets">
+      <description>
+        React class component catching render errors in widgets. Logs errors
+        with widget type context. Provides retry mechanism via state reset.
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/slots/WidgetErrorFallback.tsx" purpose="Fallback UI for errors">
+      <description>
+        Displays error state for unknown widget types or render failures.
+        Uses Card component with destructive styling. Shows error details
+        in development mode. Provides retry button when onRetry callback provided.
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/slots/DashboardSlots.tsx" purpose="Main slot registration component">
+      <description>
+        Registers render_dashboard_widget tool handler with CopilotKit using
+        useRenderToolCall hook. Looks up widget component from registry,
+        wraps in error boundary, handles unknown types with fallback.
+        Renders null (side-effect only component).
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/slots/index.ts" purpose="Barrel export file">
+      <description>
+        Exports DashboardSlots, WidgetErrorBoundary, WidgetErrorFallback,
+        WIDGET_REGISTRY, isValidWidgetType, getWidgetComponent, and all types.
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/slots/__tests__/widget-registry.test.ts" purpose="Unit tests for registry">
+      <description>
+        Test WIDGET_REGISTRY contains all widget types, isValidWidgetType returns
+        correct boolean, getWidgetComponent returns component or undefined.
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/slots/__tests__/WidgetErrorFallback.test.tsx" purpose="Unit tests for error fallback">
+      <description>
+        Test renders unknown widget message, error message, retry button behavior,
+        and that retry button is hidden when onRetry not provided.
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/slots/__tests__/WidgetErrorBoundary.test.tsx" purpose="Unit tests for error boundary">
+      <description>
+        Test renders children when no error, shows fallback when child throws,
+        logs error to console, and recovers on retry.
+      </description>
+    </file>
+
+    <file path="apps/web/src/components/slots/__tests__/DashboardSlots.test.tsx" purpose="Unit tests for DashboardSlots">
+      <description>
+        Test component renders without crashing (returns empty), registers
+        render_dashboard_widget tool with CopilotKit mock.
+      </description>
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/src/app/(dashboard)/layout.tsx">
+      <change>
+        Add import: import { DashboardSlots } from '@/components/slots';
+        Add component inside layout, after main content but before mobile components.
+        Position suggestion: After ChatPanel ErrorBoundary block, before mobile check.
+      </change>
+      <code-snippet>
+        <![CDATA[
+// Add this import at the top with other imports
+import { DashboardSlots } from '@/components/slots';
+
+// Add this component in the layout (renders null, side-effect only)
+// Place after ChatPanel, before mobile components
+{/* Slot System - Registers widget tool handler with CopilotKit */}
+<DashboardSlots />
+        ]]>
+      </code-snippet>
+    </file>
+  </files-to-modify>
+
+  <copilotkit-api>
+    <hook name="useRenderToolCall">
+      <description>
+        CopilotKit hook for intercepting agent tool calls and rendering React components.
+        When an agent calls the specified tool, the render function is invoked with the
+        tool arguments, and the returned React element is rendered in the UI.
+      </description>
+      <import>import { useRenderToolCall } from '@copilotkit/react-core';</import>
+      <signature>
+        <![CDATA[
+useRenderToolCall({
+  name: string,               // Tool name to intercept
+  description: string,        // Description for the agent
+  parameters: Array<{         // Tool parameters schema
+    name: string,
+    type: string,
+    description: string
+  }>,
+  render: ({ args }) => ReactNode  // Render function
+});
+        ]]>
+      </signature>
+      <usage-example>
+        <![CDATA[
+useRenderToolCall({
+  name: 'render_dashboard_widget',
+  description: 'Render a widget on the user\'s dashboard',
+  parameters: [
+    { name: 'type', type: 'string', description: 'Widget type identifier' },
+    { name: 'data', type: 'object', description: 'Widget data payload' },
+  ],
+  render: ({ args }) => {
+    const { type, data } = args as RenderWidgetArgs;
+    const WidgetComponent = getWidgetComponent(type);
+    if (!WidgetComponent) {
+      return <WidgetErrorFallback type={type} />;
+    }
+    return (
+      <WidgetErrorBoundary widgetType={type}>
+        <WidgetComponent type={type} data={data} {...data} />
+      </WidgetErrorBoundary>
+    );
+  },
+});
+        ]]>
+      </usage-example>
+      <reference>https://docs.copilotkit.ai/reference/hooks/useRenderToolCall</reference>
+    </hook>
+  </copilotkit-api>
+
+  <testing-requirements>
+    <unit-tests>
+      <test file="widget-registry.test.ts">
+        - WIDGET_REGISTRY contains ProjectStatus, TaskList, Metrics, Alert
+        - isValidWidgetType returns true for valid types
+        - isValidWidgetType returns false for invalid types
+        - getWidgetComponent returns component for valid type
+        - getWidgetComponent returns undefined for invalid type
+      </test>
+      <test file="WidgetErrorFallback.test.tsx">
+        - Renders "Unknown Widget: {type}" for unknown type
+        - Renders "Widget Error" with error message when error provided
+        - Calls onRetry when retry button clicked
+        - Hides retry button when onRetry not provided
+      </test>
+      <test file="WidgetErrorBoundary.test.tsx">
+        - Renders children when no error
+        - Shows fallback when child component throws
+        - Logs error with widget type context
+        - Resets state and re-renders on retry
+      </test>
+      <test file="DashboardSlots.test.tsx">
+        - Renders without crashing (container is empty)
+        - Calls useRenderToolCall with correct parameters
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test name="Provider Integration">
+        DashboardSlots works within the full provider chain without errors.
+      </test>
+    </integration-tests>
+
+    <test-utilities>
+      <mock path="@copilotkit/react-core">
+        <![CDATA[
+vi.mock('@copilotkit/react-core', () => ({
+  useRenderToolCall: vi.fn(),
+}));
+        ]]>
+      </mock>
+    </test-utilities>
+
+    <coverage-target>90%</coverage-target>
+  </testing-requirements>
+
+  <definition-of-done>
+    <item>types.ts created with all type definitions</item>
+    <item>widget-registry.ts created with registry pattern</item>
+    <item>WidgetErrorBoundary.tsx created and functional</item>
+    <item>WidgetErrorFallback.tsx created with proper styling</item>
+    <item>DashboardSlots.tsx created with useRenderToolCall</item>
+    <item>index.ts barrel export file created</item>
+    <item>Dashboard layout modified to include DashboardSlots</item>
+    <item>Unit tests for widget registry pass</item>
+    <item>Unit tests for error boundary pass</item>
+    <item>Unit tests for error fallback pass</item>
+    <item>Unit tests for DashboardSlots pass</item>
+    <item>Integration test with providers passes</item>
+    <item>TypeScript type check passes (pnpm type-check)</item>
+    <item>Build succeeds (pnpm build)</item>
+    <item>No console errors in browser</item>
+  </definition-of-done>
+
+  <dependencies-for-subsequent-stories>
+    <story id="DM-01.3" title="Base Widget Components">
+      Uses: WidgetType, widget data interfaces, WIDGET_REGISTRY pattern
+      Will replace placeholder components with actual widget implementations
+    </story>
+    <story id="DM-01.4" title="Chat Integration">
+      Uses: DashboardSlots for widget rendering from chat interactions
+    </story>
+  </dependencies-for-subsequent-stories>
+
+  <notes>
+    <note type="ssr">
+      All slot components use 'use client' directive. CopilotKit hooks are
+      client-side only and will error if rendered server-side.
+    </note>
+    <note type="error-boundary-limitations">
+      React error boundaries cannot catch: event handler errors, async errors,
+      server-side rendering errors, or errors in the error boundary itself.
+      Widget components should use try/catch for async operations.
+    </note>
+    <note type="extensibility">
+      To add a new widget type in the future:
+      1. Add type to WidgetType union in types.ts
+      2. Create data interface (e.g., NewWidgetData)
+      3. Create widget component
+      4. Add mapping to WIDGET_REGISTRY
+    </note>
+    <note type="code-splitting">
+      The registry pattern supports future code splitting via React.lazy.
+      For now, use direct imports; lazy loading can be added in optimization phase.
+    </note>
+  </notes>
+
+  <references>
+    <reference type="copilotkit-docs">https://docs.copilotkit.ai/reference/hooks/useRenderToolCall</reference>
+    <reference type="epic-definition">docs/modules/bm-dm/epics/epic-dm-01-copilotkit-frontend.md</reference>
+    <reference type="tech-spec">docs/modules/bm-dm/epics/epic-dm-01-tech-spec.md</reference>
+    <reference type="architecture">docs/architecture/dynamic-module-system.md</reference>
+    <reference type="story-file">docs/modules/bm-dm/stories/dm-01-2-slot-system-foundation.md</reference>
+    <reference type="prior-story">docs/modules/bm-dm/stories/dm-01-1-copilotkit-installation.md</reference>
+  </references>
+</story-context>

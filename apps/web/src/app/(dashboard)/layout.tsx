@@ -42,6 +42,7 @@ import { LAYOUT } from '@/lib/layout-constants';
 import { SkipLink } from '@/components/ui/skip-link';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { DemoModeBanner } from '@/components/demo-mode-banner';
+import { DashboardSlots } from '@/components/slots';
 
 // Lazy load ChatPanel to reduce initial bundle size (~75KB gzipped: react-markdown, remark-gfm, dompurify)
 const ChatPanel = dynamic(
@@ -179,6 +180,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="p-8 sm:p-4">{children}</div>
           </ErrorBoundary>
         </main>
+
+        {/* Slot System - Registers widget tool handler with CopilotKit */}
+        <DashboardSlots />
 
         {/* Desktop/Medium: Right Chat Panel - collapsible and resizable */}
         {!isTablet && !isMobile && (
