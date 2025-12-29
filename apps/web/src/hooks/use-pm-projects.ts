@@ -1,8 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getActiveWorkspaceId, getSessionToken, useSession } from '@/lib/auth-client'
-import { NESTJS_API_URL } from '@/lib/api-config'
+import { getActiveWorkspaceId, useSession } from '@/lib/auth-client'
 import { safeJson } from '@/lib/utils/safe-json'
 import { ProjectStatusSchema, ProjectTypeSchema } from '@hyvve/shared'
 import type { CreateProjectInput, ListProjectsQuery } from '@hyvve/shared'
@@ -12,9 +11,9 @@ import { toast } from 'sonner'
 const ProjectStatus = ProjectStatusSchema
 const ProjectType = ProjectTypeSchema
 
+// Use Next.js API proxy instead of direct NestJS calls
 function getBaseUrl(): string {
-  if (!NESTJS_API_URL) throw new Error('NESTJS_API_URL is not configured')
-  return NESTJS_API_URL.replace(/\/$/, '')
+  return '/api'
 }
 
 export interface ProjectListItem {
@@ -200,11 +199,10 @@ async function fetchProjectBySlug(params: {
 export function usePmProjects(filters: ListProjectsQuery = {}) {
   const { data: session } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
-  const token = getSessionToken(session)
 
   return useQuery({
     queryKey: ['pm-projects', workspaceId, filters],
-    queryFn: () => fetchProjects({ workspaceId: workspaceId!, token, filters }),
+    queryFn: () => fetchProjects({ workspaceId: workspaceId!, filters }),
     enabled: !!workspaceId,
     staleTime: 30000,
     refetchOnWindowFocus: true,
@@ -215,12 +213,11 @@ export function useCreatePmProject() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
-  const token = getSessionToken(session)
 
   return useMutation({
     mutationFn: (input: CreateProjectInput) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return createProject({ workspaceId, token, input })
+      return createProject({ workspaceId, input })
     },
     onSuccess: () => {
       toast.success('Project created')
@@ -236,11 +233,10 @@ export function useCreatePmProject() {
 export function usePmProject(slug: string) {
   const { data: session } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
-  const token = getSessionToken(session)
 
   return useQuery({
     queryKey: ['pm-project', workspaceId, slug],
-    queryFn: () => fetchProjectBySlug({ workspaceId: workspaceId!, token, slug }),
+    queryFn: () => fetchProjectBySlug({ workspaceId: workspaceId!, slug }),
     enabled: !!workspaceId && !!slug,
     staleTime: 15000,
     refetchOnWindowFocus: true,
@@ -318,12 +314,11 @@ export function useUpdatePmProject() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
-  const token = getSessionToken(session)
 
   return useMutation({
     mutationFn: ({ projectId, data }: { projectId: string; data: Record<string, unknown> }) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return updateProject({ workspaceId, token, projectId, data })
+      return updateProject({ workspaceId, projectId, data })
     },
     onSuccess: (result) => {
       toast.success('Saved')
@@ -341,12 +336,11 @@ export function useDeletePmProject() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
-  const token = getSessionToken(session)
 
   return useMutation({
     mutationFn: ({ projectId }: { projectId: string }) => {
       if (!workspaceId) throw new Error('No workspace selected')
-      return deleteProject({ workspaceId, token, projectId })
+      return deleteProject({ workspaceId, projectId })
     },
     onSuccess: () => {
       toast.success('Project deleted')
@@ -416,11 +410,10 @@ async function fetchProjectDocs(params: {
 export function useProjectDocs(projectId: string) {
   const { data: session } = useSession()
   const workspaceId = getActiveWorkspaceId(session)
-  const token = getSessionToken(session)
 
   return useQuery({
     queryKey: ['pm-project-docs', workspaceId, projectId],
-    queryFn: () => fetchProjectDocs({ workspaceId: workspaceId!, token, projectId }),
+    queryFn: () => fetchProjectDocs({ workspaceId: workspaceId!, projectId }),
     enabled: !!workspaceId && !!projectId,
     staleTime: 30000,
     refetchOnWindowFocus: true,

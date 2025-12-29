@@ -8,15 +8,23 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common'
  *
  * @example
  * ```typescript
+ * // Get entire user object
  * @Get('profile')
  * async getProfile(@CurrentUser() user: User) {
  *   return user
  * }
+ *
+ * // Get specific property
+ * @Get('my-id')
+ * async getMyId(@CurrentUser('id') userId: string) {
+ *   return userId
+ * }
  * ```
  */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
+  (data: string | undefined, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest()
-    return request.user
+    const user = request.user
+    return data ? user?.[data] : user
   },
 )
