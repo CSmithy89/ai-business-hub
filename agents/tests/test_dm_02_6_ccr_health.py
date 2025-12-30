@@ -46,8 +46,8 @@ pytest_plugins = ["anyio"]
 
 
 # Import after mocking
-from agents.constants.dm_constants import DMConstants
-from agents.services.ccr_health import (
+from constants.dm_constants import DMConstants
+from services.ccr_health import (
     CCRHealthChecker,
     CCRHealthState,
     HealthStatus,

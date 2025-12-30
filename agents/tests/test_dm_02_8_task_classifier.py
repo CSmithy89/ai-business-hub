@@ -26,8 +26,8 @@ sys.modules["agno.models.anthropic"] = MagicMock()
 sys.modules["agno.models.base"] = MagicMock()
 
 # Now import our modules
-from agents.constants.dm_constants import DMConstants
-from agents.models.task_classifier import (
+from constants.dm_constants import DMConstants
+from models.task_classifier import (
     TaskType,
     classify_by_keywords,
     classify_task,

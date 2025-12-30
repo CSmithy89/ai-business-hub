@@ -67,8 +67,8 @@ sys.modules["agno.models.base"] = agno_models_mock.base
 pytest_plugins = ["anyio"]
 
 # Now import our modules
-from agents.constants.dm_constants import DMConstants
-from agents.models.selector import (
+from constants.dm_constants import DMConstants
+from models.selector import (
     AGENT_MODEL_PREFERENCES,
     get_agent_task_type,
     get_all_agent_preferences,

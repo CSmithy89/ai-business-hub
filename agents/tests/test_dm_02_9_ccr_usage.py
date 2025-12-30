@@ -19,8 +19,8 @@ httpx_mock = MagicMock()
 sys.modules["httpx"] = httpx_mock
 
 # Now import our modules
-from agents.constants.dm_constants import DMConstants
-from agents.services.ccr_usage import (
+from constants.dm_constants import DMConstants
+from services.ccr_usage import (
     AlertLevel,
     CCRUsageTracker,
     QuotaStatus,
