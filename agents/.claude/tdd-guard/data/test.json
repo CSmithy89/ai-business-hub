@@ -1,31 +1,196 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/test_dm_02_5_pm_agents_a2a.py",
+      "moduleId": "tests/test_dm_04_3_state_emitter.py",
       "tests": [
         {
-          "name": "test_navi_metadata_exists",
-          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_navi_metadata_exists",
-          "state": "failed",
-          "errors": [
-            {
-              "message": "tests/test_dm_02_5_pm_agents_a2a.py:375: in test_navi_metadata_exists\n    from a2a.agent_card import AGENT_METADATA\na2a/__init__.py:31: in <module>\n    from .discovery import router as discovery_router\na2a/discovery.py:15: in <module>\n    from fastapi import APIRouter, HTTPException\nE   ModuleNotFoundError: No module named 'fastapi'"
-            }
-          ]
-        },
-        {
-          "name": "test_pulse_metadata_exists",
-          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_pulse_metadata_exists",
+          "name": "test_init_creates_initial_state",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestDashboardStateEmitterInit::test_init_creates_initial_state",
           "state": "passed"
         },
         {
-          "name": "test_herald_metadata_exists",
-          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_herald_metadata_exists",
+          "name": "test_init_with_workspace_and_user",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestDashboardStateEmitterInit::test_init_with_workspace_and_user",
           "state": "passed"
         },
         {
-          "name": "test_herald_metadata_push_notifications",
-          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_herald_metadata_push_notifications",
+          "name": "test_state_property_returns_state",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestDashboardStateEmitterInit::test_state_property_returns_state",
+          "state": "passed"
+        },
+        {
+          "name": "test_emit_now_calls_callback_immediately",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestDashboardStateEmitterEmission::test_emit_now_calls_callback_immediately",
+          "state": "passed"
+        },
+        {
+          "name": "test_emit_now_bypasses_debounce",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestDashboardStateEmitterEmission::test_emit_now_bypasses_debounce",
+          "state": "passed"
+        },
+        {
+          "name": "test_callback_receives_camelcase_dict",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestDashboardStateEmitterEmission::test_callback_receives_camelcase_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_schedule_emit_debounces_updates",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestDashboardStateEmitterEmission::test_schedule_emit_debounces_updates",
+          "state": "passed"
+        },
+        {
+          "name": "test_timestamp_updates_on_emit",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestDashboardStateEmitterEmission::test_timestamp_updates_on_emit",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_loading_emits_immediately",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestLoadingState::test_set_loading_emits_immediately",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_loading_false_clears_started_at",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestLoadingState::test_set_loading_false_clears_started_at",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_error_adds_error",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestErrorState::test_set_error_adds_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_error_none_clears_error",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestErrorState::test_set_error_none_clears_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_clear_errors_removes_all",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestErrorState::test_clear_errors_removes_all",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_active_project",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestWidgetState::test_set_active_project",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_project_status",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestWidgetState::test_set_project_status",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_metrics",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestWidgetState::test_set_metrics",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_activity",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestWidgetState::test_set_activity",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_activity_caps_at_max",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestWidgetState::test_set_activity_caps_at_max",
+          "state": "passed"
+        },
+        {
+          "name": "test_add_alert_returns_id",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestAlertManagement::test_add_alert_returns_id",
+          "state": "passed"
+        },
+        {
+          "name": "test_add_alert_prepends",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestAlertManagement::test_add_alert_prepends",
+          "state": "passed"
+        },
+        {
+          "name": "test_add_alert_caps_at_max",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestAlertManagement::test_add_alert_caps_at_max",
+          "state": "passed"
+        },
+        {
+          "name": "test_add_alert_with_custom_id",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestAlertManagement::test_add_alert_with_custom_id",
+          "state": "passed"
+        },
+        {
+          "name": "test_dismiss_alert",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestAlertManagement::test_dismiss_alert",
+          "state": "passed"
+        },
+        {
+          "name": "test_clear_alerts",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestAlertManagement::test_clear_alerts",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_from_gather_processes_all",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestBulkUpdates::test_update_from_gather_processes_all",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_from_gather_handles_errors",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestBulkUpdates::test_update_from_gather_handles_errors",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_from_gather_clears_errors_when_none",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestBulkUpdates::test_update_from_gather_clears_errors_when_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_from_gather_emits_immediately",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestBulkUpdates::test_update_from_gather_emits_immediately",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_navi_response_from_artifacts",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestResponseParsing::test_parse_navi_response_from_artifacts",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_navi_response_fallback_to_content",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestResponseParsing::test_parse_navi_response_fallback_to_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_navi_response_handles_error",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestResponseParsing::test_parse_navi_response_handles_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_pulse_response_from_metrics",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestResponseParsing::test_parse_pulse_response_from_metrics",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_pulse_response_from_artifacts",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestResponseParsing::test_parse_pulse_response_from_artifacts",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_pulse_response_handles_error",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestResponseParsing::test_parse_pulse_response_handles_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_herald_response_from_activities",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestResponseParsing::test_parse_herald_response_from_activities",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_herald_response_from_artifacts",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestResponseParsing::test_parse_herald_response_from_artifacts",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_state_emitter_returns_emitter",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestFactoryFunction::test_create_state_emitter_returns_emitter",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_state_emitter_without_optional_params",
+          "fullName": "tests/test_dm_04_3_state_emitter.py::TestFactoryFunction::test_create_state_emitter_without_optional_params",
           "state": "passed"
         }
       ]

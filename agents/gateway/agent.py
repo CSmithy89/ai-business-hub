@@ -13,12 +13,18 @@ Key Responsibilities:
 This agent has BOTH interfaces enabled:
 - AG-UI: For CopilotKit frontend streaming (at /agui)
 - A2A: For backend agent orchestration (at /a2a/dashboard)
+
+State Emission (DM-04.3):
+- Optionally accepts a state_callback for AG-UI state synchronization
+- Creates DashboardStateEmitter when callback provided
+- State emitter enables real-time widget updates without tool calls
 """
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from constants.dm_constants import DMConstants
 
+from .state_emitter import DashboardStateEmitter, create_state_emitter
 from .tools import WIDGET_TYPES, get_all_tools
 
 logger = logging.getLogger(__name__)
@@ -152,6 +158,7 @@ def create_dashboard_gateway_agent(
     workspace_id: Optional[str] = None,
     model_id: Optional[str] = None,
     user_id: Optional[str] = None,
+    state_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
 ):
     """
     Create a Dashboard Gateway agent instance.
@@ -160,6 +167,7 @@ def create_dashboard_gateway_agent(
     - AG-UI interface for CopilotKit streaming
     - A2A interface for backend agent orchestration
     - Tool definitions for widget rendering and agent routing
+    - Optional state emission for real-time widget updates (DM-04.3)
 
     Args:
         workspace_id: Optional workspace/tenant identifier for context.
@@ -167,17 +175,32 @@ def create_dashboard_gateway_agent(
         model_id: Optional model identifier override.
                   Defaults to Claude Sonnet for cost-effective reasoning.
         user_id: Optional user identifier for personalization.
+        state_callback: Optional callback for state emissions via AG-UI protocol.
+                       When provided, creates a DashboardStateEmitter that enables
+                       real-time widget updates without explicit tool calls.
+                       The callback receives a camelCase dict of the state.
 
     Returns:
         Configured Dashboard Gateway Agent instance ready for interface mounting.
         Returns a mock agent if Agno is not installed.
+        The agent will have a `_state_emitter` attribute if state_callback was provided.
 
     Example:
+        >>> # Basic usage
         >>> agent = create_dashboard_gateway_agent(
         ...     workspace_id="ws_123",
         ...     user_id="user_456"
         ... )
-        >>> # Agent is ready to be mounted via AGUI and A2A interfaces
+        >>>
+        >>> # With state emission (DM-04.3)
+        >>> def emit_state(state):
+        ...     websocket.send(json.dumps(state))
+        ...
+        >>> agent = create_dashboard_gateway_agent(
+        ...     workspace_id="ws_123",
+        ...     state_callback=emit_state,
+        ... )
+        >>> # Agent's _state_emitter can be used by tools
     """
     # Handle optional Agno imports gracefully
     try:
@@ -194,7 +217,19 @@ def create_dashboard_gateway_agent(
             "Install with: pip install agno[agui,a2a]"
         )
         # Return a mock agent for testing
-        return _create_mock_agent(workspace_id, model_id, user_id)
+        agent = _create_mock_agent(workspace_id, model_id, user_id)
+
+        # Create and attach state emitter if callback provided (DM-04.3)
+        if state_callback:
+            agent._state_emitter = create_state_emitter(
+                on_state_change=state_callback,
+                workspace_id=workspace_id,
+                user_id=user_id,
+            )
+        else:
+            agent._state_emitter = None
+
+        return agent
 
     # Build context-aware instructions
     instructions = [DASHBOARD_INSTRUCTIONS]
@@ -223,10 +258,23 @@ def create_dashboard_gateway_agent(
         show_tool_calls=True,
     )
 
-    logger.info(
-        f"Created Dashboard Gateway agent "
-        f"(workspace={workspace_id}, model={model_id or 'default'})"
-    )
+    # Create and attach state emitter if callback provided (DM-04.3)
+    if state_callback:
+        agent._state_emitter = create_state_emitter(
+            on_state_change=state_callback,
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+        logger.info(
+            f"Created Dashboard Gateway agent with state emitter "
+            f"(workspace={workspace_id}, model={model_id or 'default'})"
+        )
+    else:
+        agent._state_emitter = None
+        logger.info(
+            f"Created Dashboard Gateway agent "
+            f"(workspace={workspace_id}, model={model_id or 'default'})"
+        )
 
     return agent
 
