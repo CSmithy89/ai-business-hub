@@ -132,6 +132,9 @@ class TaskProgress(BaseModel):
     started_at: Optional[int] = Field(
         None, alias="startedAt", description="Task start timestamp (Unix ms)"
     )
+    completed_at: Optional[int] = Field(
+        None, alias="completedAt", description="Task completion timestamp (Unix ms)"
+    )
     estimated_completion_ms: Optional[int] = Field(
         None, alias="estimatedCompletionMs", description="Estimated total duration in ms"
     )

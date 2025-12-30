@@ -328,7 +328,29 @@ class TaskManager:
         Returns:
             TaskResult with final state and result/error
         """
-        async with self._semaphore:
+        try:
+            # Acquire semaphore - may be cancelled while waiting
+            await self._semaphore.acquire()
+        except asyncio.CancelledError:
+            # Task was cancelled while waiting for semaphore
+            task.state = TaskState.CANCELLED
+            task.completed_at = time.time()
+            task.error = "Task was cancelled while waiting in queue"
+
+            if self._state_emitter:
+                try:
+                    await self._state_emitter.cancel_task(task.task_id)
+                except Exception as e:
+                    logger.warning(f"Failed to emit task cancellation: {e}")
+
+            logger.info(f"Task cancelled while queued: {task.task_id}")
+            return TaskResult(
+                task_id=task.task_id,
+                state=TaskState.CANCELLED,
+                error=task.error,
+            )
+
+        try:
             task.state = TaskState.RUNNING
             task.started_at = time.time()
 
@@ -408,6 +430,9 @@ class TaskManager:
                 logger.exception(f"Task failed: {task.task_id} - {e}")
 
             return self._create_result(task)
+        finally:
+            # Always release the semaphore when done
+            self._semaphore.release()
 
     async def _execute_steps(self, task: ManagedTask) -> None:
         """

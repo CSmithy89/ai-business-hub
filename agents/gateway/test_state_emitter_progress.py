@@ -276,8 +276,8 @@ class TestDashboardStateEmitterProgress:
         await emitter.start_task("task_1", "Test", ["Step 1"])
         await emitter.complete_task("task_1")
 
-        # Manually set started_at to be old enough for cleanup
-        emitter.state.active_tasks[0].started_at = int(time.time() * 1000) - 400000
+        # Manually set completed_at to be old enough for cleanup
+        emitter.state.active_tasks[0].completed_at = int(time.time() * 1000) - 400000
 
         # Start a new task which triggers cleanup
         await emitter.start_task("task_2", "Test 2", ["Step 1"])

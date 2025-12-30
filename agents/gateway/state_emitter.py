@@ -722,6 +722,7 @@ class DashboardStateEmitter:
 
         now = int(time.time() * 1000)
         task.status = TaskStatus.COMPLETED
+        task.completed_at = now
 
         # Mark all steps as completed
         for step in task.steps:
@@ -747,6 +748,7 @@ class DashboardStateEmitter:
 
         now = int(time.time() * 1000)
         task.status = TaskStatus.FAILED
+        task.completed_at = now
         task.error = error
 
         # Mark current running step as failed
@@ -772,6 +774,7 @@ class DashboardStateEmitter:
 
         now = int(time.time() * 1000)
         task.status = TaskStatus.CANCELLED
+        task.completed_at = now
 
         # Stop any running steps (mark as pending, they weren't completed)
         for step in task.steps:
@@ -834,8 +837,8 @@ class DashboardStateEmitter:
             t for t in self._state.active_tasks
             if t.status not in terminal_statuses
             or (
-                t.started_at is not None
-                and now - t.started_at < retention_ms
+                t.completed_at is not None
+                and now - t.completed_at < retention_ms
             )
         ]
 

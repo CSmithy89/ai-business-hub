@@ -161,7 +161,7 @@ export function HITLApprovalCard({
   const handleApprove = async () => {
     setIsApproving(true);
     try {
-      onApprove();
+      await onApprove();
     } finally {
       // State will be unmounted after response, but just in case
       setIsApproving(false);
@@ -177,7 +177,7 @@ export function HITLApprovalCard({
 
     setIsRejecting(true);
     try {
-      onReject(rejectReason || undefined);
+      await onReject(rejectReason || undefined);
     } finally {
       setIsRejecting(false);
     }

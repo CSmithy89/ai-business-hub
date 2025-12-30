@@ -97,7 +97,7 @@ export function ContractApprovalCard({
   const handleApprove = async () => {
     setIsApproving(true);
     try {
-      onApprove();
+      await onApprove();
     } finally {
       setIsApproving(false);
     }
@@ -112,7 +112,7 @@ export function ContractApprovalCard({
 
     setIsRejecting(true);
     try {
-      onReject(rejectReason || undefined);
+      await onReject(rejectReason || undefined);
     } finally {
       setIsRejecting(false);
     }

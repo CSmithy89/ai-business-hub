@@ -100,6 +100,8 @@ export const TaskProgressSchema = z.object({
   steps: z.array(TaskStepSchema).default([]),
   /** Task start timestamp (Unix ms) */
   startedAt: z.number().optional(),
+  /** Task completion timestamp (Unix ms) */
+  completedAt: z.number().optional(),
   /** Estimated total duration in ms */
   estimatedCompletionMs: z.number().optional(),
   /** Error message if task failed */

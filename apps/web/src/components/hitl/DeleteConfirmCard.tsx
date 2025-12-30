@@ -77,11 +77,12 @@ export function DeleteConfirmCard({
   // Extract values from toolArgs if not provided as props
   const displayItemName =
     itemName ??
-    (toolArgs.project_name as string) ??
-    (toolArgs.projectName as string) ??
-    (toolArgs.name as string);
-  const displayItemType =
-    itemType ?? (toolArgs.item_type as string) ?? (toolArgs.itemType as string) ?? 'item';
+    (typeof toolArgs.project_name === 'string' ? toolArgs.project_name : undefined) ??
+    (typeof toolArgs.projectName === 'string' ? toolArgs.projectName : undefined) ??
+    (typeof toolArgs.name === 'string' ? toolArgs.name : undefined);
+  const rawItemType =
+    itemType ?? toolArgs.item_type ?? toolArgs.itemType;
+  const displayItemType = typeof rawItemType === 'string' ? rawItemType : 'item';
   const archiveFirst = toolArgs.archive_first ?? toolArgs.archiveFirst ?? true;
   const notifyTeam = toolArgs.notify_team ?? toolArgs.notifyTeam ?? true;
 
@@ -92,7 +93,9 @@ export function DeleteConfirmCard({
   );
 
   // Check if confirmation is valid
-  const isConfirmationValid = !requireNameConfirmation || confirmationInput === displayItemName;
+  // If name confirmation is required but no item name can be resolved, allow approval
+  const isConfirmationValid =
+    !requireNameConfirmation || !displayItemName || confirmationInput === displayItemName;
 
   // Handle approve
   const handleApprove = async () => {
@@ -100,7 +103,7 @@ export function DeleteConfirmCard({
 
     setIsApproving(true);
     try {
-      onApprove();
+      await onApprove();
     } finally {
       setIsApproving(false);
     }
@@ -115,7 +118,7 @@ export function DeleteConfirmCard({
 
     setIsRejecting(true);
     try {
-      onReject(rejectReason || undefined);
+      await onReject(rejectReason || undefined);
     } finally {
       setIsRejecting(false);
     }

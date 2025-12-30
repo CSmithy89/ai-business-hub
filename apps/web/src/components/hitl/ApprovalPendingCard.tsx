@@ -304,7 +304,7 @@ export function ApprovalPendingCard({
             asChild
             className="flex-1"
           >
-            <Link href={`/approvals?id=${approvalId}`}>
+            <Link href={`/approvals?id=${encodeURIComponent(approvalId)}`}>
               <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
               View in Queue
             </Link>

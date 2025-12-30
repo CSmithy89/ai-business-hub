@@ -49,7 +49,7 @@ function useSignContractAction() {
     renderApproval: ({ args, respond, status }) => (
       <ContractApprovalCard
         args={args}
-        isExecuting={status !== 'executing'}
+        isExecuting={status === 'executing'}
         onApprove={() => respond?.({ approved: true })}
         onReject={(reason) => respond?.({ approved: false, reason })}
       />
@@ -83,7 +83,7 @@ function useDeleteProjectAction() {
         args={args}
         itemType="project"
         requireNameConfirmation={true}
-        isExecuting={status !== 'executing'}
+        isExecuting={status === 'executing'}
         onApprove={() => respond?.({ approved: true })}
         onReject={(reason) => respond?.({ approved: false, reason })}
       />
@@ -116,7 +116,7 @@ function useApproveExpenseAction() {
       <HITLApprovalCard
         args={args}
         title="Expense Approval"
-        isExecuting={status !== 'executing'}
+        isExecuting={status === 'executing'}
         onApprove={() => respond?.({ approved: true })}
         onReject={(reason) => respond?.({ approved: false, reason })}
       />
@@ -156,7 +156,7 @@ function useSendBulkNotificationAction() {
               ? args.toolArgs.recipientIds.length
               : 'multiple'
         } recipients`}
-        isExecuting={status !== 'executing'}
+        isExecuting={status === 'executing'}
         onApprove={() => respond?.({ approved: true })}
         onReject={(reason) => respond?.({ approved: false, reason })}
       />
@@ -188,7 +188,7 @@ function useGenericAction() {
     renderApproval: ({ args, respond, status }) => (
       <HITLApprovalCard
         args={args}
-        isExecuting={status !== 'executing'}
+        isExecuting={status === 'executing'}
         onApprove={() => respond?.({ approved: true })}
         onReject={(reason) => respond?.({ approved: false, reason })}
       />

@@ -232,7 +232,12 @@ class ApprovalQueueBridge:
         if safe_args:
             lines.append("**Parameters:**")
             for key, value in safe_args.items():
-                formatted_key = key.replace("_", " ").title()
+                # Handle both snake_case and camelCase:
+                # 1. Split camelCase (contractId -> contract Id)
+                # 2. Replace underscores with spaces (contract_id -> contract id)
+                # 3. Title case the result
+                formatted_key = re.sub(r'(?<!^)(?=[A-Z])', ' ', key)
+                formatted_key = formatted_key.replace("_", " ").title()
                 lines.append(f"- {formatted_key}: {value}")
 
         # Add risk warning for high risk

@@ -72,7 +72,9 @@ function generateTitle(params: CreateQueuedApprovalParams): string {
   if (params.config.descriptionTemplate) {
     let title = params.config.descriptionTemplate;
     for (const [key, value] of Object.entries(params.toolArgs)) {
-      title = title.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
+      // Escape regex metacharacters in the key to avoid SyntaxError
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      title = title.replace(new RegExp(`\\{${escapedKey}\\}`, 'g'), String(value));
     }
     return title;
   }

@@ -70,7 +70,9 @@ describe('TaskProgressCard', () => {
     render(<TaskProgressCard task={task} />);
 
     // With 1 completed step and 1 running at 50%, weighted progress is ~50%
-    expect(screen.getByText(/\d+%/)).toBeInTheDocument();
+    // Use getAllByText since both overall and step progress show percentages
+    const percentages = screen.getAllByText(/\d+%/);
+    expect(percentages.length).toBeGreaterThan(0);
   });
 
   it('shows step count', () => {
@@ -94,7 +96,9 @@ describe('TaskProgressCard', () => {
     render(<TaskProgressCard task={task} />);
 
     // The running step shows 50% progress
-    expect(screen.getByText('50%')).toBeInTheDocument();
+    // Use getAllByText since overall and step progress may both show this value
+    const percentages = screen.getAllByText('50%');
+    expect(percentages.length).toBeGreaterThan(0);
   });
 
   it('hides steps when showSteps is false', () => {
