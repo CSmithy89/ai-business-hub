@@ -71,3 +71,13 @@ export const STORAGE_APPROVAL_ORDER_PREFIX = 'hyvve-approval-order-' as const;
 
 /** Email verification resend countdown timestamp */
 export const STORAGE_VERIFICATION_COUNTDOWN = 'verification-resend-countdown' as const;
+
+// ============================================================================
+// Dashboard State Keys (Epic DM-04)
+// ============================================================================
+
+/** Dashboard state persistence for session continuity */
+export const STORAGE_DASHBOARD_STATE = 'hyvve-dashboard-state' as const;
+
+/** Dashboard state version for schema migrations */
+export const STORAGE_DASHBOARD_STATE_VERSION = 'hyvve-dashboard-state-version' as const;

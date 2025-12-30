@@ -117,12 +117,12 @@ development_status:
   # State schemas, Subscriptions, Persistence
   # Tech Spec: docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
   # ===========================================
-  dm-04: contexted
+  dm-04: complete
   dm-04-1-state-schema-definition: done
   dm-04-2-frontend-state-subscription: done
   dm-04-3-agent-state-emissions: done
   dm-04-4-realtime-widget-updates: done
-  dm-04-5-state-persistence: backlog
+  dm-04-5-state-persistence: done
   dm-04-retrospective: optional
 
   # ===========================================
