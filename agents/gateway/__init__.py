@@ -9,6 +9,7 @@ and the backend agent system. It provides:
 - Widget rendering tools for visual dashboard components
 - Agent routing for specialist delegation
 - State emission for real-time widget updates (DM-04.3)
+- HITL tools for human-in-the-loop approval workflows (DM-05.1)
 
 Usage:
     from gateway import create_dashboard_gateway_agent, get_agent_metadata
@@ -29,6 +30,10 @@ Usage:
     from agentos.factory import create_agui_interface, create_a2a_interface
     agui = create_agui_interface(agent, "/agui")
     a2a = create_a2a_interface(agent, "/a2a/dashboard")
+
+    # HITL tools (DM-05.1)
+    from gateway import get_hitl_tools, sign_contract
+    hitl_tools = get_hitl_tools()  # Returns list of all HITL tools
 """
 from .agent import (
     DASHBOARD_INSTRUCTIONS,
@@ -47,6 +52,15 @@ from .tools import (
     render_dashboard_widget,
     route_to_agent,
 )
+from .hitl_tools import (
+    # HITL example tools (DM-05.1)
+    sign_contract,
+    delete_project,
+    approve_expense,
+    send_bulk_notification,
+    get_hitl_tools,
+    get_hitl_tool_metadata,
+)
 
 __all__ = [
     # Agent
@@ -63,4 +77,11 @@ __all__ = [
     "route_to_agent",
     "get_all_tools",
     "WIDGET_TYPES",
+    # HITL Tools (DM-05.1)
+    "sign_contract",
+    "delete_project",
+    "approve_expense",
+    "send_bulk_notification",
+    "get_hitl_tools",
+    "get_hitl_tool_metadata",
 ]
