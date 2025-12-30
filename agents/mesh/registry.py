@@ -14,7 +14,7 @@ import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
-from .models import AgentCapability, AgentHealth, MeshAgentCard
+from .models import AgentHealth, MeshAgentCard
 
 logger = logging.getLogger(__name__)
 

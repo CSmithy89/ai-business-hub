@@ -9,10 +9,7 @@ instructions to understand the user's current application state.
 Epic: DM-06 | Story: DM-06.2
 """
 
-import logging
 from typing import Any, Dict, List, Optional
-
-logger = logging.getLogger(__name__)
 
 # =============================================================================
 # CONSTANTS

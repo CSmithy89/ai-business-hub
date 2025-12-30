@@ -17,7 +17,7 @@ Epic: DM-06 | Story: DM-06.3
 """
 import uuid
 import time
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 # =============================================================================
 # TYPE DEFINITIONS
@@ -84,7 +84,7 @@ def create_split_layout(
     right_widget: str,
     right_data: Dict[str, Any],
     direction: Literal["horizontal", "vertical"] = "horizontal",
-    ratio: tuple = (1, 1),
+    ratio: Tuple[int, int] = (1, 1),
     left_title: Optional[str] = None,
     right_title: Optional[str] = None,
 ) -> Dict[str, Any]:

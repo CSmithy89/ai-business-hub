@@ -243,21 +243,24 @@ class TestMeshRouter:
         """Should route request via A2A client."""
         mock_result = MagicMock()
         mock_result.success = True
-        mock_result.model_dump.return_value = {"content": "Success"}
+        mock_result.model_dump.return_value = {"content": "Success", "success": True}
 
         mock_client = AsyncMock()
         mock_client.call_agent.return_value = mock_result
 
-        async def mock_get_client():
-            return mock_client
+        # Create a proper async mock for get_a2a_client
+        mock_get_client = AsyncMock(return_value=mock_client)
 
-        with patch.dict("sys.modules", {"a2a": MagicMock(), "a2a.client": MagicMock()}):
-            with patch("a2a.client.get_a2a_client", mock_get_client):
-                result = await router.route_request(
-                    task_type="planning",
-                    message="Create project plan",
-                    preferred_module="pm",
-                )
+        # Create a mock module with the get_a2a_client function
+        mock_a2a_client_module = MagicMock()
+        mock_a2a_client_module.get_a2a_client = mock_get_client
+
+        with patch.dict("sys.modules", {"a2a": MagicMock(), "a2a.client": mock_a2a_client_module}):
+            result = await router.route_request(
+                task_type="planning",
+                message="Create project plan",
+                preferred_module="pm",
+            )
 
         assert result["agent"] == "PMAgent"
         assert result["success"] is True

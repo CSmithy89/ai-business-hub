@@ -107,13 +107,21 @@ const DEFAULT_SENSITIVE_FIELDS = [
   'apiKey',
   'ssn',
   'creditCard',
+  'accessToken',
+  'refreshToken',
+  'authorization',
+  'credentials',
+  'privateKey',
+  'sessionId',
 ];
 
 /**
  * Recursively filter sensitive fields from context before exposure.
+ * Guards against circular references using a WeakSet.
  *
  * @param data - The data object to filter
  * @param sensitiveFields - Field names to exclude (case-insensitive matching)
+ * @param visited - Internal WeakSet to track visited objects (prevents circular reference loops)
  * @returns Filtered data with sensitive fields removed
  *
  * @example
@@ -130,8 +138,15 @@ const DEFAULT_SENSITIVE_FIELDS = [
  */
 export function filterSensitiveContext<T extends Record<string, unknown>>(
   data: T,
-  sensitiveFields: string[] = DEFAULT_SENSITIVE_FIELDS
+  sensitiveFields: string[] = DEFAULT_SENSITIVE_FIELDS,
+  visited: WeakSet<object> = new WeakSet()
 ): Partial<T> {
+  // Guard against circular references
+  if (visited.has(data)) {
+    return {} as Partial<T>;
+  }
+  visited.add(data);
+
   const result: Record<string, unknown> = {};
 
   // Normalize a string by removing separators and converting to lowercase
@@ -150,10 +165,11 @@ export function filterSensitiveContext<T extends Record<string, unknown>>(
     }
 
     if (value && typeof value === 'object' && !Array.isArray(value)) {
-      // Recursively filter nested objects
+      // Recursively filter nested objects (pass visited set)
       result[key] = filterSensitiveContext(
         value as Record<string, unknown>,
-        sensitiveFields
+        sensitiveFields,
+        visited
       );
     } else if (Array.isArray(value)) {
       // Filter each item in arrays if they're objects
@@ -161,7 +177,8 @@ export function filterSensitiveContext<T extends Record<string, unknown>>(
         item && typeof item === 'object' && !Array.isArray(item)
           ? filterSensitiveContext(
               item as Record<string, unknown>,
-              sensitiveFields
+              sensitiveFields,
+              visited
             )
           : item
       );

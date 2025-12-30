@@ -12,7 +12,7 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from .models import AgentEndpoint, AgentHealth, MeshAgentCard
+from .models import AgentHealth, MeshAgentCard
 from .registry import get_registry
 
 logger = logging.getLogger(__name__)
