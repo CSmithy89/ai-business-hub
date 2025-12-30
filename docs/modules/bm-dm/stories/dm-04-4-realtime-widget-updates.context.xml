@@ -1,0 +1,761 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: dm-04-4-realtime-widget-updates
+  Epic: DM-04 - Shared State & Real-Time
+  Generated: 2025-12-30
+
+  This file provides implementation context for the dm-04-4-realtime-widget-updates story.
+  It contains relevant code snippets, patterns, and references needed for development.
+-->
+<story-context>
+
+  <!-- ============================================================ -->
+  <!-- STORY OVERVIEW -->
+  <!-- ============================================================ -->
+  <story>
+    <id>dm-04-4-realtime-widget-updates</id>
+    <epic>DM-04 - Shared State & Real-Time</epic>
+    <points>5</points>
+    <priority>High (Completes the state synchronization loop)</priority>
+
+    <summary>
+      Implement automatic widget updates when agent state changes, completing the
+      real-time state synchronization loop. Creates state-driven widget wrappers
+      that subscribe to the Zustand store and automatically re-render when their
+      corresponding state updates, without requiring explicit tool calls.
+    </summary>
+
+    <deliverables>
+      <deliverable>StateProjectStatusWidget - connects to useProjectStatus() selector</deliverable>
+      <deliverable>StateMetricsWidget - connects to useMetrics() selector</deliverable>
+      <deliverable>StateActivityWidget - connects to useTeamActivity() selector</deliverable>
+      <deliverable>StateAlertsWidget - renders stack of non-dismissed alerts</deliverable>
+      <deliverable>RealTimeIndicator - shows last update time and refresh button</deliverable>
+      <deliverable>DashboardSlots hybrid mode support (tool-only, state-only, hybrid)</deliverable>
+      <deliverable>formatTimestamp utility for relative time formatting</deliverable>
+      <deliverable>Unit tests with >80% coverage</deliverable>
+    </deliverables>
+
+    <acceptance-criteria>
+      <criterion id="AC1">State-driven widgets render from Zustand store</criterion>
+      <criterion id="AC2">DashboardSlots supports hybrid mode (both tool calls AND state updates)</criterion>
+      <criterion id="AC3">Loading indicators show during state updates with skeleton components</criterion>
+      <criterion id="AC4">Error states display correctly with error widget component</criterion>
+      <criterion id="AC5">RealTimeIndicator shows last update time and refresh button</criterion>
+      <criterion id="AC6">Widgets animate in/out smoothly using Tailwind CSS transitions</criterion>
+      <criterion id="AC7">Unit tests pass with >80% coverage</criterion>
+    </acceptance-criteria>
+  </story>
+
+  <!-- ============================================================ -->
+  <!-- TECH SPEC REFERENCE (Section 3.4) -->
+  <!-- ============================================================ -->
+  <tech-spec>
+    <reference>docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md - Section 3.4</reference>
+
+    <architecture-diagram>
+      <![CDATA[
+      ┌─────────────────────────────────────────────────────────────┐
+      │                     FRONTEND (React)                         │
+      │  ┌─────────────────┐     ┌─────────────────────────────────┐│
+      │  │ Zustand Store   │ <-- │ useAgentStateSync (DM-04.2)     ││
+      │  │ dashboardState  │     │                                 ││
+      │  └────────┬────────┘     └─────────────────────────────────┘│
+      │           │                                                  │
+      │  ┌────────v───────────────────────────────────────────────┐ │
+      │  │             Selector Hooks                              │ │
+      │  │  useProjectStatus | useMetrics | useTeamActivity | useAlerts │
+      │  └────────┬───────────┬───────────┬───────────┬───────────┘ │
+      │           │           │           │           │              │
+      │  ┌────────v────┐ ┌────v────┐ ┌────v────┐ ┌────v────┐       │
+      │  │ StateProject│ │ State   │ │ State   │ │ State   │       │
+      │  │ StatusWidget│ │ Metrics │ │ Activity│ │ Alerts  │       │
+      │  │             │ │ Widget  │ │ Widget  │ │ Widget  │       │
+      │  └─────────────┘ └─────────┘ └─────────┘ └─────────┘       │
+      └─────────────────────────────────────────────────────────────┘
+      ]]>
+    </architecture-diagram>
+
+    <rendering-modes>
+      <mode name="hybrid" default="true">Both tool calls AND state updates render widgets</mode>
+      <mode name="tool-only">Only render from tool calls (DM-03 behavior)</mode>
+      <mode name="state-only">Only render from state updates</mode>
+    </rendering-modes>
+
+    <key-decisions>
+      <decision>State widgets wrap existing widget components, connecting them to state</decision>
+      <decision>Hybrid mode allows both tool-call and state rendering simultaneously</decision>
+      <decision>Each widget uses specific selector hooks for efficient updates</decision>
+      <decision>Show loading only when BOTH: isLoading=true AND no widget data</decision>
+      <decision>Show error only when BOTH: agent has error AND no widget data</decision>
+    </key-decisions>
+
+    <animation-classes>animate-in fade-in-50 duration-300 (requires tailwindcss-animate)</animation-classes>
+  </tech-spec>
+
+  <!-- ============================================================ -->
+  <!-- DEPENDENCIES FROM DM-04.2 -->
+  <!-- ============================================================ -->
+  <dependencies>
+    <dependency-group name="dm-04-2-selectors" path="apps/web/src/hooks/use-dashboard-selectors.ts">
+      <exports>
+        <export name="useProjectStatus" returns="ProjectStatusState | null" />
+        <export name="useMetrics" returns="MetricsState | null" />
+        <export name="useTeamActivity" returns="ActivityState | null" />
+        <export name="useAlerts" returns="AlertEntry[]" description="Returns non-dismissed alerts only" />
+        <export name="useAnyLoading" returns="boolean" />
+        <export name="useWidgetLoading" params="widgetAgent: string" returns="boolean" />
+        <export name="useWidgetError" params="agentId: string" returns="string | undefined" />
+        <export name="useErrors" returns="ErrorState" />
+        <export name="useLastUpdated" returns="number" description="Unix timestamp ms" />
+      </exports>
+
+      <code-snippet name="selector-usage-pattern">
+        <![CDATA[
+/**
+ * Select project status widget state.
+ * Only re-renders when projectStatus changes.
+ */
+export function useProjectStatus(): ProjectStatusState | null {
+  return useDashboardStateStore((state) => state.widgets.projectStatus);
+}
+
+/**
+ * Select non-dismissed alerts only.
+ */
+export function useAlerts(): AlertEntry[] {
+  return useDashboardStateStore((state) =>
+    state.widgets.alerts.filter((alert) => !alert.dismissed)
+  );
+}
+        ]]>
+      </code-snippet>
+    </dependency-group>
+
+    <dependency-group name="dm-04-2-sync-hook" path="apps/web/src/hooks/use-agent-state-sync.ts">
+      <exports>
+        <export name="useAgentStateSync" params="options?: UseAgentStateSyncOptions" />
+        <export name="DASHBOARD_AGENT_NAME" value="dashboard_gateway" />
+      </exports>
+
+      <code-snippet name="agent-sync-usage">
+        <![CDATA[
+export function useAgentStateSync(
+  options: UseAgentStateSyncOptions = {}
+): UseAgentStateSyncResult {
+  const { debug = false, debounceMs = UPDATE_DEBOUNCE_MS } = options;
+
+  // Subscribe to agent state via CopilotKit
+  useCoAgentStateRender({
+    name: agentName,
+    render: ({ state, status }) => {
+      if (status === 'inProgress') {
+        handleLoadingUpdate(true, [agentName]);
+      } else if (status === 'complete' || status === 'idle') {
+        handleLoadingUpdate(false);
+      }
+      if (state) {
+        handleStateUpdate(state);
+      }
+      return null; // Doesn't render anything - just syncs state
+    },
+  });
+}
+        ]]>
+      </code-snippet>
+    </dependency-group>
+
+    <dependency-group name="dm-04-2-store" path="apps/web/src/stores/dashboard-state-store.ts">
+      <exports>
+        <export name="useDashboardStateStore" type="Zustand store" />
+      </exports>
+
+      <code-snippet name="store-interface">
+        <![CDATA[
+export interface DashboardStateStore extends DashboardState {
+  setFullState: (state: DashboardState) => void;
+  updateState: (update: DashboardStateUpdate) => void;
+  setActiveProject: (projectId: string | null) => void;
+  setProjectStatus: (status: ProjectStatusState | null) => void;
+  setMetrics: (metrics: MetricsState | null) => void;
+  setActivity: (activity: ActivityState | null) => void;
+  addAlert: (alert: AlertEntry) => void;
+  dismissAlert: (alertId: string) => void;
+  clearAlerts: () => void;
+  setLoading: (isLoading: boolean, agents?: string[]) => void;
+  setError: (agentId: string, error: string | null) => void;
+  clearErrors: () => void;
+  reset: () => void;
+}
+        ]]>
+      </code-snippet>
+    </dependency-group>
+  </dependencies>
+
+  <!-- ============================================================ -->
+  <!-- STATE SCHEMA TYPES (DM-04.1) -->
+  <!-- ============================================================ -->
+  <state-schemas path="apps/web/src/lib/schemas/dashboard-state.ts">
+    <type name="ProjectStatusState">
+      <![CDATA[
+export type ProjectStatusState = {
+  projectId: string;
+  name: string;
+  status: 'on-track' | 'at-risk' | 'behind' | 'completed';
+  progress: number; // 0-100
+  tasksCompleted: number;
+  tasksTotal: number;
+  lastUpdated: number; // Unix ms
+  summary?: string;
+};
+      ]]>
+    </type>
+
+    <type name="MetricsState">
+      <![CDATA[
+export type MetricsState = {
+  title: string;
+  metrics: Array<{
+    id: string;
+    label: string;
+    value: number | string;
+    unit?: string;
+    trend?: 'up' | 'down' | 'neutral';
+    change?: string;
+    changePercent?: number;
+  }>;
+  period?: string;
+  lastUpdated: number;
+};
+      ]]>
+    </type>
+
+    <type name="ActivityState">
+      <![CDATA[
+export type ActivityState = {
+  activities: Array<{
+    id: string;
+    user: string;
+    userAvatar?: string;
+    action: string;
+    target?: string;
+    timestamp: number; // Unix ms
+    projectId?: string;
+  }>;
+  hasMore: boolean;
+  lastUpdated: number;
+};
+      ]]>
+    </type>
+
+    <type name="AlertEntry">
+      <![CDATA[
+export type AlertEntry = {
+  id: string;
+  type: 'error' | 'warning' | 'info' | 'success';
+  title: string;
+  message: string;
+  timestamp: number;
+  dismissable: boolean;
+  dismissed: boolean;
+  actionLabel?: string;
+  actionUrl?: string;
+};
+      ]]>
+    </type>
+  </state-schemas>
+
+  <!-- ============================================================ -->
+  <!-- EXISTING WIDGET COMPONENTS (DM-03) -->
+  <!-- ============================================================ -->
+  <existing-widgets>
+    <widget-component name="ProjectStatusWidget" path="apps/web/src/components/slots/widgets/ProjectStatusWidget.tsx">
+      <props>
+        <![CDATA[
+export interface ProjectStatusWidgetProps {
+  data: {
+    projectId: string;
+    projectName: string;
+    status: 'on_track' | 'at_risk' | 'behind';
+    progress: number;
+    dueDate?: string;
+    tasksCompleted: number;
+    tasksTotal: number;
+  };
+  isLoading?: boolean;
+}
+        ]]>
+      </props>
+      <notes>
+        - Status uses underscores: on_track, at_risk, behind (vs state schema uses hyphens)
+        - Requires data.projectName (not data.name)
+        - Has built-in isLoading prop that shows WidgetSkeleton
+      </notes>
+    </widget-component>
+
+    <widget-component name="MetricsWidget" path="apps/web/src/components/slots/widgets/MetricsWidget.tsx">
+      <props>
+        <![CDATA[
+export interface MetricsWidgetProps {
+  data: {
+    title?: string;
+    metrics: Array<{
+      label: string;
+      value: number | string;
+      change?: { value: number; direction: 'up' | 'down' };
+      icon?: string;
+    }>;
+  };
+  isLoading?: boolean;
+}
+        ]]>
+      </props>
+      <notes>
+        - Change format differs from state (uses object with direction instead of trend enum)
+        - Maps from state MetricEntry to widget format
+      </notes>
+    </widget-component>
+
+    <widget-component name="TeamActivityWidget" path="apps/web/src/components/slots/widgets/TeamActivityWidget.tsx">
+      <props>
+        <![CDATA[
+export interface TeamActivityWidgetProps {
+  data: {
+    title?: string;
+    activities: Array<{
+      user: string;
+      action: string;
+      target?: string;
+      time: string; // Formatted time string, NOT timestamp
+    }>;
+  };
+  isLoading?: boolean;
+}
+        ]]>
+      </props>
+      <notes>
+        - Requires time as formatted string (e.g., "2 hours ago")
+        - State provides timestamp as number - needs formatTimestamp() conversion
+      </notes>
+    </widget-component>
+
+    <widget-component name="AlertWidget" path="apps/web/src/components/slots/widgets/AlertWidget.tsx">
+      <props>
+        <![CDATA[
+export interface AlertWidgetProps {
+  data: {
+    severity: 'info' | 'warning' | 'error' | 'success';
+    title: string;
+    message: string;
+    action?: { label: string; href: string };
+  };
+  isLoading?: boolean;
+}
+        ]]>
+      </props>
+      <notes>
+        - Uses severity instead of type
+        - action uses label/href instead of actionLabel/actionUrl
+        - Returns null if missing title or message
+      </notes>
+    </widget-component>
+
+    <widget-component name="LoadingWidget" path="apps/web/src/components/slots/widgets/LoadingWidget.tsx">
+      <props>
+        <![CDATA[
+export interface LoadingWidgetProps {
+  type?: string;    // Widget type being loaded
+  message?: string; // Optional custom message
+}
+        ]]>
+      </props>
+    </widget-component>
+
+    <widget-component name="ErrorWidget" path="apps/web/src/components/slots/widgets/ErrorWidget.tsx">
+      <props>
+        <![CDATA[
+export interface ErrorWidgetProps {
+  message: string;
+  widgetType?: string;
+  availableTypes?: string[];
+  onRetry?: () => void;
+}
+        ]]>
+      </props>
+    </widget-component>
+  </existing-widgets>
+
+  <!-- ============================================================ -->
+  <!-- CURRENT DASHBOARD SLOTS (TO BE MODIFIED) -->
+  <!-- ============================================================ -->
+  <current-dashboard-slots path="apps/web/src/components/slots/DashboardSlots.tsx">
+    <code>
+      <![CDATA[
+'use client';
+
+import { useCopilotAction } from '@copilotkit/react-core';
+import { WidgetErrorBoundary } from './WidgetErrorBoundary';
+import { LoadingWidget, ErrorWidget } from './widgets';
+import { getWidgetComponent, getRegisteredWidgetTypes } from './widget-registry';
+import type { RenderWidgetArgs } from './types';
+
+export function DashboardSlots() {
+  useCopilotAction({
+    name: 'render_dashboard_widget',
+    description: "Render a widget on the user's dashboard",
+    parameters: [
+      { name: 'type', type: 'string', required: true },
+      { name: 'data', type: 'object', required: true },
+    ],
+    available: 'disabled',
+    render: ({ args, status }) => {
+      const { type, data } = args as RenderWidgetArgs;
+      const widgetType = (type as string) || 'Unknown';
+
+      if (status === 'inProgress' || status === 'executing') {
+        return <LoadingWidget type={widgetType} />;
+      }
+
+      // ... error handling and widget rendering ...
+
+      return (
+        <WidgetErrorBoundary widgetType={widgetType}>
+          <WidgetComponent data={data} />
+        </WidgetErrorBoundary>
+      );
+    },
+  });
+
+  return null; // Side-effect component
+}
+      ]]>
+    </code>
+
+    <modifications-required>
+      <modification>Add mode prop: 'hybrid' | 'tool-only' | 'state-only'</modification>
+      <modification>Add useAgentStateSync() call at component mount</modification>
+      <modification>Skip tool rendering in state-only mode</modification>
+      <modification>Render state widgets grid in hybrid and state-only modes</modification>
+      <modification>Add animation classes to tool-rendered widgets</modification>
+      <modification>Change from pure side-effect (return null) to returning state widget grid</modification>
+    </modifications-required>
+  </current-dashboard-slots>
+
+  <!-- ============================================================ -->
+  <!-- FILES TO CREATE -->
+  <!-- ============================================================ -->
+  <files-to-create>
+    <file path="apps/web/src/components/slots/widgets/StateWidget.tsx">
+      <description>State-driven widget wrappers connecting to Zustand store</description>
+      <exports>
+        <export>StateProjectStatusWidget</export>
+        <export>StateMetricsWidget</export>
+        <export>StateActivityWidget</export>
+        <export>StateAlertsWidget</export>
+        <export>formatTimestamp</export>
+      </exports>
+    </file>
+
+    <file path="apps/web/src/components/slots/widgets/RealTimeIndicator.tsx">
+      <description>Real-time update indicator with status and refresh button</description>
+      <exports>
+        <export>RealTimeIndicator</export>
+        <export>RealTimeIndicatorProps</export>
+      </exports>
+    </file>
+
+    <file path="apps/web/src/components/slots/widgets/__tests__/StateWidget.test.tsx">
+      <description>Unit tests for state widgets and DashboardSlots modes</description>
+      <test-cases>
+        <case>StateProjectStatusWidget renders with data from store</case>
+        <case>StateProjectStatusWidget shows loading when loading and no data</case>
+        <case>StateProjectStatusWidget shows error when Navi fails</case>
+        <case>StateProjectStatusWidget returns null when no data, not loading</case>
+        <case>StateMetricsWidget renders with data from store</case>
+        <case>StateActivityWidget formats timestamps correctly</case>
+        <case>StateAlertsWidget filters out dismissed alerts</case>
+        <case>DashboardSlots hybrid mode renders both</case>
+        <case>DashboardSlots tool-only mode skips state widgets</case>
+        <case>DashboardSlots state-only mode skips tool calls</case>
+        <case>RealTimeIndicator shows correct relative time</case>
+        <case>RealTimeIndicator refresh button triggers callback</case>
+        <case>formatTimestamp returns correct strings for all ranges</case>
+      </test-cases>
+    </file>
+  </files-to-create>
+
+  <!-- ============================================================ -->
+  <!-- FILES TO MODIFY -->
+  <!-- ============================================================ -->
+  <files-to-modify>
+    <file path="apps/web/src/components/slots/DashboardSlots.tsx">
+      <changes>
+        <change>Add DashboardSlotsProps interface with mode prop</change>
+        <change>Add useAgentStateSync() call</change>
+        <change>Conditionally skip tool rendering in state-only mode</change>
+        <change>Return state widgets grid instead of null</change>
+        <change>Add animation classes</change>
+      </changes>
+    </file>
+
+    <file path="apps/web/src/components/slots/widgets/index.ts">
+      <changes>
+        <change>Export StateProjectStatusWidget</change>
+        <change>Export StateMetricsWidget</change>
+        <change>Export StateActivityWidget</change>
+        <change>Export StateAlertsWidget</change>
+        <change>Export RealTimeIndicator</change>
+        <change>Export formatTimestamp</change>
+      </changes>
+    </file>
+  </files-to-modify>
+
+  <!-- ============================================================ -->
+  <!-- IMPLEMENTATION PATTERNS -->
+  <!-- ============================================================ -->
+  <implementation-patterns>
+    <pattern name="state-widget-wrapper">
+      <description>Pattern for state-driven widget that wraps existing widget</description>
+      <code>
+        <![CDATA[
+export function StateProjectStatusWidget() {
+  // Subscribe to specific state slice via selector
+  const status = useProjectStatus();
+  const isLoading = useAnyLoading();
+  const error = useWidgetError('navi');
+
+  // Show loading only when loading AND no cached data
+  if (isLoading && !status) {
+    return <LoadingWidget type="ProjectStatus" />;
+  }
+
+  // Show error only when error AND no cached data
+  if (error && !status) {
+    return <ErrorWidget message={error} widgetType="ProjectStatus" />;
+  }
+
+  // No data yet - render nothing
+  if (!status) {
+    return null;
+  }
+
+  // Map state schema to widget data format
+  const widgetData = {
+    projectId: status.projectId,
+    projectName: status.name,
+    status: status.status.replace('-', '_') as 'on_track' | 'at_risk' | 'behind',
+    progress: status.progress,
+    tasksCompleted: status.tasksCompleted,
+    tasksTotal: status.tasksTotal,
+  };
+
+  return (
+    <div className="animate-in fade-in-50 duration-300">
+      <ProjectStatusWidget data={widgetData} />
+    </div>
+  );
+}
+        ]]>
+      </code>
+    </pattern>
+
+    <pattern name="timestamp-formatting">
+      <description>Utility to format Unix timestamp to relative time string</description>
+      <code>
+        <![CDATA[
+/**
+ * Format Unix timestamp (ms) to relative time string
+ * @param ts Unix timestamp in milliseconds
+ * @returns Relative time string ("Just now", "5m ago", etc.)
+ */
+export function formatTimestamp(ts: number): string {
+  const diff = Date.now() - ts;
+
+  if (diff < 1000) return 'Just now';
+  if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+
+  return new Date(ts).toLocaleDateString();
+}
+        ]]>
+      </code>
+    </pattern>
+
+    <pattern name="hybrid-dashboard-slots">
+      <description>Pattern for hybrid mode DashboardSlots component</description>
+      <code>
+        <![CDATA[
+interface DashboardSlotsProps {
+  mode?: 'hybrid' | 'tool-only' | 'state-only';
+}
+
+export function DashboardSlots({ mode = 'hybrid' }: DashboardSlotsProps) {
+  // Initialize state sync (subscribes to agent state via CopilotKit)
+  useAgentStateSync({ debug: process.env.NODE_ENV === 'development' });
+
+  // Tool-call rendering (existing DM-03 behavior)
+  useCopilotAction({
+    name: 'render_dashboard_widget',
+    // ... existing config ...
+    render: ({ args, status }) => {
+      // Skip in state-only mode
+      if (mode === 'state-only') return null;
+      // ... existing rendering logic with animation classes ...
+    },
+  });
+
+  // State-driven widgets (skip in tool-only mode)
+  if (mode === 'tool-only') {
+    return null;
+  }
+
+  return (
+    <div className="dashboard-state-widgets space-y-4">
+      {/* Alerts at top */}
+      <StateAlertsWidget />
+
+      {/* Main widgets in responsive grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StateProjectStatusWidget />
+        <StateMetricsWidget />
+        <StateActivityWidget />
+      </div>
+    </div>
+  );
+}
+        ]]>
+      </code>
+    </pattern>
+
+    <pattern name="real-time-indicator">
+      <description>Component showing last update time and refresh option</description>
+      <code>
+        <![CDATA[
+interface RealTimeIndicatorProps {
+  onRefresh?: () => void;
+}
+
+export function RealTimeIndicator({ onRefresh }: RealTimeIndicatorProps) {
+  const timestamp = useLastUpdated();
+  const isLoading = useAnyLoading();
+
+  const formatLastUpdate = () => {
+    if (!timestamp) return 'Not updated';
+    const diff = Date.now() - timestamp;
+    if (diff < 1000) return 'Just now';
+    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    return new Date(timestamp).toLocaleTimeString();
+  };
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <span className={`h-2 w-2 rounded-full ${
+        isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'
+      }`} />
+      <span>Last updated: {formatLastUpdate()}</span>
+      {onRefresh && (
+        <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isLoading}>
+          <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+        </Button>
+      )}
+    </div>
+  );
+}
+        ]]>
+      </code>
+    </pattern>
+  </implementation-patterns>
+
+  <!-- ============================================================ -->
+  <!-- AGENT MAPPING -->
+  <!-- ============================================================ -->
+  <agent-widget-mapping>
+    <mapping widget="StateProjectStatusWidget" agent="navi" />
+    <mapping widget="StateMetricsWidget" agent="pulse" />
+    <mapping widget="StateActivityWidget" agent="herald" />
+    <mapping widget="StateAlertsWidget" agents="any" note="Alerts can come from any agent" />
+  </agent-widget-mapping>
+
+  <!-- ============================================================ -->
+  <!-- DATA TRANSFORMATION NOTES -->
+  <!-- ============================================================ -->
+  <data-transformations>
+    <transformation name="project-status">
+      <from>ProjectStatusState (state schema)</from>
+      <to>ProjectStatusData (widget data)</to>
+      <notes>
+        - status: 'on-track' -> 'on_track' (replace hyphen with underscore)
+        - name -> projectName
+        - dueDate not in state schema (optional in widget)
+      </notes>
+    </transformation>
+
+    <transformation name="metrics">
+      <from>MetricsState (state schema)</from>
+      <to>MetricsData (widget data)</to>
+      <notes>
+        - trend enum ('up'|'down'|'neutral') -> change object { value, direction }
+        - Need to extract changePercent and convert to change.value
+        - unit not directly mapped (could append to value string)
+      </notes>
+    </transformation>
+
+    <transformation name="activity">
+      <from>ActivityState (state schema)</from>
+      <to>TeamActivityData (widget data)</to>
+      <notes>
+        - timestamp (number) -> time (string) via formatTimestamp()
+        - userAvatar not used by widget
+        - projectId not used by widget
+      </notes>
+    </transformation>
+
+    <transformation name="alert">
+      <from>AlertEntry (state schema)</from>
+      <to>AlertData (widget data)</to>
+      <notes>
+        - type -> severity
+        - actionLabel/actionUrl -> action: { label, href }
+        - dismissed alerts filtered out by useAlerts() selector
+      </notes>
+    </transformation>
+  </data-transformations>
+
+  <!-- ============================================================ -->
+  <!-- TESTING GUIDANCE -->
+  <!-- ============================================================ -->
+  <testing>
+    <mocking>
+      <mock name="useDashboardStateStore">
+        Mock Zustand store with known state values for testing widget rendering
+      </mock>
+      <mock name="useAgentStateSync">
+        Mock to prevent actual CopilotKit subscription in tests
+      </mock>
+    </mocking>
+
+    <test-utils>
+      <util name="@testing-library/react">render, screen, within</util>
+      <util name="vitest">describe, it, expect, vi</util>
+    </test-utils>
+
+    <coverage-targets>
+      <target file="StateWidget.tsx">80%</target>
+      <target file="RealTimeIndicator.tsx">80%</target>
+      <target file="DashboardSlots.tsx">80% (for new hybrid mode logic)</target>
+    </coverage-targets>
+  </testing>
+
+  <!-- ============================================================ -->
+  <!-- EXTERNAL PACKAGES -->
+  <!-- ============================================================ -->
+  <packages>
+    <package name="lucide-react" usage="RefreshCw icon for RealTimeIndicator" />
+    <package name="tailwindcss-animate" usage="animate-in fade-in-50 duration-300 classes" />
+    <package name="zustand" version="^4.x" usage="State management via selector hooks" />
+    <package name="@copilotkit/react-core" usage="useCopilotAction, useCoAgentStateRender" />
+  </packages>
+
+</story-context>

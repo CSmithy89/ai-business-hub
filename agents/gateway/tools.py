@@ -363,6 +363,7 @@ async def get_recent_activity(
 
 async def gather_dashboard_data(
     project_id: Optional[str] = None,
+    state_emitter: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """
     Gather comprehensive dashboard data from multiple agents in parallel.
@@ -371,8 +372,15 @@ async def gather_dashboard_data(
     all dashboard data in a single operation. This is more efficient than
     sequential calls when you need data from multiple agents.
 
+    When a state_emitter is provided (DM-04.3), this function will:
+    - Emit loading state before parallel calls
+    - Emit widget states via update_from_gather() after results
+    - Clear loading state after completion
+
     Args:
         project_id: Optional project focus for all agent calls
+        state_emitter: Optional DashboardStateEmitter for real-time state updates.
+                       When provided, state is emitted alongside the response.
 
     Returns:
         Combined data from all agents containing:
@@ -389,60 +397,85 @@ async def gather_dashboard_data(
         ...     render_dashboard_widget("ProjectStatus", {"content": data["navi"]})
         ...     render_dashboard_widget("Metrics", {"content": data["pulse"]})
         ...     render_dashboard_widget("TeamActivity", {"content": data["herald"]})
+        >>>
+        >>> # With state emission (DM-04.3)
+        >>> data = await gather_dashboard_data(
+        ...     project_id="proj_alpha",
+        ...     state_emitter=agent._state_emitter,
+        ... )
+        >>> # State is automatically emitted to frontend
     """
     from a2a import get_a2a_client
 
     client = await get_a2a_client()
 
-    # Build parallel calls for all agents
-    calls = [
-        {
-            "agent_id": "navi",
-            "task": f"Get overview for project {project_id}" if project_id else "Get workspace overview",
-            "context": {"project_id": project_id},
-        },
-        {
-            "agent_id": "pulse",
-            "task": f"Get health metrics for project {project_id}" if project_id else "Get workspace health",
-            "context": {"project_id": project_id, "workspace_wide": not project_id},
-        },
-        {
-            "agent_id": "herald",
-            "task": "Get recent notifications and activity",
-            "context": {"project_id": project_id, "limit": 5},
-        },
-    ]
+    # Set loading state before parallel calls (DM-04.3)
+    if state_emitter:
+        await state_emitter.set_loading(True, ["navi", "pulse", "herald"])
 
-    logger.info(f"Gathering dashboard data from 3 agents in parallel: project={project_id}")
+    try:
+        # Build parallel calls for all agents
+        calls = [
+            {
+                "agent_id": "navi",
+                "task": f"Get overview for project {project_id}" if project_id else "Get workspace overview",
+                "context": {"project_id": project_id},
+            },
+            {
+                "agent_id": "pulse",
+                "task": f"Get health metrics for project {project_id}" if project_id else "Get workspace health",
+                "context": {"project_id": project_id, "workspace_wide": not project_id},
+            },
+            {
+                "agent_id": "herald",
+                "task": "Get recent notifications and activity",
+                "context": {"project_id": project_id, "limit": 5},
+            },
+        ]
 
-    results = await client.call_agents_parallel(calls)
+        logger.info(f"Gathering dashboard data from 3 agents in parallel: project={project_id}")
 
-    # Calculate max duration across all calls
-    max_duration = max(
-        (r.duration_ms or 0 for r in results.values()),
-        default=0
-    )
+        results = await client.call_agents_parallel(calls)
 
-    # Build response with content from each agent
-    response: Dict[str, Any] = {
-        "project_id": project_id,
-        "navi": None,
-        "pulse": None,
-        "herald": None,
-        "errors": {},
-        "duration_ms": max_duration,
-    }
+        # Calculate max duration across all calls
+        max_duration = max(
+            (r.duration_ms or 0 for r in results.values()),
+            default=0
+        )
 
-    for agent_id, result in results.items():
-        if result.success:
-            response[agent_id] = {
-                "content": result.content,
-                "artifacts": result.artifacts,
-                "tool_calls": result.tool_calls,
-            }
-        else:
-            response["errors"][agent_id] = result.error
-            logger.warning(f"Agent {agent_id} failed in parallel gather: {result.error}")
+        # Build response with content from each agent
+        response: Dict[str, Any] = {
+            "project_id": project_id,
+            "navi": None,
+            "pulse": None,
+            "herald": None,
+            "errors": {},
+            "duration_ms": max_duration,
+        }
+
+        for agent_id, result in results.items():
+            if result.success:
+                response[agent_id] = {
+                    "content": result.content,
+                    "artifacts": result.artifacts,
+                    "tool_calls": result.tool_calls,
+                }
+            else:
+                response["errors"][agent_id] = result.error
+                logger.warning(f"Agent {agent_id} failed in parallel gather: {result.error}")
+
+        # Emit state update (DM-04.3)
+        if state_emitter:
+            await state_emitter.update_from_gather(
+                navi_result=response.get("navi"),
+                pulse_result=response.get("pulse"),
+                herald_result=response.get("herald"),
+                errors=response.get("errors") if response.get("errors") else None,
+            )
+    finally:
+        # Always clear loading state, even on error (DM-04.3 code review fix)
+        if state_emitter:
+            await state_emitter.set_loading(False)
 
     # Log summary
     success_count = 3 - len(response["errors"])

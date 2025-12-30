@@ -1,0 +1,657 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-04.5 State Persistence
+  Epic: DM-04 - Shared State & Real-Time
+  Module: bm-dm (Dynamic Module System)
+  Generated: 2025-12-30
+  Status: Ready for Development
+-->
+<story-context>
+  <!-- ============================================================================= -->
+  <!-- STORY SUMMARY -->
+  <!-- ============================================================================= -->
+  <story>
+    <id>dm-04-5</id>
+    <title>State Persistence</title>
+    <epic>DM-04 - Shared State &amp; Real-Time</epic>
+    <points>6</points>
+    <status>ready-for-dev</status>
+    <priority>High (Completes the shared state system with session continuity)</priority>
+
+    <objective>
+      Implement dashboard state persistence for session continuity, enabling state to
+      survive page refreshes and provide cross-tab synchronization. This is the FINAL
+      story in DM-04, completing the shared state system by adding persistence layers
+      on both the client (browser localStorage) and server (Redis) sides.
+    </objective>
+
+    <deliverables>
+      <deliverable>Browser localStorage persistence with debounced saves (1 second)</deliverable>
+      <deliverable>Redis server-side persistence with pub/sub for cross-tab sync</deliverable>
+      <deliverable>State expiry/TTL handling (24-hour TTL)</deliverable>
+      <deliverable>Cross-tab synchronization via Redis pub/sub channels</deliverable>
+      <deliverable>Stale state detection and cleanup</deliverable>
+      <deliverable>State restoration on page load</deliverable>
+    </deliverables>
+
+    <acceptance-criteria>
+      <ac id="AC1">Redis persistence saves/loads dashboard state with configurable TTL (24 hours default)</ac>
+      <ac id="AC2">Browser localStorage provides client-side persistence with debounced saves (1 second)</ac>
+      <ac id="AC3">State is restored on page refresh within TTL window</ac>
+      <ac id="AC4">Cross-tab synchronization works via Redis pub/sub (state updates propagate to other tabs)</ac>
+      <ac id="AC5">Stale state detection discards state older than TTL</ac>
+      <ac id="AC6">Loading and error states are NOT persisted (only widget data)</ac>
+      <ac id="AC7">Unit tests pass with >85% coverage for persistence logic</ac>
+    </acceptance-criteria>
+
+    <dependencies>
+      <completed story="dm-04-1">Schemas at apps/web/src/lib/schemas/dashboard-state.ts and agents/schemas/dashboard_state.py</completed>
+      <completed story="dm-04-2">Store at apps/web/src/stores/dashboard-state-store.ts</completed>
+      <completed story="dm-04-3">Emitter at agents/gateway/state_emitter.py</completed>
+      <completed story="dm-04-4">Widgets at apps/web/src/components/slots/widgets/StateWidget.tsx</completed>
+    </dependencies>
+  </story>
+
+  <!-- ============================================================================= -->
+  <!-- TECH SPEC REFERENCE (Section 3.5) -->
+  <!-- ============================================================================= -->
+  <tech-spec>
+    <source>docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md (Section 3.5)</source>
+
+    <persistence-architecture>
+      <diagram><![CDATA[
+State is persisted at multiple levels:
+
++----------------+     +----------------+     +----------------+
+|    Zustand     | <-- |     Redis      | <-- |     Agent      |
+|    (Client)    |     |    (Server)    |     |    (State)     |
++----------------+     +----------------+     +----------------+
+       ^                     ^
+       |                     |
+Tab 1, Tab 2 (pub/sub)  Session resume
+      ]]></diagram>
+
+      <design-decisions>
+        <decision name="Dual Persistence">
+          Browser localStorage for immediate restore, Redis for authoritative state
+        </decision>
+        <decision name="Debounced Saves">
+          Prevent excessive writes (1 second for localStorage, 100ms for Redis)
+        </decision>
+        <decision name="TTL-Based Expiry">
+          State expires after 24 hours to prevent stale data
+        </decision>
+        <decision name="Selective Persistence">
+          Loading/error states not persisted (transient)
+        </decision>
+        <decision name="Cross-Tab Sync">
+          Redis pub/sub enables multi-tab synchronization
+        </decision>
+      </design-decisions>
+    </persistence-architecture>
+
+    <redis-key-structure>
+      <key pattern="dashboard:state:{workspaceId}:{userId}">State storage key</key>
+      <key pattern="dashboard:state:channel:{workspaceId}:{userId}">Pub/sub channel</key>
+    </redis-key-structure>
+
+    <state-limits>
+      <limit name="MAX_STATE_SIZE_BYTES">1MB (1024 * 1024 bytes)</limit>
+      <limit name="REDIS_TTL_SECONDS">86400 (24 hours)</limit>
+      <limit name="MAX_ALERTS">50</limit>
+      <limit name="MAX_ACTIVITIES">100</limit>
+    </state-limits>
+  </tech-spec>
+
+  <!-- ============================================================================= -->
+  <!-- DM CONSTANTS REFERENCE -->
+  <!-- ============================================================================= -->
+  <dm-constants>
+    <source>agents/constants/dm_constants.py</source>
+    <class name="STATE">
+      <constant name="VERSION" value="1">State schema version (must match TypeScript STATE_VERSION)</constant>
+      <constant name="UPDATE_DEBOUNCE_MS" value="100">State update debounce to avoid flooding frontend (ms)</constant>
+      <constant name="MAX_STATE_SIZE_BYTES" value="1048576">Maximum state size before rejection (1MB)</constant>
+      <constant name="STATE_EMIT_INTERVAL_MS" value="5000">State emission interval for periodic updates (ms)</constant>
+      <constant name="REDIS_KEY_PREFIX" value="dashboard:state:">Redis key prefix for state persistence</constant>
+      <constant name="REDIS_TTL_SECONDS" value="86400">State TTL in Redis (24 hours)</constant>
+      <constant name="MAX_ALERTS" value="50">Maximum alerts to keep in state</constant>
+      <constant name="MAX_ACTIVITIES" value="100">Maximum activities to keep in state</constant>
+    </class>
+  </dm-constants>
+
+  <!-- ============================================================================= -->
+  <!-- STATE SCHEMA FROM DM-04-1 -->
+  <!-- ============================================================================= -->
+  <state-schema>
+    <source>apps/web/src/lib/schemas/dashboard-state.ts</source>
+    <key-exports>
+      <export name="STATE_VERSION">1 - State schema version for migrations</export>
+      <export name="DashboardStateSchema">Zod schema for complete dashboard state</export>
+      <export name="DashboardState">TypeScript type for state object</export>
+      <export name="validateDashboardState">Validates unknown data, returns DashboardState or null</export>
+      <export name="createInitialDashboardState">Creates fresh empty state with defaults</export>
+    </key-exports>
+
+    <dashboard-state-structure><![CDATA[
+interface DashboardState {
+  version: number;              // Schema version for migrations
+  timestamp: number;            // Last update timestamp (Unix ms)
+  activeProject: string | null; // Currently focused project ID
+  workspaceId?: string;         // Current workspace ID
+  userId?: string;              // Current user ID
+
+  widgets: {
+    projectStatus: ProjectStatusState | null;
+    metrics: MetricsState | null;
+    activity: ActivityState | null;
+    alerts: AlertEntry[];
+  };
+
+  loading: {
+    isLoading: boolean;
+    loadingAgents: string[];
+    startedAt?: number;
+  };
+
+  errors: Record<string, string>;  // agentId -> error message
+}
+    ]]></dashboard-state-structure>
+
+    <selective-persistence-pattern><![CDATA[
+// Only persist widget data, not transient state:
+const stateToSave: DashboardState = {
+  version: state.version,
+  timestamp: state.timestamp,
+  activeProject: state.activeProject,
+  widgets: state.widgets,
+  loading: { isLoading: false, loadingAgents: [] }, // Reset
+  errors: {}, // Don't persist
+};
+    ]]></selective-persistence-pattern>
+  </state-schema>
+
+  <!-- ============================================================================= -->
+  <!-- ZUSTAND STORE FROM DM-04-2 -->
+  <!-- ============================================================================= -->
+  <zustand-store>
+    <source>apps/web/src/stores/dashboard-state-store.ts</source>
+    <key-exports>
+      <export name="useDashboardStateStore">Main Zustand store with subscribeWithSelector</export>
+      <export name="MAX_ALERTS">50 - Maximum alerts to keep</export>
+    </key-exports>
+
+    <store-actions>
+      <action name="setFullState">Set the full state from agent (validates before applying)</action>
+      <action name="updateState">Apply a partial state update (merges with existing)</action>
+      <action name="setActiveProject">Set the currently focused project ID</action>
+      <action name="setProjectStatus">Set project status widget state</action>
+      <action name="setMetrics">Set metrics widget state</action>
+      <action name="setActivity">Set activity widget state</action>
+      <action name="addAlert">Add a new alert (prepends, caps at MAX_ALERTS)</action>
+      <action name="dismissAlert">Mark an alert as dismissed</action>
+      <action name="clearAlerts">Clear all alerts</action>
+      <action name="setLoading">Set loading state with optional agent list</action>
+      <action name="setError">Set or clear an error for a specific agent</action>
+      <action name="clearErrors">Clear all errors</action>
+      <action name="reset">Reset store to initial state</action>
+    </store-actions>
+
+    <integration-point><![CDATA[
+// Add combined hook with persistence in use-dashboard-state.ts:
+export function useDashboardStateWithPersistence() {
+  useStatePersistence();
+  return useDashboardState;
+}
+    ]]></integration-point>
+  </zustand-store>
+
+  <!-- ============================================================================= -->
+  <!-- STATE EMITTER FROM DM-04-3 -->
+  <!-- ============================================================================= -->
+  <state-emitter>
+    <source>agents/gateway/state_emitter.py</source>
+    <key-classes>
+      <class name="DashboardStateEmitter">Manages dashboard state and emits updates to frontend</class>
+    </key-classes>
+
+    <emitter-methods>
+      <method name="emit_now">Force immediate state emission (bypass debounce)</method>
+      <method name="set_loading">Update loading state (emits immediately)</method>
+      <method name="set_error">Set or clear an agent error</method>
+      <method name="set_project_status">Update project status widget state</method>
+      <method name="set_metrics">Update metrics widget state</method>
+      <method name="set_activity">Update activity widget state</method>
+      <method name="add_alert">Add an alert to the state</method>
+      <method name="update_from_gather">Update state from parallel agent gather</method>
+    </emitter-methods>
+  </state-emitter>
+
+  <!-- ============================================================================= -->
+  <!-- EXISTING REDIS PATTERNS -->
+  <!-- ============================================================================= -->
+  <redis-patterns>
+    <source>apps/api/src/events/redis.provider.ts</source>
+    <pattern name="RedisProvider">
+      <description>
+        NestJS provider that reuses BullMQ's Redis connection for stream operations.
+        Implements lazy initialization and connection verification on startup.
+      </description>
+      <key-pattern><![CDATA[
+@Injectable()
+export class RedisProvider implements OnModuleInit {
+  private redis: RedisClient | null = null;
+
+  async onModuleInit() {
+    // Verify Redis connection on startup
+    this.redis = await this.eventRetryQueue.client;
+    await this.redis.ping();
+  }
+
+  getClient(): RedisClient {
+    if (this.redis === null) {
+      throw new Error('Redis client is not initialized.');
+    }
+    return this.redis;
+  }
+}
+      ]]></key-pattern>
+    </pattern>
+
+    <python-redis-pattern><![CDATA[
+# For Python agents, use async redis pattern:
+import redis.asyncio as redis
+
+async def get_redis_client():
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.from_url(
+            settings.redis_url,
+            encoding="utf-8",
+            decode_responses=True,
+        )
+    return _redis_client
+    ]]></python-redis-pattern>
+  </redis-patterns>
+
+  <!-- ============================================================================= -->
+  <!-- EXISTING LOCALSTORAGE PATTERNS -->
+  <!-- ============================================================================= -->
+  <localstorage-patterns>
+    <source>apps/web/src/lib/storage-keys.ts</source>
+    <pattern name="Centralized Storage Keys">
+      <description>
+        All storage keys defined in a single file to prevent collisions.
+        Naming convention: CATEGORY_DESCRIPTION with 'hyvve-' prefix.
+      </description>
+      <examples><![CDATA[
+// Storage key constants:
+export const STORAGE_UI_STATE = 'hyvve-ui-state' as const;
+export const STORAGE_CHAT_HISTORY = 'hyvve-chat-history' as const;
+export const STORAGE_APPEARANCE = 'hyvve-appearance-settings' as const;
+      ]]></examples>
+    </pattern>
+
+    <source>apps/web/src/stores/ui.ts</source>
+    <pattern name="Zustand Persist Middleware">
+      <description>
+        UI store uses Zustand persist middleware with skipHydration to prevent
+        SSR mismatches. Uses partialize to select which state to persist.
+      </description>
+      <example><![CDATA[
+export const useUIStore = create<UIState>()(
+  persist(
+    (set, get) => ({
+      // ... state and actions
+    }),
+    {
+      name: UI_STORE_KEY,
+      partialize: (state) => ({
+        sidebarCollapsed: state.sidebarCollapsed,
+        chatPanelWidth: state.chatPanelWidth,
+        // ... only persist what we need
+      }),
+      skipHydration: true, // Prevent SSR mismatches
+    }
+  )
+);
+
+// Hook to check hydration status:
+export function useUIStoreHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    useUIStore.persist.rehydrate();
+    // ... handle hydration completion
+  }, []);
+
+  return hydrated;
+}
+      ]]></example>
+    </pattern>
+  </localstorage-patterns>
+
+  <!-- ============================================================================= -->
+  <!-- REAL-TIME WIDGETS FROM DM-04-4 -->
+  <!-- ============================================================================= -->
+  <realtime-widgets>
+    <source>apps/web/src/components/slots/widgets/StateWidget.tsx</source>
+    <description>
+      State-driven widget wrappers that connect to Zustand store and auto-update
+      when state changes. These consume the persisted state after restoration.
+    </description>
+    <components>
+      <component name="StateProjectStatusWidget">Subscribes to useProjectStatus()</component>
+      <component name="StateMetricsWidget">Subscribes to useMetrics()</component>
+      <component name="StateActivityWidget">Subscribes to useTeamActivity()</component>
+      <component name="StateAlertsWidget">Subscribes to useAlerts()</component>
+    </components>
+
+    <source>apps/web/src/components/slots/widgets/RealTimeIndicator.tsx</source>
+    <description>
+      Shows last update timestamp and sync status. Uses useLastUpdated() and
+      useAnyLoading() selectors. Provides manual refresh button.
+    </description>
+  </realtime-widgets>
+
+  <!-- ============================================================================= -->
+  <!-- FILES TO CREATE -->
+  <!-- ============================================================================= -->
+  <files-to-create>
+    <file path="agents/services/state_persistence.py">
+      <description>Redis state persistence service with pub/sub support</description>
+      <key-functions>
+        <function>get_redis_client() - Lazy init async Redis client</function>
+        <function>_make_state_key(workspace_id, user_id) - Generate storage key</function>
+        <function>_make_channel_key(workspace_id, user_id) - Generate pub/sub channel</function>
+        <function>save_state(workspace_id, user_id, state) - Save with TTL and publish</function>
+        <function>load_state(workspace_id, user_id) - Load from Redis</function>
+        <function>delete_state(workspace_id, user_id) - Delete state</function>
+        <function>subscribe_to_state(workspace_id, user_id, callback) - Subscribe to updates</function>
+        <class>StatePersistenceService - Higher-level interface with context management</class>
+      </key-functions>
+    </file>
+
+    <file path="apps/web/src/lib/state/use-state-persistence.ts">
+      <description>Browser localStorage persistence hook</description>
+      <constants>
+        <constant name="STORAGE_KEY">'hyvve:dashboard:state'</constant>
+        <constant name="STORAGE_VERSION_KEY">'hyvve:dashboard:state:version'</constant>
+        <constant name="DEBOUNCE_MS">1000</constant>
+      </constants>
+      <key-exports>
+        <export>useStatePersistence(options?) - Hook to persist dashboard state</export>
+        <export>clearPersistedState(storageKey?) - Clear storage (for logout)</export>
+      </key-exports>
+    </file>
+
+    <file path="agents/tests/test_state/test_state_persistence.py">
+      <description>Python unit tests for Redis persistence</description>
+      <test-cases>
+        <test>Redis client initialization</test>
+        <test>save_state saves with correct TTL</test>
+        <test>load_state returns None for missing keys</test>
+        <test>delete_state removes key</test>
+        <test>State too large is rejected (>1MB)</test>
+        <test>Pub/sub subscription works</test>
+      </test-cases>
+    </file>
+
+    <file path="apps/web/src/lib/state/__tests__/use-state-persistence.test.ts">
+      <description>TypeScript unit tests for browser persistence</description>
+      <test-cases>
+        <test>State loaded on mount</test>
+        <test>State saved with debouncing</test>
+        <test>Stale state discarded (>24 hours)</test>
+        <test>Loading/error states excluded</test>
+        <test>clearPersistedState works</test>
+        <test>SSR-safe (typeof window check)</test>
+      </test-cases>
+    </file>
+  </files-to-create>
+
+  <!-- ============================================================================= -->
+  <!-- FILES TO MODIFY -->
+  <!-- ============================================================================= -->
+  <files-to-modify>
+    <file path="apps/web/src/lib/state/index.ts">
+      <changes>
+        <change>Export useStatePersistence hook</change>
+        <change>Export clearPersistedState utility</change>
+        <change>Export useDashboardStateWithPersistence combined hook</change>
+      </changes>
+    </file>
+
+    <file path="apps/web/src/lib/state/use-dashboard-state.ts">
+      <changes>
+        <change>Add useDashboardStateWithPersistence combined hook</change>
+      </changes>
+      <note>If this file does not exist, create hooks that wrap the store</note>
+    </file>
+
+    <file path="apps/web/src/lib/storage-keys.ts">
+      <changes>
+        <change>Add STORAGE_DASHBOARD_STATE constant</change>
+        <change>Add STORAGE_DASHBOARD_STATE_VERSION constant</change>
+      </changes>
+    </file>
+  </files-to-modify>
+
+  <!-- ============================================================================= -->
+  <!-- IMPLEMENTATION PATTERNS -->
+  <!-- ============================================================================= -->
+  <implementation-patterns>
+    <pattern name="Browser Storage with Debounce">
+      <code><![CDATA[
+// Pattern from story spec:
+const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+useEffect(() => {
+  if (debounceTimer.current) {
+    clearTimeout(debounceTimer.current);
+  }
+
+  debounceTimer.current = setTimeout(() => {
+    const stateToSave: DashboardState = {
+      version: state.version,
+      timestamp: state.timestamp,
+      activeProject: state.activeProject,
+      widgets: state.widgets,
+      loading: { isLoading: false, loadingAgents: [] }, // Reset
+      errors: {}, // Don't persist
+    };
+
+    localStorage.setItem(storageKey, JSON.stringify(stateToSave));
+  }, DEBOUNCE_MS);
+
+  return () => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+  };
+}, [state.widgets, state.activeProject, state.timestamp]);
+      ]]></code>
+    </pattern>
+
+    <pattern name="Stale State Detection">
+      <code><![CDATA[
+// Check age before restoring state:
+const age = Date.now() - validated.timestamp;
+const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+if (age < TTL_MS) {
+  setFullState(validated);
+  console.log('[StatePersistence] Restored state from localStorage');
+} else {
+  localStorage.removeItem(storageKey);
+  console.log('[StatePersistence] Cleared stale state');
+}
+      ]]></code>
+    </pattern>
+
+    <pattern name="Redis Pub/Sub">
+      <code><![CDATA[
+# Python Redis pub/sub pattern:
+async def subscribe_to_state(
+    workspace_id: str,
+    user_id: str,
+    callback: Callable[[Dict[str, Any]], None],
+):
+    client = await get_redis_client()
+    pubsub = client.pubsub()
+    channel = _make_channel_key(workspace_id, user_id)
+
+    await pubsub.subscribe(channel)
+
+    async for message in pubsub.listen():
+        if message["type"] == "message":
+            state = json.loads(message["data"])
+            callback(state)
+      ]]></code>
+    </pattern>
+
+    <pattern name="SSR-Safe Storage Access">
+      <code><![CDATA[
+// Always check for window before localStorage access:
+if (typeof window === 'undefined') return;
+
+try {
+  const stored = localStorage.getItem(storageKey);
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    // ... validate and use
+  }
+} catch (e) {
+  console.warn('[StatePersistence] Failed to load state:', e);
+  localStorage.removeItem(storageKey);
+}
+      ]]></code>
+    </pattern>
+  </implementation-patterns>
+
+  <!-- ============================================================================= -->
+  <!-- ERROR HANDLING -->
+  <!-- ============================================================================= -->
+  <error-handling>
+    <redis-unavailable>
+      <mitigation>
+        Graceful degradation (log warning, continue without persistence).
+        Browser localStorage provides fallback.
+        Non-blocking saves (don't block UI).
+      </mitigation>
+      <pattern><![CDATA[
+async def save_state(...) -> bool:
+    client = await get_redis_client()
+    if not client:
+        logger.warning("Redis unavailable, skipping persistence")
+        return False
+    try:
+        await client.setex(key, TTL, state_json)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save state: {e}")
+        return False
+      ]]></pattern>
+    </redis-unavailable>
+
+    <state-size-growth>
+      <mitigation>
+        Size validation before save (max 1MB).
+        MAX_ALERTS (50) and MAX_ACTIVITIES (100) limits already enforced.
+        Reject oversized state with warning log.
+      </mitigation>
+      <pattern><![CDATA[
+if len(state_json) > DMConstants.STATE.MAX_STATE_SIZE_BYTES:
+    logger.warning(f"State too large ({len(state_json)} bytes)")
+    return False
+      ]]></pattern>
+    </state-size-growth>
+
+    <stale-state-conflicts>
+      <mitigation>
+        Timestamp comparison (newer wins).
+        24-hour TTL auto-expires old state.
+        Manual refresh option in RealTimeIndicator.
+      </mitigation>
+    </stale-state-conflicts>
+  </error-handling>
+
+  <!-- ============================================================================= -->
+  <!-- TEST SCENARIOS -->
+  <!-- ============================================================================= -->
+  <test-scenarios>
+    <unit-tests>
+      <test name="save_state saves correctly">State saved to Redis with TTL</test>
+      <test name="save_state publishes update">Pub/sub message sent</test>
+      <test name="save_state rejects oversized">State >1MB rejected</test>
+      <test name="load_state returns state">Existing state loaded</test>
+      <test name="load_state returns None">Missing key returns None</test>
+      <test name="delete_state removes key">State deleted from Redis</test>
+      <test name="subscribe receives updates">Callback invoked on publish</test>
+      <test name="localStorage saves on change">State saved after debounce</test>
+      <test name="localStorage loads on mount">State restored from storage</test>
+      <test name="Stale state discarded">>24 hour old state ignored</test>
+      <test name="Loading state excluded">isLoading not persisted</test>
+      <test name="Error state excluded">errors not persisted</test>
+      <test name="clearPersistedState works">Storage cleared</test>
+      <test name="SSR-safe">No errors on server render</test>
+    </unit-tests>
+
+    <integration-tests-manual>
+      <test name="Page refresh restore">
+        <steps>1. Load dashboard, 2. Refresh page</steps>
+        <expected>State restored</expected>
+      </test>
+      <test name="Cross-tab sync">
+        <steps>1. Open 2 tabs, 2. Update state in tab 1</steps>
+        <expected>Tab 2 receives update</expected>
+      </test>
+      <test name="Stale state">
+        <steps>1. Load dashboard, 2. Wait >24h, 3. Refresh</steps>
+        <expected>Fresh state loaded</expected>
+      </test>
+      <test name="Logout cleanup">
+        <steps>1. Logout</steps>
+        <expected>Persisted state cleared</expected>
+      </test>
+    </integration-tests-manual>
+  </test-scenarios>
+
+  <!-- ============================================================================= -->
+  <!-- DEFINITION OF DONE -->
+  <!-- ============================================================================= -->
+  <definition-of-done>
+    <item>agents/services/state_persistence.py created with Redis persistence</item>
+    <item>Redis save/load/delete functions implemented</item>
+    <item>Redis pub/sub subscription for cross-tab sync implemented</item>
+    <item>State size validation (max 1MB)</item>
+    <item>State TTL set to 24 hours</item>
+    <item>apps/web/src/lib/state/use-state-persistence.ts created</item>
+    <item>Browser localStorage persistence with debouncing (1 second)</item>
+    <item>State restoration on page load</item>
+    <item>Stale state detection (>24 hours discarded)</item>
+    <item>Loading/error states excluded from persistence</item>
+    <item>clearPersistedState() utility implemented</item>
+    <item>SSR-safe implementation (typeof window checks)</item>
+    <item>useDashboardStateWithPersistence() combined hook created</item>
+    <item>State module exports updated</item>
+    <item>Python unit tests for Redis persistence</item>
+    <item>TypeScript unit tests for browser persistence</item>
+    <item>Sprint status updated to ready-for-dev</item>
+  </definition-of-done>
+
+  <!-- ============================================================================= -->
+  <!-- REFERENCES -->
+  <!-- ============================================================================= -->
+  <references>
+    <reference type="story">docs/modules/bm-dm/stories/dm-04-5-state-persistence.md</reference>
+    <reference type="tech-spec">docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md</reference>
+    <reference type="schema-ts">apps/web/src/lib/schemas/dashboard-state.ts</reference>
+    <reference type="store">apps/web/src/stores/dashboard-state-store.ts</reference>
+    <reference type="emitter">agents/gateway/state_emitter.py</reference>
+    <reference type="constants">agents/constants/dm_constants.py</reference>
+    <reference type="redis-pattern">apps/api/src/events/redis.provider.ts</reference>
+    <reference type="storage-keys">apps/web/src/lib/storage-keys.ts</reference>
+    <reference type="ui-persist-pattern">apps/web/src/stores/ui.ts</reference>
+    <reference type="state-widgets">apps/web/src/components/slots/widgets/StateWidget.tsx</reference>
+    <reference type="realtime-indicator">apps/web/src/components/slots/widgets/RealTimeIndicator.tsx</reference>
+  </references>
+</story-context>

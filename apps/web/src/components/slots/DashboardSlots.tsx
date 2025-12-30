@@ -1,41 +1,87 @@
 'use client';
 
 /**
- * Dashboard Slots Component
+ * Dashboard Slots Component - Dual-Mode Widget Rendering
  *
- * Registers the `render_dashboard_widget` tool handler with CopilotKit.
- * This component is a side-effect component - it renders nothing itself
- * but enables agents to render widgets in the dashboard.
+ * Supports both:
+ * 1. Tool-call rendering (useCopilotAction) - for explicit agent responses (DM-03)
+ * 2. State-driven rendering (state widgets) - for real-time updates (DM-04)
  *
- * The Slot System uses CopilotKit's useCopilotAction hook to intercept
- * tool calls from agents and render corresponding React components.
+ * The component operates in three modes:
+ * - 'hybrid' (default): Both tool calls AND state updates render widgets
+ * - 'tool-only': Only render from tool calls (DM-03 compatibility mode)
+ * - 'state-only': Only render from state updates
  *
- * DM-03.3 Updates:
- * - Added loading state handling (shows LoadingWidget during inProgress/executing)
- * - Added error state handling (shows ErrorWidget for failures)
- * - Added TeamActivity widget type
- * - Added data error detection
- *
- * Place this component in the dashboard layout to enable widget rendering.
+ * DM-04.4 Updates:
+ * - Added mode prop for hybrid/tool-only/state-only rendering
+ * - Added useAgentStateSync hook for state synchronization
+ * - Added state widget grid rendering
+ * - Added smooth animations with Tailwind CSS transitions
  *
  * @example
- * // In dashboard layout
+ * // Default hybrid mode - both tool calls and state work
  * <DashboardSlots />
  *
- * // Agent can then call:
- * render_dashboard_widget({ type: "ProjectStatus", data: { ... } })
+ * // Tool-only mode for DM-03 compatibility
+ * <DashboardSlots mode="tool-only" />
+ *
+ * // State-only mode for pure real-time
+ * <DashboardSlots mode="state-only" />
  *
  * @see docs/modules/bm-dm/stories/dm-01-2-slot-system-foundation.md
  * @see docs/modules/bm-dm/stories/dm-03-3-widget-rendering-pipeline.md
+ * @see docs/modules/bm-dm/stories/dm-04-4-realtime-widget-updates.md
  */
 
 import { useCopilotAction } from '@copilotkit/react-core';
+import { useAgentStateSync } from '@/hooks/use-agent-state-sync';
 import { WidgetErrorBoundary } from './WidgetErrorBoundary';
 import { LoadingWidget, ErrorWidget } from './widgets';
+import {
+  StateProjectStatusWidget,
+  StateMetricsWidget,
+  StateActivityWidget,
+  StateAlertsWidget,
+} from './widgets/StateWidget';
 import { getWidgetComponent, getRegisteredWidgetTypes } from './widget-registry';
 import type { RenderWidgetArgs } from './types';
 
-export function DashboardSlots() {
+// =============================================================================
+// TYPES
+// =============================================================================
+
+/**
+ * DashboardSlots Props
+ */
+export interface DashboardSlotsProps {
+  /**
+   * Rendering mode:
+   * - 'hybrid' (default): Both tool calls AND state updates render widgets
+   * - 'tool-only': Only render from tool calls (DM-03 behavior)
+   * - 'state-only': Only render from state updates
+   */
+  mode?: 'hybrid' | 'tool-only' | 'state-only';
+}
+
+// =============================================================================
+// COMPONENT
+// =============================================================================
+
+/**
+ * DashboardSlots - Dual-Mode Widget Rendering
+ *
+ * Renders widgets from both tool calls (DM-03) and state updates (DM-04).
+ * In hybrid mode, tool-rendered widgets appear in the CopilotKit chat,
+ * while state-driven widgets appear in the dashboard grid.
+ */
+export function DashboardSlots({ mode = 'hybrid' }: DashboardSlotsProps) {
+  // Initialize state sync (subscribes to agent state via CopilotKit)
+  // This bridges agent state emissions to the Zustand store
+  useAgentStateSync({
+    debug: process.env.NODE_ENV === 'development',
+  });
+
+  // Tool-call rendering (for explicit agent responses - DM-03)
   useCopilotAction({
     name: 'render_dashboard_widget',
     description: "Render a widget on the user's dashboard",
@@ -57,12 +103,23 @@ export function DashboardSlots() {
     // Disable calling from UI - this is for rendering only
     available: 'disabled',
     render: ({ args, status }) => {
-      const { type, data } = args as RenderWidgetArgs;
+      // Skip tool rendering in state-only mode
+      if (mode === 'state-only') {
+        return <></>;
+      }
+
+      // Guard against undefined args during initial render
+      const safeArgs = (args || {}) as RenderWidgetArgs;
+      const { type, data } = safeArgs;
       const widgetType = (type as string) || 'Unknown';
 
       // Show loading state during inProgress or executing
       if (status === 'inProgress' || status === 'executing') {
-        return <LoadingWidget type={widgetType} />;
+        return (
+          <div className="animate-in fade-in-50 duration-300">
+            <LoadingWidget type={widgetType} />
+          </div>
+        );
       }
 
       // Note: CopilotKit status is 'complete' when done - no explicit 'error' status
@@ -71,10 +128,12 @@ export function DashboardSlots() {
       // Validate that we have data to render
       if (data === null || data === undefined) {
         return (
-          <ErrorWidget
-            message="No data provided for widget"
-            widgetType={widgetType}
-          />
+          <div className="animate-in fade-in-50 duration-300">
+            <ErrorWidget
+              message="No data provided for widget"
+              widgetType={widgetType}
+            />
+          </div>
         );
       }
 
@@ -86,10 +145,12 @@ export function DashboardSlots() {
             ? data.error.message
             : String(data.error);
         return (
-          <ErrorWidget
-            message={errorMessage}
-            widgetType={widgetType}
-          />
+          <div className="animate-in fade-in-50 duration-300">
+            <ErrorWidget
+              message={errorMessage}
+              widgetType={widgetType}
+            />
+          </div>
         );
       }
 
@@ -99,24 +160,45 @@ export function DashboardSlots() {
       // Handle unknown widget types
       if (!WidgetComponent) {
         return (
-          <ErrorWidget
-            message={`Unknown widget type: ${widgetType}`}
-            widgetType={widgetType}
-            availableTypes={getRegisteredWidgetTypes()}
-          />
+          <div className="animate-in fade-in-50 duration-300">
+            <ErrorWidget
+              message={`Unknown widget type: ${widgetType}`}
+              widgetType={widgetType}
+              availableTypes={getRegisteredWidgetTypes()}
+            />
+          </div>
         );
       }
 
       // Render the widget with error boundary protection
       // Pass data prop directly - widgets handle their own prop types
       return (
-        <WidgetErrorBoundary widgetType={widgetType}>
-          <WidgetComponent data={data} />
-        </WidgetErrorBoundary>
+        <div className="widget-from-tool animate-in fade-in-50 duration-300">
+          <WidgetErrorBoundary widgetType={widgetType}>
+            <WidgetComponent data={data} />
+          </WidgetErrorBoundary>
+        </div>
       );
     },
   });
 
-  // This component renders nothing - it's purely for side effects
-  return null;
+  // State-driven widgets (skip in tool-only mode)
+  if (mode === 'tool-only') {
+    return null;
+  }
+
+  // Render state-driven widget grid
+  return (
+    <div className="dashboard-state-widgets space-y-4" data-testid="dashboard-state-widgets">
+      {/* Alerts at top - high visibility */}
+      <StateAlertsWidget />
+
+      {/* Main widgets in responsive grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StateProjectStatusWidget />
+        <StateMetricsWidget />
+        <StateActivityWidget />
+      </div>
+    </div>
+  );
 }

@@ -5,8 +5,14 @@
  * These widgets are rendered by AI agents via CopilotKit's
  * render_dashboard_widget tool call.
  *
+ * DM-04.4 Updates:
+ * - Added state-driven widget wrappers (StateProjectStatusWidget, etc.)
+ * - Added RealTimeIndicator component
+ * - Added formatTimestamp utility
+ *
  * @see docs/modules/bm-dm/stories/dm-01-3-base-widget-components.md
  * @see docs/modules/bm-dm/stories/dm-03-3-widget-rendering-pipeline.md
+ * @see docs/modules/bm-dm/stories/dm-04-4-realtime-widget-updates.md
  */
 
 // Shared components
@@ -29,3 +35,18 @@ export {
   TeamActivityWidget,
   type TeamActivityWidgetProps,
 } from './TeamActivityWidget';
+
+// State-driven widget wrappers (DM-04.4)
+export {
+  StateProjectStatusWidget,
+  StateMetricsWidget,
+  StateActivityWidget,
+  StateAlertsWidget,
+  formatTimestamp,
+} from './StateWidget';
+
+// Real-time indicator (DM-04.4)
+export {
+  RealTimeIndicator,
+  type RealTimeIndicatorProps,
+} from './RealTimeIndicator';

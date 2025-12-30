@@ -1,0 +1,596 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-04.2 Frontend State Subscription
+  Generated: 2025-12-30
+  Epic: DM-04 - Shared State & Real-Time
+  Story Points: 5
+  Priority: High (Enables reactive widget updates)
+
+  This context file provides all necessary information for implementing
+  the Frontend State Subscription story, which creates the bridge between
+  agent state emissions (AG-UI protocol) and the Zustand store.
+-->
+
+<story-context>
+  <!-- ========================================================================
+       SECTION 1: STORY DEFINITION
+       ======================================================================== -->
+  <story>
+    <id>dm-04-2-frontend-state-subscription</id>
+    <title>Frontend State Subscription</title>
+    <epic>DM-04 - Shared State &amp; Real-Time</epic>
+    <points>5</points>
+    <status>ready-for-dev</status>
+    <priority>High</priority>
+
+    <overview>
+      Implement frontend state subscription using CopilotKit hooks to synchronize
+      agent state with the dashboard UI. This story creates the bridge between
+      agent state emissions (AG-UI protocol) and the Zustand store, enabling
+      widgets to automatically update when the agent's state changes.
+    </overview>
+
+    <dependencies>
+      <dependency status="complete">DM-04.1 - State Schema Definition</dependency>
+      <dependency status="complete">DM-01 - CopilotKit Frontend Infrastructure</dependency>
+      <dependency status="complete">DM-03 - Dashboard Agent Integration</dependency>
+    </dependencies>
+
+    <acceptance-criteria>
+      <criterion id="AC1">Zustand store manages complete dashboard state with all widget types</criterion>
+      <criterion id="AC2">useAgentStateSync hook bridges CopilotKit to Zustand store</criterion>
+      <criterion id="AC3">Debouncing prevents UI thrashing from rapid state updates (100ms default)</criterion>
+      <criterion id="AC4">Selector hooks (useProjectStatus, useMetrics, etc.) enable efficient re-renders</criterion>
+      <criterion id="AC5">State validation rejects invalid data with error logging</criterion>
+      <criterion id="AC6">Loading states update immediately (bypass debounce)</criterion>
+      <criterion id="AC7">Unit tests pass with greater than 85% coverage</criterion>
+    </acceptance-criteria>
+
+    <story-file>docs/modules/bm-dm/stories/dm-04-2-frontend-state-subscription.md</story-file>
+  </story>
+
+  <!-- ========================================================================
+       SECTION 2: TECHNICAL SPECIFICATION
+       Reference: docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md Section 3.2
+       ======================================================================== -->
+  <tech-spec>
+    <section>3.2 Story DM-04.2: Frontend State Subscription</section>
+
+    <architecture-diagram>
+      <![CDATA[
+                    AG-UI Protocol
+                         |
+                         v
++-------------------------------------------------------------+
+|                     FRONTEND (React)                         |
+|  +-------------------+     +-------------------------------+ |
+|  | useCoAgentState   | --> | Zustand Store (dashboardState)| |
+|  |     Render        |     |                               | |
+|  +-------------------+     +---------------+---------------+ |
+|                                            |                 |
+|                           +----------------v----------------+|
+|                           |  Widget Components              ||
+|                           |  (auto-update on state)         ||
+|                           +---------------------------------+|
++-------------------------------------------------------------+
+      ]]>
+    </architecture-diagram>
+
+    <state-flow>
+      <step order="1">Agent emits state via AG-UI protocol</step>
+      <step order="2">useCoAgentStateRender receives state update</step>
+      <step order="3">State is validated using validateDashboardState()</step>
+      <step order="4">Debounce timer schedules store update</step>
+      <step order="5">setFullState() updates Zustand store</step>
+      <step order="6">Widget components re-render via selector subscriptions</step>
+    </state-flow>
+
+    <key-technologies>
+      <technology name="Zustand" version="^4.x" purpose="State management with subscribeWithSelector middleware" />
+      <technology name="CopilotKit" version="^1.x" purpose="useCoAgentStateRender for state subscription" />
+      <technology name="Zod" version="^3.x" purpose="Runtime validation via DM-04.1 schemas" />
+    </key-technologies>
+
+    <constants>
+      <constant name="DASHBOARD_AGENT_NAME" value="dashboard_gateway" />
+      <constant name="UPDATE_DEBOUNCE_MS" value="100" />
+      <constant name="MAX_ALERTS" value="50" />
+    </constants>
+  </tech-spec>
+
+  <!-- ========================================================================
+       SECTION 3: IMPLEMENTATION TASKS
+       ======================================================================== -->
+  <implementation-tasks>
+    <task id="1" points="2">
+      <title>Create Dashboard State Store</title>
+      <file>apps/web/src/lib/state/use-dashboard-state.ts</file>
+      <description>
+        Create Zustand store with subscribeWithSelector middleware for dashboard state management.
+      </description>
+      <requirements>
+        <requirement>Store interface extends DashboardState from DM-04.1 schemas</requirement>
+        <requirement>Actions: setFullState, updateState, setActiveProject</requirement>
+        <requirement>Widget setters: setProjectStatus, setMetrics, setActivity, addAlert, dismissAlert, clearAlerts</requirement>
+        <requirement>Loading actions: setLoading</requirement>
+        <requirement>Error actions: setError, clearErrors</requirement>
+        <requirement>Reset action: reset</requirement>
+        <requirement>Initialize with createInitialDashboardState() from schemas</requirement>
+        <requirement>Validate state on setFullState using validateDashboardState()</requirement>
+        <requirement>Merge partial updates correctly in updateState</requirement>
+      </requirements>
+      <selector-hooks>
+        <hook name="useProjectStatus">Returns widgets.projectStatus</hook>
+        <hook name="useMetrics">Returns widgets.metrics</hook>
+        <hook name="useActivity">Returns widgets.activity</hook>
+        <hook name="useAlerts">Returns non-dismissed alerts</hook>
+        <hook name="useIsLoading">Returns loading.isLoading</hook>
+        <hook name="useErrors">Returns error map</hook>
+      </selector-hooks>
+    </task>
+
+    <task id="2" points="2">
+      <title>Create CopilotKit State Bridge</title>
+      <file>apps/web/src/lib/state/use-agent-state-sync.ts</file>
+      <description>
+        Create hook that bridges CopilotKit's useCoAgentStateRender with Zustand store.
+      </description>
+      <requirements>
+        <requirement>DASHBOARD_AGENT_NAME = 'dashboard_gateway'</requirement>
+        <requirement>UPDATE_DEBOUNCE_MS = 100</requirement>
+        <requirement>UseAgentStateSyncOptions interface with debug and debounceMs options</requirement>
+        <requirement>Debounce state updates using useRef timer</requirement>
+        <requirement>Validate incoming state with validateDashboardState()</requirement>
+        <requirement>Skip stale updates (compare timestamps)</requirement>
+        <requirement>Handle loading state immediately (no debounce)</requirement>
+        <requirement>Cleanup debounce timer on unmount</requirement>
+        <requirement>useAgentStateWidget convenience hook combining sync with selector</requirement>
+      </requirements>
+    </task>
+
+    <task id="3" points="0.5">
+      <title>Update State Module Exports</title>
+      <file>apps/web/src/lib/state/index.ts</file>
+      <description>
+        Create index.ts to export all types, store, and sync hooks.
+      </description>
+      <exports>
+        <export type="types">All types from dashboard-state.types.ts</export>
+        <export type="store">useDashboardState and all selector hooks</export>
+        <export type="sync">useAgentStateSync, useAgentStateWidget</export>
+      </exports>
+    </task>
+
+    <task id="4" points="0.5">
+      <title>Write Unit Tests</title>
+      <description>
+        Create comprehensive unit tests for store and sync hooks.
+      </description>
+      <test-files>
+        <file>apps/web/src/lib/state/__tests__/use-dashboard-state.test.ts</file>
+        <file>apps/web/src/lib/state/__tests__/use-agent-state-sync.test.tsx</file>
+      </test-files>
+      <test-scenarios>
+        <scenario>Store initializes with default state</scenario>
+        <scenario>setFullState validates and updates</scenario>
+        <scenario>updateState merges correctly</scenario>
+        <scenario>setProjectStatus updates widget</scenario>
+        <scenario>addAlert prepends and caps at 50</scenario>
+        <scenario>dismissAlert marks as dismissed</scenario>
+        <scenario>setLoading updates loading state</scenario>
+        <scenario>setError adds/removes errors</scenario>
+        <scenario>Selectors return correct data</scenario>
+        <scenario>Debouncing prevents rapid updates</scenario>
+        <scenario>Stale state is skipped</scenario>
+        <scenario>Loading bypasses debounce</scenario>
+      </test-scenarios>
+    </task>
+  </implementation-tasks>
+
+  <!-- ========================================================================
+       SECTION 4: FILES TO CREATE
+       ======================================================================== -->
+  <files-to-create>
+    <file path="apps/web/src/lib/state/use-dashboard-state.ts">
+      Zustand store for dashboard state management
+    </file>
+    <file path="apps/web/src/lib/state/use-agent-state-sync.ts">
+      CopilotKit to Zustand bridge hook
+    </file>
+    <file path="apps/web/src/lib/state/index.ts">
+      Module exports for state management
+    </file>
+    <file path="apps/web/src/lib/state/__tests__/use-dashboard-state.test.ts">
+      Unit tests for Zustand store
+    </file>
+    <file path="apps/web/src/lib/state/__tests__/use-agent-state-sync.test.tsx">
+      Unit tests for state sync hook
+    </file>
+  </files-to-create>
+
+  <!-- ========================================================================
+       SECTION 5: CODEBASE CONTEXT - DM-04.1 SCHEMAS (Dependency)
+       File: apps/web/src/lib/schemas/dashboard-state.ts
+       ======================================================================== -->
+  <codebase-context>
+    <section title="DM-04.1 Schemas (Complete)">
+      <file path="apps/web/src/lib/schemas/dashboard-state.ts">
+        <description>
+          Dashboard state Zod schemas created in DM-04.1. These are the source
+          of truth for state validation and typing.
+        </description>
+        <key-exports>
+          <![CDATA[
+// Constants
+export const STATE_VERSION = 1;
+
+// Enums
+export const ProjectStatusEnum = z.enum(['on-track', 'at-risk', 'behind', 'completed']);
+export const TrendDirectionEnum = z.enum(['up', 'down', 'neutral']);
+export const AlertTypeEnum = z.enum(['error', 'warning', 'info', 'success']);
+
+// Widget State Types
+export type ProjectStatusState = z.infer<typeof ProjectStatusStateSchema>;
+export type MetricsState = z.infer<typeof MetricsStateSchema>;
+export type ActivityState = z.infer<typeof ActivityStateSchema>;
+export type AlertEntry = z.infer<typeof AlertEntrySchema>;
+export type MetricEntry = z.infer<typeof MetricEntrySchema>;
+export type ActivityEntry = z.infer<typeof ActivityEntrySchema>;
+
+// Container Types
+export type WidgetsState = z.infer<typeof WidgetsStateSchema>;
+export type LoadingState = z.infer<typeof LoadingStateSchema>;
+export type ErrorState = z.infer<typeof ErrorStateSchema>;
+
+// Root State
+export type DashboardState = z.infer<typeof DashboardStateSchema>;
+export type DashboardStateUpdate = z.infer<typeof DashboardStateUpdateSchema>;
+
+// Helper Functions
+export function validateDashboardState(data: unknown): DashboardState | null;
+export function validateDashboardStateUpdate(data: unknown): DashboardStateUpdate | null;
+export function createInitialDashboardState(options?: {...}): DashboardState;
+          ]]>
+        </key-exports>
+        <import-pattern>
+          <![CDATA[
+import {
+  DashboardState,
+  DashboardStateUpdate,
+  validateDashboardState,
+  createInitialDashboardState,
+  ProjectStatusState,
+  MetricsState,
+  ActivityState,
+  AlertEntry,
+} from '@/lib/schemas/dashboard-state';
+          ]]>
+        </import-pattern>
+      </file>
+    </section>
+
+    <!-- ========================================================================
+         SECTION 6: EXISTING ZUSTAND PATTERNS
+         ======================================================================== -->
+    <section title="Existing Zustand Patterns">
+      <file path="apps/web/src/components/copilot/use-copilot-chat-state.ts">
+        <description>
+          Reference Zustand store pattern from DM-01.4. Shows the standard
+          store interface and action patterns used in this codebase.
+        </description>
+        <pattern>
+          <![CDATA[
+/**
+ * Copilot Chat State Store
+ *
+ * Zustand store managing the CopilotKit chat panel open/close state.
+ */
+import { create } from 'zustand';
+
+interface CopilotChatState {
+  /** Whether the chat panel is currently open */
+  isOpen: boolean;
+  /** Set the open state directly */
+  setIsOpen: (open: boolean) => void;
+  /** Toggle the chat panel open/closed */
+  toggle: () => void;
+  /** Open the chat panel */
+  open: () => void;
+  /** Close the chat panel */
+  close: () => void;
+}
+
+export const useCopilotChatState = create<CopilotChatState>((set) => ({
+  isOpen: false,
+  setIsOpen: (open) => set({ isOpen: open }),
+  toggle: () => set((state) => ({ isOpen: !state.isOpen })),
+  open: () => set({ isOpen: true }),
+  close: () => set({ isOpen: false }),
+}));
+          ]]>
+        </pattern>
+        <notes>
+          <note>Use create() from zustand</note>
+          <note>Interface defines state shape and actions</note>
+          <note>set() for state updates</note>
+          <note>Arrow functions for actions</note>
+          <note>JSDoc comments for each property</note>
+        </notes>
+      </file>
+    </section>
+
+    <!-- ========================================================================
+         SECTION 7: COPILOTKIT INTEGRATION PATTERNS
+         ======================================================================== -->
+    <section title="CopilotKit Integration Patterns">
+      <file path="apps/web/src/components/copilot/CopilotKitProvider.tsx">
+        <description>
+          CopilotKit provider configuration. Shows how CopilotKit is set up
+          with AG-UI runtime URL.
+        </description>
+        <pattern>
+          <![CDATA[
+'use client';
+
+import { CopilotKit } from '@copilotkit/react-core';
+
+export function CopilotKitProvider({ children }: CopilotKitProviderProps) {
+  const runtimeUrl = process.env.NEXT_PUBLIC_AGNO_URL
+    ? `${process.env.NEXT_PUBLIC_AGNO_URL}/agui`
+    : '/api/copilotkit';
+
+  return (
+    <CopilotKit
+      runtimeUrl={runtimeUrl}
+      publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_KEY}
+    >
+      {children}
+    </CopilotKit>
+  );
+}
+          ]]>
+        </pattern>
+      </file>
+
+      <file path="apps/web/src/hooks/copilot-context/use-copilot-project-context.ts">
+        <description>
+          Example of CopilotKit hook integration. Shows 'use client' directive,
+          memoization patterns, and useCopilotReadable usage.
+        </description>
+        <pattern>
+          <![CDATA[
+'use client';
+
+import { useMemo } from 'react';
+import { useCopilotReadable } from '@copilotkit/react-core';
+
+export function useCopilotProjectContext(
+  project: ProjectDetailResponse['data'] | null | undefined
+): void {
+  // Memoize context to prevent unnecessary re-registrations
+  const { description, context } = useMemo(() => {
+    // Transform data...
+    return { description: desc, context: ctx };
+  }, [project]);
+
+  useCopilotReadable({
+    description,
+    value: context,
+  });
+}
+          ]]>
+        </pattern>
+        <notes>
+          <note>Always use 'use client' directive for CopilotKit hooks</note>
+          <note>Memoize values to prevent unnecessary re-registrations</note>
+          <note>Transform data in useMemo for performance</note>
+        </notes>
+      </file>
+    </section>
+
+    <!-- ========================================================================
+         SECTION 8: HOOK CONVENTIONS
+         ======================================================================== -->
+    <section title="Hook Conventions">
+      <file path="apps/web/src/hooks/use-keyboard-shortcut.ts">
+        <description>
+          Reference hook implementation showing codebase conventions for
+          hooks with options, refs, and cleanup.
+        </description>
+        <patterns>
+          <pattern name="Options Interface">
+            <![CDATA[
+interface KeyboardShortcutOptions {
+  /** Accept Cmd (Mac) or Ctrl (Windows/Linux) */
+  meta?: boolean;
+  /** Prevent default browser behavior (default: true) */
+  preventDefault?: boolean;
+}
+            ]]>
+          </pattern>
+          <pattern name="Ref for Callbacks">
+            <![CDATA[
+// Use ref to store callback to avoid re-registering listener
+const callbackRef = useRef(callback);
+callbackRef.current = callback;
+            ]]>
+          </pattern>
+          <pattern name="Effect with Cleanup">
+            <![CDATA[
+useEffect(() => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    // Handler logic...
+  };
+
+  document.addEventListener('keydown', handleKeyDown);
+
+  return () => {
+    document.removeEventListener('keydown', handleKeyDown);
+  };
+}, [/* stable dependencies */]);
+            ]]>
+          </pattern>
+        </patterns>
+      </file>
+    </section>
+  </codebase-context>
+
+  <!-- ========================================================================
+       SECTION 9: API REFERENCE (From Tech Spec)
+       ======================================================================== -->
+  <api-reference>
+    <section title="Zustand Store API">
+      <![CDATA[
+interface DashboardStateStore extends DashboardState {
+  // Full state updates
+  setFullState: (state: DashboardState) => void;
+  updateState: (update: DashboardStateUpdate) => void;
+
+  // Active project
+  setActiveProject: (projectId: string | null) => void;
+
+  // Widget setters
+  setProjectStatus: (status: ProjectStatusState | null) => void;
+  setMetrics: (metrics: MetricsState | null) => void;
+  setActivity: (activity: ActivityState | null) => void;
+  addAlert: (alert: AlertEntry) => void;
+  dismissAlert: (alertId: string) => void;
+  clearAlerts: () => void;
+
+  // Loading state
+  setLoading: (isLoading: boolean, agents?: string[]) => void;
+
+  // Error state
+  setError: (agentId: string, error: string | null) => void;
+  clearErrors: () => void;
+
+  // Reset
+  reset: () => void;
+}
+      ]]>
+    </section>
+
+    <section title="Selector Hooks">
+      <![CDATA[
+// Widget selectors
+const projectStatus = useProjectStatus();  // ProjectStatusState | null
+const metrics = useMetrics();              // MetricsState | null
+const activity = useActivity();            // ActivityState | null
+const alerts = useAlerts();                // AlertEntry[] (non-dismissed only)
+
+// Loading/Error selectors
+const isLoading = useIsLoading();          // boolean
+const errors = useErrors();                // Record<string, string>
+      ]]>
+    </section>
+
+    <section title="Agent State Sync">
+      <![CDATA[
+// Basic usage - sync agent state to store
+function DashboardPage() {
+  useAgentStateSync();
+  return <DashboardContent />;
+}
+
+// With options
+function DashboardPage() {
+  useAgentStateSync({
+    debug: process.env.NODE_ENV === 'development',
+    debounceMs: 200,
+  });
+  return <DashboardContent />;
+}
+
+// Convenience wrapper with selector
+function MyWidget() {
+  const status = useAgentStateWidget((state) => state.widgets.projectStatus);
+  return status ? <ProjectCard {...status} /> : null;
+}
+      ]]>
+    </section>
+  </api-reference>
+
+  <!-- ========================================================================
+       SECTION 10: IMPLEMENTATION NOTES
+       ======================================================================== -->
+  <implementation-notes>
+    <note title="Debouncing Strategy">
+      <![CDATA[
+const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+const handleStateUpdate = useCallback((newState: unknown) => {
+  if (debounceTimer.current) {
+    clearTimeout(debounceTimer.current);
+  }
+
+  debounceTimer.current = setTimeout(() => {
+    // Validate and update store
+  }, debounceMs);
+}, [debounceMs]);
+
+// EXCEPTION: Loading state updates bypass debounce for immediate UI feedback.
+      ]]>
+    </note>
+
+    <note title="Stale State Detection">
+      <![CDATA[
+if (lastState.current && validated.timestamp <= lastState.current.timestamp) {
+  console.log('[AgentStateSync] Skipping stale state update');
+  return;
+}
+      ]]>
+    </note>
+
+    <note title="Selector Performance">
+      <![CDATA[
+// Use subscribeWithSelector middleware for efficient re-renders
+export const useDashboardState = create<DashboardStateStore>()(
+  subscribeWithSelector((set, get) => ({
+    // ...
+  }))
+);
+
+// Only re-renders when projectStatus changes
+export const useProjectStatus = () =>
+  useDashboardState((state) => state.widgets.projectStatus);
+      ]]>
+    </note>
+
+    <note title="Import from Schemas (Not Types File)">
+      The schemas are in apps/web/src/lib/schemas/dashboard-state.ts (created in DM-04.1).
+      Import types and validation functions from there, NOT from a separate types file.
+    </note>
+  </implementation-notes>
+
+  <!-- ========================================================================
+       SECTION 11: DEFINITION OF DONE
+       ======================================================================== -->
+  <definition-of-done>
+    <item>Zustand store created with full DashboardStateStore interface</item>
+    <item>All store actions implemented and working correctly</item>
+    <item>subscribeWithSelector middleware configured for efficient re-renders</item>
+    <item>useAgentStateSync hook bridges CopilotKit to Zustand</item>
+    <item>Debouncing implemented with configurable interval (100ms default)</item>
+    <item>Stale state detection prevents out-of-order updates</item>
+    <item>Loading state updates bypass debounce</item>
+    <item>State validation uses Zod schemas from DM-04.1</item>
+    <item>All selector hooks implemented and exported</item>
+    <item>Module exports configured in index.ts</item>
+    <item>Unit tests for store actions and selectors</item>
+    <item>Unit tests for state sync hook</item>
+    <item>Debug logging available in development mode</item>
+    <item>Sprint status updated</item>
+  </definition-of-done>
+
+  <!-- ========================================================================
+       SECTION 12: REFERENCES
+       ======================================================================== -->
+  <references>
+    <reference type="epic">docs/modules/bm-dm/epics/epic-dm-04-shared-state.md</reference>
+    <reference type="tech-spec">docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md (Section 3.2)</reference>
+    <reference type="schema">apps/web/src/lib/schemas/dashboard-state.ts</reference>
+    <reference type="pattern">apps/web/src/components/copilot/use-copilot-chat-state.ts</reference>
+    <reference type="external">https://docs.copilotkit.ai/concepts/coagent-state</reference>
+    <reference type="external">https://github.com/pmndrs/zustand</reference>
+  </references>
+</story-context>

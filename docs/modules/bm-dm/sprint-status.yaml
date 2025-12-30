@@ -115,14 +115,15 @@ development_status:
   # DM-04: Shared State & Real-Time
   # Phase 4 | 5 stories | 26 points
   # State schemas, Subscriptions, Persistence
+  # Tech Spec: docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
   # ===========================================
-  dm-04: backlog
-  dm-04-1-state-schema-definition: backlog
-  dm-04-2-frontend-state-subscription: backlog
-  dm-04-3-agent-state-emissions: backlog
-  dm-04-4-realtime-widget-updates: backlog
-  dm-04-5-state-persistence: backlog
-  dm-04-retrospective: optional
+  dm-04: complete
+  dm-04-1-state-schema-definition: done
+  dm-04-2-frontend-state-subscription: done
+  dm-04-3-agent-state-emissions: done
+  dm-04-4-realtime-widget-updates: done
+  dm-04-5-state-persistence: done
+  dm-04-retrospective: done
 
   # ===========================================
   # PHASE 5: ADVANCED FEATURES

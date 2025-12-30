@@ -1,32 +1,92 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/test_dm_02_5_pm_agents_a2a.py",
+      "moduleId": "tests/test_business_validator.py",
       "tests": [
         {
-          "name": "test_navi_metadata_exists",
-          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_navi_metadata_exists",
+          "name": "collection_error_tests/test_business_validator.py",
+          "fullName": "tests/test_business_validator.py",
           "state": "failed",
           "errors": [
             {
-              "message": "tests/test_dm_02_5_pm_agents_a2a.py:375: in test_navi_metadata_exists\n    from a2a.agent_card import AGENT_METADATA\na2a/__init__.py:31: in <module>\n    from .discovery import router as discovery_router\na2a/discovery.py:15: in <module>\n    from fastapi import APIRouter, HTTPException\nE   ModuleNotFoundError: No module named 'fastapi'"
+              "message": "ImportError while importing test module '/home/chris/projects/work/Ai Bussiness Hub/agents/tests/test_business_validator.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.10/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/test_business_validator.py:10: in <module>\n    from middleware.business_validator import validate_business_ownership\nmiddleware/business_validator.py:16: in <module>\n    from config import get_settings\nconfig.py:13: in <module>\n    from agents.constants.dm_constants import DMConstants\nE   ModuleNotFoundError: No module named 'agents'"
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_dm_02_6_ccr_health.py",
+      "tests": [
         {
-          "name": "test_pulse_metadata_exists",
-          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_pulse_metadata_exists",
-          "state": "passed"
-        },
+          "name": "collection_error_tests/test_dm_02_6_ccr_health.py",
+          "fullName": "tests/test_dm_02_6_ccr_health.py",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "ImportError while importing test module '/home/chris/projects/work/Ai Bussiness Hub/agents/tests/test_dm_02_6_ccr_health.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.10/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/test_dm_02_6_ccr_health.py:49: in <module>\n    from agents.constants.dm_constants import DMConstants\nE   ModuleNotFoundError: No module named 'agents'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_dm_02_7_ccr_provider.py",
+      "tests": [
         {
-          "name": "test_herald_metadata_exists",
-          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_herald_metadata_exists",
-          "state": "passed"
-        },
+          "name": "collection_error_tests/test_dm_02_7_ccr_provider.py",
+          "fullName": "tests/test_dm_02_7_ccr_provider.py",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "ImportError while importing test module '/home/chris/projects/work/Ai Bussiness Hub/agents/tests/test_dm_02_7_ccr_provider.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.10/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/test_dm_02_7_ccr_provider.py:70: in <module>\n    from agents.constants.dm_constants import DMConstants\nE   ModuleNotFoundError: No module named 'agents'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_dm_02_8_task_classifier.py",
+      "tests": [
         {
-          "name": "test_herald_metadata_push_notifications",
-          "fullName": "tests/test_dm_02_5_pm_agents_a2a.py::TestAgentMetadataAlignment::test_herald_metadata_push_notifications",
-          "state": "passed"
+          "name": "collection_error_tests/test_dm_02_8_task_classifier.py",
+          "fullName": "tests/test_dm_02_8_task_classifier.py",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "ImportError while importing test module '/home/chris/projects/work/Ai Bussiness Hub/agents/tests/test_dm_02_8_task_classifier.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.10/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/test_dm_02_8_task_classifier.py:29: in <module>\n    from agents.constants.dm_constants import DMConstants\nE   ModuleNotFoundError: No module named 'agents'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_dm_02_9_ccr_usage.py",
+      "tests": [
+        {
+          "name": "collection_error_tests/test_dm_02_9_ccr_usage.py",
+          "fullName": "tests/test_dm_02_9_ccr_usage.py",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "ImportError while importing test module '/home/chris/projects/work/Ai Bussiness Hub/agents/tests/test_dm_02_9_ccr_usage.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.10/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/test_dm_02_9_ccr_usage.py:22: in <module>\n    from agents.constants.dm_constants import DMConstants\nE   ModuleNotFoundError: No module named 'agents'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_rate_limit.py",
+      "tests": [
+        {
+          "name": "collection_error_tests/test_rate_limit.py",
+          "fullName": "tests/test_rate_limit.py",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "ImportError while importing test module '/home/chris/projects/work/Ai Bussiness Hub/agents/tests/test_rate_limit.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/lib/python3.10/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntests/test_rate_limit.py:9: in <module>\n    from middleware.rate_limit import init_rate_limiting\nmiddleware/rate_limit.py:14: in <module>\n    from slowapi import Limiter, _rate_limit_exceeded_handler\nE   ModuleNotFoundError: No module named 'slowapi'"
+            }
+          ]
         }
       ]
     }

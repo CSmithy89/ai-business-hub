@@ -97,3 +97,31 @@ class DMConstants:
             "long_context",
             "general",
         ])
+
+    # Shared State Configuration (for DM-04+)
+    class STATE:
+        """Shared state constants for DM-04+."""
+
+        # State schema version (must match TypeScript STATE_VERSION)
+        VERSION = 1
+
+        # State update debounce to avoid flooding frontend (ms)
+        UPDATE_DEBOUNCE_MS = 100
+
+        # Maximum state size before rejection (bytes)
+        MAX_STATE_SIZE_BYTES = 1024 * 1024  # 1MB
+
+        # State emission interval for periodic updates (ms)
+        STATE_EMIT_INTERVAL_MS = 5000  # 5 seconds
+
+        # Redis key prefix for state persistence
+        REDIS_KEY_PREFIX = "dashboard:state:"
+
+        # State TTL in Redis (seconds) - 24 hours
+        REDIS_TTL_SECONDS = 86400
+
+        # Maximum alerts to keep in state
+        MAX_ALERTS = 50
+
+        # Maximum activities to keep in state
+        MAX_ACTIVITIES = 100

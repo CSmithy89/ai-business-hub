@@ -352,17 +352,18 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 | DM-01 | CopilotKit Frontend Infrastructure | 8/8 | ✅ Complete |
 | DM-02 | Agno Multi-Interface Backend | 9/9 | ✅ Complete |
 | DM-03 | Dashboard Agent Integration | 5/5 | ✅ Complete |
-| DM-04 | Shared State & Real-Time | 0/5 | 🔜 Backlog |
+| DM-04 | Shared State & Real-Time | 5/5 | ✅ Complete |
 | DM-05 | HITL Agent Approvals | 0/6 | 🔜 Backlog |
 | DM-06 | Intelligence Layer | 0/5 | 🔜 Backlog |
 
-**Latest Epic: Dashboard Agent Integration (DM-03)**
-- A2A client for inter-agent communication (JSON-RPC 2.0, connection pooling)
-- Dashboard agent orchestration tools (Navi, Pulse, Herald delegation)
-- Widget rendering pipeline (5 widget types + loading/error states)
-- Dashboard page with AI Insights section and chat sidebar
-- Comprehensive E2E testing (74 test cases)
-- Docs: `docs/modules/bm-dm/epics/epic-dm-03-*.md`, `docs/modules/bm-dm/stories/dm-03-*.md`
+**Latest Epic: Shared State & Real-Time (DM-04)**
+- TypeScript Zod + Python Pydantic state schemas with cross-language compatibility
+- Zustand store with CopilotKit useCoAgentStateRender bridge for AG-UI sync
+- Agent state emissions via DashboardStateEmitter with 100ms debouncing
+- State-driven widget wrappers with hybrid mode (tool-only/state-only/hybrid)
+- Browser localStorage persistence with cross-tab sync via BroadcastChannel
+- 145+ unit tests across 5 stories (26 story points)
+- Docs: `docs/modules/bm-dm/epics/epic-dm-04-*.md`, `docs/modules/bm-dm/stories/dm-04-*.md`
 
 ---
 

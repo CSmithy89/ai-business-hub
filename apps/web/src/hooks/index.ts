@@ -40,3 +40,43 @@ export {
   type SelectedTaskSummary,
   type SelectionContext,
 } from './useCopilotContext';
+
+// Dashboard state hooks (Epic DM-04)
+export {
+  useAgentStateSync,
+  useAgentStateWidget,
+  DASHBOARD_AGENT_NAME,
+  UPDATE_DEBOUNCE_MS,
+  type UseAgentStateSyncOptions,
+  type UseAgentStateSyncResult,
+} from './use-agent-state-sync';
+
+export {
+  useProjectStatus,
+  useMetrics,
+  useTeamActivity,
+  useAlerts,
+  useAllAlerts,
+  useWidgetLoading,
+  useAnyLoading,
+  useLoadingAgents,
+  useWidgetError,
+  useErrors,
+  useHasErrors,
+  useActiveProject,
+  useLastUpdated,
+  useDashboardActions,
+} from './use-dashboard-selectors';
+
+// State persistence hooks (Story DM-04.5)
+export {
+  useStatePersistence,
+  useDashboardStateWithPersistence,
+  clearPersistedDashboardState,
+  hasPersistedDashboardState,
+  PERSISTENCE_DEBOUNCE_MS,
+  STATE_TTL_MS,
+  BROADCAST_CHANNEL_NAME,
+  type UseStatePersistenceOptions,
+  type UseStatePersistenceResult,
+} from './use-state-persistence';

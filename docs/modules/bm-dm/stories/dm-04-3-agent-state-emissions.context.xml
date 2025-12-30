@@ -1,0 +1,528 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: dm-04-3-agent-state-emissions
+  Epic: DM-04 - Shared State & Real-Time
+  Module: bm-dm (Dynamic Module System)
+  Generated: 2025-12-30
+
+  This context file provides all necessary information for implementing
+  the Agent State Emissions story, enabling the Dashboard Gateway to emit
+  state updates that automatically synchronize with the frontend.
+-->
+<story-context>
+  <!-- ===================================================================== -->
+  <!-- STORY METADATA -->
+  <!-- ===================================================================== -->
+  <story>
+    <id>dm-04-3-agent-state-emissions</id>
+    <title>Agent State Emissions</title>
+    <epic>DM-04 - Shared State &amp; Real-Time</epic>
+    <points>5</points>
+    <priority>High</priority>
+    <status>ready-for-dev</status>
+    <dependencies>
+      <dependency status="complete">DM-04.1 (State Schema Definition)</dependency>
+      <dependency status="complete">DM-04.2 (Frontend State Subscription)</dependency>
+      <dependency status="complete">DM-03 (Dashboard Agent Integration)</dependency>
+    </dependencies>
+  </story>
+
+  <!-- ===================================================================== -->
+  <!-- ACCEPTANCE CRITERIA -->
+  <!-- ===================================================================== -->
+  <acceptance-criteria>
+    <criterion id="AC1">DashboardStateEmitter class manages dashboard state with typed Pydantic models</criterion>
+    <criterion id="AC2">State emissions sent via AG-UI callback mechanism</criterion>
+    <criterion id="AC3">Debouncing (100ms) prevents excessive updates to frontend</criterion>
+    <criterion id="AC4">emit_now() method bypasses debounce for immediate updates (loading states)</criterion>
+    <criterion id="AC5">Tools emit state updates alongside tool call responses</criterion>
+    <criterion id="AC6">update_from_gather() efficiently handles bulk updates from parallel agent calls</criterion>
+    <criterion id="AC7">Unit tests pass with >85% coverage</criterion>
+  </acceptance-criteria>
+
+  <!-- ===================================================================== -->
+  <!-- TECH SPEC REFERENCE (Section 3.3) -->
+  <!-- ===================================================================== -->
+  <tech-spec source="docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md">
+    <section>3.3 Story DM-04.3: Agent State Emissions (5 points)</section>
+    <objective>Enable Dashboard Gateway agent to emit state updates via AG-UI protocol</objective>
+
+    <architecture-diagram>
+      <![CDATA[
+                    AG-UI Protocol
+                         |
+                         v
+┌─────────────────────────────────────────────────────────────┐
+│                     BACKEND (Agno)                           │
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │              Dashboard Gateway Agent                     ││
+│  │                                                          ││
+│  │  ┌──────────────┐    ┌──────────────┐                   ││
+│  │  │ Agent State  │--->│ State Emitter│---> AG-UI Stream  ││
+│  │  │   (dict)     │    │              │                   ││
+│  │  └──────────────┘    └──────────────┘                   ││
+│  │        ^                                                 ││
+│  │        |                                                 ││
+│  │  ┌──────────────┐                                       ││
+│  │  │ A2A Results  │ <-- Navi, Pulse, Herald               ││
+│  │  └──────────────┘                                       ││
+│  └─────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────┘
+      ]]>
+    </architecture-diagram>
+
+    <key-design-decisions>
+      <decision>Callback-Based Emission: State emitter receives a callback function that emits to AG-UI</decision>
+      <decision>Debouncing: 100ms debounce prevents UI thrashing from rapid updates</decision>
+      <decision>Immediate Mode: Loading states bypass debounce for instant UI feedback</decision>
+      <decision>Typed State: Uses Pydantic models from DM-04.1 for type safety</decision>
+      <decision>camelCase Output: to_frontend_dict() ensures JSON compatibility with TypeScript</decision>
+    </key-design-decisions>
+
+    <state-flow>
+      <step>1. Tool or agent updates state via emitter methods</step>
+      <step>2. Emitter schedules debounced update</step>
+      <step>3. On debounce expiry, state converted to camelCase dict</step>
+      <step>4. Callback function sends state via AG-UI protocol</step>
+      <step>5. Frontend receives state via useCoAgentStateRender</step>
+      <step>6. Zustand store updated, widgets re-render</step>
+    </state-flow>
+  </tech-spec>
+
+  <!-- ===================================================================== -->
+  <!-- FILES TO CREATE -->
+  <!-- ===================================================================== -->
+  <files-to-create>
+    <file path="agents/gateway/state_emitter.py">
+      <description>DashboardStateEmitter class with all state management and emission logic</description>
+      <key-components>
+        <component>DashboardStateEmitter class</component>
+        <component>Debouncing with asyncio</component>
+        <component>Widget state setters (set_project_status, set_metrics, set_activity, etc.)</component>
+        <component>Bulk update via update_from_gather()</component>
+        <component>Response parsers for Navi, Pulse, Herald</component>
+        <component>create_state_emitter() factory function</component>
+      </key-components>
+    </file>
+    <file path="agents/tests/gateway/test_state_emitter.py">
+      <description>Unit tests for state emitter with >85% coverage</description>
+    </file>
+  </files-to-create>
+
+  <!-- ===================================================================== -->
+  <!-- FILES TO MODIFY -->
+  <!-- ===================================================================== -->
+  <files-to-modify>
+    <file path="agents/gateway/agent.py">
+      <description>Add state_callback parameter and emitter integration</description>
+      <changes>
+        <change>Import DashboardStateEmitter, create_state_emitter</change>
+        <change>Add state_callback parameter to create_dashboard_gateway_agent()</change>
+        <change>Create state emitter when callback provided</change>
+        <change>Store emitter on agent instance as _state_emitter</change>
+      </changes>
+    </file>
+    <file path="agents/gateway/tools.py">
+      <description>Update gather_dashboard_data to emit state</description>
+      <changes>
+        <change>Get state emitter from agent context</change>
+        <change>Set loading state before parallel calls</change>
+        <change>Process results via update_from_gather()</change>
+        <change>Clear loading state after completion</change>
+      </changes>
+    </file>
+    <file path="agents/gateway/__init__.py">
+      <description>Export state emitter (if needed)</description>
+    </file>
+    <file path="docs/modules/bm-dm/sprint-status.yaml">
+      <description>Update story status to review when complete</description>
+    </file>
+  </files-to-modify>
+
+  <!-- ===================================================================== -->
+  <!-- PYTHON SCHEMAS FROM DM-04.1 (Complete) -->
+  <!-- ===================================================================== -->
+  <codebase-context>
+    <context-file path="agents/schemas/dashboard_state.py">
+      <description>Dashboard state Pydantic models created in DM-04.1</description>
+      <key-exports>
+        <export>STATE_VERSION = 1</export>
+        <export>ProjectStatus enum (ON_TRACK, AT_RISK, BEHIND, COMPLETED)</export>
+        <export>TrendDirection enum (UP, DOWN, NEUTRAL)</export>
+        <export>AlertType enum (ERROR, WARNING, INFO, SUCCESS)</export>
+        <export>ProjectStatusState (project_id, name, status, progress, tasks_completed, tasks_total, last_updated, summary)</export>
+        <export>MetricEntry (id, label, value, unit, trend, change, change_percent)</export>
+        <export>MetricsState (title, metrics, period, last_updated)</export>
+        <export>ActivityEntry (id, user, user_avatar, action, target, timestamp, project_id)</export>
+        <export>ActivityState (activities, has_more, last_updated)</export>
+        <export>AlertEntry (id, type, title, message, timestamp, dismissable, dismissed, action_label, action_url)</export>
+        <export>LoadingState (is_loading, loading_agents, started_at)</export>
+        <export>WidgetsState (project_status, metrics, activity, alerts)</export>
+        <export>DashboardState (version, timestamp, active_project, workspace_id, user_id, widgets, loading, errors)</export>
+      </key-exports>
+      <key-methods>
+        <method>DashboardState.create_initial(workspace_id, user_id, active_project) -> DashboardState</method>
+        <method>DashboardState.to_frontend_dict() -> Dict[str, Any] # Uses by_alias=True for camelCase</method>
+      </key-methods>
+      <config-notes>
+        <note>All models use ConfigDict(populate_by_name=True, use_enum_values=True)</note>
+        <note>Fields use alias="camelCase" for frontend compatibility</note>
+        <note>Timestamps are Unix milliseconds (int)</note>
+      </config-notes>
+    </context-file>
+
+    <context-file path="agents/constants/dm_constants.py">
+      <description>DM constants including STATE configuration</description>
+      <relevant-constants>
+        <constant>DMConstants.STATE.VERSION = 1</constant>
+        <constant>DMConstants.STATE.UPDATE_DEBOUNCE_MS = 100</constant>
+        <constant>DMConstants.STATE.MAX_STATE_SIZE_BYTES = 1024 * 1024 # 1MB</constant>
+        <constant>DMConstants.STATE.STATE_EMIT_INTERVAL_MS = 5000</constant>
+        <constant>DMConstants.STATE.REDIS_KEY_PREFIX = "dashboard:state:"</constant>
+        <constant>DMConstants.STATE.REDIS_TTL_SECONDS = 86400</constant>
+        <constant>DMConstants.STATE.MAX_ALERTS = 50</constant>
+        <constant>DMConstants.STATE.MAX_ACTIVITIES = 100</constant>
+      </relevant-constants>
+    </context-file>
+  </codebase-context>
+
+  <!-- ===================================================================== -->
+  <!-- DASHBOARD GATEWAY AGENT PATTERNS -->
+  <!-- ===================================================================== -->
+  <codebase-context>
+    <context-file path="agents/gateway/agent.py">
+      <description>Dashboard Gateway agent implementation to extend</description>
+      <current-signature>
+        <![CDATA[
+def create_dashboard_gateway_agent(
+    workspace_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+):
+    """Create a Dashboard Gateway agent instance."""
+        ]]>
+      </current-signature>
+      <modification-pattern>
+        <![CDATA[
+# NEW: Add state_callback parameter
+def create_dashboard_gateway_agent(
+    workspace_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    state_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+):
+    # ... existing code ...
+
+    # NEW: Create state emitter if callback provided
+    state_emitter = None
+    if state_callback:
+        state_emitter = create_state_emitter(
+            on_state_change=state_callback,
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+
+    # Store emitter on agent for tool access
+    agent._state_emitter = state_emitter
+        ]]>
+      </modification-pattern>
+      <key-patterns>
+        <pattern>Uses AGNO_AVAILABLE flag for optional Agno import</pattern>
+        <pattern>Falls back to MockAgent when Agno not installed</pattern>
+        <pattern>Agent stores workspace_id, model_id, user_id</pattern>
+        <pattern>get_all_tools() returns tool list for agent registration</pattern>
+      </key-patterns>
+    </context-file>
+
+    <context-file path="agents/gateway/tools.py">
+      <description>Dashboard Gateway tools to update with state emission</description>
+      <gather-dashboard-data-signature>
+        <![CDATA[
+async def gather_dashboard_data(
+    project_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Gather comprehensive dashboard data from multiple agents in parallel."""
+        ]]>
+      </gather-dashboard-data-signature>
+      <modification-pattern>
+        <![CDATA[
+async def gather_dashboard_data(
+    project_id: Optional[str] = None,
+    agent_context: Optional[Dict[str, Any]] = None,  # NEW parameter
+) -> Dict[str, Any]:
+    from a2a import get_a2a_client
+
+    client = await get_a2a_client()
+
+    # NEW: Get state emitter from agent context
+    state_emitter = agent_context.get("_state_emitter") if agent_context else None
+
+    # NEW: Set loading state before parallel calls
+    if state_emitter:
+        await state_emitter.set_loading(True, ["navi", "pulse", "herald"])
+
+    # ... existing parallel call logic ...
+    results = await client.call_agents_parallel(calls)
+
+    # ... existing response building ...
+
+    # NEW: Emit state update
+    if state_emitter:
+        await state_emitter.update_from_gather(
+            navi_result=response.get("navi"),
+            pulse_result=response.get("pulse"),
+            herald_result=response.get("herald"),
+            errors=response.get("errors"),
+        )
+        await state_emitter.set_loading(False)
+
+    return response
+        ]]>
+      </modification-pattern>
+      <existing-tools>
+        <tool>render_dashboard_widget(widget_type, data, title, slot_id)</tool>
+        <tool>get_dashboard_capabilities()</tool>
+        <tool>route_to_agent(agent_id, message, context)</tool>
+        <tool>get_project_status(project_id, include_tasks, include_timeline) - async</tool>
+        <tool>get_health_summary(project_id, workspace_wide) - async</tool>
+        <tool>get_recent_activity(limit, project_id) - async</tool>
+        <tool>gather_dashboard_data(project_id) - async</tool>
+      </existing-tools>
+    </context-file>
+
+    <context-file path="agents/gateway/__init__.py">
+      <description>Gateway module exports</description>
+      <current-exports>
+        <![CDATA[
+from .agent import (
+    DASHBOARD_INSTRUCTIONS,
+    MockAgent,
+    create_dashboard_gateway_agent,
+    get_agent_metadata,
+)
+from .tools import (
+    WIDGET_TYPES,
+    get_all_tools,
+    get_dashboard_capabilities,
+    render_dashboard_widget,
+    route_to_agent,
+)
+        ]]>
+      </current-exports>
+      <add-exports>
+        <![CDATA[
+# Add to imports
+from .state_emitter import (
+    DashboardStateEmitter,
+    create_state_emitter,
+)
+
+# Add to __all__
+"DashboardStateEmitter",
+"create_state_emitter",
+        ]]>
+      </add-exports>
+    </context-file>
+  </codebase-context>
+
+  <!-- ===================================================================== -->
+  <!-- A2A CLIENT PATTERNS -->
+  <!-- ===================================================================== -->
+  <codebase-context>
+    <context-file path="agents/a2a/client.py">
+      <description>A2A client patterns to follow for async operations</description>
+      <key-patterns>
+        <pattern>Uses asyncio.Lock() for thread-safe lazy initialization</pattern>
+        <pattern>Uses asyncio.gather() for parallel calls</pattern>
+        <pattern>Uses time.monotonic() for duration tracking</pattern>
+        <pattern>A2ATaskResult Pydantic model for structured responses</pattern>
+        <pattern>Singleton accessor via get_a2a_client()</pattern>
+      </key-patterns>
+      <a2a-task-result>
+        <![CDATA[
+class A2ATaskResult(BaseModel):
+    content: str = Field(default="", description="Text content from agent response")
+    tool_calls: List[Dict[str, Any]] = Field(default_factory=list)
+    artifacts: List[Dict[str, Any]] = Field(default_factory=list)
+    success: bool = Field(default=True)
+    error: Optional[str] = Field(default=None)
+    agent_id: Optional[str] = Field(default=None)
+    duration_ms: Optional[float] = Field(default=None)
+        ]]>
+      </a2a-task-result>
+    </context-file>
+  </codebase-context>
+
+  <!-- ===================================================================== -->
+  <!-- IMPLEMENTATION REFERENCE -->
+  <!-- ===================================================================== -->
+  <implementation-reference>
+    <debouncing-pattern>
+      <![CDATA[
+async def _emit_debounced(self) -> None:
+    """Emit state with debouncing to prevent flooding."""
+    await asyncio.sleep(DMConstants.STATE.UPDATE_DEBOUNCE_MS / 1000)
+
+    if self._pending_update:
+        self._pending_update = False
+        self._emit()
+
+def _schedule_emit(self) -> None:
+    """Schedule a debounced state emission."""
+    self._pending_update = True
+    self._state.timestamp = int(time.time() * 1000)
+
+    if self._debounce_task is None or self._debounce_task.done():
+        self._debounce_task = asyncio.create_task(self._emit_debounced())
+      ]]>
+    </debouncing-pattern>
+
+    <response-parsing-pattern>
+      <![CDATA[
+def _parse_navi_response(self, result: Dict[str, Any]) -> Optional[ProjectStatusState]:
+    """Parse Navi response into ProjectStatusState."""
+    try:
+        artifacts = result.get("artifacts", [])
+        if artifacts and isinstance(artifacts[0], dict):
+            data = artifacts[0]
+            return ProjectStatusState(
+                project_id=data.get("project_id", "unknown"),
+                name=data.get("name", "Project"),
+                status=ProjectStatus(data.get("status", "on-track")),
+                progress=int(data.get("progress", 0)),
+                tasks_completed=int(data.get("tasks_completed", 0)),
+                tasks_total=int(data.get("tasks_total", 0)),
+                last_updated=int(time.time() * 1000),
+                summary=result.get("content"),
+            )
+    except Exception as e:
+        logger.warning(f"Failed to parse Navi response: {e}")
+    return None
+      ]]>
+    </response-parsing-pattern>
+
+    <api-signature>
+      <![CDATA[
+class DashboardStateEmitter:
+    def __init__(
+        self,
+        on_state_change: Callable[[Dict[str, Any]], None],
+        workspace_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> None: ...
+
+    @property
+    def state(self) -> DashboardState: ...
+
+    # Loading State
+    async def set_loading(self, is_loading: bool, agents: List[str] = None) -> None: ...
+
+    # Error State
+    async def set_error(self, agent_id: str, error: Optional[str]) -> None: ...
+    async def clear_errors(self) -> None: ...
+
+    # Widget State
+    async def set_active_project(self, project_id: Optional[str]) -> None: ...
+    async def set_project_status(...) -> None: ...
+    async def set_metrics(metrics, title, period) -> None: ...
+    async def set_activity(activities, has_more) -> None: ...
+    async def add_alert(...) -> str: ...  # Returns alert_id
+    async def dismiss_alert(alert_id: str) -> None: ...
+    async def clear_alerts(self) -> None: ...
+
+    # Bulk Updates
+    async def update_from_gather(navi_result, pulse_result, herald_result, errors) -> None: ...
+
+    # Emission Control
+    async def emit_now(self) -> None: ...
+      ]]>
+    </api-signature>
+  </implementation-reference>
+
+  <!-- ===================================================================== -->
+  <!-- TEST SCENARIOS -->
+  <!-- ===================================================================== -->
+  <test-scenarios>
+    <unit-tests>
+      <test>State initializes correctly with DashboardState.create_initial() values</test>
+      <test>set_loading emits immediately (no debounce delay)</test>
+      <test>set_project_status schedules debounced emission</test>
+      <test>Debouncing groups rapid updates into single emission</test>
+      <test>emit_now bypasses debounce for immediate emission</test>
+      <test>add_alert prepends and caps at MAX_ALERTS</test>
+      <test>dismiss_alert updates dismissed flag</test>
+      <test>update_from_gather processes all widget states</test>
+      <test>_parse_navi_response handles errors gracefully (returns None)</test>
+      <test>_parse_pulse_response handles errors gracefully</test>
+      <test>_parse_herald_response handles errors gracefully</test>
+      <test>Callback receives camelCase dict (frontend-compatible)</test>
+      <test>Timestamps update on each state change</test>
+    </unit-tests>
+    <integration-tests note="Will be tested in DM-04.4">
+      <test>State flows from emitter to frontend via AG-UI</test>
+      <test>Widget components update when state emitted</test>
+      <test>Loading states appear/disappear correctly</test>
+      <test>Error states display in widgets</test>
+    </integration-tests>
+  </test-scenarios>
+
+  <!-- ===================================================================== -->
+  <!-- DEFINITION OF DONE -->
+  <!-- ===================================================================== -->
+  <definition-of-done>
+    <item>DashboardStateEmitter class created in agents/gateway/state_emitter.py</item>
+    <item>All widget state setter methods implemented</item>
+    <item>Debouncing (100ms) implemented with asyncio timer</item>
+    <item>emit_now() bypasses debounce for loading states</item>
+    <item>update_from_gather() processes bulk agent results</item>
+    <item>Response parsers for Navi, Pulse, Herald implemented</item>
+    <item>Dashboard Gateway agent accepts state_callback parameter</item>
+    <item>State emitter stored on agent as _state_emitter</item>
+    <item>gather_dashboard_data tool emits state updates</item>
+    <item>State emitted as camelCase dict via to_frontend_dict()</item>
+    <item>Factory function create_state_emitter exported</item>
+    <item>Unit tests with >85% coverage</item>
+    <item>JSDoc/docstrings on all public methods</item>
+    <item>Sprint status updated to review</item>
+  </definition-of-done>
+
+  <!-- ===================================================================== -->
+  <!-- IMPORTS REFERENCE -->
+  <!-- ===================================================================== -->
+  <imports-reference>
+    <state-emitter-imports>
+      <![CDATA[
+# agents/gateway/state_emitter.py
+import asyncio
+import logging
+import time
+import uuid
+from typing import Any, Callable, Dict, List, Optional
+
+from schemas.dashboard_state import (
+    DashboardState,
+    WidgetsState,
+    ProjectStatusState,
+    MetricsState,
+    MetricEntry,
+    ActivityState,
+    ActivityEntry,
+    AlertEntry,
+    LoadingState,
+    ProjectStatus,
+    AlertType,
+)
+from constants.dm_constants import DMConstants
+
+logger = logging.getLogger(__name__)
+      ]]>
+    </state-emitter-imports>
+    <agent-imports-addition>
+      <![CDATA[
+# Add to agents/gateway/agent.py
+from .state_emitter import DashboardStateEmitter, create_state_emitter
+from typing import Callable
+      ]]>
+    </agent-imports-addition>
+  </imports-reference>
+</story-context>
