@@ -18,11 +18,20 @@ State Emission (DM-04.3):
 - Optionally accepts a state_callback for AG-UI state synchronization
 - Creates DashboardStateEmitter when callback provided
 - State emitter enables real-time widget updates without tool calls
+
+Context Awareness (DM-06.2):
+- Optionally accepts frontend_context for context-aware responses
+- When provided, builds context-aware instructions via ContextAwareInstructions
+- Enables natural language references like "this project" or "here"
 """
 import logging
 from typing import Any, Callable, Dict, Optional
 
 from constants.dm_constants import DMConstants
+from context.context_instructions import (
+    ContextAwareInstructions,
+    get_context_aware_response_hints,
+)
 
 from .state_emitter import DashboardStateEmitter, create_state_emitter
 from .tools import WIDGET_TYPES, get_all_tools
@@ -159,15 +168,17 @@ def create_dashboard_gateway_agent(
     model_id: Optional[str] = None,
     user_id: Optional[str] = None,
     state_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    frontend_context: Optional[Dict[str, Any]] = None,
 ):
     """
-    Create a Dashboard Gateway agent instance.
+    Create a Dashboard Gateway agent instance with context awareness.
 
     The Dashboard Gateway is configured with:
     - AG-UI interface for CopilotKit streaming
     - A2A interface for backend agent orchestration
     - Tool definitions for widget rendering and agent routing
     - Optional state emission for real-time widget updates (DM-04.3)
+    - Optional frontend context for context-aware responses (DM-06.2)
 
     Args:
         workspace_id: Optional workspace/tenant identifier for context.
@@ -179,6 +190,10 @@ def create_dashboard_gateway_agent(
                        When provided, creates a DashboardStateEmitter that enables
                        real-time widget updates without explicit tool calls.
                        The callback receives a camelCase dict of the state.
+        frontend_context: Optional context from frontend via AG-UI protocol.
+                         When provided, builds context-aware instructions that
+                         enable natural language references like "this project".
+                         Expected keys: project, selection, activity, document, view.
 
     Returns:
         Configured Dashboard Gateway Agent instance ready for interface mounting.
@@ -200,7 +215,16 @@ def create_dashboard_gateway_agent(
         ...     workspace_id="ws_123",
         ...     state_callback=emit_state,
         ... )
-        >>> # Agent's _state_emitter can be used by tools
+        >>>
+        >>> # With frontend context (DM-06.2)
+        >>> agent = create_dashboard_gateway_agent(
+        ...     workspace_id="ws_123",
+        ...     frontend_context={
+        ...         "project": {"id": "p1", "name": "HYVVE", "progress": 75},
+        ...         "selection": {"type": "task", "count": 3},
+        ...     },
+        ... )
+        >>> # Agent now understands "this project" means HYVVE
     """
     # Handle optional Agno imports gracefully
     try:
@@ -217,7 +241,7 @@ def create_dashboard_gateway_agent(
             "Install with: pip install agno[agui,a2a]"
         )
         # Return a mock agent for testing
-        agent = _create_mock_agent(workspace_id, model_id, user_id)
+        agent = _create_mock_agent(workspace_id, model_id, user_id, frontend_context)
 
         # Create and attach state emitter if callback provided (DM-04.3)
         if state_callback:
@@ -231,8 +255,19 @@ def create_dashboard_gateway_agent(
 
         return agent
 
-    # Build context-aware instructions
-    instructions = [DASHBOARD_INSTRUCTIONS]
+    # Build context-aware instructions (DM-06.2)
+    # If frontend_context is provided, use ContextAwareInstructions
+    if frontend_context:
+        context_instructions = ContextAwareInstructions.build_full_instructions(
+            frontend_context
+        )
+        instructions = [DASHBOARD_INSTRUCTIONS, "\n", context_instructions]
+        logger.debug(
+            f"Built context-aware instructions with context keys: "
+            f"{list(frontend_context.keys())}"
+        )
+    else:
+        instructions = [DASHBOARD_INSTRUCTIONS]
 
     if workspace_id:
         instructions.append(f"\nCurrent Workspace: {workspace_id}")
@@ -267,13 +302,15 @@ def create_dashboard_gateway_agent(
         )
         logger.info(
             f"Created Dashboard Gateway agent with state emitter "
-            f"(workspace={workspace_id}, model={model_id or 'default'})"
+            f"(workspace={workspace_id}, model={model_id or 'default'}, "
+            f"has_context={frontend_context is not None})"
         )
     else:
         agent._state_emitter = None
         logger.info(
             f"Created Dashboard Gateway agent "
-            f"(workspace={workspace_id}, model={model_id or 'default'})"
+            f"(workspace={workspace_id}, model={model_id or 'default'}, "
+            f"has_context={frontend_context is not None})"
         )
 
     return agent
@@ -287,6 +324,7 @@ class MockAgent:
         workspace_id: Optional[str] = None,
         model_id: Optional[str] = None,
         user_id: Optional[str] = None,
+        frontend_context: Optional[Dict[str, Any]] = None,
     ):
         self.name = "dashboard_gateway"
         self.role = "Dashboard Gateway"
@@ -297,8 +335,17 @@ class MockAgent:
         self.workspace_id = workspace_id
         self.model_id = model_id or "claude-sonnet-4-20250514"
         self.user_id = user_id
+        self.frontend_context = frontend_context
         self.tools = get_all_tools()
-        self.instructions = [DASHBOARD_INSTRUCTIONS]
+
+        # Build instructions with context awareness (DM-06.2)
+        if frontend_context:
+            context_instructions = ContextAwareInstructions.build_full_instructions(
+                frontend_context
+            )
+            self.instructions = [DASHBOARD_INSTRUCTIONS, "\n", context_instructions]
+        else:
+            self.instructions = [DASHBOARD_INSTRUCTIONS]
 
         if workspace_id:
             self.instructions.append(f"\nCurrent Workspace: {workspace_id}")
@@ -317,12 +364,14 @@ def _create_mock_agent(
     workspace_id: Optional[str] = None,
     model_id: Optional[str] = None,
     user_id: Optional[str] = None,
+    frontend_context: Optional[Dict[str, Any]] = None,
 ) -> MockAgent:
     """Create a mock agent for testing when Agno is not installed."""
     return MockAgent(
         workspace_id=workspace_id,
         model_id=model_id,
         user_id=user_id,
+        frontend_context=frontend_context,
     )
 
 
