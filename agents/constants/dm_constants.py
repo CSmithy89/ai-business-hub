@@ -27,6 +27,12 @@ class DMConstants:
         AGENT_DISCOVERY_CACHE_TTL_SECONDS = 300
         HEARTBEAT_INTERVAL_SECONDS = 30
         MAX_MESSAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+        # HTTP client timeouts (in seconds)
+        HTTP_CONNECT_TIMEOUT = 10.0
+        HTTP_WRITE_TIMEOUT = 10.0
+        HTTP_POOL_TIMEOUT = 5.0
+        # Error message limits
+        ERROR_TEXT_MAX_LENGTH = 500
 
     # AG-UI Protocol
     class AGUI:

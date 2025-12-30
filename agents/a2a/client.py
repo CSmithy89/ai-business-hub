@@ -18,6 +18,7 @@ import asyncio
 import json
 import logging
 import secrets
+import threading
 import time
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional
@@ -142,10 +143,10 @@ class HyvveA2AClient:
                     self._client = httpx.AsyncClient(
                         base_url=self.base_url,
                         timeout=httpx.Timeout(
-                            connect=10.0,
+                            connect=DMConstants.A2A.HTTP_CONNECT_TIMEOUT,
                             read=float(self.timeout),
-                            write=10.0,
-                            pool=5.0,
+                            write=DMConstants.A2A.HTTP_WRITE_TIMEOUT,
+                            pool=DMConstants.A2A.HTTP_POOL_TIMEOUT,
                         ),
                         limits=httpx.Limits(
                             max_connections=DMConstants.DASHBOARD.CONCURRENT_AGENT_CALLS * 2,
@@ -260,7 +261,12 @@ class HyvveA2AClient:
 
             # Handle HTTP errors
             if response.status_code != 200:
-                error_text = response.text[:500]  # Limit error text size
+                max_len = DMConstants.A2A.ERROR_TEXT_MAX_LENGTH
+                raw_text = response.text
+                if len(raw_text) > max_len:
+                    error_text = raw_text[:max_len] + "... (truncated)"
+                else:
+                    error_text = raw_text
                 logger.error(
                     f"A2A call to {agent_id} failed with HTTP {response.status_code}: {error_text}"
                 )
@@ -463,6 +469,7 @@ class HyvveA2AClient:
 # Singleton instance for Dashboard Gateway
 _a2a_client: Optional[HyvveA2AClient] = None
 _client_lock = asyncio.Lock()
+_sync_lock = threading.Lock()
 
 
 async def get_a2a_client() -> HyvveA2AClient:
@@ -497,8 +504,8 @@ def get_a2a_client_sync() -> HyvveA2AClient:
     Get the singleton A2A client instance (synchronous version).
 
     For use in contexts where async is not available.
-    Note: This creates a new client if none exists, but doesn't
-    use locking. For async contexts, prefer get_a2a_client().
+    Uses threading.Lock for thread-safe initialization.
+    For async contexts, prefer get_a2a_client().
 
     Returns:
         Shared HyvveA2AClient instance
@@ -506,7 +513,32 @@ def get_a2a_client_sync() -> HyvveA2AClient:
     global _a2a_client
 
     if _a2a_client is None:
-        _a2a_client = HyvveA2AClient()
-        logger.info("A2A client singleton initialized (sync)")
+        with _sync_lock:
+            # Double-check after acquiring lock
+            if _a2a_client is None:
+                _a2a_client = HyvveA2AClient()
+                logger.info("A2A client singleton initialized (sync)")
 
     return _a2a_client
+
+
+async def close_a2a_client() -> None:
+    """
+    Close and clean up the singleton A2A client.
+
+    Should be called during application shutdown to properly
+    release connection pool resources. Safe to call even if
+    no client was ever created.
+
+    Example:
+        # In FastAPI shutdown event
+        @app.on_event("shutdown")
+        async def shutdown():
+            await close_a2a_client()
+    """
+    global _a2a_client
+
+    if _a2a_client is not None:
+        await _a2a_client.close()
+        _a2a_client = None
+        logger.info("A2A client singleton closed")
