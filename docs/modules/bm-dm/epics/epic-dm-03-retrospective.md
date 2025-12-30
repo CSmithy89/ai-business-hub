@@ -252,10 +252,17 @@ f6ee5e4 docs: add DM-03 technical specification
 Epic DM-03 successfully delivered the integration layer connecting the Dashboard Gateway agent to the frontend widget system. The A2A client provides robust inter-agent communication, and the widget rendering pipeline enables agent-driven dashboard UI.
 
 **Action Items:**
-1. Merge PR #42 to main
-2. Address pre-existing test failures (tech debt story)
-3. Consider caching before DM-04
-4. Begin DM-04 planning when ready
+1. ~~Merge PR #42 to main~~ ✅ Merged 2025-12-30
+2. Address pre-existing test failures (tech debt story) - Tracked below
+3. Consider caching before DM-04 - Recommendation for DM-04 planning
+4. Begin DM-04 planning when ready - Next epic
+
+**Tech Debt Tracking:**
+Pre-existing test failures identified in DM-03 testing (not caused by DM-03):
+- Rate-limit test failure
+- TimelineView test failure
+- WidgetSlotGrid test failure
+- See test report for details: `docs/modules/bm-dm/epics/epic-dm-03-test-report.md`
 
 ---
 
