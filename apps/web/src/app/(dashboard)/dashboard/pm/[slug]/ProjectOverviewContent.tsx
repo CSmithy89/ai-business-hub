@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useMemo } from 'react'
 import { CalendarDays, ChevronRight, FileText, Settings, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,6 +10,7 @@ import { usePmProject } from '@/hooks/use-pm-projects'
 import { usePresence } from '@/hooks/use-presence'
 import { PresenceBar } from '@/components/pm/presence/PresenceBar'
 import { cn } from '@/lib/utils'
+import { useProjectContext, type ProjectContext } from '@/lib/context'
 
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 0
@@ -156,6 +158,40 @@ export function ProjectOverviewContent() {
     page: 'overview',
     enabled: !!project?.id,
   })
+
+  // Transform project data into context format for CopilotKit agents
+  // This enables natural language references like "this project" to work correctly
+  const projectContext = useMemo<ProjectContext | null>(() => {
+    if (!project) return null
+
+    // Map API status to context status
+    const statusMap: Record<string, 'active' | 'on-hold' | 'completed'> = {
+      ACTIVE: 'active',
+      ON_HOLD: 'on-hold',
+      COMPLETED: 'completed',
+    }
+
+    // Find the current phase
+    const currentPhase = project.phases?.find((p) => p.status === 'CURRENT')
+
+    return {
+      id: project.id,
+      name: project.name,
+      status: statusMap[project.status] ?? 'active',
+      currentPhase: currentPhase?.name,
+      progress: percentFromTasks(project.totalTasks, project.completedTasks),
+      tasksTotal: project.totalTasks,
+      tasksCompleted: project.completedTasks,
+      team: project.team?.members?.map((m) => ({
+        id: m.id,
+        name: '', // Member names not available in current API response
+        role: '',
+      })),
+    }
+  }, [project])
+
+  // Expose project context to CopilotKit agents
+  useProjectContext(projectContext)
 
   if (!slug) return null
 

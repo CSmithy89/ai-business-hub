@@ -16,16 +16,64 @@
  * - Responsive grid layout (2:1 on desktop)
  * - DashboardGrid for widget placement
  * - DashboardChat sidebar with quick actions
+ * - CopilotKit context for AI agents (DM-06.1)
  *
  * Epic: DM-03 | Story: DM-03.4 - Dashboard Page Integration
+ * Epic: DM-06 | Story: DM-06.1 - Deep Context Providers
  * @see docs/modules/bm-dm/epics/epic-dm-03-tech-spec.md - Section 3.4
+ * @see docs/modules/bm-dm/epics/epic-dm-06-tech-spec.md - Section 3.1
  */
 
+import { useMemo } from 'react';
 import { DashboardGrid, DashboardChat } from '@/components/dashboard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Bot } from 'lucide-react';
+import { useDashboardStateStore } from '@/stores/dashboard-state-store';
+import {
+  useActivityContext,
+  useViewContext,
+  type ActivityContext,
+  type ViewContext,
+} from '@/lib/context';
 
 export function DashboardAgentSection() {
+  // Subscribe to dashboard state for context
+  const activity = useDashboardStateStore((state) => state.widgets.activity);
+  const projectStatus = useDashboardStateStore(
+    (state) => state.widgets.projectStatus
+  );
+
+  // Transform activity data into context format for CopilotKit agents
+  const activityContext = useMemo<ActivityContext | null>(() => {
+    if (!activity) return null;
+
+    return {
+      recentActions: activity.activities.map((a) => ({
+        action: a.action,
+        target: a.target ?? '',
+        timestamp: a.timestamp,
+      })),
+      currentPage: '/dashboard',
+      sessionDuration: Date.now() - (activity.lastUpdated || Date.now()),
+    };
+  }, [activity]);
+
+  // Transform project status data into view context
+  const viewContext = useMemo<ViewContext | null>(() => {
+    if (!projectStatus) return null;
+
+    return {
+      type: 'list' as const,
+      filters: {},
+      visibleCount: 1,
+      totalCount: 1,
+    };
+  }, [projectStatus]);
+
+  // Expose contexts to CopilotKit agents
+  useActivityContext(activityContext);
+  useViewContext(viewContext);
+
   return (
     <section
       className="space-y-4"

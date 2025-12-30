@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-06.1 - Deep Context Providers
+  Generated: 2025-12-31
+  Epic: DM-06 Contextual Intelligence
+  Points: 5
+
+  This context file provides developers with all the information needed
+  to implement the Deep Context Providers story.
+-->
+<story-context>
+  <metadata>
+    <story-id>DM-06.1</story-id>
+    <title>Deep Context Providers</title>
+    <epic>DM-06 - Contextual Intelligence</epic>
+    <points>5</points>
+    <status>ready-for-dev</status>
+    <priority>High (Foundation for context-aware agents)</priority>
+  </metadata>
+
+  <summary>
+    Implement comprehensive context providers that expose application state to CopilotKit agents
+    via `useCopilotReadable` hooks. This enables agents to "see" what the user is seeing,
+    allowing natural references like "this project" or "here" to work correctly because
+    agents have full application context.
+
+    Key deliverables:
+    - Context type definitions (Project, Selection, Activity, Document, View, Workspace)
+    - React hooks wrapping useCopilotReadable for each context type
+    - Sensitive data filtering utilities
+    - CompositeContextProvider component for composing multiple contexts
+  </summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">ProjectContext type defined with id, name, status, phase, health, progress, tasks, and team fields</criterion>
+    <criterion id="AC2">SelectionContext type defined with type (task/project/document/none), ids, count, and summary</criterion>
+    <criterion id="AC3">ActivityContext type defined with recentActions, currentPage, and sessionDuration</criterion>
+    <criterion id="AC4">DocumentContext type defined with id, title, type, wordCount, lastEdited, cursorPosition, selectedText</criterion>
+    <criterion id="AC5">useProjectContext(project) hook implemented using useCopilotReadable</criterion>
+    <criterion id="AC6">useSelectionContext(selection) hook implemented using useCopilotReadable</criterion>
+    <criterion id="AC7">useActivityContext(activity) hook implemented with recent actions limited to 10</criterion>
+    <criterion id="AC8">useDocumentContext(document) hook implemented with selection preview truncated</criterion>
+    <criterion id="AC9">useWorkspaceContext(workspace) hook implemented for workspace-level context</criterion>
+    <criterion id="AC10">useViewContext(view) hook implemented for view configuration context</criterion>
+    <criterion id="AC11">filterSensitiveContext(data, sensitiveFields) utility filters password, token, secret, apiKey, ssn, creditCard fields</criterion>
+    <criterion id="AC12">useSafeContext(description, data, sensitiveFields) hook combines filtering with useCopilotReadable</criterion>
+    <criterion id="AC13">CompositeContextProvider component combines multiple context sources</criterion>
+    <criterion id="AC14">Context updates reactively when underlying data changes (less than 10ms overhead)</criterion>
+    <criterion id="AC15">Unit tests pass with more than 85% coverage for hooks and utilities</criterion>
+  </acceptance-criteria>
+
+  <files-to-create>
+    <file path="apps/web/src/lib/context/copilot-context.ts" description="Context hooks and utilities - main implementation file" />
+    <file path="apps/web/src/lib/context/index.ts" description="Module exports for context hooks and types" />
+    <file path="apps/web/src/components/context/ContextProviders.tsx" description="Provider components including CompositeContextProvider" />
+    <file path="apps/web/src/components/context/index.ts" description="Component exports" />
+    <file path="apps/web/src/lib/context/__tests__/copilot-context.test.tsx" description="Unit tests for hooks and utilities" />
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/ProjectOverviewContent.tsx" description="Add ProjectContextProvider integration" />
+    <file path="apps/web/src/app/(dashboard)/dashboard/DashboardAgentSection.tsx" description="Add CompositeContextProvider integration" />
+    <file path="docs/modules/bm-dm/sprint-status.yaml" description="Update story status to done when complete" />
+  </files-to-modify>
+
+  <existing-code-patterns>
+    <!-- CopilotKit Provider Pattern -->
+    <pattern name="CopilotKit Provider Setup" file="apps/web/src/components/copilot/CopilotKitProvider.tsx">
+      <description>
+        Shows how CopilotKit is configured with runtimeUrl pointing to Agno backend.
+        Context providers will work inside this CopilotKit wrapper.
+      </description>
+      <code><![CDATA[
+'use client';
+
+import { CopilotKit } from '@copilotkit/react-core';
+import { HITLActionRegistration } from '@/components/hitl/HITLActionRegistration';
+
+interface CopilotKitProviderProps {
+  children: React.ReactNode;
+}
+
+export function CopilotKitProvider({ children }: CopilotKitProviderProps) {
+  const runtimeUrl = process.env.NEXT_PUBLIC_AGNO_URL
+    ? `${process.env.NEXT_PUBLIC_AGNO_URL}/agui`
+    : '/api/copilotkit';
+
+  return (
+    <CopilotKit
+      runtimeUrl={runtimeUrl}
+      publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_KEY}
+    >
+      <HITLActionRegistration />
+      {children}
+    </CopilotKit>
+  );
+}
+      ]]></code>
+    </pattern>
+
+    <!-- Zustand Store Pattern -->
+    <pattern name="Zustand Store with Middleware" file="apps/web/src/stores/dashboard-state-store.ts">
+      <description>
+        Shows how Zustand stores are structured with subscribeWithSelector middleware.
+        Context hooks can integrate with these stores for state access.
+      </description>
+      <code><![CDATA[
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import {
+  type DashboardState,
+  type DashboardStateUpdate,
+  type ProjectStatusState,
+  createInitialDashboardState,
+  validateDashboardState,
+} from '@/lib/schemas/dashboard-state';
+
+export interface DashboardStateStore extends DashboardState {
+  setFullState: (state: DashboardState) => void;
+  updateState: (update: DashboardStateUpdate) => void;
+  setActiveProject: (projectId: string | null) => void;
+  // ... other actions
+}
+
+export const useDashboardStateStore = create<DashboardStateStore>()(
+  subscribeWithSelector((set) => ({
+    ...createInitialDashboardState(),
+
+    setFullState: (state: DashboardState) => {
+      const validated = validateDashboardState(state);
+      if (validated) {
+        set(validated);
+      }
+    },
+    // ... other implementations
+  }))
+);
+      ]]></code>
+    </pattern>
+
+    <!-- Project Data Shape -->
+    <pattern name="Project Data Types" file="apps/web/src/hooks/use-pm-projects.ts">
+      <description>
+        Shows the shape of project data returned from the API.
+        Context providers should transform this into the ProjectContext type.
+      </description>
+      <code><![CDATA[
+export interface ProjectDetailResponse {
+  data: {
+    id: string
+    workspaceId: string
+    businessId: string
+    slug: string
+    name: string
+    description: string | null
+    color: string
+    icon: string
+    type: z.infer<typeof ProjectType>
+    status: z.infer<typeof ProjectStatus>
+    totalTasks: number
+    completedTasks: number
+    startDate: string | null
+    targetDate: string | null
+    budget: string | null
+    actualSpend: string | null
+    autoApprovalThreshold: number
+    suggestionMode: boolean
+    phases: Array<{
+      id: string
+      name: string
+      phaseNumber: number
+      status: string
+    }>
+    team: null | {
+      id: string
+      leadUserId: string
+      members: Array<{ id: string }>
+    }
+  }
+}
+      ]]></code>
+    </pattern>
+
+    <!-- Dashboard State Schema -->
+    <pattern name="Dashboard State Types" file="apps/web/src/lib/schemas/dashboard-state.ts">
+      <description>
+        Shows existing state schemas used for dashboard widgets.
+        Follow similar patterns for context type definitions.
+      </description>
+      <code><![CDATA[
+import { z } from 'zod';
+
+export const ProjectStatusEnum = z.enum(['on-track', 'at-risk', 'behind', 'completed']);
+export type ProjectStatusValue = z.infer<typeof ProjectStatusEnum>;
+
+export const ActivityEntrySchema = z.object({
+  id: z.string(),
+  user: z.string(),
+  userAvatar: z.string().optional(),
+  action: z.string(),
+  target: z.string().optional(),
+  timestamp: z.number(),
+  projectId: z.string().optional(),
+});
+
+export type ActivityEntry = z.infer<typeof ActivityEntrySchema>;
+
+export const ActivityStateSchema = z.object({
+  activities: z.array(ActivityEntrySchema),
+  hasMore: z.boolean().default(false),
+  lastUpdated: z.number(),
+});
+
+export type ActivityState = z.infer<typeof ActivityStateSchema>;
+      ]]></code>
+    </pattern>
+
+    <!-- Test Pattern -->
+    <pattern name="CopilotKit Mock Testing" file="apps/web/src/components/copilot/__tests__/CopilotKitProvider.test.tsx">
+      <description>
+        Shows how to mock CopilotKit in tests. Use similar pattern for useCopilotReadable.
+      </description>
+      <code><![CDATA[
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+
+// Mock CopilotKit to avoid actual network calls
+vi.mock('@copilotkit/react-core', () => ({
+  CopilotKit: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="copilotkit-provider">{children}</div>
+  ),
+}));
+
+describe('CopilotKitProvider', () => {
+  it('renders children correctly', () => {
+    render(
+      <CopilotKitProvider>
+        <div data-testid="child">Test Child</div>
+      </CopilotKitProvider>
+    );
+
+    expect(screen.getByTestId('copilotkit-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('child')).toBeInTheDocument();
+  });
+});
+      ]]></code>
+    </pattern>
+
+    <!-- Project Page Pattern -->
+    <pattern name="Project Overview Component" file="apps/web/src/app/(dashboard)/dashboard/pm/[slug]/ProjectOverviewContent.tsx">
+      <description>
+        Shows how project data is fetched and used in the UI.
+        This is where ProjectContextProvider should be integrated.
+      </description>
+      <code><![CDATA[
+'use client'
+
+import { useParams } from 'next/navigation'
+import { usePmProject } from '@/hooks/use-pm-projects'
+import { usePresence } from '@/hooks/use-presence'
+
+export function ProjectOverviewContent() {
+  const params = useParams<{ slug: string }>()
+  const slug = params?.slug
+
+  const { data, isLoading, error } = usePmProject(slug)
+  const project = data?.data
+
+  // Track user presence on this project page
+  usePresence({
+    projectId: project?.id ?? '',
+    page: 'overview',
+    enabled: !!project?.id,
+  })
+
+  // ... render logic
+
+  const percent = percentFromTasks(project.totalTasks, project.completedTasks)
+  const teamCount = project.team?.members?.length ?? 0
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Project UI */}
+    </div>
+  )
+}
+      ]]></code>
+    </pattern>
+
+    <!-- Dashboard Agent Section -->
+    <pattern name="Dashboard Agent Section" file="apps/web/src/app/(dashboard)/dashboard/DashboardAgentSection.tsx">
+      <description>
+        Shows where CompositeContextProvider should be integrated for dashboard-wide context.
+      </description>
+      <code><![CDATA[
+'use client';
+
+import { DashboardGrid, DashboardChat } from '@/components/dashboard';
+import { Card, CardContent } from '@/components/ui/card';
+import { Bot } from 'lucide-react';
+
+export function DashboardAgentSection() {
+  return (
+    <section
+      className="space-y-4"
+      aria-label="AI-powered insights"
+      data-testid="dashboard-agent-section"
+    >
+      {/* Section Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+          <Bot className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">AI Insights</h2>
+          <p className="text-sm text-muted-foreground">
+            Real-time updates from your AI team
+          </p>
+        </div>
+      </div>
+
+      {/* Content Grid: Widgets + Chat */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <DashboardGrid>
+            <WidgetPlaceholder />
+          </DashboardGrid>
+        </div>
+        <div className="lg:sticky lg:top-4">
+          <DashboardChat />
+        </div>
+      </div>
+    </section>
+  );
+}
+      ]]></code>
+    </pattern>
+  </existing-code-patterns>
+
+  <interface-definitions>
+    <!-- These are the interfaces to implement from the story -->
+    <interface name="ProjectContext">
+      <code><![CDATA[
+export interface ProjectContext {
+  id: string;
+  name: string;
+  status: 'active' | 'on-hold' | 'completed';
+  currentPhase?: string;
+  healthScore?: number;
+  progress: number;
+  tasksTotal: number;
+  tasksCompleted: number;
+  team?: Array<{ id: string; name: string; role: string }>;
+}
+      ]]></code>
+    </interface>
+
+    <interface name="SelectionContext">
+      <code><![CDATA[
+export interface SelectionContext {
+  type: 'task' | 'project' | 'document' | 'none';
+  ids: string[];
+  count: number;
+  summary?: string;
+}
+      ]]></code>
+    </interface>
+
+    <interface name="ActivityContext">
+      <code><![CDATA[
+export interface ActivityContext {
+  recentActions: Array<{
+    action: string;
+    target: string;
+    timestamp: number;
+  }>;
+  currentPage: string;
+  sessionDuration: number;
+}
+      ]]></code>
+    </interface>
+
+    <interface name="DocumentContext">
+      <code><![CDATA[
+export interface DocumentContext {
+  id: string;
+  title: string;
+  type: 'markdown' | 'rich-text' | 'code';
+  wordCount: number;
+  lastEdited: number;
+  cursorPosition?: { line: number; column: number };
+  selectedText?: string;
+}
+      ]]></code>
+    </interface>
+
+    <interface name="WorkspaceContext">
+      <code><![CDATA[
+export interface WorkspaceContext {
+  id: string;
+  name: string;
+  plan: string;
+  memberCount: number;
+  modulesEnabled: string[];
+}
+      ]]></code>
+    </interface>
+
+    <interface name="ViewContext">
+      <code><![CDATA[
+export interface ViewContext {
+  type: 'list' | 'board' | 'calendar' | 'gantt';
+  filters: Record<string, unknown>;
+  sortBy?: string;
+  groupBy?: string;
+  visibleCount: number;
+  totalCount: number;
+}
+      ]]></code>
+    </interface>
+
+    <interface name="CompositeContextProviderProps">
+      <code><![CDATA[
+interface CompositeContextProviderProps {
+  project?: ProjectContext | null;
+  selection?: SelectionContext | null;
+  activity?: ActivityContext | null;
+  document?: DocumentContext | null;
+  workspace?: WorkspaceContext | null;
+  view?: ViewContext | null;
+  children: ReactNode;
+}
+      ]]></code>
+    </interface>
+  </interface-definitions>
+
+  <implementation-reference>
+    <!-- Reference implementation from tech spec -->
+    <description>
+      The tech spec (epic-dm-06-tech-spec.md Section 3.1) provides reference implementation.
+      Key patterns to follow:
+    </description>
+    <code><![CDATA[
+/**
+ * Copilot Context Provider Utilities
+ *
+ * Epic: DM-06 | Story: DM-06.1
+ */
+'use client';
+
+import { useCopilotReadable } from '@copilotkit/react-core';
+import { useMemo } from 'react';
+
+// =============================================================================
+// CONTEXT PROVIDERS
+// =============================================================================
+
+/**
+ * Provide active project context to agents.
+ *
+ * @example
+ * ```tsx
+ * function ProjectPage({ project }) {
+ *   useProjectContext(project);
+ *   return <ProjectDetails project={project} />;
+ * }
+ * ```
+ */
+export function useProjectContext(project: ProjectContext | null) {
+  const contextValue = useMemo(() => {
+    if (!project) return null;
+
+    // Filter sensitive data before exposing to agent
+    return {
+      id: project.id,
+      name: project.name,
+      status: project.status,
+      currentPhase: project.currentPhase,
+      healthScore: project.healthScore,
+      progress: project.progress,
+      tasksTotal: project.tasksTotal,
+      tasksCompleted: project.tasksCompleted,
+      teamSize: project.team?.length ?? 0,  // Expose count, not individual members
+    };
+  }, [project]);
+
+  useCopilotReadable({
+    description: 'The currently active project the user is viewing',
+    value: contextValue,
+  });
+}
+
+// =============================================================================
+// SENSITIVE DATA FILTERING
+// =============================================================================
+
+const DEFAULT_SENSITIVE_FIELDS = [
+  'password', 'token', 'secret',
+  'apiKey', 'ssn', 'creditCard'
+];
+
+/**
+ * Recursively filter sensitive fields from data object.
+ */
+export function filterSensitiveContext<T extends Record<string, unknown>>(
+  data: T,
+  sensitiveFields: string[] = DEFAULT_SENSITIVE_FIELDS
+): Partial<T> {
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    // Case-insensitive check for sensitive fields
+    const isSensitive = sensitiveFields.some(
+      field => key.toLowerCase().includes(field.toLowerCase())
+    );
+
+    if (isSensitive) continue;
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      // Recursively filter nested objects
+      result[key] = filterSensitiveContext(
+        value as Record<string, unknown>,
+        sensitiveFields
+      );
+    } else if (Array.isArray(value)) {
+      // Filter each item in arrays if they're objects
+      result[key] = value.map(item =>
+        item && typeof item === 'object'
+          ? filterSensitiveContext(item as Record<string, unknown>, sensitiveFields)
+          : item
+      );
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result as Partial<T>;
+}
+
+/**
+ * Combined hook with automatic filtering.
+ */
+export function useSafeContext<T extends Record<string, unknown>>(
+  description: string,
+  data: T | null,
+  sensitiveFields?: string[]
+): void {
+  const filteredValue = useMemo(() => {
+    if (!data) return null;
+    return filterSensitiveContext(data, sensitiveFields);
+  }, [data, sensitiveFields]);
+
+  useCopilotReadable({
+    description,
+    value: filteredValue,
+  });
+}
+    ]]></code>
+  </implementation-reference>
+
+  <dependencies>
+    <dependency type="npm">@copilotkit/react-core - useCopilotReadable hook</dependency>
+    <dependency type="internal">apps/web/src/hooks/use-pm-projects.ts - Project data types</dependency>
+    <dependency type="internal">apps/web/src/stores/dashboard-state-store.ts - Dashboard state patterns</dependency>
+    <dependency type="story">DM-05.5 (Complete) - Long-running task support provides foundation</dependency>
+    <dependency type="story">DM-01.5 (Complete) - CopilotKit context provider integration</dependency>
+  </dependencies>
+
+  <downstream-stories>
+    <story id="DM-06.2">Agent Context Consumption - Uses these context providers for context-aware instructions</story>
+    <story id="DM-06.6">RAG Context Indexing - Indexes context from these providers for semantic search</story>
+  </downstream-stories>
+
+  <technical-notes>
+    <note title="useCopilotReadable Behavior">
+      CopilotKit's useCopilotReadable hook:
+      - Adds context to the agent's system prompt automatically
+      - Updates context when the value changes (React dependency tracking)
+      - Accepts `description` for the agent to understand the context purpose
+      - Accepts `value` which can be any serializable data
+
+      Example agent sees in system prompt:
+      "The currently active project: {\"id\":\"proj-1\",\"name\":\"HYVVE\",\"progress\":75}"
+    </note>
+
+    <note title="Memoization Strategy">
+      All context values must be memoized to prevent unnecessary re-renders and
+      context updates. Use useMemo for computed context values.
+    </note>
+
+    <note title="Performance Requirements">
+      - Context updates should complete in less than 10ms
+      - Filter large arrays (team members, recent actions) before exposure
+      - Truncate long strings (selected text) to prevent prompt bloat
+    </note>
+
+    <note title="Privacy Considerations">
+      - Team members should be exposed as count (teamSize), not individual details
+      - All data passes through filterSensitiveContext before exposure
+      - Default sensitive fields: password, token, secret, apiKey, ssn, creditCard
+    </note>
+  </technical-notes>
+
+  <testing-requirements>
+    <requirement>Mock useCopilotReadable from @copilotkit/react-core</requirement>
+    <requirement>Test that context hooks call useCopilotReadable with correct description</requirement>
+    <requirement>Test null handling for all context hooks</requirement>
+    <requirement>Test filterSensitiveContext with nested objects and arrays</requirement>
+    <requirement>Test case-insensitive sensitive field matching</requirement>
+    <requirement>Test activity limiting (max 10 recent actions)</requirement>
+    <requirement>Test session duration conversion to minutes</requirement>
+    <requirement>Test selection preview truncation (100 chars)</requirement>
+    <requirement>Achieve more than 85% test coverage</requirement>
+  </testing-requirements>
+
+  <references>
+    <reference>Story file: docs/modules/bm-dm/stories/dm-06-1-deep-context-providers.md</reference>
+    <reference>Tech spec: docs/modules/bm-dm/epics/epic-dm-06-tech-spec.md (Section 3.1)</reference>
+    <reference>Architecture: docs/architecture/dynamic-module-system.md (Phase 6)</reference>
+    <reference>CopilotKit docs: https://docs.copilotkit.ai/reference/hooks/useCopilotReadable</reference>
+  </references>
+</story-context>
