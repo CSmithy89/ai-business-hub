@@ -32,12 +32,12 @@ This story delivers:
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Navi agent updated with A2A protocol support at `/a2a/navi`
-- [ ] **AC2:** Vitals agent updated with A2A protocol support at `/a2a/pulse` (preserving config naming)
-- [ ] **AC3:** Herald agent updated with A2A protocol support at `/a2a/herald` (with pushNotifications capability)
-- [ ] **AC4:** A2A interfaces registered for all PM agents in AgentOS startup
-- [ ] **AC5:** Backward compatibility maintained - existing REST endpoints continue to work unchanged
-- [ ] **AC6:** Unit tests verify A2A compatibility for all three agents
+- [x] **AC1:** Navi agent updated with A2A protocol support at `/a2a/navi`
+- [x] **AC2:** Vitals agent updated with A2A protocol support at `/a2a/pulse` (preserving config naming)
+- [x] **AC3:** Herald agent updated with A2A protocol support at `/a2a/herald` (with pushNotifications capability)
+- [x] **AC4:** A2A interfaces registered for all PM agents in AgentOS startup
+- [x] **AC5:** Backward compatibility maintained - existing REST endpoints continue to work unchanged
+- [x] **AC6:** Unit tests verify A2A compatibility for all three agents
 
 ---
 
@@ -1013,28 +1013,55 @@ class TestDMConstantsUsage:
 
 ## Definition of Done
 
-- [ ] `agents/pm/a2a_adapter.py` created with:
-  - [ ] `PMA2AAdapter` class with `handle_a2a_task` method
-  - [ ] `get_agent_info()` for discovery
-  - [ ] `get_capabilities()` with Herald pushNotifications
-  - [ ] `create_pm_a2a_adapter()` factory function
-- [ ] `agents/pm/navi.py` updated with:
-  - [ ] Import of A2A adapter
-  - [ ] `create_navi_a2a_adapter()` factory function
-- [ ] `agents/pm/vitals.py` updated with:
-  - [ ] Import of A2A adapter
-  - [ ] `create_vitals_a2a_adapter()` factory (uses "pulse" agent_id)
-- [ ] `agents/pm/herald.py` updated with:
-  - [ ] Import of A2A adapter
-  - [ ] `create_herald_a2a_adapter()` factory
-- [ ] `agents/main.py` updated with:
-  - [ ] PM agent A2A adapter creation at startup
-  - [ ] `/agents/pm/a2a/status` health endpoint
-- [ ] Unit tests pass (`pytest agents/tests/test_dm_02_5_pm_agents_a2a.py`)
-- [ ] Backward compatibility verified - existing REST endpoints work unchanged
-- [ ] PM agents accessible via A2A at configured paths
-- [ ] Herald has `pushNotifications: true` in capabilities
-- [ ] All configuration values use DMConstants (no magic numbers)
+- [x] `agents/pm/a2a_adapter.py` created with:
+  - [x] `PMA2AAdapter` class with `handle_a2a_task` method
+  - [x] `get_agent_info()` for discovery
+  - [x] `get_capabilities()` with Herald pushNotifications
+  - [x] `create_pm_a2a_adapter()` factory function
+- [x] `agents/pm/navi.py` updated with:
+  - [x] Import of A2A adapter
+  - [x] `create_navi_a2a_adapter()` factory function
+- [x] `agents/pm/vitals.py` updated with:
+  - [x] Import of A2A adapter
+  - [x] `create_vitals_a2a_adapter()` factory (uses "pulse" agent_id)
+- [x] `agents/pm/herald.py` updated with:
+  - [x] Import of A2A adapter
+  - [x] `create_herald_a2a_adapter()` factory
+- [x] `agents/main.py` updated with:
+  - [x] PM agent A2A adapter creation at startup
+  - [x] `/agents/pm/a2a/status` health endpoint
+- [x] Unit tests pass (`pytest agents/tests/test_dm_02_5_pm_agents_a2a.py`)
+- [x] Backward compatibility verified - existing REST endpoints work unchanged
+- [x] PM agents accessible via A2A at configured paths
+- [x] Herald has `pushNotifications: true` in capabilities
+- [x] All configuration values use DMConstants (no magic numbers)
+
+---
+
+## Implementation Notes
+
+**Completed:** 2025-12-30
+
+### Files Created/Modified
+
+| File | Change |
+|------|--------|
+| `agents/pm/a2a_adapter.py` | Created - PMA2AAdapter class with A2A protocol support |
+| `agents/pm/navi.py` | Added `create_navi_a2a_adapter()` factory |
+| `agents/pm/vitals.py` | Added `create_vitals_a2a_adapter()` factory (uses "pulse" agent_id) |
+| `agents/pm/herald.py` | Added `create_herald_a2a_adapter()` factory |
+| `agents/main.py` | Added PM agent A2A mounting at startup |
+| `agents/tests/test_dm_02_5_pm_agents_a2a.py` | Comprehensive unit tests (26 tests) |
+
+### Key Implementation Details
+
+1. **PMA2AAdapter Pattern**: Wraps existing PM agents without modifying core logic, enabling A2A task-based communication
+
+2. **Agent ID Mapping**: Vitals agent uses "pulse" agent_id to match INTERFACE_CONFIGS naming
+
+3. **Herald pushNotifications**: Herald agent has pushNotifications capability enabled for proactive status updates
+
+4. **Backward Compatibility**: All existing REST endpoints continue to work unchanged
 
 ---
 
