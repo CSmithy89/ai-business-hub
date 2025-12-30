@@ -123,7 +123,7 @@ development_status:
   dm-04-3-agent-state-emissions: done
   dm-04-4-realtime-widget-updates: done
   dm-04-5-state-persistence: done
-  dm-04-retrospective: optional
+  dm-04-retrospective: done
 
   # ===========================================
   # PHASE 5: ADVANCED FEATURES
