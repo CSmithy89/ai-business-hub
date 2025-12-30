@@ -28,7 +28,7 @@ def create_app(limit: str = "2/minute") -> TestClient:
         raise RuntimeError("Rate limiter failed to initialize in tests: NoopLimiter returned")
     @app.post("/agents/test")
     @limiter.limit(limit)
-    async def test_endpoint():
+    async def test_endpoint(request: Request):
         return {"ok": True}
 
     return TestClient(app)
