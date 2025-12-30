@@ -212,6 +212,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
     setLoading: (isLoading: boolean, agents: string[] = []) => {
       set({
+        timestamp: Date.now(),
         loading: {
           isLoading,
           loadingAgents: agents,

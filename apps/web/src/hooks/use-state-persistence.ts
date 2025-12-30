@@ -84,8 +84,14 @@ export interface UseStatePersistenceResult {
 interface CrossTabMessage {
   type: 'state_update' | 'state_cleared';
   timestamp: number;
+  senderId: string;
   state?: DashboardState;
 }
+
+/** Unique ID for this tab to prevent echo loops */
+const TAB_ID = typeof crypto !== 'undefined' && crypto.randomUUID
+  ? crypto.randomUUID()
+  : Math.random().toString(36).substring(2);
 
 // =============================================================================
 // HOOK IMPLEMENTATION
@@ -195,6 +201,7 @@ export function useStatePersistence(
           const message: CrossTabMessage = {
             type: 'state_update',
             timestamp: state.timestamp,
+            senderId: TAB_ID,
             state: stateToSave,
           };
           broadcastChannel.current.postMessage(message);
@@ -244,6 +251,7 @@ export function useStatePersistence(
         const message: CrossTabMessage = {
           type: 'state_cleared',
           timestamp: Date.now(),
+          senderId: TAB_ID,
         };
         broadcastChannel.current.postMessage(message);
       }
@@ -309,7 +317,12 @@ export function useStatePersistence(
    */
   const handleCrossTabMessage = useCallback(
     (event: MessageEvent<CrossTabMessage>) => {
-      const { type, timestamp, state } = event.data;
+      const { type, timestamp, senderId, state } = event.data;
+
+      // Ignore messages from our own tab (prevent echo loops)
+      if (senderId === TAB_ID) {
+        return;
+      }
 
       if (type === 'state_update' && state) {
         // Only apply if newer than our last saved state
@@ -450,6 +463,7 @@ export function clearPersistedDashboardState(
       const message: CrossTabMessage = {
         type: 'state_cleared',
         timestamp: Date.now(),
+        senderId: TAB_ID,
       };
       channel.postMessage(message);
       channel.close();

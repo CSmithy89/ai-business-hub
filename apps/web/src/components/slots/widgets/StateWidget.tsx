@@ -188,10 +188,10 @@ export function StateMetricsWidget() {
       value: m.value,
       icon: m.unit, // Map unit to icon (optional, may need adjustment)
       change:
-        m.trend && m.changePercent !== undefined
+        m.trend && m.trend !== 'neutral' && m.changePercent !== undefined
           ? {
               value: Math.abs(m.changePercent),
-              direction: m.trend === 'neutral' ? 'up' : m.trend,
+              direction: m.trend,
             }
           : undefined,
     })),

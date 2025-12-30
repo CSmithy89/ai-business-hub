@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Agent State Sync Hook
  *
@@ -15,8 +17,6 @@
  * @see docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
  * Epic: DM-04 | Story: DM-04.2
  */
-
-'use client';
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useCoAgentStateRender } from '@copilotkit/react-core';

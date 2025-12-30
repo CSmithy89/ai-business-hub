@@ -101,6 +101,21 @@ class DashboardStateEmitter:
             f"DashboardStateEmitter initialized: workspace={workspace_id}, user={user_id}"
         )
 
+    async def cancel_pending(self) -> None:
+        """
+        Cancel any pending debounced emissions.
+
+        Call this during cleanup to prevent orphaned tasks.
+        """
+        if self._debounce_task and not self._debounce_task.done():
+            self._debounce_task.cancel()
+            try:
+                await self._debounce_task
+            except asyncio.CancelledError:
+                pass
+        self._debounce_task = None
+        self._pending_update = False
+
     @property
     def state(self) -> DashboardState:
         """
@@ -132,8 +147,25 @@ class DashboardStateEmitter:
 
         Converts state to frontend-compatible camelCase dict
         and invokes the state change callback.
+        Validates state size before emission to prevent oversized payloads.
         """
+        import json
+
         state_dict = self._state.to_frontend_dict()
+
+        # Validate state size before emission
+        state_json = json.dumps(state_dict)
+        state_size = len(state_json.encode("utf-8"))
+        if state_size > DMConstants.STATE.MAX_STATE_SIZE_BYTES:
+            logger.warning(
+                f"State size ({state_size} bytes) exceeds max "
+                f"({DMConstants.STATE.MAX_STATE_SIZE_BYTES} bytes), truncating alerts"
+            )
+            # Truncate alerts to reduce size
+            if self._state.widgets.alerts:
+                self._state.widgets.alerts = self._state.widgets.alerts[:10]
+                state_dict = self._state.to_frontend_dict()
+
         logger.debug(f"Emitting dashboard state: timestamp={self._state.timestamp}")
         self._on_state_change(state_dict)
 

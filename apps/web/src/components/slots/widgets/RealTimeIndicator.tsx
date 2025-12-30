@@ -53,7 +53,7 @@ export interface RealTimeIndicatorProps {
  * @returns Formatted relative time string
  */
 function formatLastUpdate(timestamp: number | null): string {
-  if (!timestamp) return 'Not updated';
+  if (timestamp === null) return 'Not updated';
 
   const diff = Date.now() - timestamp;
 

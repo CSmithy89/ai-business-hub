@@ -413,65 +413,69 @@ async def gather_dashboard_data(
     if state_emitter:
         await state_emitter.set_loading(True, ["navi", "pulse", "herald"])
 
-    # Build parallel calls for all agents
-    calls = [
-        {
-            "agent_id": "navi",
-            "task": f"Get overview for project {project_id}" if project_id else "Get workspace overview",
-            "context": {"project_id": project_id},
-        },
-        {
-            "agent_id": "pulse",
-            "task": f"Get health metrics for project {project_id}" if project_id else "Get workspace health",
-            "context": {"project_id": project_id, "workspace_wide": not project_id},
-        },
-        {
-            "agent_id": "herald",
-            "task": "Get recent notifications and activity",
-            "context": {"project_id": project_id, "limit": 5},
-        },
-    ]
+    try:
+        # Build parallel calls for all agents
+        calls = [
+            {
+                "agent_id": "navi",
+                "task": f"Get overview for project {project_id}" if project_id else "Get workspace overview",
+                "context": {"project_id": project_id},
+            },
+            {
+                "agent_id": "pulse",
+                "task": f"Get health metrics for project {project_id}" if project_id else "Get workspace health",
+                "context": {"project_id": project_id, "workspace_wide": not project_id},
+            },
+            {
+                "agent_id": "herald",
+                "task": "Get recent notifications and activity",
+                "context": {"project_id": project_id, "limit": 5},
+            },
+        ]
 
-    logger.info(f"Gathering dashboard data from 3 agents in parallel: project={project_id}")
+        logger.info(f"Gathering dashboard data from 3 agents in parallel: project={project_id}")
 
-    results = await client.call_agents_parallel(calls)
+        results = await client.call_agents_parallel(calls)
 
-    # Calculate max duration across all calls
-    max_duration = max(
-        (r.duration_ms or 0 for r in results.values()),
-        default=0
-    )
-
-    # Build response with content from each agent
-    response: Dict[str, Any] = {
-        "project_id": project_id,
-        "navi": None,
-        "pulse": None,
-        "herald": None,
-        "errors": {},
-        "duration_ms": max_duration,
-    }
-
-    for agent_id, result in results.items():
-        if result.success:
-            response[agent_id] = {
-                "content": result.content,
-                "artifacts": result.artifacts,
-                "tool_calls": result.tool_calls,
-            }
-        else:
-            response["errors"][agent_id] = result.error
-            logger.warning(f"Agent {agent_id} failed in parallel gather: {result.error}")
-
-    # Emit state update (DM-04.3)
-    if state_emitter:
-        await state_emitter.update_from_gather(
-            navi_result=response.get("navi"),
-            pulse_result=response.get("pulse"),
-            herald_result=response.get("herald"),
-            errors=response.get("errors") if response.get("errors") else None,
+        # Calculate max duration across all calls
+        max_duration = max(
+            (r.duration_ms or 0 for r in results.values()),
+            default=0
         )
-        await state_emitter.set_loading(False)
+
+        # Build response with content from each agent
+        response: Dict[str, Any] = {
+            "project_id": project_id,
+            "navi": None,
+            "pulse": None,
+            "herald": None,
+            "errors": {},
+            "duration_ms": max_duration,
+        }
+
+        for agent_id, result in results.items():
+            if result.success:
+                response[agent_id] = {
+                    "content": result.content,
+                    "artifacts": result.artifacts,
+                    "tool_calls": result.tool_calls,
+                }
+            else:
+                response["errors"][agent_id] = result.error
+                logger.warning(f"Agent {agent_id} failed in parallel gather: {result.error}")
+
+        # Emit state update (DM-04.3)
+        if state_emitter:
+            await state_emitter.update_from_gather(
+                navi_result=response.get("navi"),
+                pulse_result=response.get("pulse"),
+                herald_result=response.get("herald"),
+                errors=response.get("errors") if response.get("errors") else None,
+            )
+    finally:
+        # Always clear loading state, even on error (DM-04.3 code review fix)
+        if state_emitter:
+            await state_emitter.set_loading(False)
 
     # Log summary
     success_count = 3 - len(response["errors"])

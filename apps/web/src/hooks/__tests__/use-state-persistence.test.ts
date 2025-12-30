@@ -469,7 +469,7 @@ describe('useStatePersistence', () => {
       });
 
       // Should still have current project (stale update ignored)
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(useDashboardStateStore.getState().activeProject).toBe('current-project');
       });
     });

@@ -108,7 +108,9 @@ export function DashboardSlots({ mode = 'hybrid' }: DashboardSlotsProps) {
         return <></>;
       }
 
-      const { type, data } = args as RenderWidgetArgs;
+      // Guard against undefined args during initial render
+      const safeArgs = (args || {}) as RenderWidgetArgs;
+      const { type, data } = safeArgs;
       const widgetType = (type as string) || 'Unknown';
 
       // Show loading state during inProgress or executing

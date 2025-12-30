@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Dashboard Selector Hooks
  *
@@ -11,8 +13,6 @@
  * @see docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
  * Epic: DM-04 | Story: DM-04.2
  */
-
-'use client';
 
 import { useDashboardStateStore } from '@/stores/dashboard-state-store';
 import type {
