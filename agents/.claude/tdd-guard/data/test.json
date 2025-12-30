@@ -1,416 +1,596 @@
 {
   "testModules": [
     {
-      "moduleId": "mcp/__tests__/test_bridge.py",
+      "moduleId": "mesh/__tests__/test_discovery.py",
       "tests": [
         {
-          "name": "test_get_tools_for_agent_converts_names",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_converts_names",
+          "name": "test_init_defaults",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_init_defaults",
           "state": "passed"
         },
         {
-          "name": "test_get_tools_for_agent_preserves_description",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_preserves_description",
+          "name": "test_init_with_config",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_init_with_config",
           "state": "passed"
         },
         {
-          "name": "test_get_tools_for_agent_converts_parameters",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_converts_parameters",
+          "name": "test_start_initializes_client",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_start_initializes_client",
           "state": "passed"
         },
         {
-          "name": "test_get_tools_for_agent_handles_optional_params",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_handles_optional_params",
+          "name": "test_start_performs_initial_scan",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_start_performs_initial_scan",
           "state": "passed"
         },
         {
-          "name": "test_get_tools_for_agent_includes_defaults",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_includes_defaults",
+          "name": "test_stop_cleans_up",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_stop_cleans_up",
           "state": "passed"
         },
         {
-          "name": "test_get_tools_for_agent_stores_mcp_metadata",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_stores_mcp_metadata",
+          "name": "test_stop_cancels_periodic_scan",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_stop_cancels_periodic_scan",
           "state": "passed"
         },
         {
-          "name": "test_get_tools_for_agent_skips_tools_without_name",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_skips_tools_without_name",
+          "name": "test_discover_agent_parses_response",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_parses_response",
           "state": "passed"
         },
         {
-          "name": "test_invoke_tool_parses_name_and_routes",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_parses_name_and_routes",
+          "name": "test_discover_agent_registers_when_enabled",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_registers_when_enabled",
           "state": "passed"
         },
         {
-          "name": "test_invoke_tool_raises_for_invalid_name",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_raises_for_invalid_name",
+          "name": "test_discover_agent_not_found",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_not_found",
           "state": "passed"
         },
         {
-          "name": "test_invoke_tool_raises_for_name_without_prefix",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_raises_for_name_without_prefix",
+          "name": "test_discover_agent_connection_error",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_connection_error",
           "state": "passed"
         },
         {
-          "name": "test_invoke_tool_raises_for_short_name",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_raises_for_short_name",
+          "name": "test_discover_agent_timeout",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_timeout",
           "state": "passed"
         },
         {
-          "name": "test_invoke_tool_handles_underscore_in_tool_name",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_handles_underscore_in_tool_name",
+          "name": "test_discover_agent_invalid_card",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_invalid_card",
           "state": "passed"
         },
         {
-          "name": "test_invoke_tool_handles_multiple_underscores",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_handles_multiple_underscores",
+          "name": "test_scan_discovers_all_urls",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_scan_discovers_all_urls",
           "state": "passed"
         },
         {
-          "name": "test_invoke_tool_raises_when_not_connected",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_raises_when_not_connected",
+          "name": "test_scan_handles_failures",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_scan_handles_failures",
           "state": "passed"
         },
         {
-          "name": "test_parse_tool_name",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_parse_tool_name",
+          "name": "test_scan_requires_started_service",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_scan_requires_started_service",
           "state": "passed"
         },
         {
-          "name": "test_parse_tool_name_raises_for_invalid",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_parse_tool_name_raises_for_invalid",
+          "name": "test_add_discovery_url",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_add_discovery_url",
           "state": "passed"
         },
         {
-          "name": "test_converts_string_type",
-          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_converts_string_type",
+          "name": "test_add_discovery_url_no_duplicates",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_add_discovery_url_no_duplicates",
           "state": "passed"
         },
         {
-          "name": "test_converts_integer_type",
-          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_converts_integer_type",
+          "name": "test_remove_discovery_url",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_remove_discovery_url",
           "state": "passed"
         },
         {
-          "name": "test_converts_boolean_type",
-          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_converts_boolean_type",
+          "name": "test_remove_discovery_url_not_found",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_remove_discovery_url_not_found",
           "state": "passed"
         },
         {
-          "name": "test_handles_empty_schema",
-          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_handles_empty_schema",
+          "name": "test_get_discovery_urls",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_get_discovery_urls",
           "state": "passed"
         },
         {
-          "name": "test_handles_no_properties",
-          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_handles_no_properties",
+          "name": "test_check_agent_health_healthy",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_check_agent_health_healthy",
           "state": "passed"
         },
         {
-          "name": "test_includes_enum_values",
-          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_includes_enum_values",
+          "name": "test_check_agent_health_unhealthy",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_check_agent_health_unhealthy",
           "state": "passed"
         },
         {
-          "name": "test_defaults_type_to_string",
-          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_defaults_type_to_string",
+          "name": "test_check_agent_health_unknown_agent",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_check_agent_health_unknown_agent",
           "state": "passed"
         },
         {
-          "name": "test_creates_bridge_with_default_config",
-          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_creates_bridge_with_default_config",
+          "name": "test_health_check_all",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_health_check_all",
           "state": "passed"
         },
         {
-          "name": "test_creates_bridge_with_custom_config",
-          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_creates_bridge_with_custom_config",
+          "name": "test_parse_minimal_card",
+          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_minimal_card",
           "state": "passed"
         },
         {
-          "name": "test_connects_to_enabled_servers",
-          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_connects_to_enabled_servers",
+          "name": "test_parse_card_uses_base_url_fallback",
+          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_card_uses_base_url_fallback",
           "state": "passed"
         },
         {
-          "name": "test_handles_connection_failures",
-          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_handles_connection_failures",
+          "name": "test_parse_card_with_skills",
+          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_card_with_skills",
           "state": "passed"
         },
         {
-          "name": "test_skips_connection_when_disabled",
-          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_skips_connection_when_disabled",
+          "name": "test_parse_card_missing_name",
+          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_card_missing_name",
           "state": "passed"
         },
         {
-          "name": "test_prefix_is_mcp",
-          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolPrefixConstant::test_prefix_is_mcp",
+          "name": "test_get_discovery_service_singleton",
+          "fullName": "mesh/__tests__/test_discovery.py::TestGlobalDiscoveryService::test_get_discovery_service_singleton",
+          "state": "passed"
+        },
+        {
+          "name": "test_configure_discovery_service",
+          "fullName": "mesh/__tests__/test_discovery.py::TestGlobalDiscoveryService::test_configure_discovery_service",
+          "state": "passed"
+        },
+        {
+          "name": "test_shutdown_discovery_service",
+          "fullName": "mesh/__tests__/test_discovery.py::TestGlobalDiscoveryService::test_shutdown_discovery_service",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "mcp/__tests__/test_client.py",
+      "moduleId": "mesh/__tests__/test_models.py",
       "tests": [
         {
-          "name": "test_start_launches_subprocess",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_start_launches_subprocess",
+          "name": "test_enum_values",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapabilityType::test_enum_values",
           "state": "passed"
         },
         {
-          "name": "test_start_raises_on_immediate_exit",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_start_raises_on_immediate_exit",
+          "name": "test_health_values",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentHealth::test_health_values",
           "state": "passed"
         },
         {
-          "name": "test_start_raises_on_command_not_found",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_start_raises_on_command_not_found",
+          "name": "test_creates_capability_with_defaults",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_creates_capability_with_defaults",
           "state": "passed"
         },
         {
-          "name": "test_stop_terminates_process",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_stop_terminates_process",
+          "name": "test_creates_capability_with_custom_modes",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_creates_capability_with_custom_modes",
           "state": "passed"
         },
         {
-          "name": "test_stop_kills_on_timeout",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_stop_kills_on_timeout",
+          "name": "test_capability_alias_fields",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_capability_alias_fields",
           "state": "passed"
         },
         {
-          "name": "test_stop_handles_already_exited",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_stop_handles_already_exited",
+          "name": "test_to_dict",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_stop_when_not_running",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_stop_when_not_running",
+          "name": "test_creates_endpoint",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_creates_endpoint",
           "state": "passed"
         },
         {
-          "name": "test_list_tools_sends_json_rpc",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_list_tools_sends_json_rpc",
+          "name": "test_full_url_without_path",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_full_url_without_path",
           "state": "passed"
         },
         {
-          "name": "test_call_tool_sends_json_rpc",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_call_tool_sends_json_rpc",
+          "name": "test_full_url_with_path",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_full_url_with_path",
           "state": "passed"
         },
         {
-          "name": "test_send_request_raises_when_not_running",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_send_request_raises_when_not_running",
+          "name": "test_to_dict",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_send_request_raises_on_json_rpc_error",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_send_request_raises_on_json_rpc_error",
+          "name": "test_creates_agent_card_with_required_fields",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_creates_agent_card_with_required_fields",
           "state": "passed"
         },
         {
-          "name": "test_connect_starts_connection",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_starts_connection",
+          "name": "test_creates_agent_card_with_all_fields",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_creates_agent_card_with_all_fields",
           "state": "passed"
         },
         {
-          "name": "test_connect_returns_false_for_unknown_server",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_returns_false_for_unknown_server",
+          "name": "test_default_timestamps",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_default_timestamps",
           "state": "passed"
         },
         {
-          "name": "test_connect_returns_false_for_disabled_server",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_returns_false_for_disabled_server",
+          "name": "test_to_json_ld",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_to_json_ld",
           "state": "passed"
         },
         {
-          "name": "test_connect_returns_true_if_already_connected",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_returns_true_if_already_connected",
+          "name": "test_to_dict",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_connect_returns_false_on_connection_error",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_returns_false_on_connection_error",
+          "name": "test_update_last_seen",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_update_last_seen",
           "state": "passed"
         },
         {
-          "name": "test_disconnect_stops_connection",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_disconnect_stops_connection",
+          "name": "test_has_capability_true",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_has_capability_true",
           "state": "passed"
         },
         {
-          "name": "test_disconnect_handles_unknown_server",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_disconnect_handles_unknown_server",
+          "name": "test_has_capability_false",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_has_capability_false",
           "state": "passed"
         },
         {
-          "name": "test_disconnect_all_stops_all",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_disconnect_all_stops_all",
+          "name": "test_get_endpoint",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_get_endpoint",
           "state": "passed"
         },
         {
-          "name": "test_get_available_tools_all_servers",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_get_available_tools_all_servers",
+          "name": "test_serialize_datetime",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_serialize_datetime",
           "state": "passed"
         },
         {
-          "name": "test_get_available_tools_single_server",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_get_available_tools_single_server",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_available_tools_empty_for_unknown_server",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_get_available_tools_empty_for_unknown_server",
-          "state": "passed"
-        },
-        {
-          "name": "test_is_connected",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_is_connected",
-          "state": "passed"
-        },
-        {
-          "name": "test_call_tool_routes_correctly",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_call_tool_routes_correctly",
-          "state": "passed"
-        },
-        {
-          "name": "test_call_tool_raises_when_not_connected",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_call_tool_raises_when_not_connected",
-          "state": "passed"
-        },
-        {
-          "name": "test_context_manager",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_context_manager",
-          "state": "passed"
-        },
-        {
-          "name": "test_tools_cached_with_server_metadata",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClientToolCaching::test_tools_cached_with_server_metadata",
-          "state": "passed"
-        },
-        {
-          "name": "test_cache_cleared_on_disconnect",
-          "fullName": "mcp/__tests__/test_client.py::TestMCPClientToolCaching::test_cache_cleared_on_disconnect",
+          "name": "test_alias_fields",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_alias_fields",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "mcp/__tests__/test_config.py",
+      "moduleId": "mesh/__tests__/test_registry.py",
       "tests": [
         {
-          "name": "test_creates_config_with_required_fields",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_creates_config_with_required_fields",
+          "name": "test_register_agent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_register_agent",
           "state": "passed"
         },
         {
-          "name": "test_default_values",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_default_values",
+          "name": "test_register_updates_existing",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_register_updates_existing",
           "state": "passed"
         },
         {
-          "name": "test_resolves_env_variable_pattern",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_resolves_env_variable_pattern",
+          "name": "test_unregister_agent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_unregister_agent",
           "state": "passed"
         },
         {
-          "name": "test_preserves_literal_env_values",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_preserves_literal_env_values",
+          "name": "test_unregister_nonexistent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_unregister_nonexistent",
           "state": "passed"
         },
         {
-          "name": "test_returns_empty_for_missing_env_var",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_returns_empty_for_missing_env_var",
+          "name": "test_get_agent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_agent",
           "state": "passed"
         },
         {
-          "name": "test_resolves_multiple_env_vars",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_resolves_multiple_env_vars",
+          "name": "test_get_updates_last_seen",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_updates_last_seen",
           "state": "passed"
         },
         {
-          "name": "test_enabled_can_be_set_false",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_enabled_can_be_set_false",
+          "name": "test_get_nonexistent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_nonexistent",
           "state": "passed"
         },
         {
-          "name": "test_description_field",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_description_field",
+          "name": "test_list_all",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_all",
           "state": "passed"
         },
         {
-          "name": "test_creates_config_from_dict",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_creates_config_from_dict",
+          "name": "test_list_by_module",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_by_module",
           "state": "passed"
         },
         {
-          "name": "test_default_timeout_and_retries",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_default_timeout_and_retries",
+          "name": "test_list_by_capability",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_by_capability",
           "state": "passed"
         },
         {
-          "name": "test_creates_config_with_multiple_servers",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_creates_config_with_multiple_servers",
+          "name": "test_list_healthy",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_healthy",
           "state": "passed"
         },
         {
-          "name": "test_empty_servers_dict",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_empty_servers_dict",
+          "name": "test_list_external",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_external",
           "state": "passed"
         },
         {
-          "name": "test_direct_initialization",
-          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_direct_initialization",
+          "name": "test_list_internal",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_internal",
           "state": "passed"
         },
         {
-          "name": "test_github_server_defined",
-          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_github_server_defined",
+          "name": "test_update_health",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_update_health",
           "state": "passed"
         },
         {
-          "name": "test_brave_server_defined",
-          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_brave_server_defined",
+          "name": "test_update_health_nonexistent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_update_health_nonexistent",
           "state": "passed"
         },
         {
-          "name": "test_filesystem_server_defined",
-          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_filesystem_server_defined",
+          "name": "test_set_health",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_set_health",
           "state": "passed"
         },
         {
-          "name": "test_filesystem_sandboxed_directory",
-          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_filesystem_sandboxed_directory",
+          "name": "test_is_healthy",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_is_healthy",
           "state": "passed"
         },
         {
-          "name": "test_get_default_config",
-          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_get_default_config",
+          "name": "test_is_healthy_unknown",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_is_healthy_unknown",
           "state": "passed"
         },
         {
-          "name": "test_get_default_config_returns_copy",
-          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_get_default_config_returns_copy",
+          "name": "test_get_health_unknown",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_health_unknown",
           "state": "passed"
         },
         {
-          "name": "test_pattern_at_start",
-          "fullName": "mcp/__tests__/test_config.py::TestEnvVarPattern::test_pattern_at_start",
+          "name": "test_subscribe",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_subscribe",
           "state": "passed"
         },
         {
-          "name": "test_partial_pattern_not_matched",
-          "fullName": "mcp/__tests__/test_config.py::TestEnvVarPattern::test_partial_pattern_not_matched",
+          "name": "test_subscribe_unregister",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_subscribe_unregister",
           "state": "passed"
         },
         {
-          "name": "test_empty_env_pattern_is_literal",
-          "fullName": "mcp/__tests__/test_config.py::TestEnvVarPattern::test_empty_env_pattern_is_literal",
+          "name": "test_subscribe_health_update",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_subscribe_health_update",
           "state": "passed"
         },
         {
-          "name": "test_env_var_with_underscores",
-          "fullName": "mcp/__tests__/test_config.py::TestEnvVarPattern::test_env_var_with_underscores",
+          "name": "test_unsubscribe",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_unsubscribe",
+          "state": "passed"
+        },
+        {
+          "name": "test_count",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_count",
+          "state": "passed"
+        },
+        {
+          "name": "test_contains",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_contains",
+          "state": "passed"
+        },
+        {
+          "name": "test_clear",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_clear",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_stats",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_stats",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_registry_singleton",
+          "fullName": "mesh/__tests__/test_registry.py::TestGlobalRegistry::test_get_registry_singleton",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_registry",
+          "fullName": "mesh/__tests__/test_registry.py::TestGlobalRegistry::test_reset_registry",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_registry_creates_new",
+          "fullName": "mesh/__tests__/test_registry.py::TestGlobalRegistry::test_get_registry_creates_new",
+          "state": "passed"
+        },
+        {
+          "name": "test_concurrent_register",
+          "fullName": "mesh/__tests__/test_registry.py::TestRegistryThreadSafety::test_concurrent_register",
+          "state": "passed"
+        },
+        {
+          "name": "test_concurrent_read_write",
+          "fullName": "mesh/__tests__/test_registry.py::TestRegistryThreadSafety::test_concurrent_read_write",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "mesh/__tests__/test_router.py",
+      "tests": [
+        {
+          "name": "test_router_accesses_registry",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_router_accesses_registry",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_by_preferred_module",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_by_preferred_module",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_by_capability",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_by_capability",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_prefers_internal",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_prefers_internal",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_falls_back_to_external",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_falls_back_to_external",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_filters_unhealthy",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_filters_unhealthy",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_no_match",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_no_match",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_preferred_module_fallback",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_preferred_module_fallback",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_round_robin",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_round_robin",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agents_for_broadcast_by_module",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_by_module",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agents_for_broadcast_by_capability",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_by_capability",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agents_for_broadcast_exclude_external",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_exclude_external",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agents_for_broadcast_all",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_all",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_request_success",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_success",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "self = <mesh.__tests__.test_router.TestMeshRouter object at 0x782b264cda50>\nrouter = <mesh.router.MeshRouter object at 0x782b264fd3f0>\npopulated_registry = <mesh.registry.AgentRegistry object at 0x782b264feb00>\n\n    @pytest.mark.asyncio\n    async def test_route_request_success(self, router, populated_registry):\n        \"\"\"Should route request via A2A client.\"\"\"\n        mock_result = MagicMock()\n        mock_result.success = True\n        mock_result.model_dump.return_value = {\"content\": \"Success\"}\n    \n        mock_client = AsyncMock()\n        mock_client.call_agent.return_value = mock_result\n    \n        async def mock_get_client():\n            return mock_client\n    \n        with patch.dict(\"sys.modules\", {\"a2a\": MagicMock(), \"a2a.client\": MagicMock()}):\n            with patch(\"a2a.client.get_a2a_client\", mock_get_client):\n                result = await router.route_request(\n                    task_type=\"planning\",\n                    message=\"Create project plan\",\n                    preferred_module=\"pm\",\n                )\n    \n        assert result[\"agent\"] == \"PMAgent\"\n>       assert result[\"success\"] is True\nE       KeyError: 'success'\n\nmesh/__tests__/test_router.py:263: KeyError"
+            }
+          ]
+        },
+        {
+          "name": "test_route_request_no_agent",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_no_agent",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_request_a2a_error",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_a2a_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_request_no_a2a_client",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_no_a2a_client",
+          "state": "passed"
+        },
+        {
+          "name": "test_broadcast_request_success",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_broadcast_request_success",
+          "state": "passed"
+        },
+        {
+          "name": "test_broadcast_request_no_agents",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_broadcast_request_no_agents",
+          "state": "passed"
+        },
+        {
+          "name": "test_broadcast_request_by_module",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_broadcast_request_by_module",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_routing_info",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_get_routing_info",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_routing_info_no_match",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_get_routing_info_no_match",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_router_singleton",
+          "fullName": "mesh/__tests__/test_router.py::TestGlobalRouter::test_get_router_singleton",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_router",
+          "fullName": "mesh/__tests__/test_router.py::TestGlobalRouter::test_reset_router",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_router_creates_new",
+          "fullName": "mesh/__tests__/test_router.py::TestGlobalRouter::test_get_router_creates_new",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_1_preferred_module_with_capability",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_1_preferred_module_with_capability",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_2_capability_match",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_2_capability_match",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_3_health_filter",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_3_health_filter",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_4_internal_over_external",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_4_internal_over_external",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_5_fallback_to_any_healthy",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_5_fallback_to_any_healthy",
           "state": "passed"
         }
       ]

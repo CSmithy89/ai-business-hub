@@ -1,0 +1,795 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="dm-06-5-universal-agent-mesh">
+  <metadata>
+    <epic>DM-06</epic>
+    <story>DM-06.5</story>
+    <title>Universal Agent Mesh</title>
+    <generated>2025-12-31T00:00:00Z</generated>
+    <points>8</points>
+    <priority>High (Completes agent mesh architecture for cross-module communication)</priority>
+  </metadata>
+
+  <story-requirements>
+    <summary>
+      Complete the Universal Agent Mesh architecture with full A2A discovery and cross-module
+      communication. This story implements the core mesh infrastructure that enables any agent
+      to discover and communicate with any other agent, both internal and external.
+
+      Key deliverables:
+      - Agent registry for centralized agent management and capability tracking
+      - A2A AgentCard-based discovery via /.well-known/agent.json endpoints
+      - Discovery service with periodic scanning for external agents
+      - Mesh router for intelligent request routing based on capabilities
+      - Health monitoring and subscription system for registry changes
+    </summary>
+
+    <acceptance-criteria>
+      <criterion id="AC1">AgentCapability model defines capability with id, name, description, input/output modes</criterion>
+      <criterion id="AC2">AgentCard model implements A2A AgentCard with name, description, url, version, capabilities, skills</criterion>
+      <criterion id="AC3">AgentCard.to_json_ld() converts to JSON-LD format for A2A discovery</criterion>
+      <criterion id="AC4">AgentRegistry maintains catalog of registered agents with health status</criterion>
+      <criterion id="AC5">AgentRegistry.register(agent) adds agent to registry and notifies subscribers</criterion>
+      <criterion id="AC6">AgentRegistry.unregister(agent_name) removes agent and notifies subscribers</criterion>
+      <criterion id="AC7">AgentRegistry.get(agent_name) retrieves agent by name with last_seen update</criterion>
+      <criterion id="AC8">AgentRegistry.list_all() returns all registered agents</criterion>
+      <criterion id="AC9">AgentRegistry.list_by_module(module) filters agents by module</criterion>
+      <criterion id="AC10">AgentRegistry.list_by_capability(capability) filters agents by capability</criterion>
+      <criterion id="AC11">AgentRegistry.list_healthy() returns only healthy agents</criterion>
+      <criterion id="AC12">AgentRegistry.update_health(agent_name, healthy) updates health status</criterion>
+      <criterion id="AC13">AgentRegistry.subscribe() returns async queue for change notifications</criterion>
+      <criterion id="AC14">get_registry() returns global singleton registry instance</criterion>
+      <criterion id="AC15">DiscoveryService discovers agents via /.well-known/agent.json endpoints</criterion>
+      <criterion id="AC16">DiscoveryService.start() begins periodic scanning at configured interval</criterion>
+      <criterion id="AC17">DiscoveryService.stop() stops scanning and cleans up resources</criterion>
+      <criterion id="AC18">DiscoveryService.scan() scans all discovery URLs and returns discovered agents</criterion>
+      <criterion id="AC19">DiscoveryService.discover_agent(base_url) discovers single agent and registers it</criterion>
+      <criterion id="AC20">MeshRouter provides intelligent routing based on capabilities and health</criterion>
+      <criterion id="AC21">MeshRouter.find_agent_for_task(task_type) finds best agent for a task</criterion>
+      <criterion id="AC22">MeshRouter.route_request() routes request to appropriate agent via A2A</criterion>
+      <criterion id="AC23">MeshRouter.broadcast_request() broadcasts to multiple agents in parallel</criterion>
+      <criterion id="AC24">get_router() returns global singleton router instance</criterion>
+      <criterion id="AC25">Unit tests pass with >85% coverage for mesh module</criterion>
+    </acceptance-criteria>
+
+    <files-to-create>
+      <file path="agents/mesh/__init__.py" purpose="Module exports for mesh package" />
+      <file path="agents/mesh/registry.py" purpose="Agent registry and AgentCard models" />
+      <file path="agents/mesh/discovery.py" purpose="A2A discovery service" />
+      <file path="agents/mesh/router.py" purpose="Mesh router for request routing" />
+      <file path="agents/mesh/__tests__/__init__.py" purpose="Test package init" />
+      <file path="agents/mesh/__tests__/test_registry.py" purpose="Registry unit tests" />
+      <file path="agents/mesh/__tests__/test_discovery.py" purpose="Discovery service unit tests" />
+      <file path="agents/mesh/__tests__/test_router.py" purpose="Router unit tests" />
+    </files-to-create>
+
+    <files-to-modify>
+      <file path="agents/gateway/agent.py" change="Import and use mesh router for agent orchestration" />
+      <file path="docs/modules/bm-dm/sprint-status.yaml" change="Update story status" />
+    </files-to-modify>
+  </story-requirements>
+
+  <dependencies>
+    <dependency story="DM-06.4" status="complete" reason="MCP tools can be included in mesh discovery" />
+    <dependency story="DM-02.4" status="complete" reason="Dashboard gateway agent will use mesh router" />
+    <dependency story="DM-03.1" status="complete" reason="A2A client for agent communication" />
+  </dependencies>
+
+  <related-code>
+    <file path="agents/a2a/__init__.py" purpose="A2A module exports - existing AgentCard and client patterns">
+      <![CDATA[
+"""
+A2A Protocol Module
+
+Implements Google A2A protocol support including AgentCard generation,
+discovery endpoints, and inter-agent communication client.
+
+This module provides:
+- AgentCard Pydantic models following A2A JSON-LD specification
+- Builder functions for generating AgentCards from agent metadata
+- FastAPI router with discovery endpoints
+- Pre-defined metadata for known HYVVE agents
+- A2A client for inter-agent RPC communication
+"""
+from .agent_card import (
+    AGENT_METADATA,
+    AgentCard,
+    Authentication,
+    Capabilities,
+    Provider,
+    Skill,
+    build_agent_card,
+    build_discovery_response,
+    build_multi_agent_response,
+)
+from .client import (
+    A2ATaskResult,
+    HyvveA2AClient,
+    get_a2a_client,
+    get_a2a_client_sync,
+)
+from .discovery import router as discovery_router
+
+__all__ = [
+    # Models
+    "AgentCard",
+    "Capabilities",
+    "Skill",
+    "Provider",
+    "Authentication",
+    # A2A Client
+    "HyvveA2AClient",
+    "A2ATaskResult",
+    "get_a2a_client",
+    "get_a2a_client_sync",
+    # Metadata
+    "AGENT_METADATA",
+    # Builders
+    "build_agent_card",
+    "build_discovery_response",
+    "build_multi_agent_response",
+    # Router
+    "discovery_router",
+]
+      ]]>
+    </file>
+
+    <file path="agents/a2a/agent_card.py" purpose="Existing AgentCard models to reference/extend">
+      <![CDATA[
+"""
+A2A AgentCard Generation
+
+Implements AgentCard models and builders following Google A2A protocol
+specification. AgentCards describe agent capabilities for discovery
+by external agents.
+"""
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field
+from constants.dm_constants import DMConstants
+
+
+class Skill(BaseModel):
+    """A2A Skill definition.
+
+    Attributes:
+        id: Unique skill identifier (typically tool function name)
+        name: Human-readable skill name
+        description: Detailed description of what the skill does
+        tags: Optional keywords describing the skill
+        parameters: Optional JSON schema for skill parameters
+        examples: Optional usage examples
+    """
+    id: str = Field(..., description="Unique skill identifier")
+    name: str = Field(..., description="Human-readable skill name")
+    description: str = Field(..., description="Skill description")
+    tags: Optional[List[str]] = Field(default=None, description="Keywords describing the skill")
+    parameters: Optional[Dict[str, Any]] = Field(default=None, description="JSON schema for skill parameters")
+    examples: Optional[List[str]] = Field(default=None, description="Usage examples")
+
+
+class Capabilities(BaseModel):
+    """A2A Agent capabilities."""
+    streaming: bool = Field(default=True, description="Agent supports streaming responses")
+    pushNotifications: bool = Field(default=False, description="Agent supports push notifications")
+    stateTransfer: bool = Field(default=False, description="Agent supports state transfer")
+
+
+class Provider(BaseModel):
+    """A2A Provider information."""
+    organization: str = Field(default="HYVVE", description="Provider organization name")
+    url: Optional[str] = Field(default=None, description="Provider website URL")
+
+
+class Authentication(BaseModel):
+    """A2A Authentication requirements."""
+    schemes: List[str] = Field(default_factory=lambda: ["bearer"], description="Supported auth schemes")
+    required: bool = Field(default=False, description="Whether auth is required for discovery")
+
+
+class AgentCard(BaseModel):
+    """A2A AgentCard following JSON-LD spec.
+
+    The AgentCard is the primary discovery document for an A2A agent.
+    """
+    context: str = Field(alias="@context", default="https://schema.org", description="JSON-LD context")
+    type: str = Field(alias="@type", default="AIAgent", description="JSON-LD type")
+    name: str = Field(..., description="Agent name")
+    description: str = Field(..., description="Agent description")
+    url: str = Field(..., description="A2A endpoint URL")
+    version: str = Field(default=DMConstants.A2A.PROTOCOL_VERSION, description="A2A protocol version")
+    capabilities: Capabilities = Field(default_factory=Capabilities, description="Agent capabilities")
+    skills: List[Skill] = Field(default_factory=list, description="Available skills")
+    defaultInputModes: List[str] = Field(default=["text"], description="Supported input modes")
+    defaultOutputModes: List[str] = Field(default=["text", "tool_calls"], description="Supported output modes")
+    provider: Provider = Field(default_factory=Provider, description="Provider information")
+    authentication: Authentication = Field(default_factory=Authentication, description="Auth requirements")
+    documentationUrl: Optional[str] = Field(default=None, description="Link to agent documentation")
+    created: Optional[str] = Field(default=None, description="AgentCard creation timestamp")
+
+    model_config = {"populate_by_name": True}
+      ]]>
+    </file>
+
+    <file path="agents/a2a/client.py" purpose="Existing A2A client patterns to use for mesh routing">
+      <![CDATA[
+"""
+A2A Client for Inter-Agent Communication
+
+Features:
+- Connection pooling via httpx for efficient HTTP communication
+- HTTP/2 support when h2 package is installed (optional)
+- JSON-RPC 2.0 format for A2A task execution
+- Parallel agent calls with asyncio.gather
+- Structured A2ATaskResult responses
+"""
+import asyncio
+import httpx
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field
+
+
+class A2ATaskResult(BaseModel):
+    """Result from an A2A task execution."""
+    content: str = Field(default="", description="Text content from agent response")
+    tool_calls: List[Dict[str, Any]] = Field(default_factory=list)
+    artifacts: List[Dict[str, Any]] = Field(default_factory=list)
+    success: bool = Field(default=True)
+    error: Optional[str] = Field(default=None)
+    agent_id: Optional[str] = Field(default=None)
+    duration_ms: Optional[float] = Field(default=None)
+
+
+class HyvveA2AClient:
+    """A2A client for HYVVE inter-agent communication."""
+
+    AGENT_PATHS: Dict[str, str] = {
+        "navi": "/a2a/navi",
+        "pulse": "/a2a/pulse",
+        "herald": "/a2a/herald",
+        "dashboard": "/a2a/dashboard",
+    }
+
+    async def call_agent(
+        self,
+        agent_id: str,
+        task: str,
+        context: Optional[Dict[str, Any]] = None,
+        caller_id: str = "dashboard_gateway",
+        timeout: Optional[int] = None,
+    ) -> A2ATaskResult:
+        """Call a PM agent via A2A RPC."""
+        # ... implementation
+        pass
+
+    async def call_agents_parallel(
+        self,
+        calls: List[Dict[str, Any]],
+        caller_id: str = "dashboard_gateway",
+    ) -> Dict[str, A2ATaskResult]:
+        """Call multiple agents in parallel."""
+        # ... implementation
+        pass
+
+
+# Singleton accessor
+_a2a_client: Optional[HyvveA2AClient] = None
+
+async def get_a2a_client() -> HyvveA2AClient:
+    """Get the singleton A2A client instance."""
+    global _a2a_client
+    if _a2a_client is None:
+        _a2a_client = HyvveA2AClient()
+    return _a2a_client
+      ]]>
+    </file>
+
+    <file path="agents/mcp/__init__.py" purpose="MCP module pattern to follow for mesh module exports">
+      <![CDATA[
+"""
+MCP (Model Context Protocol) Integration
+
+Provides MCP client infrastructure for connecting HYVVE agents to external
+tools via the Model Context Protocol.
+
+Components:
+- config: Configuration models for MCP servers
+- client: MCP connection and client for server communication
+- a2a_bridge: Bridge for translating MCP tools to agent format
+"""
+
+# Configuration
+from .config import (
+    DEFAULT_MCP_SERVERS,
+    MCPConfig,
+    MCPServerConfig,
+    get_default_mcp_config,
+)
+
+# Client
+from .client import (
+    MCPClient,
+    MCPConnection,
+    MCPConnectionError,
+    MCPProtocolError,
+)
+
+# A2A Bridge
+from .a2a_bridge import (
+    MCP_TOOL_PREFIX,
+    MCPToolBridge,
+    create_mcp_bridge,
+)
+
+__all__ = [
+    # Configuration
+    "MCPServerConfig",
+    "MCPConfig",
+    "DEFAULT_MCP_SERVERS",
+    "get_default_mcp_config",
+    # Client
+    "MCPConnection",
+    "MCPClient",
+    "MCPConnectionError",
+    "MCPProtocolError",
+    # A2A Bridge
+    "MCPToolBridge",
+    "create_mcp_bridge",
+    "MCP_TOOL_PREFIX",
+]
+      ]]>
+    </file>
+
+    <file path="agents/mcp/client.py" purpose="MCP client patterns for async connection management">
+      <![CDATA[
+"""
+MCP Client
+
+Key patterns to follow:
+- Async client initialization with connection pooling
+- Lock-based thread-safe singleton pattern
+- Graceful error handling with custom exceptions
+- Tool caching for performance
+"""
+import asyncio
+from typing import Any, Dict, List, Optional
+
+class MCPConnectionError(Exception):
+    """Raised when MCP connection fails."""
+    pass
+
+class MCPClient:
+    """Client for Model Context Protocol servers."""
+
+    def __init__(self, config):
+        self.config = config
+        self._connections: Dict[str, "MCPConnection"] = {}
+        self._tools_cache: Dict[str, List[Dict[str, Any]]] = {}
+
+    async def connect(self, server_name: str) -> bool:
+        """Connect to an MCP server."""
+        # Pattern: check existing, validate config, create connection, cache tools
+        pass
+
+    async def disconnect(self, server_name: str) -> None:
+        """Disconnect from an MCP server."""
+        pass
+
+    async def disconnect_all(self) -> None:
+        """Disconnect from all connected servers."""
+        pass
+
+    def get_available_tools(self, server_name: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get list of available tools from connected servers."""
+        pass
+
+    def is_connected(self, server_name: str) -> bool:
+        """Check if connected to a specific server."""
+        return server_name in self._connections
+      ]]>
+    </file>
+
+    <file path="agents/gateway/agent.py" purpose="Dashboard gateway - will integrate with mesh router">
+      <![CDATA[
+"""
+Dashboard Gateway Agent
+
+Key integration points for mesh router:
+- create_dashboard_gateway_agent() - factory function pattern
+- DASHBOARD_INSTRUCTIONS - system instructions for orchestration
+- get_agent_metadata() - agent metadata for registration
+
+The mesh router should be integrated to:
+1. Register the gateway agent on startup
+2. Use mesh router for agent discovery instead of hardcoded AGENT_PATHS
+3. Enable dynamic routing based on capabilities
+"""
+from typing import Any, Dict, Optional, Callable
+
+def create_dashboard_gateway_agent(
+    workspace_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    state_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    frontend_context: Optional[Dict[str, Any]] = None,
+):
+    """Create a Dashboard Gateway agent instance with context awareness."""
+    # ... agent creation with Agno
+    pass
+
+def get_agent_metadata() -> Dict[str, Any]:
+    """Get metadata about the Dashboard Gateway agent."""
+    return {
+        "name": "dashboard_gateway",
+        "description": "Dashboard Gateway agent for HYVVE",
+        "tools": [...],
+        "interfaces": {"agui": {...}, "a2a": {...}},
+        "orchestration": {
+            "delegated_agents": ["navi", "pulse", "herald"],
+            "parallel_calls": True,
+        },
+    }
+      ]]>
+    </file>
+  </related-code>
+
+  <patterns>
+    <pattern name="pydantic-models" purpose="Use Pydantic BaseModel for all data models">
+      <![CDATA[
+# Follow existing patterns in agents/a2a/agent_card.py
+from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
+from datetime import datetime
+
+
+class AgentCapability(BaseModel):
+    """Agent capability definition."""
+    id: str
+    name: str
+    description: str
+    input_modes: List[str] = Field(default_factory=lambda: ["text"])
+    output_modes: List[str] = Field(default_factory=lambda: ["text"])
+
+
+class AgentCard(BaseModel):
+    """A2A AgentCard for agent discovery."""
+    name: str
+    description: str
+    url: str
+    version: str = "1.0.0"
+    capabilities: Dict[str, Any] = Field(default_factory=dict)
+    skills: List[AgentCapability] = Field(default_factory=list)
+    default_input_modes: List[str] = Field(default_factory=lambda: ["text"])
+    default_output_modes: List[str] = Field(default_factory=lambda: ["text"])
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_seen: datetime = Field(default_factory=datetime.utcnow)
+    is_external: bool = False
+    module: Optional[str] = None
+
+    def to_json_ld(self) -> Dict[str, Any]:
+        """Convert to JSON-LD format for A2A discovery."""
+        return {
+            "@context": "https://schema.org",
+            "@type": "AIAgent",
+            "name": self.name,
+            "description": self.description,
+            "url": self.url,
+            "version": self.version,
+            "capabilities": self.capabilities,
+            "skills": [
+                {"id": s.id, "name": s.name, "description": s.description}
+                for s in self.skills
+            ],
+            "defaultInputModes": self.default_input_modes,
+            "defaultOutputModes": self.default_output_modes,
+        }
+      ]]>
+    </pattern>
+
+    <pattern name="singleton-pattern" purpose="Global singleton with async lock">
+      <![CDATA[
+import asyncio
+from typing import Optional
+
+_registry: Optional["AgentRegistry"] = None
+_registry_lock = asyncio.Lock()
+
+
+async def get_registry() -> "AgentRegistry":
+    """Get the global agent registry singleton."""
+    global _registry
+    if _registry is None:
+        async with _registry_lock:
+            if _registry is None:
+                _registry = AgentRegistry()
+    return _registry
+
+
+# For synchronous access (follows a2a/client.py pattern)
+def get_registry_sync() -> "AgentRegistry":
+    """Get the global agent registry (synchronous version)."""
+    global _registry
+    if _registry is None:
+        _registry = AgentRegistry()
+    return _registry
+      ]]>
+    </pattern>
+
+    <pattern name="subscription-pattern" purpose="Pub/sub for registry changes">
+      <![CDATA[
+import asyncio
+from typing import Set
+from datetime import datetime
+
+
+class AgentRegistry:
+    def __init__(self):
+        self._agents: Dict[str, AgentCard] = {}
+        self._health_status: Dict[str, bool] = {}
+        self._subscribers: Set[asyncio.Queue] = set()
+
+    async def _notify_subscribers(self, action: str, agent_name: str) -> None:
+        """Notify all subscribers of a registry change."""
+        event = {
+            "action": action,
+            "agent": agent_name,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        for queue in self._subscribers:
+            try:
+                queue.put_nowait(event)
+            except asyncio.QueueFull:
+                # Skip if queue is full (subscriber not consuming fast enough)
+                pass
+
+    def subscribe(self) -> asyncio.Queue:
+        """Subscribe to registry changes."""
+        queue: asyncio.Queue = asyncio.Queue(maxsize=100)
+        self._subscribers.add(queue)
+        return queue
+
+    def unsubscribe(self, queue: asyncio.Queue) -> None:
+        """Unsubscribe from registry changes."""
+        self._subscribers.discard(queue)
+      ]]>
+    </pattern>
+
+    <pattern name="discovery-service" purpose="Async HTTP discovery with periodic scanning">
+      <![CDATA[
+import asyncio
+import httpx
+from typing import List, Optional
+
+
+class DiscoveryService:
+    """Service for discovering agents via A2A protocol."""
+
+    def __init__(
+        self,
+        discovery_urls: Optional[List[str]] = None,
+        scan_interval: int = 300,  # 5 minutes
+    ):
+        self.discovery_urls = discovery_urls or []
+        self.scan_interval = scan_interval
+        self._client: Optional[httpx.AsyncClient] = None
+        self._running = False
+        self._scan_task: Optional[asyncio.Task] = None
+
+    async def start(self) -> None:
+        """Start the discovery service."""
+        if self._running:
+            return
+
+        self._client = httpx.AsyncClient(timeout=30.0)
+        self._running = True
+
+        # Initial scan
+        await self.scan()
+
+        # Start periodic scanning
+        self._scan_task = asyncio.create_task(self._periodic_scan())
+
+    async def stop(self) -> None:
+        """Stop the discovery service."""
+        self._running = False
+        if self._scan_task:
+            self._scan_task.cancel()
+            try:
+                await self._scan_task
+            except asyncio.CancelledError:
+                pass
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
+    async def _periodic_scan(self) -> None:
+        """Run periodic scans."""
+        while self._running:
+            await asyncio.sleep(self.scan_interval)
+            if self._running:
+                await self.scan()
+
+    async def discover_agent(self, base_url: str) -> Optional[AgentCard]:
+        """Discover an agent at a specific URL."""
+        try:
+            response = await self._client.get(
+                f"{base_url.rstrip('/')}/.well-known/agent.json"
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            # Parse and create AgentCard, mark as external
+            card = AgentCard(**data, is_external=True)
+
+            # Register with global registry
+            registry = await get_registry()
+            registry.register(card)
+
+            return card
+        except Exception as e:
+            logger.warning(f"Failed to discover agent at {base_url}: {e}")
+            return None
+      ]]>
+    </pattern>
+
+    <pattern name="mesh-router" purpose="Intelligent routing based on capabilities">
+      <![CDATA[
+from typing import Any, Dict, List, Optional
+
+
+class MeshRouter:
+    """Routes requests to agents in the mesh."""
+
+    def __init__(self):
+        self.registry = get_registry_sync()
+
+    def find_agent_for_task(
+        self,
+        task_type: str,
+        preferred_module: Optional[str] = None,
+    ) -> Optional[AgentCard]:
+        """Find the best agent for a task."""
+        candidates: List[AgentCard] = []
+
+        # 1. Check preferred module first
+        if preferred_module:
+            module_agents = self.registry.list_by_module(preferred_module)
+            candidates.extend([a for a in module_agents if self.registry.is_healthy(a.name)])
+
+        # 2. If no module match, check by capability
+        if not candidates:
+            capability_agents = self.registry.list_by_capability(task_type)
+            candidates.extend([a for a in capability_agents if self.registry.is_healthy(a.name)])
+
+        # 3. If still none, get any healthy agent
+        if not candidates:
+            candidates = self.registry.list_healthy()
+
+        # 4. Prefer internal over external
+        internal = [a for a in candidates if not a.is_external]
+        if internal:
+            return internal[0]
+
+        return candidates[0] if candidates else None
+
+    async def route_request(
+        self,
+        task_type: str,
+        message: str,
+        context: Optional[Dict[str, Any]] = None,
+        preferred_module: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Route a request to an appropriate agent."""
+        agent = self.find_agent_for_task(task_type, preferred_module)
+
+        if not agent:
+            return {"error": f"No agent found for task type: {task_type}"}
+
+        # Use A2A client to call the agent
+        client = await get_a2a_client()
+        result = await client.call_agent(
+            agent_id=agent.name,
+            task=message,
+            context=context,
+        )
+
+        return {
+            "agent": agent.name,
+            "response": result.model_dump(),
+        }
+      ]]>
+    </pattern>
+  </patterns>
+
+  <implementation-notes>
+    <note category="architecture">
+      The mesh module (agents/mesh/) is a new package that extends the existing
+      agents/a2a/ infrastructure. It builds on top of the A2A client and AgentCard
+      patterns already established.
+
+      Key relationships:
+      - mesh/registry.py uses similar models to a2a/agent_card.py but adds registry management
+      - mesh/router.py uses a2a/client.py for actual agent communication
+      - mesh/discovery.py extends the A2A discovery pattern for external agents
+    </note>
+
+    <note category="models">
+      The story defines new AgentCapability and AgentCard models. These are distinct from
+      but compatible with the existing a2a/agent_card.py models. Consider:
+
+      1. Option A: Create new models in mesh/registry.py (as specified in story)
+      2. Option B: Extend/reuse models from a2a/agent_card.py
+
+      The story specifies creating new models, so follow that approach but ensure
+      compatibility with existing AgentCard JSON-LD format.
+    </note>
+
+    <note category="singleton-access">
+      Follow the established pattern from a2a/client.py:
+      - get_registry() for async access with lock
+      - get_registry_sync() for synchronous access
+      - get_router() with same pattern
+
+      Use asyncio.Lock for thread-safe initialization.
+    </note>
+
+    <note category="health-monitoring">
+      Agents are considered healthy by default when registered. The health system:
+      - Default healthy=True on register
+      - Explicit update via update_health()
+      - Implicit update on get() via last_seen timestamp
+      - Future: could add heartbeat monitoring
+    </note>
+
+    <note category="routing-priority">
+      The mesh router uses priority-based selection:
+      1. Preferred module (if specified)
+      2. Capability match
+      3. Health filter
+      4. Internal preference (internal > external)
+      5. Fallback to any healthy agent
+
+      This matches the story's technical approach section.
+    </note>
+
+    <note category="testing">
+      Create tests in agents/mesh/__tests__/ following the patterns in:
+      - agents/mcp/__tests__/test_*.py
+      - agents/a2a/ (if tests exist)
+
+      Use pytest-asyncio for async tests. Mock httpx for discovery tests.
+      Target >85% coverage as specified in AC25.
+    </note>
+
+    <note category="integration">
+      After implementing the mesh module, update agents/gateway/agent.py to:
+      1. Register the dashboard gateway on startup
+      2. Use mesh router for agent discovery
+      3. Replace hardcoded AGENT_PATHS with dynamic discovery
+
+      This integration can be done in a follow-up story or as part of this one.
+    </note>
+  </implementation-notes>
+
+  <tech-spec-reference>
+    <section id="2.3" title="Universal Agent Mesh Architecture">
+      The agent mesh enables any agent to discover and communicate with any other agent.
+
+      Mesh Capabilities:
+      - Discovery via /.well-known/agent.json AgentCards
+      - Cross-module communication via A2A protocol
+      - External tool access via MCP protocol
+      - External agent integration for third-party agents
+    </section>
+
+    <section id="3.5" title="Story DM-06.5: Universal Agent Mesh">
+      Complete the Universal Agent Mesh architecture with full A2A discovery and
+      cross-module communication. This is Phase 6 of the Dynamic Module System.
+
+      Key components:
+      - AgentRegistry for centralized agent management
+      - DiscoveryService for A2A discovery
+      - MeshRouter for intelligent routing
+      - Subscription system for registry changes
+    </section>
+  </tech-spec-reference>
+</story-context>
