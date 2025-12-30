@@ -1,0 +1,965 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-06.4 MCP Tool Integration
+  Generated: 2025-12-31
+  Epic: DM-06 - Contextual Intelligence (Phase 6)
+
+  This context file provides all necessary information for implementing
+  MCP (Model Context Protocol) tool integration for HYVVE agents.
+-->
+<story-context>
+  <!-- =========================================================== -->
+  <!-- STORY SUMMARY -->
+  <!-- =========================================================== -->
+  <story>
+    <id>DM-06.4</id>
+    <title>MCP Tool Integration</title>
+    <points>8</points>
+    <status>ready-for-dev</status>
+    <epic>DM-06 - Contextual Intelligence</epic>
+
+    <summary>
+      Enable HYVVE agents to connect to external tools via the Model Context Protocol (MCP).
+      MCP is an open protocol that standardizes how AI applications connect to external data
+      sources and tools. This story implements an MCP client that can connect to MCP servers
+      (like GitHub, Brave Search, filesystem access) and bridges those tools to the Agno-based
+      agent system.
+    </summary>
+
+    <deliverables>
+      <item>MCP server configuration system with environment variable resolution</item>
+      <item>MCP client for managing subprocess-based server connections</item>
+      <item>JSON-RPC communication with MCP servers</item>
+      <item>Tool discovery and caching from connected servers</item>
+      <item>A2A bridge for translating MCP tools to agent-compatible format</item>
+      <item>Default server configurations for common tools (GitHub, Brave, filesystem)</item>
+    </deliverables>
+
+    <dependencies>
+      <completed>DM-06.3 - Generative UI Composition</completed>
+      <completed>DM-02.4 - Dashboard gateway agent that will use MCP tools</completed>
+    </dependencies>
+
+    <dependents>
+      <story>DM-06.5 - Universal Agent Mesh will include MCP tools in discovery</story>
+    </dependents>
+  </story>
+
+  <!-- =========================================================== -->
+  <!-- ACCEPTANCE CRITERIA -->
+  <!-- =========================================================== -->
+  <acceptance-criteria>
+    <criterion id="AC1">MCPServerConfig model defines server configuration with name, command, args, env, description, enabled</criterion>
+    <criterion id="AC2">MCPServerConfig.resolve_env() resolves ${VAR} patterns from system environment</criterion>
+    <criterion id="AC3">MCPConfig model holds servers dict, default_timeout, max_retries</criterion>
+    <criterion id="AC4">MCPConfig.from_dict() creates config from dictionary input</criterion>
+    <criterion id="AC5">DEFAULT_MCP_SERVERS provides configs for github, brave, filesystem servers</criterion>
+    <criterion id="AC6">MCPClient manages connections to multiple MCP servers</criterion>
+    <criterion id="AC7">MCPClient.connect(server_name) starts server process and caches tools</criterion>
+    <criterion id="AC8">MCPClient.disconnect(server_name) cleanly stops server process</criterion>
+    <criterion id="AC9">MCPClient.disconnect_all() stops all connected servers</criterion>
+    <criterion id="AC10">MCPClient.get_available_tools() returns tools from connected servers</criterion>
+    <criterion id="AC11">MCPClient.call_tool() invokes a tool on a specific server</criterion>
+    <criterion id="AC12">MCPConnection handles subprocess and JSON-RPC communication</criterion>
+    <criterion id="AC13">MCPConnection.start() launches server process with resolved env vars</criterion>
+    <criterion id="AC14">MCPConnection.list_tools() retrieves available tools via JSON-RPC</criterion>
+    <criterion id="AC15">MCPConnection.call_tool() sends tool invocation via JSON-RPC</criterion>
+    <criterion id="AC16">MCPToolBridge converts MCP tools to agent-compatible format</criterion>
+    <criterion id="AC17">MCPToolBridge.get_tools_for_agent() returns tools with mcp_{server}_{tool} naming</criterion>
+    <criterion id="AC18">MCPToolBridge.invoke_tool() parses tool name and routes to correct server</criterion>
+    <criterion id="AC19">create_mcp_bridge() factory function initializes client and bridge</criterion>
+    <criterion id="AC20">Unit tests pass with >85% coverage for MCP module</criterion>
+  </acceptance-criteria>
+
+  <!-- =========================================================== -->
+  <!-- FILES TO CREATE -->
+  <!-- =========================================================== -->
+  <files-to-create>
+    <file path="agents/mcp/__init__.py">
+      <description>Module exports for MCP package</description>
+      <exports>
+        - MCPConfig
+        - MCPServerConfig
+        - get_default_mcp_config
+        - DEFAULT_MCP_SERVERS
+        - MCPClient
+        - MCPConnection
+        - MCPToolBridge
+        - create_mcp_bridge
+      </exports>
+    </file>
+
+    <file path="agents/mcp/config.py">
+      <description>MCP configuration models and defaults</description>
+      <classes>
+        - MCPServerConfig (Pydantic model)
+        - MCPConfig (Pydantic model)
+      </classes>
+      <functions>
+        - get_default_mcp_config()
+      </functions>
+      <constants>
+        - DEFAULT_MCP_SERVERS dict
+      </constants>
+    </file>
+
+    <file path="agents/mcp/client.py">
+      <description>MCP client and connection classes</description>
+      <classes>
+        - MCPConnection (subprocess + JSON-RPC management)
+        - MCPClient (multi-server connection manager)
+      </classes>
+    </file>
+
+    <file path="agents/mcp/a2a_bridge.py">
+      <description>A2A bridge for tool translation</description>
+      <classes>
+        - MCPToolBridge (protocol translation)
+      </classes>
+      <functions>
+        - create_mcp_bridge() factory
+      </functions>
+    </file>
+
+    <file path="agents/mcp/__tests__/__init__.py">
+      <description>Test package init</description>
+    </file>
+
+    <file path="agents/mcp/__tests__/test_config.py">
+      <description>Configuration unit tests</description>
+      <test-classes>
+        - TestMCPServerConfig
+        - TestMCPConfig
+        - TestDefaultMCPServers
+      </test-classes>
+    </file>
+
+    <file path="agents/mcp/__tests__/test_client.py">
+      <description>Client unit tests</description>
+      <test-classes>
+        - TestMCPConnection
+        - TestMCPClient
+      </test-classes>
+    </file>
+
+    <file path="agents/mcp/__tests__/test_bridge.py">
+      <description>Bridge unit tests</description>
+      <test-classes>
+        - TestMCPToolBridge
+      </test-classes>
+    </file>
+  </files-to-create>
+
+  <!-- =========================================================== -->
+  <!-- FILES TO MODIFY -->
+  <!-- =========================================================== -->
+  <files-to-modify>
+    <file path="agents/gateway/agent.py">
+      <change>Import and integrate MCP bridge for tool access</change>
+      <location>create_dashboard_gateway_agent() function</location>
+    </file>
+
+    <file path="agents/gateway/__init__.py">
+      <change>Export MCP integration if needed</change>
+    </file>
+
+    <file path="docs/modules/bm-dm/sprint-status.yaml">
+      <change>Update story status from drafted to ready-for-dev, then in-progress, then done</change>
+    </file>
+  </files-to-modify>
+
+  <!-- =========================================================== -->
+  <!-- EXISTING PATTERNS: TOOL DEFINITIONS -->
+  <!-- =========================================================== -->
+  <existing-patterns>
+    <pattern name="Tool Definition Pattern">
+      <description>
+        Tools in the gateway follow a consistent pattern with typed parameters,
+        docstrings with Args/Returns/Example sections, and dictionary return values.
+      </description>
+      <source-file>/home/chris/projects/work/Ai Bussiness Hub/agents/gateway/tools.py</source-file>
+      <example><![CDATA[
+def render_dashboard_widget(
+    widget_type: str,
+    data: Dict[str, Any],
+    title: Optional[str] = None,
+    slot_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Render a widget on the user's dashboard.
+
+    This tool call is intercepted by CopilotKit's useRenderToolCall
+    on the frontend and rendered as a React component from the widget registry.
+
+    Args:
+        widget_type: Widget type identifier. One of: ProjectStatus, TaskList, etc.
+        data: Widget-specific data payload
+        title: Optional widget title override
+        slot_id: Optional slot identifier for targeted placement
+
+    Returns:
+        Widget specification for frontend rendering
+
+    Example:
+        >>> render_dashboard_widget(
+        ...     widget_type="ProjectStatus",
+        ...     data={"project_id": "proj_123", "status": "on_track"},
+        ... )
+    """
+    if widget_type not in WIDGET_TYPES:
+        return {
+            "error": f"Unknown widget type: {widget_type}",
+            "available_types": WIDGET_TYPES,
+            "rendered": False,
+        }
+
+    return {
+        "type": widget_type,
+        "data": data,
+        "title": title,
+        "slot_id": slot_id,
+        "rendered": True,
+    }
+
+
+def get_all_tools() -> List:
+    """
+    Get all Dashboard Gateway tools.
+
+    Returns:
+        List of tool functions for agent registration
+    """
+    return [
+        render_dashboard_widget,
+        get_dashboard_capabilities,
+        route_to_agent,
+        # A2A orchestration tools
+        get_project_status,
+        get_health_summary,
+        get_recent_activity,
+        gather_dashboard_data,
+    ]
+      ]]></example>
+    </pattern>
+
+    <pattern name="A2A Tool Pattern">
+      <description>
+        Async tools that call other agents use the A2A client with lazy imports
+        to avoid circular dependencies. They return structured dictionaries.
+      </description>
+      <source-file>/home/chris/projects/work/Ai Bussiness Hub/agents/gateway/tools.py</source-file>
+      <example><![CDATA[
+async def get_project_status(
+    project_id: str,
+    include_tasks: bool = False,
+    include_timeline: bool = False,
+) -> Dict[str, Any]:
+    """
+    Fetch project status from Navi agent via A2A.
+    """
+    # Import here to avoid circular imports and allow lazy loading
+    from a2a import get_a2a_client
+
+    client = await get_a2a_client()
+
+    # Build task message based on options
+    task_message = f"Get status for project {project_id}"
+    if include_tasks:
+        task_message += " including task breakdown"
+
+    logger.debug(f"Calling Navi for project status: {project_id}")
+
+    result = await client.call_agent(
+        agent_id="navi",
+        task=task_message,
+        context={"project_id": project_id},
+    )
+
+    if not result.success:
+        logger.warning(f"Navi call failed for project {project_id}: {result.error}")
+        return {
+            "error": result.error,
+            "project_id": project_id,
+            "agent": "navi",
+        }
+
+    return {
+        "project_id": project_id,
+        "content": result.content,
+        "raw_data": result.artifacts,
+        "tool_calls": result.tool_calls,
+        "duration_ms": result.duration_ms,
+    }
+      ]]></example>
+    </pattern>
+
+    <pattern name="Agent Creation Pattern">
+      <description>
+        Dashboard agent creation with optional callbacks and context support.
+      </description>
+      <source-file>/home/chris/projects/work/Ai Bussiness Hub/agents/gateway/agent.py</source-file>
+      <example><![CDATA[
+def create_dashboard_gateway_agent(
+    workspace_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    state_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    frontend_context: Optional[Dict[str, Any]] = None,
+):
+    """
+    Create a Dashboard Gateway agent instance with context awareness.
+    """
+    # Handle optional Agno imports gracefully
+    try:
+        from agno.agent import Agent
+        from agno.models.anthropic import Claude
+        AGNO_AVAILABLE = True
+    except ImportError:
+        AGNO_AVAILABLE = False
+
+    if not AGNO_AVAILABLE:
+        logger.warning("Agno packages not installed. Using mock agent.")
+        agent = _create_mock_agent(workspace_id, model_id, user_id, frontend_context)
+        return agent
+
+    # Build context-aware instructions
+    if frontend_context:
+        context_instructions = ContextAwareInstructions.build_full_instructions(
+            frontend_context
+        )
+        instructions = [DASHBOARD_INSTRUCTIONS, "\n", context_instructions]
+    else:
+        instructions = [DASHBOARD_INSTRUCTIONS]
+
+    agent = Agent(
+        name="dashboard_gateway",
+        role="Dashboard Gateway",
+        description="Orchestrates dashboard widgets...",
+        model=Claude(id=model_id or "claude-sonnet-4-20250514"),
+        instructions=instructions,
+        tools=get_all_tools() + get_layout_tools(),
+        add_datetime_to_instructions=True,
+        markdown=True,
+        show_tool_calls=True,
+    )
+
+    return agent
+      ]]></example>
+    </pattern>
+  </existing-patterns>
+
+  <!-- =========================================================== -->
+  <!-- EXISTING PATTERNS: CONFIGURATION -->
+  <!-- =========================================================== -->
+  <existing-patterns>
+    <pattern name="Pydantic Settings Pattern">
+      <description>
+        The project uses Pydantic BaseSettings for configuration with environment
+        variable support, field validators, and lru_cached factory functions.
+      </description>
+      <source-file>/home/chris/projects/work/Ai Bussiness Hub/agents/config.py</source-file>
+      <example><![CDATA[
+from functools import lru_cache
+from typing import Optional
+from pydantic import Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    """AgentOS configuration settings loaded from environment variables"""
+
+    # Database
+    database_url: str
+
+    # Redis
+    redis_url: Optional[str] = None
+
+    # Authentication
+    better_auth_secret: SecretStr
+
+    # Server
+    agentos_host: str = "0.0.0.0"
+    agentos_port: int = 7777
+
+    # CCR Configuration
+    ccr_enabled: bool = False
+    ccr_url: str = f"http://localhost:{DMConstants.CCR.DEFAULT_PORT}"
+
+    @field_validator("better_auth_secret")
+    @classmethod
+    def _ensure_auth_secret(cls, v: SecretStr) -> SecretStr:
+        value = v.get_secret_value()
+        if not value or not value.strip():
+            raise ValueError("BETTER_AUTH_SECRET must be set")
+        return v
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+
+@lru_cache
+def get_settings() -> "Settings":
+    """Lazy settings factory to avoid eager validation at import time."""
+    return Settings()
+      ]]></example>
+    </pattern>
+
+    <pattern name="AgentOS Config Pattern">
+      <description>
+        Interface configuration pattern for agent protocols (AG-UI, A2A).
+      </description>
+      <source-file>/home/chris/projects/work/Ai Bussiness Hub/agents/agentos/config.py</source-file>
+      <example><![CDATA[
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
+
+class InterfaceConfig(BaseModel):
+    """Configuration for an agent interface."""
+
+    agent_id: str = Field(..., description="Unique agent identifier")
+
+    # AG-UI Configuration
+    agui_enabled: bool = Field(default=False)
+    agui_path: Optional[str] = Field(default=None)
+
+    # A2A Configuration
+    a2a_enabled: bool = Field(default=True)
+    a2a_path: Optional[str] = Field(default=None)
+
+    # Timeout overrides
+    agui_timeout_seconds: Optional[int] = Field(default=None)
+    a2a_timeout_seconds: Optional[int] = Field(default=None)
+
+    def get_agui_timeout(self) -> int:
+        if self.agui_timeout_seconds is not None:
+            return self.agui_timeout_seconds
+        return DMConstants.AGUI.TOOL_CALL_TIMEOUT_SECONDS
+
+
+# Default interface configurations for known agents
+INTERFACE_CONFIGS: List[InterfaceConfig] = [
+    InterfaceConfig(
+        agent_id="dashboard_gateway",
+        agui_enabled=True,
+        agui_path="/agui",
+        a2a_enabled=True,
+        a2a_path="/a2a/dashboard",
+    ),
+    # ... more configs
+]
+
+
+@lru_cache()
+def get_agentos_settings() -> AgentOSSettings:
+    return AgentOSSettings()
+      ]]></example>
+    </pattern>
+  </existing-patterns>
+
+  <!-- =========================================================== -->
+  <!-- EXISTING PATTERNS: A2A CLIENT -->
+  <!-- =========================================================== -->
+  <existing-patterns>
+    <pattern name="A2A Client Pattern">
+      <description>
+        The A2A client uses async httpx with connection pooling, JSON-RPC 2.0 protocol,
+        and singleton pattern with thread-safe initialization.
+      </description>
+      <source-file>/home/chris/projects/work/Ai Bussiness Hub/agents/a2a/client.py</source-file>
+      <example><![CDATA[
+import asyncio
+import json
+import logging
+import threading
+from typing import Any, Dict, List, Optional
+import httpx
+from pydantic import BaseModel, Field
+
+class A2ATaskResult(BaseModel):
+    """Result from an A2A task execution."""
+    content: str = Field(default="")
+    tool_calls: List[Dict[str, Any]] = Field(default_factory=list)
+    artifacts: List[Dict[str, Any]] = Field(default_factory=list)
+    success: bool = Field(default=True)
+    error: Optional[str] = Field(default=None)
+    agent_id: Optional[str] = Field(default=None)
+    duration_ms: Optional[float] = Field(default=None)
+
+
+class HyvveA2AClient:
+    """A2A client for HYVVE inter-agent communication."""
+
+    AGENT_PATHS: Dict[str, str] = {
+        "navi": "/a2a/navi",
+        "pulse": "/a2a/pulse",
+        "herald": "/a2a/herald",
+    }
+
+    def __init__(self, base_url: Optional[str] = None, timeout: Optional[int] = None):
+        settings = get_settings()
+        self.base_url = base_url or f"http://localhost:{settings.agentos_port}"
+        self.timeout = timeout or DMConstants.A2A.TASK_TIMEOUT_SECONDS
+        self._client: Optional[httpx.AsyncClient] = None
+        self._client_lock = asyncio.Lock()
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            async with self._client_lock:
+                if self._client is None:
+                    self._client = httpx.AsyncClient(
+                        base_url=self.base_url,
+                        timeout=httpx.Timeout(...),
+                        limits=httpx.Limits(...),
+                    )
+        return self._client
+
+    async def call_agent(
+        self,
+        agent_id: str,
+        task: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> A2ATaskResult:
+        # ... implementation
+        pass
+
+
+# Singleton pattern
+_a2a_client: Optional[HyvveA2AClient] = None
+_client_lock = asyncio.Lock()
+
+async def get_a2a_client() -> HyvveA2AClient:
+    global _a2a_client
+    if _a2a_client is None:
+        async with _client_lock:
+            if _a2a_client is None:
+                _a2a_client = HyvveA2AClient()
+    return _a2a_client
+      ]]></example>
+    </pattern>
+  </existing-patterns>
+
+  <!-- =========================================================== -->
+  <!-- MCP PROTOCOL REFERENCE -->
+  <!-- =========================================================== -->
+  <mcp-protocol-reference>
+    <overview>
+      Model Context Protocol (MCP) is an open protocol developed by Anthropic for
+      connecting AI applications to external tools and data sources. It provides
+      standardized communication between AI applications and tool servers.
+    </overview>
+
+    <transport-layer>
+      MCP uses stdio (standard input/output) for communication with subprocess-based
+      servers. The AI application spawns the MCP server as a subprocess and communicates
+      via stdin/stdout pipes.
+    </transport-layer>
+
+    <message-format>
+      <description>JSON-RPC 2.0 for request/response messaging</description>
+      <request-example><![CDATA[
+{"jsonrpc": "2.0", "method": "tools/list", "id": 1}
+      ]]></request-example>
+      <response-example><![CDATA[
+{"jsonrpc": "2.0", "result": {"tools": [...]}, "id": 1}
+      ]]></response-example>
+    </message-format>
+
+    <tool-discovery>
+      <description>
+        Servers expose available tools via tools/list method with JSON Schema
+        definitions for parameters.
+      </description>
+      <method>tools/list</method>
+      <response-format><![CDATA[
+{
+  "tools": [
+    {
+      "name": "search_repositories",
+      "description": "Search GitHub repositories",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string", "description": "Search query"}
+        },
+        "required": ["query"]
+      }
+    }
+  ]
+}
+      ]]></response-format>
+    </tool-discovery>
+
+    <tool-invocation>
+      <description>Tools are called via tools/call with name and arguments.</description>
+      <method>tools/call</method>
+      <request-format><![CDATA[
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "search_repositories",
+    "arguments": {"query": "machine learning"}
+  }
+}
+      ]]></request-format>
+    </tool-invocation>
+
+    <subprocess-management>
+      <description>MCP servers run as subprocesses requiring lifecycle management.</description>
+      <example><![CDATA[
+# Starting a server
+process = subprocess.Popen(
+    [command] + args,
+    stdin=subprocess.PIPE,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    env={**os.environ, **resolved_env},
+)
+
+# Graceful shutdown
+process.terminate()
+try:
+    process.wait(timeout=5)
+except subprocess.TimeoutExpired:
+    process.kill()
+      ]]></example>
+    </subprocess-management>
+
+    <environment-variables>
+      <description>
+        API keys and secrets are passed via environment variables with ${VAR}
+        pattern resolution. This keeps secrets out of configuration files.
+      </description>
+      <example><![CDATA[
+env = {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}
+# Resolved to actual value at runtime:
+resolved = {"GITHUB_TOKEN": os.getenv("GITHUB_TOKEN", "")}
+      ]]></example>
+    </environment-variables>
+
+    <default-servers>
+      <server name="github">
+        <package>mcp-server-github</package>
+        <description>GitHub repository access and management</description>
+        <required-env>GITHUB_TOKEN</required-env>
+      </server>
+      <server name="brave">
+        <package>mcp-server-brave-search</package>
+        <description>Brave web search</description>
+        <required-env>BRAVE_API_KEY</required-env>
+      </server>
+      <server name="filesystem">
+        <package>mcp-server-filesystem</package>
+        <description>Local filesystem access (sandboxed)</description>
+        <required-env>None (sandboxed to specific directories)</required-env>
+      </server>
+    </default-servers>
+
+    <tool-name-translation>
+      <description>
+        MCP tools are translated to agent-compatible names using the pattern
+        mcp_{server}_{tool} to avoid naming conflicts and enable routing.
+      </description>
+      <examples>
+        <example>
+          <mcp-server>github</mcp-server>
+          <mcp-tool>search_repositories</mcp-tool>
+          <agent-tool>mcp_github_search_repositories</agent-tool>
+        </example>
+        <example>
+          <mcp-server>github</mcp-server>
+          <mcp-tool>create_issue</mcp-tool>
+          <agent-tool>mcp_github_create_issue</agent-tool>
+        </example>
+        <example>
+          <mcp-server>brave</mcp-server>
+          <mcp-tool>search</mcp-tool>
+          <agent-tool>mcp_brave_search</agent-tool>
+        </example>
+        <example>
+          <mcp-server>filesystem</mcp-server>
+          <mcp-tool>read_file</mcp-tool>
+          <agent-tool>mcp_filesystem_read_file</agent-tool>
+        </example>
+      </examples>
+    </tool-name-translation>
+
+    <references>
+      <reference>https://modelcontextprotocol.io - Official MCP documentation</reference>
+      <reference>https://github.com/modelcontextprotocol/specification - Protocol specification</reference>
+      <reference>https://www.jsonrpc.org/specification - JSON-RPC 2.0 format</reference>
+    </references>
+  </mcp-protocol-reference>
+
+  <!-- =========================================================== -->
+  <!-- INTERFACE DEFINITIONS -->
+  <!-- =========================================================== -->
+  <interface-definitions>
+    <class name="MCPServerConfig">
+      <description>Configuration for a single MCP server.</description>
+      <file>agents/mcp/config.py</file>
+      <base-class>pydantic.BaseModel</base-class>
+      <fields>
+        <field name="name" type="str">Server identifier</field>
+        <field name="command" type="str">Command to launch server (e.g., "uvx")</field>
+        <field name="args" type="List[str]" default="[]">Command arguments</field>
+        <field name="env" type="Dict[str, str]" default="{}">Environment variables (supports ${VAR} pattern)</field>
+        <field name="description" type="Optional[str]" default="None">Human-readable description</field>
+        <field name="enabled" type="bool" default="True">Whether server is active</field>
+      </fields>
+      <methods>
+        <method name="resolve_env">
+          <signature>def resolve_env(self) -> Dict[str, str]</signature>
+          <description>Resolve environment variables from system env. Expands ${VAR} patterns to actual environment values.</description>
+        </method>
+      </methods>
+    </class>
+
+    <class name="MCPConfig">
+      <description>Complete MCP configuration.</description>
+      <file>agents/mcp/config.py</file>
+      <base-class>pydantic.BaseModel</base-class>
+      <fields>
+        <field name="servers" type="Dict[str, MCPServerConfig]" default="{}">Configured servers</field>
+        <field name="default_timeout" type="int" default="30">Default request timeout in seconds</field>
+        <field name="max_retries" type="int" default="3">Retry attempts for failed requests</field>
+      </fields>
+      <methods>
+        <method name="from_dict">
+          <signature>@classmethod def from_dict(cls, data: Dict[str, Any]) -> "MCPConfig"</signature>
+          <description>Create config from dictionary with servers, timeout, retries.</description>
+        </method>
+      </methods>
+    </class>
+
+    <class name="MCPConnection">
+      <description>Connection to a single MCP server. Manages subprocess and JSON-RPC communication.</description>
+      <file>agents/mcp/client.py</file>
+      <fields>
+        <field name="config" type="MCPServerConfig">Server configuration</field>
+        <field name="_process" type="Optional[subprocess.Popen]">Server subprocess</field>
+        <field name="_request_id" type="int">JSON-RPC request ID counter</field>
+      </fields>
+      <methods>
+        <method name="__init__">
+          <signature>def __init__(self, config: MCPServerConfig)</signature>
+        </method>
+        <method name="start">
+          <signature>async def start(self) -> None</signature>
+          <description>Start the MCP server process. Raises RuntimeError if server fails to start.</description>
+        </method>
+        <method name="stop">
+          <signature>async def stop(self) -> None</signature>
+          <description>Stop the MCP server process gracefully.</description>
+        </method>
+        <method name="list_tools">
+          <signature>async def list_tools(self) -> List[Dict[str, Any]]</signature>
+          <description>Get list of available tools from server via tools/list JSON-RPC.</description>
+        </method>
+        <method name="call_tool">
+          <signature>async def call_tool(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]</signature>
+          <description>Call a tool on the MCP server via tools/call JSON-RPC.</description>
+        </method>
+        <method name="_send_request">
+          <signature>async def _send_request(self, method: str, params: Dict[str, Any]) -> Dict[str, Any]</signature>
+          <description>Internal JSON-RPC communication method.</description>
+        </method>
+      </methods>
+    </class>
+
+    <class name="MCPClient">
+      <description>Client for Model Context Protocol servers. Manages connections and provides unified interface.</description>
+      <file>agents/mcp/client.py</file>
+      <fields>
+        <field name="config" type="MCPConfig">MCP configuration</field>
+        <field name="_connections" type="Dict[str, MCPConnection]">Active connections</field>
+        <field name="_tools_cache" type="Dict[str, List[Dict[str, Any]]]">Cached tools per server</field>
+      </fields>
+      <methods>
+        <method name="__init__">
+          <signature>def __init__(self, config: MCPConfig)</signature>
+        </method>
+        <method name="connect">
+          <signature>async def connect(self, server_name: str) -> bool</signature>
+          <description>Connect to an MCP server. Returns True if connection successful.</description>
+        </method>
+        <method name="disconnect">
+          <signature>async def disconnect(self, server_name: str) -> None</signature>
+          <description>Disconnect from an MCP server and clear cache.</description>
+        </method>
+        <method name="disconnect_all">
+          <signature>async def disconnect_all(self) -> None</signature>
+          <description>Disconnect from all connected servers.</description>
+        </method>
+        <method name="get_available_tools">
+          <signature>def get_available_tools(self, server_name: Optional[str] = None) -> List[Dict[str, Any]]</signature>
+          <description>Get list of available tools. Filter by server if specified.</description>
+        </method>
+        <method name="call_tool">
+          <signature>async def call_tool(self, server_name: str, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]</signature>
+          <description>Call a tool on an MCP server.</description>
+        </method>
+      </methods>
+    </class>
+
+    <class name="MCPToolBridge">
+      <description>Bridges MCP tools to agent-compatible format. Converts MCP tool definitions to Agno tool format.</description>
+      <file>agents/mcp/a2a_bridge.py</file>
+      <fields>
+        <field name="mcp_client" type="MCPClient">Connected MCP client</field>
+      </fields>
+      <methods>
+        <method name="__init__">
+          <signature>def __init__(self, mcp_client: MCPClient)</signature>
+        </method>
+        <method name="get_tools_for_agent">
+          <signature>def get_tools_for_agent(self) -> List[Dict[str, Any]]</signature>
+          <description>Get MCP tools in agent-compatible format with mcp_{server}_{tool} naming.</description>
+        </method>
+        <method name="invoke_tool">
+          <signature>async def invoke_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]</signature>
+          <description>Invoke an MCP tool by its agent-compatible name. Parses name and routes to correct server.</description>
+        </method>
+        <method name="_convert_parameters">
+          <signature>def _convert_parameters(self, input_schema: Dict[str, Any]) -> List[Dict[str, Any]]</signature>
+          <description>Convert MCP JSON Schema to agent parameter format.</description>
+        </method>
+      </methods>
+    </class>
+
+    <function name="create_mcp_bridge">
+      <file>agents/mcp/a2a_bridge.py</file>
+      <signature>async def create_mcp_bridge(config: Optional[MCPConfig] = None) -> MCPToolBridge</signature>
+      <description>Factory function to create and initialize an MCP tool bridge. Uses defaults if config is None.</description>
+    </function>
+
+    <function name="get_default_mcp_config">
+      <file>agents/mcp/config.py</file>
+      <signature>def get_default_mcp_config() -> MCPConfig</signature>
+      <description>Get default MCP configuration with pre-configured servers (github, brave, filesystem).</description>
+    </function>
+  </interface-definitions>
+
+  <!-- =========================================================== -->
+  <!-- TESTING REQUIREMENTS -->
+  <!-- =========================================================== -->
+  <testing-requirements>
+    <coverage-target>85%</coverage-target>
+
+    <test-file name="test_config.py">
+      <class name="TestMCPServerConfig">
+        <test>test_creates_config_with_required_fields</test>
+        <test>test_resolves_env_variable_pattern</test>
+        <test>test_preserves_literal_env_values</test>
+        <test>test_returns_empty_for_missing_env_var</test>
+        <test>test_disabled_by_default_false</test>
+      </class>
+      <class name="TestMCPConfig">
+        <test>test_creates_config_from_dict</test>
+        <test>test_default_timeout_and_retries</test>
+      </class>
+      <class name="TestDefaultMCPServers">
+        <test>test_github_server_defined</test>
+        <test>test_brave_server_defined</test>
+        <test>test_filesystem_server_defined</test>
+        <test>test_get_default_config</test>
+      </class>
+    </test-file>
+
+    <test-file name="test_client.py">
+      <class name="TestMCPConnection">
+        <test>test_start_launches_subprocess</test>
+        <test>test_stop_terminates_process</test>
+        <test>test_list_tools_sends_json_rpc</test>
+        <test>test_call_tool_sends_json_rpc</test>
+      </class>
+      <class name="TestMCPClient">
+        <test>test_connect_starts_connection</test>
+        <test>test_connect_returns_false_for_unknown_server</test>
+        <test>test_connect_returns_false_for_disabled_server</test>
+        <test>test_disconnect_stops_connection</test>
+        <test>test_disconnect_all_stops_all</test>
+        <test>test_get_available_tools_all_servers</test>
+        <test>test_get_available_tools_single_server</test>
+        <test>test_call_tool_routes_correctly</test>
+      </class>
+    </test-file>
+
+    <test-file name="test_bridge.py">
+      <class name="TestMCPToolBridge">
+        <test>test_get_tools_for_agent_converts_names</test>
+        <test>test_get_tools_for_agent_converts_parameters</test>
+        <test>test_invoke_tool_parses_name_and_routes</test>
+        <test>test_invoke_tool_raises_for_invalid_name</test>
+        <test>test_invoke_tool_handles_underscore_in_tool_name</test>
+        <test>test_convert_parameters_handles_required</test>
+      </class>
+    </test-file>
+
+    <testing-notes>
+      <note>Use unittest.mock.patch for subprocess.Popen in connection tests</note>
+      <note>Use unittest.mock.AsyncMock for async method mocking</note>
+      <note>Use unittest.mock.patch.dict for os.environ in env resolution tests</note>
+      <note>Test error cases: connection failures, timeouts, invalid JSON-RPC responses</note>
+    </testing-notes>
+  </testing-requirements>
+
+  <!-- =========================================================== -->
+  <!-- DEFINITION OF DONE -->
+  <!-- =========================================================== -->
+  <definition-of-done>
+    <item>MCPServerConfig model validates and resolves env vars</item>
+    <item>MCPConfig model parses from dictionary with defaults</item>
+    <item>Default server configs defined for GitHub, Brave, filesystem</item>
+    <item>MCPConnection manages subprocess lifecycle</item>
+    <item>MCPConnection sends JSON-RPC requests for tools/list and tools/call</item>
+    <item>MCPClient manages multiple connections with caching</item>
+    <item>MCPClient.connect() starts server and caches tools</item>
+    <item>MCPClient.disconnect() stops server gracefully</item>
+    <item>MCPToolBridge converts MCP tools to agent format</item>
+    <item>MCPToolBridge.invoke_tool() parses name and routes correctly</item>
+    <item>create_mcp_bridge() factory initializes everything</item>
+    <item>Module exports defined in __init__.py</item>
+    <item>Unit tests pass with >85% coverage</item>
+    <item>Integration with gateway agent documented</item>
+    <item>Sprint status updated to done</item>
+  </definition-of-done>
+
+  <!-- =========================================================== -->
+  <!-- IMPLEMENTATION NOTES -->
+  <!-- =========================================================== -->
+  <implementation-notes>
+    <note priority="high">
+      Environment variable resolution must handle missing vars gracefully, returning
+      empty string to prevent crashes while allowing servers that don't need env vars
+      (like filesystem) to work correctly.
+    </note>
+
+    <note priority="high">
+      Subprocess management requires careful cleanup. Always use try/finally to ensure
+      processes are terminated even on errors. Use terminate() first, then kill() with
+      timeout for graceful shutdown.
+    </note>
+
+    <note priority="medium">
+      Tool caching should happen at connect time to avoid repeated JSON-RPC calls.
+      Cache should be cleared on disconnect to ensure fresh tool lists on reconnect.
+    </note>
+
+    <note priority="medium">
+      The mcp_{server}_{tool} naming convention must handle tool names with underscores.
+      Parsing should only split on the first two underscores: mcp + server + rest.
+    </note>
+
+    <note priority="medium">
+      Follow existing patterns from A2A client for async handling, error handling,
+      and logging conventions.
+    </note>
+
+    <note priority="low">
+      The filesystem server should use sandboxed paths (/tmp/hyvve) for security.
+      This can be configured via args in the server config.
+    </note>
+  </implementation-notes>
+</story-context>

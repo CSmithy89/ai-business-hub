@@ -1,0 +1,877 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-06.2 - Agent Context Consumption
+  Generated: 2025-12-31
+  Epic: DM-06 Contextual Intelligence
+  Points: 5
+
+  This context file provides developers with all the information needed
+  to implement the Agent Context Consumption story.
+-->
+<story-context>
+  <metadata>
+    <story-id>DM-06.2</story-id>
+    <title>Agent Context Consumption</title>
+    <epic>DM-06 - Contextual Intelligence</epic>
+    <points>5</points>
+    <status>ready-for-dev</status>
+    <priority>High (Enables context-aware agent responses)</priority>
+  </metadata>
+
+  <summary>
+    Enable agents to leverage frontend context for intelligent, context-aware responses.
+    This story implements the agent-side consumption of context provided by DM-06.1's
+    Deep Context Providers, allowing agents to understand and reference the user's
+    current application state in their responses.
+
+    Key deliverables:
+    - ContextAwareInstructions class with base instruction template
+    - Context formatting utilities for each context type (project, selection, activity, document, view)
+    - Response hints generation based on context state (health, progress, recent actions)
+    - Pydantic models for validating frontend context with camelCase alias support
+    - Dashboard Gateway agent integration with frontend_context parameter
+  </summary>
+
+  <acceptance-criteria>
+    <criterion id="AC1">ContextAwareInstructions class created with BASE_INSTRUCTIONS constant</criterion>
+    <criterion id="AC2">format_project_context() formats project data with name, status, phase, health, progress, tasks, teamSize</criterion>
+    <criterion id="AC3">format_selection_context() formats selection with type, count, summary, IDs (limited to 5)</criterion>
+    <criterion id="AC4">format_activity_context() formats activity with current page, session duration, recent actions</criterion>
+    <criterion id="AC5">format_document_context() formats document with title, type, cursor position, selection preview</criterion>
+    <criterion id="AC6">format_view_context() formats view with type, filters, sorting, grouping, item counts</criterion>
+    <criterion id="AC7">build_full_instructions() combines all context types into formatted agent instructions</criterion>
+    <criterion id="AC8">get_context_aware_response_hints() generates hints based on project health, progress, and activity</criterion>
+    <criterion id="AC9">ProjectContextModel Pydantic model validates project context with camelCase alias support</criterion>
+    <criterion id="AC10">SelectionContextModel Pydantic model validates selection context</criterion>
+    <criterion id="AC11">ActivityContextModel Pydantic model validates activity context with alias support</criterion>
+    <criterion id="AC12">DocumentContextModel Pydantic model validates document context with alias support</criterion>
+    <criterion id="AC13">ViewContextModel Pydantic model validates view context with alias support</criterion>
+    <criterion id="AC14">FrontendContext bundle model combines all context types with to_dict() method</criterion>
+    <criterion id="AC15">Dashboard Gateway agent updated to accept frontend_context parameter</criterion>
+    <criterion id="AC16">Agent responses correctly reference context (e.g., "Project HYVVE is at 75% completion")</criterion>
+    <criterion id="AC17">Unit tests pass with more than 85% coverage for instruction formatting and context types</criterion>
+  </acceptance-criteria>
+
+  <files-to-create>
+    <file path="agents/gateway/context_instructions.py" description="Context-aware instruction templates and formatting utilities" />
+    <file path="agents/types/context_types.py" description="Pydantic models for frontend context validation" />
+    <file path="agents/types/__init__.py" description="Module exports for context type models" />
+    <file path="agents/gateway/__tests__/test_context_instructions.py" description="Unit tests for instruction formatting" />
+    <file path="agents/types/__tests__/test_context_types.py" description="Unit tests for context type models" />
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="agents/gateway/agent.py" description="Add frontend_context parameter and context-aware instructions" />
+    <file path="docs/modules/bm-dm/sprint-status.yaml" description="Update story status to done when complete" />
+  </files-to-modify>
+
+  <existing-code-patterns>
+    <!-- Dashboard Gateway Agent Pattern -->
+    <pattern name="Dashboard Gateway Agent" file="agents/gateway/agent.py">
+      <description>
+        Shows the current Dashboard Gateway agent factory function.
+        This is where frontend_context parameter will be added.
+      </description>
+      <code><![CDATA[
+"""
+Dashboard Gateway Agent
+
+The Dashboard Gateway is the primary interface between the frontend CopilotKit
+and the backend agent system. It orchestrates dashboard widgets by coordinating
+with specialist agents and rendering visual components.
+"""
+import logging
+from typing import Any, Callable, Dict, Optional
+
+from constants.dm_constants import DMConstants
+
+from .state_emitter import DashboardStateEmitter, create_state_emitter
+from .tools import WIDGET_TYPES, get_all_tools
+
+logger = logging.getLogger(__name__)
+
+
+# Dashboard agent system instructions
+DASHBOARD_INSTRUCTIONS = """
+You are the Dashboard Gateway agent for HYVVE. Your primary role is to:
+
+1. UNDERSTAND user requests about their workspace, projects, or business
+2. ORCHESTRATE data gathering from specialist agents via A2A
+3. RENDER visual widgets on the user's dashboard
+...
+"""
+
+
+def create_dashboard_gateway_agent(
+    workspace_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    state_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+):
+    """
+    Create a Dashboard Gateway agent instance.
+
+    Args:
+        workspace_id: Optional workspace/tenant identifier for context.
+        model_id: Optional model identifier override.
+        user_id: Optional user identifier for personalization.
+        state_callback: Optional callback for state emissions via AG-UI protocol.
+
+    Returns:
+        Configured Dashboard Gateway Agent instance ready for interface mounting.
+    """
+    # Handle optional Agno imports gracefully
+    try:
+        from agno.agent import Agent
+        from agno.models.anthropic import Claude
+
+        AGNO_AVAILABLE = True
+    except ImportError:
+        AGNO_AVAILABLE = False
+
+    if not AGNO_AVAILABLE:
+        logger.warning(
+            "Agno packages not installed. Dashboard Gateway using mock agent."
+        )
+        agent = _create_mock_agent(workspace_id, model_id, user_id)
+        # ...
+        return agent
+
+    # Build context-aware instructions
+    instructions = [DASHBOARD_INSTRUCTIONS]
+
+    if workspace_id:
+        instructions.append(f"\nCurrent Workspace: {workspace_id}")
+
+    if user_id:
+        instructions.append(f"Current User: {user_id}")
+
+    # Add available widget types for reference
+    instructions.append(f"\nAvailable Widget Types: {', '.join(WIDGET_TYPES)}")
+
+    agent = Agent(
+        name="dashboard_gateway",
+        role="Dashboard Gateway",
+        description=(
+            "Orchestrates dashboard widgets by coordinating with specialist agents "
+            "and rendering visual components for the HYVVE platform"
+        ),
+        model=Claude(id=model_id or "claude-sonnet-4-20250514"),
+        instructions=instructions,
+        tools=get_all_tools(),
+        add_datetime_to_instructions=True,
+        markdown=True,
+        show_tool_calls=True,
+    )
+
+    # Create and attach state emitter if callback provided
+    if state_callback:
+        agent._state_emitter = create_state_emitter(
+            on_state_change=state_callback,
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+    else:
+        agent._state_emitter = None
+
+    return agent
+      ]]></code>
+    </pattern>
+
+    <!-- Dashboard State Pydantic Models Pattern -->
+    <pattern name="Pydantic Models with camelCase Aliases" file="agents/schemas/dashboard_state.py">
+      <description>
+        Shows the pattern for Pydantic models with camelCase alias support.
+        Follow this pattern for context type models.
+      </description>
+      <code><![CDATA[
+"""
+Dashboard Shared State Schemas
+
+These Pydantic models mirror the TypeScript schemas for state
+shared between the Dashboard Gateway agent and the frontend.
+The schemas use Field aliases for camelCase output to ensure
+cross-language compatibility with the TypeScript frontend.
+"""
+
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ProjectStatus(str, Enum):
+    """Project status values matching TypeScript ProjectStatusEnum."""
+
+    ON_TRACK = "on-track"
+    AT_RISK = "at-risk"
+    BEHIND = "behind"
+    COMPLETED = "completed"
+
+
+class TaskStep(BaseModel):
+    """
+    Individual step within a task.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    index: int = Field(..., ge=0, description="Step index (0-based)")
+    name: str = Field(..., description="Step display name")
+    status: TaskStepStatus = Field(
+        default=TaskStepStatus.PENDING, description="Step execution status"
+    )
+    started_at: Optional[int] = Field(
+        None, alias="startedAt", description="Step start timestamp (Unix ms)"
+    )
+    completed_at: Optional[int] = Field(
+        None, alias="completedAt", description="Step completion timestamp (Unix ms)"
+    )
+
+
+class DashboardState(BaseModel):
+    """
+    Root Dashboard State.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    version: int = Field(default=STATE_VERSION, description="Schema version")
+    timestamp: int = Field(..., description="Last update timestamp (Unix ms)")
+    active_project: Optional[str] = Field(
+        None, alias="activeProject", description="Currently focused project ID"
+    )
+    workspace_id: Optional[str] = Field(
+        None, alias="workspaceId", description="Current workspace ID"
+    )
+    user_id: Optional[str] = Field(None, alias="userId", description="Current user ID")
+
+    def to_frontend_dict(self) -> Dict[str, Any]:
+        """
+        Convert to frontend-compatible dictionary with camelCase keys.
+        """
+        return self.model_dump(by_alias=True, exclude_none=True)
+      ]]></code>
+    </pattern>
+
+    <!-- Agent Schemas Module Exports -->
+    <pattern name="Agent Schemas Module Exports" file="agents/schemas/__init__.py">
+      <description>
+        Shows the pattern for module exports. Create similar pattern for agents/types/__init__.py.
+      </description>
+      <code><![CDATA[
+"""
+Agent Schemas Module
+
+Pydantic models for data validation and serialization across
+the agent system. These schemas ensure type safety and
+cross-language compatibility with the TypeScript frontend.
+"""
+
+from .dashboard_state import (
+    # Enums
+    AlertType,
+    ProjectStatus,
+    TrendDirection,
+    # Widget State Models
+    ActivityEntry,
+    ActivityState,
+    AlertEntry,
+    # Root State Models
+    DashboardState,
+    LoadingState,
+    MetricEntry,
+    MetricsState,
+    ProjectStatusState,
+    # Constants
+    STATE_VERSION,
+    WidgetsState,
+)
+
+__all__ = [
+    # Constants
+    "STATE_VERSION",
+    # Enums
+    "ProjectStatus",
+    "TrendDirection",
+    "AlertType",
+    # Widget State Models
+    "ProjectStatusState",
+    # ... etc
+]
+      ]]></code>
+    </pattern>
+  </existing-code-patterns>
+
+  <typescript-context-types>
+    <!-- These are the TypeScript types from DM-06.1 that Python models must match -->
+    <description>
+      TypeScript context types created in DM-06.1. Python Pydantic models must
+      accept these camelCase field names via alias support.
+    </description>
+    <code file="apps/web/src/lib/context/copilot-context.ts"><![CDATA[
+/**
+ * Context for the currently active project.
+ */
+export interface ProjectContext {
+  id: string;
+  name: string;
+  status: 'active' | 'on-hold' | 'completed';
+  currentPhase?: string;
+  healthScore?: number;
+  progress: number;
+  tasksTotal: number;
+  tasksCompleted: number;
+  team?: Array<{ id: string; name: string; role: string }>;
+}
+
+/**
+ * Context for currently selected items in the UI.
+ */
+export interface SelectionContext {
+  type: 'task' | 'project' | 'document' | 'none';
+  ids: string[];
+  count: number;
+  summary?: string;
+}
+
+/**
+ * Context for user activity and navigation.
+ */
+export interface ActivityContext {
+  recentActions: Array<{
+    action: string;
+    target: string;
+    timestamp: number;
+  }>;
+  currentPage: string;
+  sessionDuration: number;
+}
+
+/**
+ * Context for the document currently being edited.
+ */
+export interface DocumentContext {
+  id: string;
+  title: string;
+  type: 'markdown' | 'rich-text' | 'code';
+  wordCount: number;
+  lastEdited: number;
+  cursorPosition?: { line: number; column: number };
+  selectedText?: string;
+}
+
+/**
+ * Context for current view configuration.
+ */
+export interface ViewContext {
+  type: 'list' | 'board' | 'calendar' | 'gantt';
+  filters: Record<string, unknown>;
+  sortBy?: string;
+  groupBy?: string;
+  visibleCount: number;
+  totalCount: number;
+}
+
+// Note: Frontend hooks transform this before sending:
+// - ProjectContext.team becomes teamSize (count only)
+// - ActivityContext.sessionDuration becomes sessionMinutes
+// - DocumentContext.cursorPosition becomes cursorLine
+// - DocumentContext.selectedText becomes hasSelection + selectionPreview
+    ]]></code>
+  </typescript-context-types>
+
+  <interface-definitions>
+    <!-- These are the interfaces to implement from the story -->
+    <interface name="ContextAwareInstructions">
+      <code><![CDATA[
+class ContextAwareInstructions:
+    """
+    Generates context-aware instructions for agents.
+    """
+
+    BASE_INSTRUCTIONS: str  # Class constant with context guidelines
+
+    @staticmethod
+    def format_project_context(project: Optional[Dict[str, Any]]) -> str:
+        """Format project context for agent instructions."""
+        ...
+
+    @staticmethod
+    def format_selection_context(selection: Optional[Dict[str, Any]]) -> str:
+        """Format selection context for agent instructions."""
+        ...
+
+    @staticmethod
+    def format_activity_context(activity: Optional[Dict[str, Any]]) -> str:
+        """Format activity context for agent instructions."""
+        ...
+
+    @staticmethod
+    def format_document_context(document: Optional[Dict[str, Any]]) -> str:
+        """Format document context for agent instructions."""
+        ...
+
+    @staticmethod
+    def format_view_context(view: Optional[Dict[str, Any]]) -> str:
+        """Format view context for agent instructions."""
+        ...
+
+    @classmethod
+    def build_full_instructions(cls, context: Dict[str, Any]) -> str:
+        """Build full context-aware instructions from all available context."""
+        ...
+
+
+def get_context_aware_response_hints(context: Dict[str, Any]) -> List[str]:
+    """
+    Generate response hints based on available context.
+    """
+    ...
+      ]]></code>
+    </interface>
+
+    <interface name="ProjectContextModel">
+      <code><![CDATA[
+class ProjectContextModel(BaseModel):
+    """Project context from frontend."""
+    id: str
+    name: str
+    status: str
+    current_phase: Optional[str] = Field(None, alias="currentPhase")
+    health_score: Optional[int] = Field(None, alias="healthScore")
+    progress: int = 0
+    tasks_total: int = Field(0, alias="tasksTotal")
+    tasks_completed: int = Field(0, alias="tasksCompleted")
+    team_size: int = Field(0, alias="teamSize")
+
+    model_config = ConfigDict(populate_by_name=True)
+      ]]></code>
+    </interface>
+
+    <interface name="SelectionContextModel">
+      <code><![CDATA[
+class SelectionContextModel(BaseModel):
+    """Selection context from frontend."""
+    type: str  # 'task' | 'project' | 'document' | 'none'
+    ids: List[str] = Field(default_factory=list)
+    count: int = 0
+    summary: Optional[str] = None
+      ]]></code>
+    </interface>
+
+    <interface name="ActivityContextModel">
+      <code><![CDATA[
+class ActivityContextModel(BaseModel):
+    """Activity context from frontend."""
+    recent_actions: List[Dict[str, Any]] = Field(default_factory=list, alias="recentActions")
+    current_page: str = Field("unknown", alias="currentPage")
+    session_minutes: int = Field(0, alias="sessionMinutes")
+
+    model_config = ConfigDict(populate_by_name=True)
+      ]]></code>
+    </interface>
+
+    <interface name="DocumentContextModel">
+      <code><![CDATA[
+class DocumentContextModel(BaseModel):
+    """Document context from frontend."""
+    id: str
+    title: str
+    type: str  # 'markdown' | 'rich-text' | 'code'
+    word_count: int = Field(0, alias="wordCount")
+    last_edited: int = Field(0, alias="lastEdited")
+    cursor_line: Optional[int] = Field(None, alias="cursorLine")
+    has_selection: bool = Field(False, alias="hasSelection")
+    selection_preview: Optional[str] = Field(None, alias="selectionPreview")
+
+    model_config = ConfigDict(populate_by_name=True)
+      ]]></code>
+    </interface>
+
+    <interface name="ViewContextModel">
+      <code><![CDATA[
+class ViewContextModel(BaseModel):
+    """View context from frontend."""
+    type: str  # 'list' | 'board' | 'calendar' | 'gantt'
+    filters: Dict[str, Any] = Field(default_factory=dict)
+    sort_by: Optional[str] = Field(None, alias="sortBy")
+    group_by: Optional[str] = Field(None, alias="groupBy")
+    visible_count: int = Field(0, alias="visibleCount")
+    total_count: int = Field(0, alias="totalCount")
+
+    model_config = ConfigDict(populate_by_name=True)
+      ]]></code>
+    </interface>
+
+    <interface name="FrontendContext">
+      <code><![CDATA[
+class FrontendContext(BaseModel):
+    """Complete frontend context bundle."""
+    project: Optional[ProjectContextModel] = None
+    selection: Optional[SelectionContextModel] = None
+    activity: Optional[ActivityContextModel] = None
+    document: Optional[DocumentContextModel] = None
+    view: Optional[ViewContextModel] = None
+    workspace_id: Optional[str] = Field(None, alias="workspaceId")
+    user_id: Optional[str] = Field(None, alias="userId")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for instruction building."""
+        return {
+            "project": self.project.model_dump(by_alias=True) if self.project else None,
+            "selection": self.selection.model_dump(by_alias=True) if self.selection else None,
+            "activity": self.activity.model_dump(by_alias=True) if self.activity else None,
+            "document": self.document.model_dump(by_alias=True) if self.document else None,
+            "view": self.view.model_dump(by_alias=True) if self.view else None,
+        }
+      ]]></code>
+    </interface>
+
+    <interface name="Updated Agent Factory">
+      <code><![CDATA[
+def create_dashboard_gateway_agent(
+    workspace_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    state_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    frontend_context: Optional[Dict[str, Any]] = None,  # NEW parameter
+):
+    """
+    Create a Dashboard Gateway agent instance with context awareness.
+
+    Args:
+        workspace_id: Workspace/tenant identifier
+        model_id: Model identifier override
+        user_id: User identifier for personalization
+        state_callback: Callback for state emissions (AG-UI)
+        frontend_context: Context from frontend via AG-UI
+    """
+    ...
+      ]]></code>
+    </interface>
+  </interface-definitions>
+
+  <implementation-reference>
+    <!-- Reference implementation from tech spec Section 3.2 -->
+    <description>
+      The tech spec (epic-dm-06-tech-spec.md Section 3.2) provides reference implementation.
+      Key patterns to follow:
+    </description>
+    <code><![CDATA[
+"""
+Context-Aware Agent Instructions
+
+Provides instruction templates that incorporate frontend context
+for more intelligent agent responses.
+
+Epic: DM-06 | Story: DM-06.2
+"""
+from typing import Any, Dict, List, Optional
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class ContextAwareInstructions:
+    """
+    Generates context-aware instructions for agents.
+    """
+
+    BASE_INSTRUCTIONS = """
+You are the Dashboard Gateway agent for HYVVE. You have access to the user's
+current application context, which is automatically provided to you.
+
+CONTEXT AWARENESS GUIDELINES:
+1. When the user says "this project", "this task", or "here", refer to the
+   active context provided in your system prompt.
+2. Use specific names and details from the context - don't ask for IDs or
+   names that are already visible to you.
+3. If the context includes selected items, assume the user's question relates
+   to those items unless they specify otherwise.
+4. Reference actual data from the context in your responses (e.g., "Project
+   HYVVE Dashboard is currently at 75% completion").
+
+CONTEXT TYPES YOU MAY RECEIVE:
+- Project: Active project details (name, status, health, progress)
+- Selection: Currently selected items (tasks, documents, etc.)
+- Activity: Recent user actions and current page
+- Document: Document being edited (title, type, cursor position)
+- View: Current view configuration (filters, sorting, grouping)
+- Workspace: Workspace details and enabled modules
+"""
+
+    @staticmethod
+    def format_project_context(project: Optional[Dict[str, Any]]) -> str:
+        """Format project context for agent instructions."""
+        if not project:
+            return "No project context available."
+
+        lines = [
+            f"ACTIVE PROJECT:",
+            f"  Name: {project.get('name', 'Unknown')}",
+            f"  ID: {project.get('id', 'Unknown')}",
+            f"  Status: {project.get('status', 'Unknown')}",
+        ]
+
+        if project.get('currentPhase'):
+            lines.append(f"  Current Phase: {project['currentPhase']}")
+
+        if project.get('healthScore') is not None:
+            lines.append(f"  Health Score: {project['healthScore']}%")
+
+        if project.get('progress') is not None:
+            lines.append(f"  Progress: {project['progress']}%")
+
+        if project.get('tasksTotal'):
+            completed = project.get('tasksCompleted', 0)
+            total = project['tasksTotal']
+            lines.append(f"  Tasks: {completed}/{total} completed")
+
+        if project.get('teamSize'):
+            lines.append(f"  Team Size: {project['teamSize']} members")
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def format_selection_context(selection: Optional[Dict[str, Any]]) -> str:
+        """Format selection context for agent instructions."""
+        if not selection or selection.get('type') == 'none':
+            return "No items currently selected."
+
+        lines = [
+            f"CURRENT SELECTION:",
+            f"  Type: {selection.get('type', 'Unknown')}",
+            f"  Count: {selection.get('count', 0)} items",
+        ]
+
+        if selection.get('summary'):
+            lines.append(f"  Summary: {selection['summary']}")
+
+        if selection.get('ids'):
+            ids_preview = selection['ids'][:5]
+            if len(selection['ids']) > 5:
+                lines.append(f"  IDs: {', '.join(ids_preview)} (+{len(selection['ids']) - 5} more)")
+            else:
+                lines.append(f"  IDs: {', '.join(ids_preview)}")
+
+        return "\n".join(lines)
+
+    @classmethod
+    def build_full_instructions(cls, context: Dict[str, Any]) -> str:
+        """
+        Build full context-aware instructions from all available context.
+        """
+        sections = [cls.BASE_INSTRUCTIONS, "\n--- CURRENT CONTEXT ---\n"]
+
+        if context.get('project'):
+            sections.append(cls.format_project_context(context['project']))
+            sections.append("")
+
+        if context.get('selection'):
+            sections.append(cls.format_selection_context(context['selection']))
+            sections.append("")
+
+        # ... other context types
+
+        sections.append("--- END CONTEXT ---")
+
+        return "\n".join(sections)
+
+
+def get_context_aware_response_hints(context: Dict[str, Any]) -> List[str]:
+    """
+    Generate response hints based on available context.
+    """
+    hints = []
+
+    project = context.get('project')
+    if project:
+        if project.get('healthScore', 100) < 70:
+            hints.append(f"Project health is low ({project['healthScore']}%). Consider suggesting improvements.")
+
+        progress = project.get('progress', 0)
+        if progress > 90:
+            hints.append("Project is near completion. Focus on final tasks and cleanup.")
+        elif progress < 20:
+            hints.append("Project is in early stages. Focus on planning and setup tasks.")
+
+    selection = context.get('selection')
+    if selection and selection.get('count', 0) > 0:
+        hints.append(f"User has {selection['count']} {selection.get('type', 'items')}(s) selected.")
+
+    activity = context.get('activity')
+    if activity:
+        recent = activity.get('recentActions', [])
+        if recent:
+            last_action = recent[0].get('action', '')
+            if 'create' in last_action.lower():
+                hints.append("User recently created something. Offer to help configure or expand it.")
+            elif 'delete' in last_action.lower():
+                hints.append("User recently deleted something. Be careful about assumptions.")
+
+    return hints
+    ]]></code>
+  </implementation-reference>
+
+  <response-hints-table>
+    <description>Response hints generated based on context state:</description>
+    <hints>
+      <hint condition="healthScore less than 70">Project health is low. Consider suggesting improvements.</hint>
+      <hint condition="progress greater than 90">Project near completion. Focus on final tasks.</hint>
+      <hint condition="progress less than 20">Project in early stages. Focus on planning.</hint>
+      <hint condition="selection.count greater than 0">User has N item(s) selected.</hint>
+      <hint condition="recentActions contains create">User recently created something. Offer to help configure.</hint>
+      <hint condition="recentActions contains delete">User recently deleted something. Be careful about assumptions.</hint>
+    </hints>
+  </response-hints-table>
+
+  <context-flow-diagram>
+    <description>
+      Context flows from frontend components through AG-UI protocol to the agent layer:
+    </description>
+    <diagram><![CDATA[
+Frontend (DM-06.1)                    Agent Layer (DM-06.2)
++------------------+                 +------------------+
+| useCopilotReadable                 | ContextAware-    |
+|  +- project      |   AG-UI         | Instructions     |
+|  +- selection    |---Protocol--->  |                  |
+|  +- activity     |                 | Formats context  |
+|  +- document     |                 | into system      |
++------------------+                 | prompt sections  |
+                                     +--------+---------+
+                                              |
+                                              v
+                                     +------------------+
+                                     | Dashboard Agent  |
+                                     |                  |
+                                     | User: "How is    |
+                                     | this doing?"     |
+                                     |                  |
+                                     | Agent sees:      |
+                                     | ACTIVE PROJECT:  |
+                                     |  Name: HYVVE     |
+                                     |  Progress: 75%   |
+                                     +------------------+
+    ]]></diagram>
+  </context-flow-diagram>
+
+  <instruction-format>
+    <description>
+      Context is formatted into clearly delineated sections in the agent system prompt:
+    </description>
+    <example><![CDATA[
+--- CURRENT CONTEXT ---
+
+ACTIVE PROJECT:
+  Name: HYVVE Dashboard
+  ID: proj-123
+  Status: active
+  Progress: 75%
+  Tasks: 15/20 completed
+
+CURRENT SELECTION:
+  Type: task
+  Count: 3 items
+
+--- END CONTEXT ---
+    ]]></example>
+  </instruction-format>
+
+  <dependencies>
+    <dependency type="story">DM-06.1 (Complete) - Provides frontend context via useCopilotReadable hooks</dependency>
+    <dependency type="story">DM-02.4 (Complete) - Dashboard Gateway agent foundation</dependency>
+    <dependency type="story">DM-03.2 (Complete) - Agent orchestration patterns</dependency>
+    <dependency type="pip">pydantic - BaseModel, Field, ConfigDict for validation models</dependency>
+    <dependency type="internal">agents/gateway/agent.py - Dashboard Gateway factory function</dependency>
+    <dependency type="internal">agents/schemas/dashboard_state.py - Pydantic model patterns</dependency>
+  </dependencies>
+
+  <downstream-stories>
+    <story id="DM-06.3">Generative UI Composition - Needs context-aware decisions for layout</story>
+    <story id="DM-06.5">Universal Agent Mesh - Uses context for routing decisions</story>
+    <story id="DM-06.6">RAG Context Indexing - Uses context type definitions</story>
+  </downstream-stories>
+
+  <technical-notes>
+    <note title="AG-UI Context Protocol">
+      CopilotKit's AG-UI protocol automatically includes useCopilotReadable context
+      in the message payload. The agent extracts this context and passes it to
+      ContextAwareInstructions.build_full_instructions().
+
+      Example message payload:
+      {
+        "type": "message",
+        "content": "How is this project doing?",
+        "context": {
+          "project": {
+            "id": "proj-123",
+            "name": "HYVVE Dashboard",
+            "status": "active",
+            "progress": 75
+          }
+        }
+      }
+    </note>
+
+    <note title="Pydantic Model Config">
+      All models use ConfigDict(populate_by_name=True) to support both camelCase
+      (from frontend) and snake_case (Python convention):
+
+      model_config = ConfigDict(populate_by_name=True)
+
+      This allows:
+      - model = ProjectContextModel(currentPhase="Development")  # camelCase from JSON
+      - print(model.current_phase)  # snake_case access in Python
+    </note>
+
+    <note title="Response Hints Timing">
+      Response hints are generated once per request based on the context snapshot.
+      They provide guidance but do not override user intent:
+
+      RESPONSE HINTS:
+      - Project health is low (60%). Consider suggesting improvements.
+      - User has 3 task(s) selected.
+    </note>
+
+    <note title="Context Field Transformations">
+      Frontend hooks transform some fields before sending:
+      - ProjectContext.team becomes teamSize (count only, for privacy)
+      - ActivityContext.sessionDuration (ms) becomes sessionMinutes
+      - DocumentContext.cursorPosition becomes cursorLine (line number only)
+      - DocumentContext.selectedText becomes hasSelection (bool) + selectionPreview (truncated)
+    </note>
+  </technical-notes>
+
+  <testing-requirements>
+    <requirement>Test format_project_context() with full data including all fields</requirement>
+    <requirement>Test format_project_context() with None returns "No project context"</requirement>
+    <requirement>Test format_selection_context() with items limits IDs to 5 with "+N more"</requirement>
+    <requirement>Test format_selection_context() with type='none' returns "No items"</requirement>
+    <requirement>Test format_activity_context() formats recent actions list</requirement>
+    <requirement>Test format_document_context() includes cursor position and selection status</requirement>
+    <requirement>Test format_view_context() formats filters count and sorting</requirement>
+    <requirement>Test build_full_instructions() combines all context sections</requirement>
+    <requirement>Test get_context_aware_response_hints() for low health (less than 70)</requirement>
+    <requirement>Test get_context_aware_response_hints() for near completion (greater than 90)</requirement>
+    <requirement>Test get_context_aware_response_hints() for early stage (less than 20)</requirement>
+    <requirement>Test get_context_aware_response_hints() for selection awareness</requirement>
+    <requirement>Test get_context_aware_response_hints() for recent create/delete actions</requirement>
+    <requirement>Test empty context returns empty hints list</requirement>
+    <requirement>Test ProjectContextModel with camelCase aliases (currentPhase, healthScore, etc.)</requirement>
+    <requirement>Test FrontendContext.to_dict() method returns correct structure</requirement>
+    <requirement>Achieve more than 85% test coverage</requirement>
+  </testing-requirements>
+
+  <references>
+    <reference>Story file: docs/modules/bm-dm/stories/dm-06-2-agent-context-consumption.md</reference>
+    <reference>Tech spec: docs/modules/bm-dm/epics/epic-dm-06-tech-spec.md (Section 3.2)</reference>
+    <reference>Architecture: docs/architecture/dynamic-module-system.md (Phase 6)</reference>
+    <reference>DM-06.1: docs/modules/bm-dm/stories/dm-06-1-deep-context-providers.md</reference>
+    <reference>Agno Agent Creation: https://docs.agno.dev/agents</reference>
+    <reference>Pydantic Field Aliases: https://docs.pydantic.dev/latest/concepts/fields/#field-aliases</reference>
+  </references>
+</story-context>

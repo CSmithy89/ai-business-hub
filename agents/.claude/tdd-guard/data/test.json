@@ -1,721 +1,1781 @@
 {
   "testModules": [
     {
-      "moduleId": "hitl/test_approval_bridge.py",
+      "moduleId": "mcp/__tests__/test_bridge.py",
       "tests": [
         {
-          "name": "test_generate_title_default",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateTitle::test_generate_title_default",
+          "name": "test_get_tools_for_agent_converts_names",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_converts_names",
           "state": "passed"
         },
         {
-          "name": "test_generate_title_with_template",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateTitle::test_generate_title_with_template",
+          "name": "test_get_tools_for_agent_preserves_description",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_preserves_description",
           "state": "passed"
         },
         {
-          "name": "test_generate_title_template_missing_key",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateTitle::test_generate_title_template_missing_key",
+          "name": "test_get_tools_for_agent_converts_parameters",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_converts_parameters",
           "state": "passed"
         },
         {
-          "name": "test_generate_title_snake_case_conversion",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateTitle::test_generate_title_snake_case_conversion",
+          "name": "test_get_tools_for_agent_handles_optional_params",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_handles_optional_params",
           "state": "passed"
         },
         {
-          "name": "test_generate_description_includes_risk",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateDescription::test_generate_description_includes_risk",
+          "name": "test_get_tools_for_agent_includes_defaults",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_includes_defaults",
           "state": "passed"
         },
         {
-          "name": "test_generate_description_includes_parameters",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateDescription::test_generate_description_includes_parameters",
-          "state": "failed",
-          "errors": [
-            {
-              "message": "hitl/test_approval_bridge.py:143: in test_generate_description_includes_parameters\n    assert \"Contract Id\" in description or \"contractId\" in description.lower()\nE   AssertionError: assert ('Contract Id' in '**Agent Action:** Sign Contract\\n**Risk Level:** HIGH\\n**Confidence Score:** 45%\\n\\n**Parameters:**\\n- Contractid: C001\\n- Amount: 5000\\n\\n**Warning:** This action has been flagged as high-risk and requires careful review.' or 'contractId' in '**agent action:** sign contract\\n**risk level:** high\\n**confidence score:** 45%\\n\\n**parameters:**\\n- contractid: c001\\n- amount: 5000\\n\\n**warning:** this action has been flagged as high-risk and requires careful review.')\nE    +  where '**agent action:** sign contract\\n**risk level:** high\\n**confidence score:** 45%\\n\\n**parameters:**\\n- contractid: c001\\n- amount: 5000\\n\\n**warning:** this action has been flagged as high-risk and requires careful review.' = <built-in method lower of str object at 0x70f78c7ad240>()\nE    +    where <built-in method lower of str object at 0x70f78c7ad240> = '**Agent Action:** Sign Contract\\n**Risk Level:** HIGH\\n**Confidence Score:** 45%\\n\\n**Parameters:**\\n- Contractid: C001\\n- Amount: 5000\\n\\n**Warning:** This action has been flagged as high-risk and requires careful review.'.lower"
-            }
-          ]
-        },
-        {
-          "name": "test_generate_description_filters_sensitive",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateDescription::test_generate_description_filters_sensitive",
+          "name": "test_get_tools_for_agent_stores_mcp_metadata",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_stores_mcp_metadata",
           "state": "passed"
         },
         {
-          "name": "test_generate_description_high_risk_warning",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateDescription::test_generate_description_high_risk_warning",
+          "name": "test_get_tools_for_agent_skips_tools_without_name",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_get_tools_for_agent_skips_tools_without_name",
           "state": "passed"
         },
         {
-          "name": "test_calculate_priority_high_risk",
-          "fullName": "hitl/test_approval_bridge.py::TestCalculatePriority::test_calculate_priority_high_risk",
+          "name": "test_invoke_tool_parses_name_and_routes",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_parses_name_and_routes",
           "state": "passed"
         },
         {
-          "name": "test_calculate_priority_high_risk_any_confidence",
-          "fullName": "hitl/test_approval_bridge.py::TestCalculatePriority::test_calculate_priority_high_risk_any_confidence",
+          "name": "test_invoke_tool_raises_for_invalid_name",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_raises_for_invalid_name",
           "state": "passed"
         },
         {
-          "name": "test_calculate_priority_low_confidence",
-          "fullName": "hitl/test_approval_bridge.py::TestCalculatePriority::test_calculate_priority_low_confidence",
+          "name": "test_invoke_tool_raises_for_name_without_prefix",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_raises_for_name_without_prefix",
           "state": "passed"
         },
         {
-          "name": "test_calculate_priority_medium_risk_low_confidence",
-          "fullName": "hitl/test_approval_bridge.py::TestCalculatePriority::test_calculate_priority_medium_risk_low_confidence",
+          "name": "test_invoke_tool_raises_for_short_name",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_raises_for_short_name",
           "state": "passed"
         },
         {
-          "name": "test_calculate_priority_low_risk_low_confidence",
-          "fullName": "hitl/test_approval_bridge.py::TestCalculatePriority::test_calculate_priority_low_risk_low_confidence",
+          "name": "test_invoke_tool_handles_underscore_in_tool_name",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_handles_underscore_in_tool_name",
           "state": "passed"
         },
         {
-          "name": "test_calculate_due_date_high_risk",
-          "fullName": "hitl/test_approval_bridge.py::TestCalculateDueDate::test_calculate_due_date_high_risk",
+          "name": "test_invoke_tool_handles_multiple_underscores",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_handles_multiple_underscores",
           "state": "passed"
         },
         {
-          "name": "test_calculate_due_date_medium_risk",
-          "fullName": "hitl/test_approval_bridge.py::TestCalculateDueDate::test_calculate_due_date_medium_risk",
+          "name": "test_invoke_tool_raises_when_not_connected",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_invoke_tool_raises_when_not_connected",
           "state": "passed"
         },
         {
-          "name": "test_calculate_due_date_low_risk",
-          "fullName": "hitl/test_approval_bridge.py::TestCalculateDueDate::test_calculate_due_date_low_risk",
+          "name": "test_parse_tool_name",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_parse_tool_name",
           "state": "passed"
         },
         {
-          "name": "test_calculate_due_date_high_sooner_than_low",
-          "fullName": "hitl/test_approval_bridge.py::TestCalculateDueDate::test_calculate_due_date_high_sooner_than_low",
+          "name": "test_parse_tool_name_raises_for_invalid",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolBridge::test_parse_tool_name_raises_for_invalid",
           "state": "passed"
         },
         {
-          "name": "test_generate_factors_has_required_fields",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateConfidenceFactors::test_generate_factors_has_required_fields",
+          "name": "test_converts_string_type",
+          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_converts_string_type",
           "state": "passed"
         },
         {
-          "name": "test_generate_factors_weights_sum_to_one",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateConfidenceFactors::test_generate_factors_weights_sum_to_one",
+          "name": "test_converts_integer_type",
+          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_converts_integer_type",
           "state": "passed"
         },
         {
-          "name": "test_generate_factors_includes_risk",
-          "fullName": "hitl/test_approval_bridge.py::TestGenerateConfidenceFactors::test_generate_factors_includes_risk",
+          "name": "test_converts_boolean_type",
+          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_converts_boolean_type",
           "state": "passed"
         },
         {
-          "name": "test_create_approval_item_success",
-          "fullName": "hitl/test_approval_bridge.py::TestCreateApprovalItem::test_create_approval_item_success",
+          "name": "test_handles_empty_schema",
+          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_handles_empty_schema",
           "state": "passed"
         },
         {
-          "name": "test_create_approval_item_includes_headers",
-          "fullName": "hitl/test_approval_bridge.py::TestCreateApprovalItem::test_create_approval_item_includes_headers",
+          "name": "test_handles_no_properties",
+          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_handles_no_properties",
           "state": "passed"
         },
         {
-          "name": "test_create_approval_item_includes_source_module",
-          "fullName": "hitl/test_approval_bridge.py::TestCreateApprovalItem::test_create_approval_item_includes_source_module",
+          "name": "test_includes_enum_values",
+          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_includes_enum_values",
           "state": "passed"
         },
         {
-          "name": "test_get_approval_status_success",
-          "fullName": "hitl/test_approval_bridge.py::TestGetApprovalStatus::test_get_approval_status_success",
+          "name": "test_defaults_type_to_string",
+          "fullName": "mcp/__tests__/test_bridge.py::TestConvertParameters::test_defaults_type_to_string",
           "state": "passed"
         },
         {
-          "name": "test_wait_for_approval_immediate_resolution",
-          "fullName": "hitl/test_approval_bridge.py::TestWaitForApproval::test_wait_for_approval_immediate_resolution",
+          "name": "test_creates_bridge_with_default_config",
+          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_creates_bridge_with_default_config",
           "state": "passed"
         },
         {
-          "name": "test_wait_for_approval_timeout",
-          "fullName": "hitl/test_approval_bridge.py::TestWaitForApproval::test_wait_for_approval_timeout",
+          "name": "test_creates_bridge_with_custom_config",
+          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_creates_bridge_with_custom_config",
           "state": "passed"
         },
         {
-          "name": "test_wait_for_approval_polls_until_resolved",
-          "fullName": "hitl/test_approval_bridge.py::TestWaitForApproval::test_wait_for_approval_polls_until_resolved",
+          "name": "test_connects_to_enabled_servers",
+          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_connects_to_enabled_servers",
           "state": "passed"
         },
         {
-          "name": "test_create_from_hitl_result",
-          "fullName": "hitl/test_approval_bridge.py::TestCreateFromHitlResult::test_create_from_hitl_result",
+          "name": "test_handles_connection_failures",
+          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_handles_connection_failures",
           "state": "passed"
         },
         {
-          "name": "test_get_approval_bridge_returns_same_instance",
-          "fullName": "hitl/test_approval_bridge.py::TestSingleton::test_get_approval_bridge_returns_same_instance",
-          "state": "failed",
-          "errors": [
-            {
-              "message": "hitl/test_approval_bridge.py:533: in test_get_approval_bridge_returns_same_instance\n    with patch(\"agents.hitl.approval_bridge.get_settings\") as mock_settings:\n/usr/lib/python3.10/unittest/mock.py:1431: in __enter__\n    self.target = self.getter()\n/usr/lib/python3.10/unittest/mock.py:1618: in <lambda>\n    getter = lambda: _importer(target)\n/usr/lib/python3.10/unittest/mock.py:1257: in _importer\n    thing = __import__(import_path)\nE   ModuleNotFoundError: No module named 'agents'"
-            }
-          ]
-        },
-        {
-          "name": "test_close_approval_bridge",
-          "fullName": "hitl/test_approval_bridge.py::TestSingleton::test_close_approval_bridge",
-          "state": "failed",
-          "errors": [
-            {
-              "message": "hitl/test_approval_bridge.py:550: in test_close_approval_bridge\n    with patch(\"agents.hitl.approval_bridge.get_settings\") as mock_settings:\n/usr/lib/python3.10/unittest/mock.py:1431: in __enter__\n    self.target = self.getter()\n/usr/lib/python3.10/unittest/mock.py:1618: in <lambda>\n    getter = lambda: _importer(target)\n/usr/lib/python3.10/unittest/mock.py:1257: in _importer\n    thing = __import__(import_path)\nE   ModuleNotFoundError: No module named 'agents'"
-            }
-          ]
-        },
-        {
-          "name": "test_filters_password",
-          "fullName": "hitl/test_approval_bridge.py::TestFilterSensitiveArgs::test_filters_password",
+          "name": "test_skips_connection_when_disabled",
+          "fullName": "mcp/__tests__/test_bridge.py::TestCreateMCPBridge::test_skips_connection_when_disabled",
           "state": "passed"
         },
         {
-          "name": "test_filters_api_key",
-          "fullName": "hitl/test_approval_bridge.py::TestFilterSensitiveArgs::test_filters_api_key",
-          "state": "passed"
-        },
-        {
-          "name": "test_filters_apikey_variations",
-          "fullName": "hitl/test_approval_bridge.py::TestFilterSensitiveArgs::test_filters_apikey_variations",
-          "state": "passed"
-        },
-        {
-          "name": "test_filters_token",
-          "fullName": "hitl/test_approval_bridge.py::TestFilterSensitiveArgs::test_filters_token",
-          "state": "passed"
-        },
-        {
-          "name": "test_filters_secret",
-          "fullName": "hitl/test_approval_bridge.py::TestFilterSensitiveArgs::test_filters_secret",
-          "state": "passed"
-        },
-        {
-          "name": "test_filters_credential",
-          "fullName": "hitl/test_approval_bridge.py::TestFilterSensitiveArgs::test_filters_credential",
-          "state": "passed"
-        },
-        {
-          "name": "test_keeps_non_sensitive",
-          "fullName": "hitl/test_approval_bridge.py::TestFilterSensitiveArgs::test_keeps_non_sensitive",
+          "name": "test_prefix_is_mcp",
+          "fullName": "mcp/__tests__/test_bridge.py::TestMCPToolPrefixConstant::test_prefix_is_mcp",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "hitl/test_decorators.py",
+      "moduleId": "mcp/__tests__/test_client.py",
       "tests": [
         {
-          "name": "test_enum_values",
-          "fullName": "hitl/test_decorators.py::TestApprovalLevel::test_enum_values",
+          "name": "test_start_launches_subprocess",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_start_launches_subprocess",
           "state": "passed"
         },
         {
-          "name": "test_enum_comparison",
-          "fullName": "hitl/test_decorators.py::TestApprovalLevel::test_enum_comparison",
+          "name": "test_start_raises_on_immediate_exit",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_start_raises_on_immediate_exit",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_raises_on_command_not_found",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_start_raises_on_command_not_found",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_terminates_process",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_stop_terminates_process",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_kills_on_timeout",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_stop_kills_on_timeout",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_handles_already_exited",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_stop_handles_already_exited",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_when_not_running",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_stop_when_not_running",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_tools_sends_json_rpc",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_list_tools_sends_json_rpc",
+          "state": "passed"
+        },
+        {
+          "name": "test_call_tool_sends_json_rpc",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_call_tool_sends_json_rpc",
+          "state": "passed"
+        },
+        {
+          "name": "test_send_request_raises_when_not_running",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_send_request_raises_when_not_running",
+          "state": "passed"
+        },
+        {
+          "name": "test_send_request_raises_on_json_rpc_error",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPConnection::test_send_request_raises_on_json_rpc_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_connect_starts_connection",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_starts_connection",
+          "state": "passed"
+        },
+        {
+          "name": "test_connect_returns_false_for_unknown_server",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_returns_false_for_unknown_server",
+          "state": "passed"
+        },
+        {
+          "name": "test_connect_returns_false_for_disabled_server",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_returns_false_for_disabled_server",
+          "state": "passed"
+        },
+        {
+          "name": "test_connect_returns_true_if_already_connected",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_returns_true_if_already_connected",
+          "state": "passed"
+        },
+        {
+          "name": "test_connect_returns_false_on_connection_error",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_connect_returns_false_on_connection_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_disconnect_stops_connection",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_disconnect_stops_connection",
+          "state": "passed"
+        },
+        {
+          "name": "test_disconnect_handles_unknown_server",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_disconnect_handles_unknown_server",
+          "state": "passed"
+        },
+        {
+          "name": "test_disconnect_all_stops_all",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_disconnect_all_stops_all",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_available_tools_all_servers",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_get_available_tools_all_servers",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_available_tools_single_server",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_get_available_tools_single_server",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_available_tools_empty_for_unknown_server",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_get_available_tools_empty_for_unknown_server",
+          "state": "passed"
+        },
+        {
+          "name": "test_is_connected",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_is_connected",
+          "state": "passed"
+        },
+        {
+          "name": "test_call_tool_routes_correctly",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_call_tool_routes_correctly",
+          "state": "passed"
+        },
+        {
+          "name": "test_call_tool_raises_when_not_connected",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_call_tool_raises_when_not_connected",
+          "state": "passed"
+        },
+        {
+          "name": "test_context_manager",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClient::test_context_manager",
+          "state": "passed"
+        },
+        {
+          "name": "test_tools_cached_with_server_metadata",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClientToolCaching::test_tools_cached_with_server_metadata",
+          "state": "passed"
+        },
+        {
+          "name": "test_cache_cleared_on_disconnect",
+          "fullName": "mcp/__tests__/test_client.py::TestMCPClientToolCaching::test_cache_cleared_on_disconnect",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "mcp/__tests__/test_config.py",
+      "tests": [
+        {
+          "name": "test_creates_config_with_required_fields",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_creates_config_with_required_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_values",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_default_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_resolves_env_variable_pattern",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_resolves_env_variable_pattern",
+          "state": "passed"
+        },
+        {
+          "name": "test_preserves_literal_env_values",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_preserves_literal_env_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_empty_for_missing_env_var",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_returns_empty_for_missing_env_var",
+          "state": "passed"
+        },
+        {
+          "name": "test_resolves_multiple_env_vars",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_resolves_multiple_env_vars",
+          "state": "passed"
+        },
+        {
+          "name": "test_enabled_can_be_set_false",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_enabled_can_be_set_false",
+          "state": "passed"
+        },
+        {
+          "name": "test_description_field",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPServerConfig::test_description_field",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_config_from_dict",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_creates_config_from_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_timeout_and_retries",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_default_timeout_and_retries",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_config_with_multiple_servers",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_creates_config_with_multiple_servers",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_servers_dict",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_empty_servers_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_direct_initialization",
+          "fullName": "mcp/__tests__/test_config.py::TestMCPConfig::test_direct_initialization",
+          "state": "passed"
+        },
+        {
+          "name": "test_github_server_defined",
+          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_github_server_defined",
+          "state": "passed"
+        },
+        {
+          "name": "test_brave_server_defined",
+          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_brave_server_defined",
+          "state": "passed"
+        },
+        {
+          "name": "test_filesystem_server_defined",
+          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_filesystem_server_defined",
+          "state": "passed"
+        },
+        {
+          "name": "test_filesystem_sandboxed_directory",
+          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_filesystem_sandboxed_directory",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_default_config",
+          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_get_default_config",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_default_config_returns_copy",
+          "fullName": "mcp/__tests__/test_config.py::TestDefaultMCPServers::test_get_default_config_returns_copy",
+          "state": "passed"
+        },
+        {
+          "name": "test_pattern_at_start",
+          "fullName": "mcp/__tests__/test_config.py::TestEnvVarPattern::test_pattern_at_start",
+          "state": "passed"
+        },
+        {
+          "name": "test_partial_pattern_not_matched",
+          "fullName": "mcp/__tests__/test_config.py::TestEnvVarPattern::test_partial_pattern_not_matched",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_env_pattern_is_literal",
+          "fullName": "mcp/__tests__/test_config.py::TestEnvVarPattern::test_empty_env_pattern_is_literal",
+          "state": "passed"
+        },
+        {
+          "name": "test_env_var_with_underscores",
+          "fullName": "mcp/__tests__/test_config.py::TestEnvVarPattern::test_env_var_with_underscores",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "mesh/__tests__/test_discovery.py",
+      "tests": [
+        {
+          "name": "test_init_defaults",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_init_defaults",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_with_config",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_init_with_config",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_initializes_client",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_start_initializes_client",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_performs_initial_scan",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_start_performs_initial_scan",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_cleans_up",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_stop_cleans_up",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_cancels_periodic_scan",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_stop_cancels_periodic_scan",
+          "state": "passed"
+        },
+        {
+          "name": "test_discover_agent_parses_response",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_parses_response",
+          "state": "passed"
+        },
+        {
+          "name": "test_discover_agent_registers_when_enabled",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_registers_when_enabled",
+          "state": "passed"
+        },
+        {
+          "name": "test_discover_agent_not_found",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_not_found",
+          "state": "passed"
+        },
+        {
+          "name": "test_discover_agent_connection_error",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_connection_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_discover_agent_timeout",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_timeout",
+          "state": "passed"
+        },
+        {
+          "name": "test_discover_agent_invalid_card",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_invalid_card",
+          "state": "passed"
+        },
+        {
+          "name": "test_scan_discovers_all_urls",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_scan_discovers_all_urls",
+          "state": "passed"
+        },
+        {
+          "name": "test_scan_handles_failures",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_scan_handles_failures",
+          "state": "passed"
+        },
+        {
+          "name": "test_scan_requires_started_service",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_scan_requires_started_service",
+          "state": "passed"
+        },
+        {
+          "name": "test_add_discovery_url",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_add_discovery_url",
+          "state": "passed"
+        },
+        {
+          "name": "test_add_discovery_url_no_duplicates",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_add_discovery_url_no_duplicates",
+          "state": "passed"
+        },
+        {
+          "name": "test_remove_discovery_url",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_remove_discovery_url",
+          "state": "passed"
+        },
+        {
+          "name": "test_remove_discovery_url_not_found",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_remove_discovery_url_not_found",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_discovery_urls",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_get_discovery_urls",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_agent_health_healthy",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_check_agent_health_healthy",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_agent_health_unhealthy",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_check_agent_health_unhealthy",
+          "state": "passed"
+        },
+        {
+          "name": "test_check_agent_health_unknown_agent",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_check_agent_health_unknown_agent",
+          "state": "passed"
+        },
+        {
+          "name": "test_health_check_all",
+          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_health_check_all",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_minimal_card",
+          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_minimal_card",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_card_uses_base_url_fallback",
+          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_card_uses_base_url_fallback",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_card_with_skills",
+          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_card_with_skills",
+          "state": "passed"
+        },
+        {
+          "name": "test_parse_card_missing_name",
+          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_card_missing_name",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_discovery_service_singleton",
+          "fullName": "mesh/__tests__/test_discovery.py::TestGlobalDiscoveryService::test_get_discovery_service_singleton",
+          "state": "passed"
+        },
+        {
+          "name": "test_configure_discovery_service",
+          "fullName": "mesh/__tests__/test_discovery.py::TestGlobalDiscoveryService::test_configure_discovery_service",
+          "state": "passed"
+        },
+        {
+          "name": "test_shutdown_discovery_service",
+          "fullName": "mesh/__tests__/test_discovery.py::TestGlobalDiscoveryService::test_shutdown_discovery_service",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "mesh/__tests__/test_models.py",
+      "tests": [
+        {
+          "name": "test_enum_values",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapabilityType::test_enum_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_health_values",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentHealth::test_health_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_capability_with_defaults",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_creates_capability_with_defaults",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_capability_with_custom_modes",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_creates_capability_with_custom_modes",
+          "state": "passed"
+        },
+        {
+          "name": "test_capability_alias_fields",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_capability_alias_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_to_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_endpoint",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_creates_endpoint",
+          "state": "passed"
+        },
+        {
+          "name": "test_full_url_without_path",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_full_url_without_path",
+          "state": "passed"
+        },
+        {
+          "name": "test_full_url_with_path",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_full_url_with_path",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict",
+          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_to_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_agent_card_with_required_fields",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_creates_agent_card_with_required_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_agent_card_with_all_fields",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_creates_agent_card_with_all_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_timestamps",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_default_timestamps",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_json_ld",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_to_json_ld",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_to_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_last_seen",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_update_last_seen",
+          "state": "passed"
+        },
+        {
+          "name": "test_has_capability_true",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_has_capability_true",
+          "state": "passed"
+        },
+        {
+          "name": "test_has_capability_false",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_has_capability_false",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_endpoint",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_get_endpoint",
+          "state": "passed"
+        },
+        {
+          "name": "test_serialize_datetime",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_serialize_datetime",
+          "state": "passed"
+        },
+        {
+          "name": "test_alias_fields",
+          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_alias_fields",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "mesh/__tests__/test_registry.py",
+      "tests": [
+        {
+          "name": "test_register_agent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_register_agent",
+          "state": "passed"
+        },
+        {
+          "name": "test_register_updates_existing",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_register_updates_existing",
+          "state": "passed"
+        },
+        {
+          "name": "test_unregister_agent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_unregister_agent",
+          "state": "passed"
+        },
+        {
+          "name": "test_unregister_nonexistent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_unregister_nonexistent",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_agent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_agent",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_updates_last_seen",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_updates_last_seen",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_nonexistent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_nonexistent",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_all",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_all",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_by_module",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_by_module",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_by_capability",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_by_capability",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_healthy",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_healthy",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_external",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_external",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_internal",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_internal",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_health",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_update_health",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_health_nonexistent",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_update_health_nonexistent",
+          "state": "passed"
+        },
+        {
+          "name": "test_set_health",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_set_health",
+          "state": "passed"
+        },
+        {
+          "name": "test_is_healthy",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_is_healthy",
+          "state": "passed"
+        },
+        {
+          "name": "test_is_healthy_unknown",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_is_healthy_unknown",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_health_unknown",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_health_unknown",
+          "state": "passed"
+        },
+        {
+          "name": "test_subscribe",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_subscribe",
+          "state": "passed"
+        },
+        {
+          "name": "test_subscribe_unregister",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_subscribe_unregister",
+          "state": "passed"
+        },
+        {
+          "name": "test_subscribe_health_update",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_subscribe_health_update",
+          "state": "passed"
+        },
+        {
+          "name": "test_unsubscribe",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_unsubscribe",
+          "state": "passed"
+        },
+        {
+          "name": "test_count",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_count",
+          "state": "passed"
+        },
+        {
+          "name": "test_contains",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_contains",
+          "state": "passed"
+        },
+        {
+          "name": "test_clear",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_clear",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_stats",
+          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_stats",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_registry_singleton",
+          "fullName": "mesh/__tests__/test_registry.py::TestGlobalRegistry::test_get_registry_singleton",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_registry",
+          "fullName": "mesh/__tests__/test_registry.py::TestGlobalRegistry::test_reset_registry",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_registry_creates_new",
+          "fullName": "mesh/__tests__/test_registry.py::TestGlobalRegistry::test_get_registry_creates_new",
+          "state": "passed"
+        },
+        {
+          "name": "test_concurrent_register",
+          "fullName": "mesh/__tests__/test_registry.py::TestRegistryThreadSafety::test_concurrent_register",
+          "state": "passed"
+        },
+        {
+          "name": "test_concurrent_read_write",
+          "fullName": "mesh/__tests__/test_registry.py::TestRegistryThreadSafety::test_concurrent_read_write",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "mesh/__tests__/test_router.py",
+      "tests": [
+        {
+          "name": "test_router_accesses_registry",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_router_accesses_registry",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_by_preferred_module",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_by_preferred_module",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_by_capability",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_by_capability",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_prefers_internal",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_prefers_internal",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_falls_back_to_external",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_falls_back_to_external",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_filters_unhealthy",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_filters_unhealthy",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_no_match",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_no_match",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_preferred_module_fallback",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_preferred_module_fallback",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agent_round_robin",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_round_robin",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agents_for_broadcast_by_module",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_by_module",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agents_for_broadcast_by_capability",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_by_capability",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agents_for_broadcast_exclude_external",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_exclude_external",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_agents_for_broadcast_all",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_all",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_request_success",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_success",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_request_no_agent",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_no_agent",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_request_a2a_error",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_a2a_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_request_no_a2a_client",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_no_a2a_client",
+          "state": "passed"
+        },
+        {
+          "name": "test_broadcast_request_success",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_broadcast_request_success",
+          "state": "passed"
+        },
+        {
+          "name": "test_broadcast_request_no_agents",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_broadcast_request_no_agents",
+          "state": "passed"
+        },
+        {
+          "name": "test_broadcast_request_by_module",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_broadcast_request_by_module",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_routing_info",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_get_routing_info",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_routing_info_no_match",
+          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_get_routing_info_no_match",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_router_singleton",
+          "fullName": "mesh/__tests__/test_router.py::TestGlobalRouter::test_get_router_singleton",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_router",
+          "fullName": "mesh/__tests__/test_router.py::TestGlobalRouter::test_reset_router",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_router_creates_new",
+          "fullName": "mesh/__tests__/test_router.py::TestGlobalRouter::test_get_router_creates_new",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_1_preferred_module_with_capability",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_1_preferred_module_with_capability",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_2_capability_match",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_2_capability_match",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_3_health_filter",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_3_health_filter",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_4_internal_over_external",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_4_internal_over_external",
+          "state": "passed"
+        },
+        {
+          "name": "test_priority_5_fallback_to_any_healthy",
+          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_5_fallback_to_any_healthy",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "rag/__tests__/test_context_indexer.py",
+      "tests": [
+        {
+          "name": "test_initializes_with_services",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestContextIndexer::test_initializes_with_services",
+          "state": "passed"
+        },
+        {
+          "name": "test_id_prefix",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestContextIndexer::test_id_prefix",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_index_id",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestContextIndexer::test_get_index_id",
+          "state": "passed"
+        },
+        {
+          "name": "test_indexes_new_document",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_indexes_new_document",
+          "state": "passed"
+        },
+        {
+          "name": "test_skips_unchanged_document",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_skips_unchanged_document",
+          "state": "passed"
+        },
+        {
+          "name": "test_reindexes_changed_document",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_reindexes_changed_document",
+          "state": "passed"
+        },
+        {
+          "name": "test_includes_user_id_in_metadata",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_includes_user_id_in_metadata",
+          "state": "passed"
+        },
+        {
+          "name": "test_includes_custom_metadata",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_includes_custom_metadata",
+          "state": "passed"
+        },
+        {
+          "name": "test_raises_on_embedding_error",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_raises_on_embedding_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_indexes_batch",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexBatch::test_indexes_batch",
+          "state": "passed"
+        },
+        {
+          "name": "test_batch_skips_unchanged",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexBatch::test_batch_skips_unchanged",
+          "state": "passed"
+        },
+        {
+          "name": "test_batch_handles_failures",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexBatch::test_batch_handles_failures",
+          "state": "passed"
+        },
+        {
+          "name": "test_indexes_project",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexProject::test_indexes_project",
+          "state": "passed"
+        },
+        {
+          "name": "test_project_content_format",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexProject::test_project_content_format",
+          "state": "passed"
+        },
+        {
+          "name": "test_project_with_metadata",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexProject::test_project_with_metadata",
+          "state": "passed"
+        },
+        {
+          "name": "test_indexes_task",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexTask::test_indexes_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_content_format",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexTask::test_task_content_format",
+          "state": "passed"
+        },
+        {
+          "name": "test_indexes_activities",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexActivityBatch::test_indexes_activities",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_activities",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexActivityBatch::test_empty_activities",
+          "state": "passed"
+        },
+        {
+          "name": "test_activity_content_format",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexActivityBatch::test_activity_content_format",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_returns_results",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_returns_results",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_with_type_filter",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_with_type_filter",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_with_limit",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_with_limit",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_includes_workspace_filter",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_includes_workspace_filter",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_generates_query_embedding",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_generates_query_embedding",
+          "state": "passed"
+        },
+        {
+          "name": "test_deletes_document",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestDeleteDocument::test_deletes_document",
+          "state": "passed"
+        },
+        {
+          "name": "test_clears_hash_cache_on_delete",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestDeleteDocument::test_clears_hash_cache_on_delete",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_delete_error",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestDeleteDocument::test_handles_delete_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_clears_workspace",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestClearWorkspace::test_clears_workspace",
+          "state": "passed"
+        },
+        {
+          "name": "test_raises_on_clear_error",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestClearWorkspace::test_raises_on_clear_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_stats",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGetStats::test_returns_stats",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_stats",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGetStats::test_empty_stats",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_indexer_creates_instance",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGlobalIndexer::test_get_context_indexer_creates_instance",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_indexer_returns_same_instance",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGlobalIndexer::test_get_context_indexer_returns_same_instance",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_indexer_requires_services",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGlobalIndexer::test_get_context_indexer_requires_services",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_indexer",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGlobalIndexer::test_reset_indexer",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "rag/__tests__/test_context_sync.py",
+      "tests": [
+        {
+          "name": "test_initializes_with_defaults",
+          "fullName": "rag/__tests__/test_context_sync.py::TestContextSyncService::test_initializes_with_defaults",
+          "state": "passed"
+        },
+        {
+          "name": "test_initializes_with_custom_interval",
+          "fullName": "rag/__tests__/test_context_sync.py::TestContextSyncService::test_initializes_with_custom_interval",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_sets_running",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_start_sets_running",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_clears_running",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_stop_clears_running",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_creates_sync_task",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_start_creates_sync_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_cancels_sync_task",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_stop_cancels_sync_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_twice_is_safe",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_start_twice_is_safe",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_without_start_is_safe",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_stop_without_start_is_safe",
+          "state": "passed"
+        },
+        {
+          "name": "test_syncs_all_content",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_syncs_all_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_calls_indexer_for_projects",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_calls_indexer_for_projects",
+          "state": "passed"
+        },
+        {
+          "name": "test_calls_indexer_for_tasks",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_calls_indexer_for_tasks",
+          "state": "passed"
+        },
+        {
+          "name": "test_calls_indexer_for_activities",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_calls_indexer_for_activities",
+          "state": "passed"
+        },
+        {
+          "name": "test_updates_last_sync",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_updates_last_sync",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_counts",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_returns_counts",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_indexer_error",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_handles_indexer_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_project_created",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_project_created",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_project_updated",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_project_updated",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_project_deleted",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_project_deleted",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_task_created",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_task_created",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_task_updated",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_task_updated",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_task_deleted",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_task_deleted",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_document_created",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_document_created",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_document_deleted",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_document_deleted",
+          "state": "passed"
+        },
+        {
+          "name": "test_ignores_unknown_event_type",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_ignores_unknown_event_type",
+          "state": "passed"
+        },
+        {
+          "name": "test_ignores_event_without_workspace",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_ignores_event_without_workspace",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_workspace_id_snake_case",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_workspace_id_snake_case",
+          "state": "passed"
+        },
+        {
+          "name": "test_tracks_event_counts",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_tracks_event_counts",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_task_project_id_snake_case",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_task_project_id_snake_case",
+          "state": "passed"
+        },
+        {
+          "name": "test_periodic_sync_runs",
+          "fullName": "rag/__tests__/test_context_sync.py::TestPeriodicSync::test_periodic_sync_runs",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_none_for_unknown_workspace",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGetLastSync::test_returns_none_for_unknown_workspace",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_timestamp_after_sync",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGetLastSync::test_returns_timestamp_after_sync",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_empty_initially",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGetEventCounts::test_returns_empty_initially",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_counts_after_events",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGetEventCounts::test_returns_counts_after_events",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_sync_service_creates_instance",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGlobalSyncService::test_get_context_sync_service_creates_instance",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_sync_service_returns_same_instance",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGlobalSyncService::test_get_context_sync_service_returns_same_instance",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_sync_service_requires_deps",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGlobalSyncService::test_get_context_sync_service_requires_deps",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_sync_service",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGlobalSyncService::test_reset_sync_service",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_created_uses_content",
+          "fullName": "rag/__tests__/test_context_sync.py::TestDocumentEventHandling::test_document_created_uses_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_created_fallback_to_title",
+          "fullName": "rag/__tests__/test_context_sync.py::TestDocumentEventHandling::test_document_created_fallback_to_title",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_updated_reindexes",
+          "fullName": "rag/__tests__/test_context_sync.py::TestDocumentEventHandling::test_document_updated_reindexes",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "rag/__tests__/test_models.py",
+      "tests": [
+        {
+          "name": "test_enum_values",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocumentType::test_enum_values",
           "state": "passed"
         },
         {
           "name": "test_enum_string_comparison",
-          "fullName": "hitl/test_decorators.py::TestApprovalLevel::test_enum_string_comparison",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocumentType::test_enum_string_comparison",
           "state": "passed"
         },
         {
-          "name": "test_enum_from_string",
-          "fullName": "hitl/test_decorators.py::TestApprovalLevel::test_enum_from_string",
+          "name": "test_creates_document_with_required_fields",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_creates_document_with_required_fields",
           "state": "passed"
         },
         {
-          "name": "test_defaults",
-          "fullName": "hitl/test_decorators.py::TestHITLConfig::test_defaults",
+          "name": "test_creates_document_with_all_fields",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_creates_document_with_all_fields",
           "state": "passed"
         },
         {
-          "name": "test_custom_values",
-          "fullName": "hitl/test_decorators.py::TestHITLConfig::test_custom_values",
+          "name": "test_content_hash_consistency",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_content_hash_consistency",
           "state": "passed"
         },
         {
-          "name": "test_validation_threshold_too_high",
-          "fullName": "hitl/test_decorators.py::TestHITLConfig::test_validation_threshold_too_high",
+          "name": "test_content_hash_changes_with_content",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_content_hash_changes_with_content",
           "state": "passed"
         },
         {
-          "name": "test_validation_threshold_too_low",
-          "fullName": "hitl/test_decorators.py::TestHITLConfig::test_validation_threshold_too_low",
+          "name": "test_content_hash_is_16_chars",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_content_hash_is_16_chars",
           "state": "passed"
         },
         {
-          "name": "test_validation_timeout_too_low",
-          "fullName": "hitl/test_decorators.py::TestHITLConfig::test_validation_timeout_too_low",
+          "name": "test_alias_fields",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_alias_fields",
           "state": "passed"
         },
         {
-          "name": "test_serialization",
-          "fullName": "hitl/test_decorators.py::TestHITLConfig::test_serialization",
+          "name": "test_to_dict",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_from_dict",
-          "fullName": "hitl/test_decorators.py::TestHITLConfig::test_from_dict",
+          "name": "test_default_timestamps",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_default_timestamps",
           "state": "passed"
         },
         {
-          "name": "test_required_fields",
-          "fullName": "hitl/test_decorators.py::TestHITLToolResult::test_required_fields",
+          "name": "test_serialize_datetime",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_serialize_datetime",
           "state": "passed"
         },
         {
-          "name": "test_valid_result",
-          "fullName": "hitl/test_decorators.py::TestHITLToolResult::test_valid_result",
+          "name": "test_empty_content_hash",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_empty_content_hash",
           "state": "passed"
         },
         {
-          "name": "test_confidence_score_validation",
-          "fullName": "hitl/test_decorators.py::TestHITLToolResult::test_confidence_score_validation",
+          "name": "test_unicode_content_hash",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_unicode_content_hash",
           "state": "passed"
         },
         {
-          "name": "test_to_marker_dict",
-          "fullName": "hitl/test_decorators.py::TestHITLToolResult::test_to_marker_dict",
+          "name": "test_creates_with_defaults",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_creates_with_defaults",
           "state": "passed"
         },
         {
-          "name": "test_approval_id_optional",
-          "fullName": "hitl/test_decorators.py::TestHITLToolResult::test_approval_id_optional",
+          "name": "test_creates_with_values",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_creates_with_values",
           "state": "passed"
         },
         {
-          "name": "test_known_tool_base_score",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_known_tool_base_score",
+          "name": "test_total_property",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_total_property",
           "state": "passed"
         },
         {
-          "name": "test_delete_project_base_score",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_delete_project_base_score",
+          "name": "test_success_property_true",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_success_property_true",
           "state": "passed"
         },
         {
-          "name": "test_unknown_tool_default_score",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_unknown_tool_default_score",
+          "name": "test_success_property_false",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_success_property_false",
           "state": "passed"
         },
         {
-          "name": "test_admin_role_bonus",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_admin_role_bonus",
+          "name": "test_to_dict",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_workspace_verified_bonus",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_workspace_verified_bonus",
+          "name": "test_creates_with_required_fields",
+          "fullName": "rag/__tests__/test_models.py::TestSearchResult::test_creates_with_required_fields",
           "state": "passed"
         },
         {
-          "name": "test_combined_context_bonuses",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_combined_context_bonuses",
+          "name": "test_creates_with_all_fields",
+          "fullName": "rag/__tests__/test_models.py::TestSearchResult::test_creates_with_all_fields",
           "state": "passed"
         },
         {
-          "name": "test_high_amount_penalty",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_high_amount_penalty",
+          "name": "test_alias_fields",
+          "fullName": "rag/__tests__/test_models.py::TestSearchResult::test_alias_fields",
           "state": "passed"
         },
         {
-          "name": "test_low_amount_no_penalty",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_low_amount_no_penalty",
+          "name": "test_to_dict",
+          "fullName": "rag/__tests__/test_models.py::TestSearchResult::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_bulk_operation_penalty",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_bulk_operation_penalty",
+          "name": "test_creates_with_required_fields",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_creates_with_required_fields",
           "state": "passed"
         },
         {
-          "name": "test_high_recipient_count_penalty",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_high_recipient_count_penalty",
+          "name": "test_creates_with_all_fields",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_creates_with_all_fields",
           "state": "passed"
         },
         {
-          "name": "test_time_sensitive_bonus",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_time_sensitive_bonus",
+          "name": "test_alias_fields",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_alias_fields",
           "state": "passed"
         },
         {
-          "name": "test_score_clamped_to_100",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_score_clamped_to_100",
+          "name": "test_to_dict",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_score_clamped_to_0",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_score_clamped_to_0",
+          "name": "test_to_dict_null_last_sync",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_to_dict_null_last_sync",
           "state": "passed"
         },
         {
-          "name": "test_score_always_int",
-          "fullName": "hitl/test_decorators.py::TestCalculateConfidence::test_score_always_int",
-          "state": "passed"
-        },
-        {
-          "name": "test_auto_at_threshold",
-          "fullName": "hitl/test_decorators.py::TestDetermineApprovalLevel::test_auto_at_threshold",
-          "state": "passed"
-        },
-        {
-          "name": "test_auto_above_threshold",
-          "fullName": "hitl/test_decorators.py::TestDetermineApprovalLevel::test_auto_above_threshold",
-          "state": "passed"
-        },
-        {
-          "name": "test_quick_at_threshold",
-          "fullName": "hitl/test_decorators.py::TestDetermineApprovalLevel::test_quick_at_threshold",
-          "state": "passed"
-        },
-        {
-          "name": "test_quick_in_range",
-          "fullName": "hitl/test_decorators.py::TestDetermineApprovalLevel::test_quick_in_range",
-          "state": "passed"
-        },
-        {
-          "name": "test_full_below_quick_threshold",
-          "fullName": "hitl/test_decorators.py::TestDetermineApprovalLevel::test_full_below_quick_threshold",
-          "state": "passed"
-        },
-        {
-          "name": "test_custom_thresholds",
-          "fullName": "hitl/test_decorators.py::TestDetermineApprovalLevel::test_custom_thresholds",
-          "state": "passed"
-        },
-        {
-          "name": "test_decorator_preserves_name",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_decorator_preserves_name",
-          "state": "passed"
-        },
-        {
-          "name": "test_decorator_preserves_docstring",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_decorator_preserves_docstring",
-          "state": "passed"
-        },
-        {
-          "name": "test_stores_config_on_function",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_stores_config_on_function",
-          "state": "passed"
-        },
-        {
-          "name": "test_is_hitl_tool_returns_true",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_is_hitl_tool_returns_true",
-          "state": "passed"
-        },
-        {
-          "name": "test_is_hitl_tool_returns_false",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_is_hitl_tool_returns_false",
-          "state": "passed"
-        },
-        {
-          "name": "test_auto_execution_high_confidence",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_auto_execution_high_confidence",
-          "state": "passed"
-        },
-        {
-          "name": "test_hitl_marker_low_confidence",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_hitl_marker_low_confidence",
-          "state": "passed"
-        },
-        {
-          "name": "test_full_approval_very_low_confidence",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_full_approval_very_low_confidence",
-          "state": "passed"
-        },
-        {
-          "name": "test_context_extraction",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_context_extraction",
-          "state": "passed"
-        },
-        {
-          "name": "test_args_passed_correctly",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_args_passed_correctly",
-          "state": "passed"
-        },
-        {
-          "name": "test_hitl_result_contains_tool_args",
-          "fullName": "hitl/test_decorators.py::TestHITLDecorator::test_hitl_result_contains_tool_args",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_hitl_config_returns_config",
-          "fullName": "hitl/test_decorators.py::TestUtilityFunctions::test_get_hitl_config_returns_config",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_hitl_config_returns_none_for_regular",
-          "fullName": "hitl/test_decorators.py::TestUtilityFunctions::test_get_hitl_config_returns_none_for_regular",
-          "state": "passed"
-        },
-        {
-          "name": "test_is_hitl_pending_true",
-          "fullName": "hitl/test_decorators.py::TestUtilityFunctions::test_is_hitl_pending_true",
-          "state": "passed"
-        },
-        {
-          "name": "test_is_hitl_pending_false_no_marker",
-          "fullName": "hitl/test_decorators.py::TestUtilityFunctions::test_is_hitl_pending_false_no_marker",
-          "state": "passed"
-        },
-        {
-          "name": "test_is_hitl_pending_false_marker_false",
-          "fullName": "hitl/test_decorators.py::TestUtilityFunctions::test_is_hitl_pending_false_marker_false",
-          "state": "passed"
-        },
-        {
-          "name": "test_is_hitl_pending_false_not_dict",
-          "fullName": "hitl/test_decorators.py::TestUtilityFunctions::test_is_hitl_pending_false_not_dict",
-          "state": "passed"
-        },
-        {
-          "name": "test_complete_hitl_flow_auto",
-          "fullName": "hitl/test_decorators.py::TestIntegration::test_complete_hitl_flow_auto",
-          "state": "passed"
-        },
-        {
-          "name": "test_complete_hitl_flow_quick",
-          "fullName": "hitl/test_decorators.py::TestIntegration::test_complete_hitl_flow_quick",
-          "state": "passed"
-        },
-        {
-          "name": "test_complete_hitl_flow_full",
-          "fullName": "hitl/test_decorators.py::TestIntegration::test_complete_hitl_flow_full",
-          "state": "passed"
-        },
-        {
-          "name": "test_multiple_decorated_functions",
-          "fullName": "hitl/test_decorators.py::TestIntegration::test_multiple_decorated_functions",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_hitl_tools_returns_list",
-          "fullName": "hitl/test_decorators.py::TestExampleTools::test_get_hitl_tools_returns_list",
-          "state": "passed"
-        },
-        {
-          "name": "test_all_example_tools_are_hitl",
-          "fullName": "hitl/test_decorators.py::TestExampleTools::test_all_example_tools_are_hitl",
-          "state": "passed"
-        },
-        {
-          "name": "test_sign_contract_config",
-          "fullName": "hitl/test_decorators.py::TestExampleTools::test_sign_contract_config",
-          "state": "passed"
-        },
-        {
-          "name": "test_delete_project_config",
-          "fullName": "hitl/test_decorators.py::TestExampleTools::test_delete_project_config",
-          "state": "passed"
-        },
-        {
-          "name": "test_approve_expense_config",
-          "fullName": "hitl/test_decorators.py::TestExampleTools::test_approve_expense_config",
-          "state": "passed"
-        },
-        {
-          "name": "test_send_bulk_notification_config",
-          "fullName": "hitl/test_decorators.py::TestExampleTools::test_send_bulk_notification_config",
-          "state": "passed"
-        },
-        {
-          "name": "test_sign_contract_requires_approval",
-          "fullName": "hitl/test_decorators.py::TestExampleTools::test_sign_contract_requires_approval",
-          "state": "passed"
-        },
-        {
-          "name": "test_delete_project_requires_approval",
-          "fullName": "hitl/test_decorators.py::TestExampleTools::test_delete_project_requires_approval",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_hitl_tool_metadata",
-          "fullName": "hitl/test_decorators.py::TestExampleTools::test_get_hitl_tool_metadata",
+          "name": "test_serialize_last_sync",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_serialize_last_sync",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "hitl/test_task_manager.py",
+      "moduleId": "gateway/__tests__/test_layout_tools.py",
       "tests": [
         {
-          "name": "test_submit_task_returns_task_id",
-          "fullName": "hitl/test_task_manager.py::TestTaskSubmission::test_submit_task_returns_task_id",
+          "name": "test_creates_layout_with_single_slot",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_creates_layout_with_single_slot",
           "state": "passed"
         },
         {
-          "name": "test_submit_task_empty_steps_raises",
-          "fullName": "hitl/test_task_manager.py::TestTaskSubmission::test_submit_task_empty_steps_raises",
+          "name": "test_generates_unique_ids",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_generates_unique_ids",
           "state": "passed"
         },
         {
-          "name": "test_submit_multiple_tasks_unique_ids",
-          "fullName": "hitl/test_task_manager.py::TestTaskSubmission::test_submit_multiple_tasks_unique_ids",
+          "name": "test_includes_metadata",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_includes_metadata",
           "state": "passed"
         },
         {
-          "name": "test_task_executes_steps_sequentially",
-          "fullName": "hitl/test_task_manager.py::TestTaskExecution::test_task_executes_steps_sequentially",
+          "name": "test_metadata_created_at_is_timestamp",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_metadata_created_at_is_timestamp",
           "state": "passed"
         },
         {
-          "name": "test_task_passes_context_to_handlers",
-          "fullName": "hitl/test_task_manager.py::TestTaskExecution::test_task_passes_context_to_handlers",
+          "name": "test_handles_empty_data",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_handles_empty_data",
           "state": "passed"
         },
         {
-          "name": "test_task_completes_successfully",
-          "fullName": "hitl/test_task_manager.py::TestTaskExecution::test_task_completes_successfully",
+          "name": "test_handles_complex_data",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_handles_complex_data",
           "state": "passed"
         },
         {
-          "name": "test_step_timeout_triggers_retry",
-          "fullName": "hitl/test_task_manager.py::TestTimeoutHandling::test_step_timeout_triggers_retry",
+          "name": "test_title_is_optional",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_title_is_optional",
           "state": "passed"
         },
         {
-          "name": "test_step_timeout_fails_after_retries",
-          "fullName": "hitl/test_task_manager.py::TestTimeoutHandling::test_step_timeout_fails_after_retries",
+          "name": "test_creates_horizontal_split",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_creates_horizontal_split",
           "state": "passed"
         },
         {
-          "name": "test_overall_timeout_stops_execution",
-          "fullName": "hitl/test_task_manager.py::TestTimeoutHandling::test_overall_timeout_stops_execution",
+          "name": "test_creates_vertical_split",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_creates_vertical_split",
           "state": "passed"
         },
         {
-          "name": "test_cancel_task_stops_execution",
-          "fullName": "hitl/test_task_manager.py::TestCancellation::test_cancel_task_stops_execution",
+          "name": "test_default_direction_horizontal",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_default_direction_horizontal",
           "state": "passed"
         },
         {
-          "name": "test_cancel_nonexistent_task",
-          "fullName": "hitl/test_task_manager.py::TestCancellation::test_cancel_nonexistent_task",
+          "name": "test_default_ratio_equal",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_default_ratio_equal",
           "state": "passed"
         },
         {
-          "name": "test_cancel_completed_task",
-          "fullName": "hitl/test_task_manager.py::TestCancellation::test_cancel_completed_task",
+          "name": "test_left_slot_is_first",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_left_slot_is_first",
           "state": "passed"
         },
         {
-          "name": "test_cooperative_cancellation",
-          "fullName": "hitl/test_task_manager.py::TestCancellation::test_cooperative_cancellation",
+          "name": "test_includes_slot_titles",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_includes_slot_titles",
           "state": "passed"
         },
         {
-          "name": "test_step_error_triggers_retry",
-          "fullName": "hitl/test_task_manager.py::TestRetryLogic::test_step_error_triggers_retry",
+          "name": "test_ratio_as_tuple_converted_to_list",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_ratio_as_tuple_converted_to_list",
           "state": "passed"
         },
         {
-          "name": "test_step_error_fails_after_retries",
-          "fullName": "hitl/test_task_manager.py::TestRetryLogic::test_step_error_fails_after_retries",
+          "name": "test_resizable_defaults_to_false",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_resizable_defaults_to_false",
           "state": "passed"
         },
         {
-          "name": "test_get_task_status_returns_current_state",
-          "fullName": "hitl/test_task_manager.py::TestTaskStatus::test_get_task_status_returns_current_state",
+          "name": "test_creates_wizard_with_steps",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_creates_wizard_with_steps",
           "state": "passed"
         },
         {
-          "name": "test_get_task_status_nonexistent",
-          "fullName": "hitl/test_task_manager.py::TestTaskStatus::test_get_task_status_nonexistent",
+          "name": "test_custom_start_step",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_custom_start_step",
           "state": "passed"
         },
         {
-          "name": "test_wait_for_task_nonexistent",
-          "fullName": "hitl/test_task_manager.py::TestTaskStatus::test_wait_for_task_nonexistent",
+          "name": "test_allow_skip_option",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_allow_skip_option",
           "state": "passed"
         },
         {
-          "name": "test_wait_for_task_timeout",
-          "fullName": "hitl/test_task_manager.py::TestTaskStatus::test_wait_for_task_timeout",
+          "name": "test_hide_progress_option",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_hide_progress_option",
           "state": "passed"
         },
         {
-          "name": "test_max_concurrent_tasks_limits_execution",
-          "fullName": "hitl/test_task_manager.py::TestConcurrencyLimiting::test_max_concurrent_tasks_limits_execution",
+          "name": "test_step_titles_preserved",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_step_titles_preserved",
           "state": "passed"
         },
         {
-          "name": "test_cleanup_completed_removes_old_tasks",
-          "fullName": "hitl/test_task_manager.py::TestCleanup::test_cleanup_completed_removes_old_tasks",
+          "name": "test_handles_missing_step_fields",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_handles_missing_step_fields",
           "state": "passed"
         },
         {
-          "name": "test_cleanup_preserves_recent_tasks",
-          "fullName": "hitl/test_task_manager.py::TestCleanup::test_cleanup_preserves_recent_tasks",
+          "name": "test_empty_wizard_allowed",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_empty_wizard_allowed",
           "state": "passed"
         },
         {
-          "name": "test_cleanup_preserves_running_tasks",
-          "fullName": "hitl/test_task_manager.py::TestCleanup::test_cleanup_preserves_running_tasks",
+          "name": "test_creates_grid_with_widgets",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_creates_grid_with_widgets",
           "state": "passed"
         },
         {
-          "name": "test_state_emitter_start_task_called",
-          "fullName": "hitl/test_task_manager.py::TestStateEmitterIntegration::test_state_emitter_start_task_called",
+          "name": "test_custom_gap_and_min_width",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_custom_gap_and_min_width",
           "state": "passed"
         },
         {
-          "name": "test_state_emitter_update_step_called",
-          "fullName": "hitl/test_task_manager.py::TestStateEmitterIntegration::test_state_emitter_update_step_called",
+          "name": "test_default_columns",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_default_columns",
           "state": "passed"
         },
         {
-          "name": "test_state_emitter_complete_task_called",
-          "fullName": "hitl/test_task_manager.py::TestStateEmitterIntegration::test_state_emitter_complete_task_called",
+          "name": "test_default_gap",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_default_gap",
           "state": "passed"
         },
         {
-          "name": "test_state_emitter_fail_task_called",
-          "fullName": "hitl/test_task_manager.py::TestStateEmitterIntegration::test_state_emitter_fail_task_called",
+          "name": "test_default_min_item_width",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_default_min_item_width",
           "state": "passed"
         },
         {
-          "name": "test_no_emitter_works",
-          "fullName": "hitl/test_task_manager.py::TestStateEmitterIntegration::test_no_emitter_works",
+          "name": "test_preserves_widget_titles",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_preserves_widget_titles",
           "state": "passed"
         },
         {
-          "name": "test_task_step_defaults",
-          "fullName": "hitl/test_task_manager.py::TestDataclasses::test_task_step_defaults",
+          "name": "test_handles_missing_widget_fields",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_handles_missing_widget_fields",
           "state": "passed"
         },
         {
-          "name": "test_task_result_fields",
-          "fullName": "hitl/test_task_manager.py::TestDataclasses::test_task_result_fields",
+          "name": "test_compare_task_selects_split",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_compare_task_selects_split",
           "state": "passed"
         },
         {
-          "name": "test_task_state_enum_values",
-          "fullName": "hitl/test_task_manager.py::TestDataclasses::test_task_state_enum_values",
+          "name": "test_setup_task_selects_wizard",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_setup_task_selects_wizard",
           "state": "passed"
         },
         {
-          "name": "test_singleton_returns_same_instance",
-          "fullName": "hitl/test_task_manager.py::TestSingletonFactory::test_singleton_returns_same_instance",
+          "name": "test_overview_many_items_selects_grid",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_overview_many_items_selects_grid",
           "state": "passed"
         },
         {
-          "name": "test_singleton_updates_emitter",
-          "fullName": "hitl/test_task_manager.py::TestSingletonFactory::test_singleton_updates_emitter",
+          "name": "test_detail_selects_single",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_detail_selects_single",
           "state": "passed"
         },
         {
-          "name": "test_shutdown_cancels_running_tasks",
-          "fullName": "hitl/test_task_manager.py::TestShutdown::test_shutdown_cancels_running_tasks",
+          "name": "test_single_item_defaults_to_single",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_single_item_defaults_to_single",
           "state": "passed"
         },
         {
-          "name": "test_shutdown_prevents_new_tasks",
-          "fullName": "hitl/test_task_manager.py::TestShutdown::test_shutdown_prevents_new_tasks",
+          "name": "test_multiple_items_defaults_to_grid",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_multiple_items_defaults_to_grid",
+          "state": "passed"
+        },
+        {
+          "name": "test_case_insensitive",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_case_insensitive",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_whitespace",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_handles_whitespace",
+          "state": "passed"
+        },
+        {
+          "name": "test_compare_with_non_2_items_not_split",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_compare_with_non_2_items_not_split",
+          "state": "passed"
+        },
+        {
+          "name": "test_wizard_task_type",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_wizard_task_type",
+          "state": "passed"
+        },
+        {
+          "name": "test_flow_task_type",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_flow_task_type",
+          "state": "passed"
+        },
+        {
+          "name": "test_render_tool_defined",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestLayoutToolDefinitions::test_render_tool_defined",
+          "state": "passed"
+        },
+        {
+          "name": "test_tool_has_required_parameters",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestLayoutToolDefinitions::test_tool_has_required_parameters",
+          "state": "passed"
+        },
+        {
+          "name": "test_layout_type_has_enum",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestLayoutToolDefinitions::test_layout_type_has_enum",
+          "state": "passed"
+        },
+        {
+          "name": "test_tool_has_description",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestLayoutToolDefinitions::test_tool_has_description",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_list_of_functions",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestGetLayoutTools::test_returns_list_of_functions",
+          "state": "passed"
+        },
+        {
+          "name": "test_includes_all_layout_functions",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestGetLayoutTools::test_includes_all_layout_functions",
           "state": "passed"
         }
       ]
@@ -826,6 +1886,366 @@
         {
           "name": "test_complete_one_task_others_unaffected",
           "fullName": "gateway/test_state_emitter_progress.py::TestMultipleTaskProgress::test_complete_one_task_others_unaffected",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "context/test_context_instructions.py",
+      "tests": [
+        {
+          "name": "test_base_instructions_constant",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_base_instructions_constant",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_project_context_with_full_data",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_project_context_with_full_data",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_project_context_with_none",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_project_context_with_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_project_context_minimal",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_project_context_minimal",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_selection_context_with_items",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_with_items",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_selection_context_under_limit",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_under_limit",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_selection_context_with_none_type",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_with_none_type",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_selection_context_with_none",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_with_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_selection_context_zero_count",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_zero_count",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_activity_context",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_activity_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_activity_context_with_none",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_activity_context_with_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_activity_context_empty",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_activity_context_empty",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_activity_context_many_actions",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_activity_context_many_actions",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_document_context",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_document_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_document_context_with_none",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_document_context_with_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_document_context_no_selection",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_document_context_no_selection",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_document_context_long_selection_preview",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_document_context_long_selection_preview",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_view_context",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_view_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_view_context_with_none",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_view_context_with_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_format_view_context_no_filters",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_view_context_no_filters",
+          "state": "passed"
+        },
+        {
+          "name": "test_build_full_instructions",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_build_full_instructions",
+          "state": "passed"
+        },
+        {
+          "name": "test_build_full_instructions_empty_context",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_build_full_instructions_empty_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_build_full_instructions_all_context_types",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_build_full_instructions_all_context_types",
+          "state": "passed"
+        },
+        {
+          "name": "test_build_full_instructions_includes_hints",
+          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_build_full_instructions_includes_hints",
+          "state": "passed"
+        },
+        {
+          "name": "test_low_health_hint",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_low_health_hint",
+          "state": "passed"
+        },
+        {
+          "name": "test_low_health_threshold",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_low_health_threshold",
+          "state": "passed"
+        },
+        {
+          "name": "test_healthy_project_no_hint",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_healthy_project_no_hint",
+          "state": "passed"
+        },
+        {
+          "name": "test_near_completion_hint",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_near_completion_hint",
+          "state": "passed"
+        },
+        {
+          "name": "test_near_completion_threshold",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_near_completion_threshold",
+          "state": "passed"
+        },
+        {
+          "name": "test_early_stage_hint",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_early_stage_hint",
+          "state": "passed"
+        },
+        {
+          "name": "test_early_stage_threshold",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_early_stage_threshold",
+          "state": "passed"
+        },
+        {
+          "name": "test_no_early_stage_hint_at_20",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_no_early_stage_hint_at_20",
+          "state": "passed"
+        },
+        {
+          "name": "test_selection_hint",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_selection_hint",
+          "state": "passed"
+        },
+        {
+          "name": "test_selection_hint_different_types",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_selection_hint_different_types",
+          "state": "passed"
+        },
+        {
+          "name": "test_no_selection_hint_zero_count",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_no_selection_hint_zero_count",
+          "state": "passed"
+        },
+        {
+          "name": "test_recent_create_action_hint",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_recent_create_action_hint",
+          "state": "passed"
+        },
+        {
+          "name": "test_recent_delete_action_hint",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_recent_delete_action_hint",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_context_returns_empty_hints",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_empty_context_returns_empty_hints",
+          "state": "passed"
+        },
+        {
+          "name": "test_multiple_hints",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_multiple_hints",
+          "state": "passed"
+        },
+        {
+          "name": "test_no_activity_hints_without_recent_actions",
+          "fullName": "context/test_context_instructions.py::TestResponseHints::test_no_activity_hints_without_recent_actions",
+          "state": "passed"
+        },
+        {
+          "name": "test_generate_response_hints_alias",
+          "fullName": "context/test_context_instructions.py::TestGenerateResponseHintsAlias::test_generate_response_hints_alias",
+          "state": "passed"
+        },
+        {
+          "name": "test_generate_response_hints_empty",
+          "fullName": "context/test_context_instructions.py::TestGenerateResponseHintsAlias::test_generate_response_hints_empty",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "context/test_context_types.py",
+      "tests": [
+        {
+          "name": "test_valid_project_context_full_data",
+          "fullName": "context/test_context_types.py::TestProjectContextModel::test_valid_project_context_full_data",
+          "state": "passed"
+        },
+        {
+          "name": "test_camel_case_alias_support",
+          "fullName": "context/test_context_types.py::TestProjectContextModel::test_camel_case_alias_support",
+          "state": "passed"
+        },
+        {
+          "name": "test_minimal_project_context",
+          "fullName": "context/test_context_types.py::TestProjectContextModel::test_minimal_project_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_health_score_validation",
+          "fullName": "context/test_context_types.py::TestProjectContextModel::test_health_score_validation",
+          "state": "passed"
+        },
+        {
+          "name": "test_progress_validation",
+          "fullName": "context/test_context_types.py::TestProjectContextModel::test_progress_validation",
+          "state": "passed"
+        },
+        {
+          "name": "test_valid_selection_context",
+          "fullName": "context/test_context_types.py::TestSelectionContextModel::test_valid_selection_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_selection",
+          "fullName": "context/test_context_types.py::TestSelectionContextModel::test_empty_selection",
+          "state": "passed"
+        },
+        {
+          "name": "test_selection_types",
+          "fullName": "context/test_context_types.py::TestSelectionContextModel::test_selection_types",
+          "state": "passed"
+        },
+        {
+          "name": "test_valid_recent_action",
+          "fullName": "context/test_context_types.py::TestRecentActionModel::test_valid_recent_action",
+          "state": "passed"
+        },
+        {
+          "name": "test_valid_activity_context",
+          "fullName": "context/test_context_types.py::TestActivityContextModel::test_valid_activity_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_activity_context",
+          "fullName": "context/test_context_types.py::TestActivityContextModel::test_empty_activity_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_multiple_recent_actions",
+          "fullName": "context/test_context_types.py::TestActivityContextModel::test_multiple_recent_actions",
+          "state": "passed"
+        },
+        {
+          "name": "test_valid_document_context",
+          "fullName": "context/test_context_types.py::TestDocumentContextModel::test_valid_document_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_minimal_document_context",
+          "fullName": "context/test_context_types.py::TestDocumentContextModel::test_minimal_document_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_types",
+          "fullName": "context/test_context_types.py::TestDocumentContextModel::test_document_types",
+          "state": "passed"
+        },
+        {
+          "name": "test_valid_view_context",
+          "fullName": "context/test_context_types.py::TestViewContextModel::test_valid_view_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_minimal_view_context",
+          "fullName": "context/test_context_types.py::TestViewContextModel::test_minimal_view_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_view_types",
+          "fullName": "context/test_context_types.py::TestViewContextModel::test_view_types",
+          "state": "passed"
+        },
+        {
+          "name": "test_full_context_bundle",
+          "fullName": "context/test_context_types.py::TestFrontendContext::test_full_context_bundle",
+          "state": "passed"
+        },
+        {
+          "name": "test_partial_context_bundle",
+          "fullName": "context/test_context_types.py::TestFrontendContext::test_partial_context_bundle",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_context_bundle",
+          "fullName": "context/test_context_types.py::TestFrontendContext::test_empty_context_bundle",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict_method",
+          "fullName": "context/test_context_types.py::TestFrontendContext::test_to_dict_method",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict_camel_case_output",
+          "fullName": "context/test_context_types.py::TestFrontendContext::test_to_dict_camel_case_output",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict_with_all_contexts",
+          "fullName": "context/test_context_types.py::TestFrontendContext::test_to_dict_with_all_contexts",
+          "state": "passed"
+        },
+        {
+          "name": "test_project_model_dump_by_alias",
+          "fullName": "context/test_context_types.py::TestModelSerialization::test_project_model_dump_by_alias",
+          "state": "passed"
+        },
+        {
+          "name": "test_activity_model_dump_by_alias",
+          "fullName": "context/test_context_types.py::TestModelSerialization::test_activity_model_dump_by_alias",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_model_dump_by_alias",
+          "fullName": "context/test_context_types.py::TestModelSerialization::test_document_model_dump_by_alias",
+          "state": "passed"
+        },
+        {
+          "name": "test_view_model_dump_by_alias",
+          "fullName": "context/test_context_types.py::TestModelSerialization::test_view_model_dump_by_alias",
           "state": "passed"
         }
       ]

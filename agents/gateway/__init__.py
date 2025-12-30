@@ -75,6 +75,16 @@ from .long_tasks import (
     bulk_data_export,
     get_long_task_examples,
 )
+from .layout_tools import (
+    # Generative UI Layout Tools (DM-06.3)
+    create_single_layout,
+    create_split_layout,
+    create_wizard_layout,
+    create_grid_layout,
+    select_layout_for_task,
+    get_layout_tools,
+    LAYOUT_TOOLS,
+)
 
 __all__ = [
     # Agent
@@ -102,4 +112,12 @@ __all__ = [
     "research_competitor_landscape",
     "bulk_data_export",
     "get_long_task_examples",
+    # Layout Tools (DM-06.3)
+    "create_single_layout",
+    "create_split_layout",
+    "create_wizard_layout",
+    "create_grid_layout",
+    "select_layout_for_task",
+    "get_layout_tools",
+    "LAYOUT_TOOLS",
 ]
