@@ -171,7 +171,7 @@ development_status:
   # Source: tech-debt-consolidated.md Sprint 1
   # ===========================================
   dm-07: contexted
-  dm-07-1-fix-kb-ssr-build: backlog
+  dm-07-1-fix-kb-ssr-build: done
   dm-07-2-fix-python-test-failures: backlog
   dm-07-3-fix-typescript-test-failures: backlog
   dm-07-4-reconcile-dm02-status: backlog

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useSession } from '@/lib/auth-client'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useKBPages, useDeleteKBPage, useUpdateKBPage } from '@/hooks/use-kb-pages'
 import { PageTree } from '@/components/kb/sidebar/PageTree'
 import { KBSearchInput } from '@/components/kb/KBSearchInput'
@@ -27,6 +27,7 @@ interface KBLayoutProps {
 
 export default function KBLayout({ children }: KBLayoutProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { data: session } = useSession()
   // Check both possible session paths for workspaceId
   const sessionData = session as any
@@ -71,9 +72,8 @@ export default function KBLayout({ children }: KBLayoutProps) {
       await deletePageMutation.mutateAsync(deletePageId)
       setDeletePageId(null)
       // Navigate to KB home if we deleted the current page
-      const currentPath = window.location.pathname
       const deletedPage = pages.find((p) => p.id === deletePageId)
-      if (deletedPage && currentPath.includes(deletedPage.slug)) {
+      if (deletedPage && pathname?.includes(deletedPage.slug)) {
         router.push('/kb' as any)
       }
     } catch (error) {
@@ -94,12 +94,12 @@ export default function KBLayout({ children }: KBLayoutProps) {
     }
   }
 
-  // Extract current page slug from pathname
-  const currentPageSlug = (() => {
-    const pathname = window.location.pathname
+  // Extract current page slug from pathname (SSR-safe using usePathname hook)
+  const currentPageSlug = useMemo(() => {
+    if (!pathname) return undefined
     const match = pathname.match(/\/kb\/([^/]+)/)
     return match ? match[1] : undefined
-  })()
+  }, [pathname])
 
   return (
     <div className="flex h-full">
