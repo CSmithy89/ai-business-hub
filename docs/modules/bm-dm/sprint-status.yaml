@@ -140,7 +140,7 @@ development_status:
   dm-05-3-approval-workflow-integration: done
   dm-05-4-realtime-progress-streaming: done
   dm-05-5-long-running-task-support: done
-  dm-05-retrospective: optional
+  dm-05-retrospective: done
 
   # ===========================================
   # PHASE 6: CONTEXTUAL INTELLIGENCE
