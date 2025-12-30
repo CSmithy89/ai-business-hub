@@ -208,8 +208,11 @@ interface SplitLayoutProps {
 export function SplitLayout({ layout, className }: SplitLayoutProps) {
   const config = layout.config as SplitLayoutConfig;
   const [leftSlot, rightSlot] = layout.slots;
-  const ratio = config.ratio || [1, 1];
-  const totalRatio = ratio[0] + ratio[1];
+  const rawRatio = config.ratio || [1, 1];
+  // Guard against division by zero - fall back to equal split
+  const totalRatio = rawRatio[0] + rawRatio[1];
+  const ratio = totalRatio > 0 ? rawRatio : [1, 1];
+  const safeTotal = totalRatio > 0 ? totalRatio : 2;
 
   if (!leftSlot || !rightSlot) {
     return (
@@ -220,8 +223,8 @@ export function SplitLayout({ layout, className }: SplitLayoutProps) {
   }
 
   const isVertical = config.direction === 'vertical';
-  const leftWidth = (ratio[0] / totalRatio) * 100;
-  const rightWidth = (ratio[1] / totalRatio) * 100;
+  const leftWidth = (ratio[0] / safeTotal) * 100;
+  const rightWidth = (ratio[1] / safeTotal) * 100;
 
   return (
     <div
@@ -283,12 +286,18 @@ export function WizardLayout({
   const [currentStep, setCurrentStep] = useState(config.currentStep || 0);
   const [direction, setDirection] = useState(0);
 
-  const totalSteps = config.totalSteps || layout.slots.length;
+  // Guard against division by zero and out-of-range steps
+  const rawTotalSteps = config.totalSteps || layout.slots.length;
+  const totalSteps = Math.max(1, Math.min(rawTotalSteps, layout.slots.length || 1));
   const showProgress = config.showProgress !== false;
   const allowSkip = config.allowSkip || false;
 
-  const currentSlot = layout.slots[currentStep];
-  const progressPercent = ((currentStep + 1) / totalSteps) * 100;
+  const safeCurrentStep =
+    layout.slots.length > 0
+      ? Math.min(currentStep, layout.slots.length - 1)
+      : 0;
+  const currentSlot = layout.slots[safeCurrentStep];
+  const progressPercent = ((safeCurrentStep + 1) / totalSteps) * 100;
 
   const handleNext = useCallback(() => {
     if (currentStep < totalSteps - 1) {
@@ -329,7 +338,7 @@ export function WizardLayout({
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>
-                Step {currentStep + 1} of {totalSteps}
+                Step {safeCurrentStep + 1} of {totalSteps}
               </span>
               <span>{Math.round(progressPercent)}% complete</span>
             </div>

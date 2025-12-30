@@ -18,7 +18,7 @@ Epic: DM-06 | Story: DM-06.6
 import logging
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, runtime_checkable
 
 from .models import (
     ContextDocument,
@@ -108,7 +108,8 @@ class ContextIndexer:
         self.vector_store = vector_store
 
         # In-memory cache for content hashes (cleared on restart)
-        self._content_hashes: Dict[str, str] = {}
+        # Maps doc_id -> (workspace_id, hash) for proper workspace scoping
+        self._content_hashes: Dict[str, Tuple[str, str]] = {}
 
         # Stats tracking
         self._indexed_count: Dict[str, int] = defaultdict(int)
@@ -130,7 +131,10 @@ class ContextIndexer:
         Returns:
             True if content changed (or new), False if unchanged
         """
-        cached_hash = self._content_hashes.get(doc_id)
+        cached_entry = self._content_hashes.get(doc_id)
+        if cached_entry is None:
+            return True  # New document
+        _, cached_hash = cached_entry
         return cached_hash != content_hash
 
     async def index_document(self, doc: ContextDocument) -> bool:
@@ -178,8 +182,8 @@ class ContextIndexer:
                 metadata=metadata,
             )
 
-            # Update hash cache
-            self._content_hashes[doc.id] = content_hash
+            # Update hash cache with workspace_id for proper scoping
+            self._content_hashes[doc.id] = (doc.workspace_id, content_hash)
 
             # Update stats
             self._indexed_count[doc.workspace_id] += 1
@@ -471,13 +475,11 @@ class ContextIndexer:
                 {"workspace_id": workspace_id}
             )
 
-            # Clear hash cache for workspace
+            # Clear hash cache for workspace - use stored workspace_id for proper scoping
             to_remove = [
                 doc_id
-                for doc_id, _ in self._content_hashes.items()
-                if doc_id.startswith(f"project_")
-                or doc_id.startswith(f"task_")
-                or doc_id.startswith(f"activity_{workspace_id}")
+                for doc_id, (ws_id, _) in self._content_hashes.items()
+                if ws_id == workspace_id
             ]
             for doc_id in to_remove:
                 self._content_hashes.pop(doc_id, None)

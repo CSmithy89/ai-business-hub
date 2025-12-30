@@ -450,7 +450,7 @@ def get_discovery_service() -> DiscoveryService:
     return _discovery_service
 
 
-def configure_discovery_service(
+async def configure_discovery_service(
     discovery_urls: Optional[List[str]] = None,
     scan_interval: int = 300,
     timeout: float = DEFAULT_TIMEOUT,
@@ -460,7 +460,7 @@ def configure_discovery_service(
     Configure and return the global discovery service.
 
     Creates a new DiscoveryService with the specified configuration,
-    replacing any existing singleton.
+    stopping and replacing any existing singleton to prevent resource leaks.
 
     Args:
         discovery_urls: List of URLs to scan for agents
@@ -472,6 +472,11 @@ def configure_discovery_service(
         The configured DiscoveryService instance
     """
     global _discovery_service
+
+    # Stop existing service to prevent resource leaks (HTTP client, background tasks)
+    if _discovery_service is not None:
+        logger.debug("Stopping existing discovery service before reconfiguration")
+        await _discovery_service.stop()
 
     _discovery_service = DiscoveryService(
         discovery_urls=discovery_urls,

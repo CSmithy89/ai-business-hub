@@ -154,20 +154,23 @@ describe('useGenerativeLayout action handler', () => {
     const actionConfig = mockUseCopilotAction.mock.calls[0][0];
     const renderFn = actionConfig.renderAndWaitForResponse;
 
-    const result = renderFn({
-      args: {
-        layout_type: 'single',
-        config: { type: 'single' },
-        slots: [
-          {
-            id: 'slot-1',
-            widget: 'TestWidget',
-            data: { title: 'Test' },
-          },
-        ],
-        metadata: { title: 'Test Layout' },
-      },
-      status: 'complete',
+    let result;
+    act(() => {
+      result = renderFn({
+        args: {
+          layout_type: 'single',
+          config: { type: 'single' },
+          slots: [
+            {
+              id: 'slot-1',
+              widget: 'TestWidget',
+              data: { title: 'Test' },
+            },
+          ],
+          metadata: { title: 'Test Layout' },
+        },
+        status: 'complete',
+      });
     });
 
     // Should return the GenerativeLayoutRenderer
@@ -181,21 +184,23 @@ describe('useGenerativeLayout action handler', () => {
     const actionConfig = mockUseCopilotAction.mock.calls[0][0];
     const renderFn = actionConfig.renderAndWaitForResponse;
 
-    renderFn({
-      args: {
-        layout_type: 'split',
-        config: {
-          type: 'split',
-          direction: 'horizontal',
-          ratio: [1, 1],
+    act(() => {
+      renderFn({
+        args: {
+          layout_type: 'split',
+          config: {
+            type: 'split',
+            direction: 'horizontal',
+            ratio: [1, 1],
+          },
+          slots: [
+            { id: 's1', widget: 'A', data: {} },
+            { id: 's2', widget: 'B', data: {} },
+          ],
+          metadata: { title: 'Split Layout' },
         },
-        slots: [
-          { id: 's1', widget: 'A', data: {} },
-          { id: 's2', widget: 'B', data: {} },
-        ],
-        metadata: { title: 'Split Layout' },
-      },
-      status: 'complete',
+        status: 'complete',
+      });
     });
 
     // onLayoutChange should be called with parsed layout
@@ -220,15 +225,18 @@ describe('useGenerativeLayout action handler', () => {
     const renderFn = actionConfig.renderAndWaitForResponse;
 
     // Should not throw with missing id
-    const result = renderFn({
-      args: {
-        layout_type: 'single',
-        config: { type: 'single' },
-        slots: [
-          { widget: 'TestWidget', data: {} }, // No id
-        ],
-      },
-      status: 'complete',
+    let result;
+    act(() => {
+      result = renderFn({
+        args: {
+          layout_type: 'single',
+          config: { type: 'single' },
+          slots: [
+            { widget: 'TestWidget', data: {} }, // No id
+          ],
+        },
+        status: 'complete',
+      });
     });
 
     expect(result).toBeDefined();
@@ -241,15 +249,18 @@ describe('useGenerativeLayout action handler', () => {
     const renderFn = actionConfig.renderAndWaitForResponse;
 
     // Should not throw with missing data
-    const result = renderFn({
-      args: {
-        layout_type: 'single',
-        config: { type: 'single' },
-        slots: [
-          { id: 's1', widget: 'TestWidget' }, // No data
-        ],
-      },
-      status: 'complete',
+    let result;
+    act(() => {
+      result = renderFn({
+        args: {
+          layout_type: 'single',
+          config: { type: 'single' },
+          slots: [
+            { id: 's1', widget: 'TestWidget' }, // No data
+          ],
+        },
+        status: 'complete',
+      });
     });
 
     expect(result).toBeDefined();
@@ -265,13 +276,15 @@ describe('useGenerativeLayout history management', () => {
     const renderFn = actionConfig.renderAndWaitForResponse;
 
     // Add first layout
-    renderFn({
-      args: {
-        layout_type: 'single',
-        config: { type: 'single' },
-        slots: [{ id: 's1', widget: 'W1', data: {} }],
-      },
-      status: 'complete',
+    act(() => {
+      renderFn({
+        args: {
+          layout_type: 'single',
+          config: { type: 'single' },
+          slots: [{ id: 's1', widget: 'W1', data: {} }],
+        },
+        status: 'complete',
+      });
     });
 
     // onLayoutChange should be called for first layout
@@ -280,13 +293,15 @@ describe('useGenerativeLayout history management', () => {
     );
 
     // Add second layout
-    renderFn({
-      args: {
-        layout_type: 'grid',
-        config: { type: 'grid', columns: 2, gap: 4 },
-        slots: [{ id: 's2', widget: 'W2', data: {} }],
-      },
-      status: 'complete',
+    act(() => {
+      renderFn({
+        args: {
+          layout_type: 'grid',
+          config: { type: 'grid', columns: 2, gap: 4 },
+          slots: [{ id: 's2', widget: 'W2', data: {} }],
+        },
+        status: 'complete',
+      });
     });
 
     // onLayoutChange should be called for second layout too
@@ -304,13 +319,16 @@ describe('useGenerativeLayout history management', () => {
 
     // Add 15 layouts - should not throw
     for (let i = 0; i < 15; i++) {
-      const result = renderFn({
-        args: {
-          layout_type: 'single',
-          config: { type: 'single' },
-          slots: [{ id: `s${i}`, widget: 'W', data: {} }],
-        },
-        status: 'complete',
+      let result;
+      act(() => {
+        result = renderFn({
+          args: {
+            layout_type: 'single',
+            config: { type: 'single' },
+            slots: [{ id: `s${i}`, widget: 'W', data: {} }],
+          },
+          status: 'complete',
+        });
       });
       expect(result).toBeDefined();
     }

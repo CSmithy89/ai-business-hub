@@ -45,8 +45,7 @@ class MCPConnection:
         config: Server configuration
         _process: Async subprocess handle
         _request_id: Counter for JSON-RPC request IDs
-        _read_lock: Lock for serializing read operations
-        _write_lock: Lock for serializing write operations
+        _request_lock: Lock for serializing entire request-response cycles
 
     Example:
         >>> config = MCPServerConfig(name="test", command="uvx", args=["mcp-server-test"])
@@ -66,8 +65,8 @@ class MCPConnection:
         self.config = config
         self._process: Optional[asyncio.subprocess.Process] = None
         self._request_id = 0
-        self._read_lock = asyncio.Lock()
-        self._write_lock = asyncio.Lock()
+        # Single lock for entire request-response cycle to prevent response mixing
+        self._request_lock = asyncio.Lock()
 
     async def start(self) -> None:
         """
@@ -223,14 +222,15 @@ class MCPConnection:
         }
 
         try:
-            # Serialize and send request
-            async with self._write_lock:
+            # Use single lock for entire request-response cycle to prevent
+            # concurrent requests from mixing up their responses
+            async with self._request_lock:
+                # Serialize and send request
                 request_bytes = (json.dumps(request) + "\n").encode("utf-8")
                 self._process.stdin.write(request_bytes)
                 await self._process.stdin.drain()
 
-            # Read response
-            async with self._read_lock:
+                # Read response
                 response_line = await asyncio.wait_for(
                     self._process.stdout.readline(),
                     timeout=30.0,  # Use config timeout eventually
@@ -240,6 +240,13 @@ class MCPConnection:
                 raise MCPProtocolError(f"Empty response from MCP server '{self.config.name}'")
 
             response = json.loads(response_line.decode("utf-8"))
+
+            # Verify response ID matches request ID (defensive check)
+            response_id = response.get("id")
+            if response_id != self._request_id:
+                logger.warning(
+                    f"Response ID mismatch: expected {self._request_id}, got {response_id}"
+                )
 
             # Check for JSON-RPC error
             if "error" in response:

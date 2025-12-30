@@ -416,15 +416,20 @@ class TestLayoutToolDefinitions:
         tool = next(t for t in LAYOUT_TOOLS if t["name"] == "render_generative_layout")
 
         params = tool["parameters"]
-        assert "layout_type" in params
-        assert "config" in params
-        assert "slots" in params
+        # JSON Schema format: properties are nested under "properties" key
+        props = params.get("properties", {})
+        assert "layout_type" in props
+        assert "config" in props
+        assert "slots" in props
+        # Required fields are listed in a separate "required" array
+        assert set(params.get("required", [])) >= {"layout_type", "config", "slots"}
 
     def test_layout_type_has_enum(self):
         """Should have enum for layout_type values."""
         tool = next(t for t in LAYOUT_TOOLS if t["name"] == "render_generative_layout")
 
-        layout_type_param = tool["parameters"]["layout_type"]
+        # JSON Schema format: access via properties
+        layout_type_param = tool["parameters"]["properties"]["layout_type"]
         assert "enum" in layout_type_param
         assert layout_type_param["enum"] == ["single", "split", "wizard", "grid"]
 
@@ -443,13 +448,15 @@ class TestGetLayoutTools:
         tools = get_layout_tools()
 
         assert isinstance(tools, list)
-        assert len(tools) == 5
+        # Includes: render_generative_layout + 4 create_* + select_layout_for_task
+        assert len(tools) == 6
 
     def test_includes_all_layout_functions(self):
         """Should include all layout creation functions."""
         tools = get_layout_tools()
         tool_names = [t.__name__ for t in tools]
 
+        assert "render_generative_layout" in tool_names
         assert "create_single_layout" in tool_names
         assert "create_split_layout" in tool_names
         assert "create_wizard_layout" in tool_names

@@ -358,10 +358,75 @@ def select_layout_for_task(
 
 
 # =============================================================================
+# RENDER TOOL (Main tool for CopilotKit integration)
+# =============================================================================
+
+
+def render_generative_layout(
+    layout_type: str,
+    config: Dict[str, Any],
+    slots: List[Dict[str, Any]],
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Render a dynamic layout on the dashboard.
+
+    This is the main tool that agents call to compose UI layouts.
+    The frontend's CopilotKit action handler intercepts this and
+    renders the appropriate GenerativeLayout component.
+
+    Args:
+        layout_type: Layout type - 'single', 'split', 'wizard', or 'grid'
+        config: Layout-specific configuration object
+        slots: Array of slot definitions with widget, data, and optional title
+        metadata: Optional layout metadata (title, description)
+
+    Returns:
+        Complete layout definition for frontend rendering
+
+    Example:
+        >>> render_generative_layout(
+        ...     layout_type="grid",
+        ...     config={"type": "grid", "columns": 2, "gap": 4},
+        ...     slots=[
+        ...         {"widget": "Metrics", "data": {"value": 42}, "title": "Tasks"},
+        ...         {"widget": "Metrics", "data": {"value": 7}, "title": "Overdue"},
+        ...     ],
+        ...     metadata={"title": "Dashboard Overview"},
+        ... )
+    """
+    layout_id = f"layout-{uuid.uuid4().hex[:8]}"
+
+    # Ensure each slot has an ID
+    processed_slots = []
+    for i, slot in enumerate(slots):
+        processed_slot = {
+            "id": slot.get("id", f"slot-{i}-{uuid.uuid4().hex[:8]}"),
+            "widget": slot.get("widget", "Empty"),
+            "data": slot.get("data", {}),
+        }
+        if slot.get("title"):
+            processed_slot["title"] = slot["title"]
+        processed_slots.append(processed_slot)
+
+    return {
+        "id": layout_id,
+        "type": layout_type,
+        "config": {**config, "type": layout_type},
+        "slots": processed_slots,
+        "metadata": {
+            **(metadata or {}),
+            "createdAt": int(time.time() * 1000),
+            "agentId": "dashboard_gateway",
+        },
+    }
+
+
+# =============================================================================
 # TOOL DEFINITIONS
 # =============================================================================
 
-# Tool schema for CopilotKit registration
+# Tool schema for CopilotKit registration (JSON Schema format)
 LAYOUT_TOOLS = [
     {
         "name": "render_generative_layout",
@@ -371,36 +436,36 @@ LAYOUT_TOOLS = [
             "split (comparison), wizard (multi-step), or grid (overview) layouts."
         ),
         "parameters": {
-            "layout_type": {
-                "type": "string",
-                "description": "Layout type: 'single', 'split', 'wizard', or 'grid'",
-                "enum": ["single", "split", "wizard", "grid"],
-                "required": True,
-            },
-            "config": {
-                "type": "object",
-                "description": "Layout-specific configuration",
-                "required": True,
-            },
-            "slots": {
-                "type": "array",
-                "description": "Array of slot definitions with widget, data, and optional title",
-                "required": True,
-                "items": {
+            "type": "object",
+            "properties": {
+                "layout_type": {
+                    "type": "string",
+                    "description": "Layout type: 'single', 'split', 'wizard', or 'grid'",
+                    "enum": ["single", "split", "wizard", "grid"],
+                },
+                "config": {
                     "type": "object",
-                    "properties": {
-                        "id": {"type": "string"},
-                        "widget": {"type": "string"},
-                        "data": {"type": "object"},
-                        "title": {"type": "string"},
+                    "description": "Layout-specific configuration",
+                },
+                "slots": {
+                    "type": "array",
+                    "description": "Array of slot definitions with widget, data, and optional title",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "widget": {"type": "string"},
+                            "data": {"type": "object"},
+                            "title": {"type": "string"},
+                        },
                     },
                 },
+                "metadata": {
+                    "type": "object",
+                    "description": "Optional layout metadata (title, description)",
+                },
             },
-            "metadata": {
-                "type": "object",
-                "description": "Optional layout metadata (title, description)",
-                "required": False,
-            },
+            "required": ["layout_type", "config", "slots"],
         },
     }
 ]
@@ -408,12 +473,14 @@ LAYOUT_TOOLS = [
 
 def get_layout_tools() -> List:
     """
-    Get all layout tool functions.
+    Get all layout tool functions for agent registration.
 
     Returns:
-        List of tool functions for agent registration
+        List of tool functions including the main render tool
+        and helper creation functions
     """
     return [
+        render_generative_layout,  # Main tool for CopilotKit
         create_single_layout,
         create_split_layout,
         create_wizard_layout,

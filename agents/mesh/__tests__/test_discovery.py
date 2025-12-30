@@ -513,7 +513,7 @@ class TestGlobalDiscoveryService:
         """Should configure and return service."""
         await shutdown_discovery_service()
 
-        service = configure_discovery_service(
+        service = await configure_discovery_service(
             discovery_urls=["http://test:8000"],
             scan_interval=120,
         )
@@ -526,7 +526,7 @@ class TestGlobalDiscoveryService:
     @pytest.mark.asyncio
     async def test_shutdown_discovery_service(self):
         """Should shutdown the service."""
-        service = configure_discovery_service()
+        service = await configure_discovery_service()
 
         with patch.object(service, "scan", new_callable=AsyncMock):
             await service.start()
