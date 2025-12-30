@@ -19,6 +19,7 @@ import {
   TaskListWidget,
   MetricsWidget,
   AlertWidget,
+  TeamActivityWidget,
 } from './widgets';
 
 /**
@@ -69,6 +70,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetComponent> = {
   TaskList: TaskListWidget as WidgetComponent,
   Metrics: MetricsWidget as WidgetComponent,
   Alert: AlertWidget as WidgetComponent,
+  TeamActivity: TeamActivityWidget as WidgetComponent,
 };
 
 /**

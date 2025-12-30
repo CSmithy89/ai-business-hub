@@ -65,7 +65,7 @@ development_status:
   dm-01-6-ccr-routing-settings-ui: done
   dm-01-7-ccr-connection-status: done
   dm-01-8-ccr-quota-usage-display: done
-  dm-01-retrospective: optional
+  dm-01-retrospective: done
 
   # ===========================================
   # PHASE 2: BACKEND INFRASTRUCTURE
@@ -87,7 +87,7 @@ development_status:
   dm-02-7-ccr-agno-integration: done
   dm-02-8-ccr-task-based-routing: done
   dm-02-9-ccr-usage-monitoring-alerts: done
-  dm-02-retrospective: optional
+  dm-02-retrospective: done
 
   # ===========================================
   # PHASE 3: INTEGRATION
@@ -97,14 +97,15 @@ development_status:
   # DM-03: Dashboard Agent Integration
   # Phase 3 | 5 stories | 34 points
   # A2A Client, Orchestration, E2E Flow
+  # Tech Spec: docs/modules/bm-dm/epics/epic-dm-03-tech-spec.md
   # ===========================================
-  dm-03: backlog
-  dm-03-1-a2a-client-setup: backlog
-  dm-03-2-dashboard-agent-orchestration: backlog
-  dm-03-3-widget-rendering-pipeline: backlog
-  dm-03-4-dashboard-page-integration: backlog
-  dm-03-5-end-to-end-testing: backlog
-  dm-03-retrospective: optional
+  dm-03: complete
+  dm-03-1-a2a-client-setup: done
+  dm-03-2-dashboard-agent-orchestration: done
+  dm-03-3-widget-rendering-pipeline: done
+  dm-03-4-dashboard-page-integration: done
+  dm-03-5-end-to-end-testing: done
+  dm-03-retrospective: done
 
   # ===========================================
   # PHASE 4: SHARED STATE

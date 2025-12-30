@@ -13,6 +13,7 @@ describe('widget-registry', () => {
       expect(WIDGET_REGISTRY).toHaveProperty('TaskList');
       expect(WIDGET_REGISTRY).toHaveProperty('Metrics');
       expect(WIDGET_REGISTRY).toHaveProperty('Alert');
+      expect(WIDGET_REGISTRY).toHaveProperty('TeamActivity');
     });
 
     it('maps each type to a component function', () => {
@@ -20,6 +21,7 @@ describe('widget-registry', () => {
       expect(typeof WIDGET_REGISTRY.TaskList).toBe('function');
       expect(typeof WIDGET_REGISTRY.Metrics).toBe('function');
       expect(typeof WIDGET_REGISTRY.Alert).toBe('function');
+      expect(typeof WIDGET_REGISTRY.TeamActivity).toBe('function');
     });
   });
 
@@ -29,6 +31,7 @@ describe('widget-registry', () => {
       expect(isValidWidgetType('TaskList')).toBe(true);
       expect(isValidWidgetType('Metrics')).toBe(true);
       expect(isValidWidgetType('Alert')).toBe(true);
+      expect(isValidWidgetType('TeamActivity')).toBe(true);
     });
 
     it('returns false for invalid widget types', () => {
@@ -55,6 +58,7 @@ describe('widget-registry', () => {
       expect(getWidgetComponent('TaskList')).toBe(WIDGET_REGISTRY.TaskList);
       expect(getWidgetComponent('Metrics')).toBe(WIDGET_REGISTRY.Metrics);
       expect(getWidgetComponent('Alert')).toBe(WIDGET_REGISTRY.Alert);
+      expect(getWidgetComponent('TeamActivity')).toBe(WIDGET_REGISTRY.TeamActivity);
     });
 
     it('returns undefined for invalid widget type', () => {
@@ -75,6 +79,7 @@ describe('widget-registry', () => {
       expect(types).toContain('TaskList');
       expect(types).toContain('Metrics');
       expect(types).toContain('Alert');
+      expect(types).toContain('TeamActivity');
     });
 
     it('returns the same number of types as the registry', () => {

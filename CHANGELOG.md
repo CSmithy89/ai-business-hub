@@ -6,7 +6,84 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 **Foundation Complete:** 17 Epics | 190 Stories | 541 Points | 100% Complete
 **Core-PM Complete:** 16 Epics | 61 Stories | Complete
-**Dynamic Module System:** Phase 1-2 Complete (DM-01, DM-02)
+**Dynamic Module System:** Phase 1-3 Complete (DM-01, DM-02, DM-03)
+
+---
+
+## EPIC-DM-03: Dashboard Agent Integration (5 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-30
+**Branch:** `epic/03-dashboard-integration`
+
+### Added
+
+- **A2A Client**: `HyvveA2AClient` for inter-agent communication via JSON-RPC 2.0
+  - Connection pooling with httpx and HTTP/2 support
+  - Parallel agent calls using `asyncio.gather`
+  - Structured `A2ATaskResult` responses with duration tracking
+  - Comprehensive error handling (timeout, connection, HTTP errors)
+
+- **Dashboard Agent Orchestration**: Tools for data gathering via A2A
+  - `get_project_status()` - Calls Navi for project context
+  - `get_health_summary()` - Calls Pulse for metrics
+  - `get_recent_activity()` - Calls Herald for activity feed
+  - `gather_dashboard_data()` - Parallel agent calls (3x faster)
+  - Updated `DASHBOARD_INSTRUCTIONS` with orchestration guidance
+
+- **Widget Rendering Pipeline**: Agent tool calls to frontend widgets
+  - `TeamActivityWidget` for activity feed display
+  - `LoadingWidget` for pending tool call states
+  - `ErrorWidget` for failed renders with retry option
+  - Loading/error state handling in `DashboardSlots`
+
+- **Dashboard Page Integration**: AI-powered dashboard section
+  - `DashboardGrid` - Responsive 1/2/3 column layout
+  - `DashboardChat` - Quick action suggestions with icons
+  - `DashboardAgentSection` - Container with 2:1 widgets:chat layout
+  - Suspense boundary with skeleton loading
+
+- **Comprehensive Test Suite**: E2E, unit, integration, and performance tests
+  - 14 E2E tests for dashboard page flows
+  - 37 component tests for dashboard widgets
+  - 15 A2A integration tests for agent communication
+  - 8 performance baseline tests (<500ms single, <800ms parallel)
+
+### API Endpoints
+
+- `POST /a2a/navi` - Navi agent A2A endpoint
+- `POST /a2a/pulse` - Pulse agent A2A endpoint
+- `POST /a2a/herald` - Herald agent A2A endpoint
+- `POST /a2a/dashboard` - Dashboard Gateway A2A endpoint
+
+### Widget Types Available
+
+| Widget Type | Component | Use Case |
+|-------------|-----------|----------|
+| `ProjectStatus` | ProjectStatusWidget | Project overview with progress |
+| `TaskList` | TaskListWidget | List of tasks with status |
+| `Metrics` | MetricsWidget | Key metrics with trends |
+| `Alert` | AlertWidget | Alert messages with severity |
+| `TeamActivity` | TeamActivityWidget | Recent team activity feed |
+
+### Key Files
+
+- `agents/a2a/client.py` - A2A client implementation
+- `agents/gateway/tools.py` - Dashboard Gateway orchestration tools
+- `agents/gateway/agent.py` - Updated agent instructions
+- `apps/web/src/components/slots/widgets/TeamActivityWidget.tsx` - Activity widget
+- `apps/web/src/components/slots/widgets/LoadingWidget.tsx` - Loading state
+- `apps/web/src/components/slots/widgets/ErrorWidget.tsx` - Error state
+- `apps/web/src/components/dashboard/DashboardGrid.tsx` - Widget grid
+- `apps/web/src/components/dashboard/DashboardChat.tsx` - Chat sidebar
+- `apps/web/src/app/(dashboard)/dashboard/DashboardAgentSection.tsx` - Agent section
+
+### Notes
+
+- Tech spec: `docs/modules/bm-dm/epics/epic-dm-03-tech-spec.md`
+- Stories: 5 (DM-03.1 through DM-03.5)
+- Total points: 34 (5 + 8 + 8 + 8 + 5)
+- 74 total tests across all test suites
 
 ---
 

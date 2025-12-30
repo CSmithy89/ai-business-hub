@@ -36,18 +36,25 @@ export {
   // Shared components
   WidgetSkeleton,
   WidgetEmpty,
+  // Loading and error states (DM-03.3)
+  LoadingWidget,
+  ErrorWidget,
   // Widget implementations
   ProjectStatusWidget,
   TaskListWidget,
   MetricsWidget,
   AlertWidget,
+  TeamActivityWidget,
   // Props types
   type WidgetSkeletonProps,
   type WidgetEmptyProps,
+  type LoadingWidgetProps,
+  type ErrorWidgetProps,
   type ProjectStatusWidgetProps,
   type TaskListWidgetProps,
   type MetricsWidgetProps,
   type AlertWidgetProps,
+  type TeamActivityWidgetProps,
 } from './widgets';
 
 // Types
@@ -61,5 +68,6 @@ export type {
   TaskListData,
   MetricsData,
   AlertData,
+  TeamActivityData,
   PlaceholderWidgetProps,
 } from './types';
