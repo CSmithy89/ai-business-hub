@@ -105,7 +105,7 @@ development_status:
   dm-03-3-widget-rendering-pipeline: done
   dm-03-4-dashboard-page-integration: done
   dm-03-5-end-to-end-testing: done
-  dm-03-retrospective: optional
+  dm-03-retrospective: done
 
   # ===========================================
   # PHASE 4: SHARED STATE
