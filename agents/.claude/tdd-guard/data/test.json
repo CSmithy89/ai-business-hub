@@ -1,361 +1,236 @@
 {
   "testModules": [
     {
-      "moduleId": "context/test_context_instructions.py",
+      "moduleId": "gateway/__tests__/test_layout_tools.py",
       "tests": [
         {
-          "name": "test_base_instructions_constant",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_base_instructions_constant",
+          "name": "test_creates_layout_with_single_slot",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_creates_layout_with_single_slot",
           "state": "passed"
         },
         {
-          "name": "test_format_project_context_with_full_data",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_project_context_with_full_data",
+          "name": "test_generates_unique_ids",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_generates_unique_ids",
           "state": "passed"
         },
         {
-          "name": "test_format_project_context_with_none",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_project_context_with_none",
+          "name": "test_includes_metadata",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_includes_metadata",
           "state": "passed"
         },
         {
-          "name": "test_format_project_context_minimal",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_project_context_minimal",
+          "name": "test_metadata_created_at_is_timestamp",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_metadata_created_at_is_timestamp",
           "state": "passed"
         },
         {
-          "name": "test_format_selection_context_with_items",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_with_items",
+          "name": "test_handles_empty_data",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_handles_empty_data",
           "state": "passed"
         },
         {
-          "name": "test_format_selection_context_under_limit",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_under_limit",
+          "name": "test_handles_complex_data",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_handles_complex_data",
           "state": "passed"
         },
         {
-          "name": "test_format_selection_context_with_none_type",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_with_none_type",
+          "name": "test_title_is_optional",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSingleLayout::test_title_is_optional",
           "state": "passed"
         },
         {
-          "name": "test_format_selection_context_with_none",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_with_none",
+          "name": "test_creates_horizontal_split",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_creates_horizontal_split",
           "state": "passed"
         },
         {
-          "name": "test_format_selection_context_zero_count",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_selection_context_zero_count",
+          "name": "test_creates_vertical_split",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_creates_vertical_split",
           "state": "passed"
         },
         {
-          "name": "test_format_activity_context",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_activity_context",
+          "name": "test_default_direction_horizontal",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_default_direction_horizontal",
           "state": "passed"
         },
         {
-          "name": "test_format_activity_context_with_none",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_activity_context_with_none",
+          "name": "test_default_ratio_equal",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_default_ratio_equal",
           "state": "passed"
         },
         {
-          "name": "test_format_activity_context_empty",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_activity_context_empty",
+          "name": "test_left_slot_is_first",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_left_slot_is_first",
           "state": "passed"
         },
         {
-          "name": "test_format_activity_context_many_actions",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_activity_context_many_actions",
+          "name": "test_includes_slot_titles",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_includes_slot_titles",
           "state": "passed"
         },
         {
-          "name": "test_format_document_context",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_document_context",
+          "name": "test_ratio_as_tuple_converted_to_list",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_ratio_as_tuple_converted_to_list",
           "state": "passed"
         },
         {
-          "name": "test_format_document_context_with_none",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_document_context_with_none",
+          "name": "test_resizable_defaults_to_false",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateSplitLayout::test_resizable_defaults_to_false",
           "state": "passed"
         },
         {
-          "name": "test_format_document_context_no_selection",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_document_context_no_selection",
+          "name": "test_creates_wizard_with_steps",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_creates_wizard_with_steps",
           "state": "passed"
         },
         {
-          "name": "test_format_document_context_long_selection_preview",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_document_context_long_selection_preview",
+          "name": "test_custom_start_step",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_custom_start_step",
           "state": "passed"
         },
         {
-          "name": "test_format_view_context",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_view_context",
+          "name": "test_allow_skip_option",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_allow_skip_option",
           "state": "passed"
         },
         {
-          "name": "test_format_view_context_with_none",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_view_context_with_none",
+          "name": "test_hide_progress_option",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_hide_progress_option",
           "state": "passed"
         },
         {
-          "name": "test_format_view_context_no_filters",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_format_view_context_no_filters",
+          "name": "test_step_titles_preserved",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_step_titles_preserved",
           "state": "passed"
         },
         {
-          "name": "test_build_full_instructions",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_build_full_instructions",
+          "name": "test_handles_missing_step_fields",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_handles_missing_step_fields",
           "state": "passed"
         },
         {
-          "name": "test_build_full_instructions_empty_context",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_build_full_instructions_empty_context",
+          "name": "test_empty_wizard_allowed",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateWizardLayout::test_empty_wizard_allowed",
           "state": "passed"
         },
         {
-          "name": "test_build_full_instructions_all_context_types",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_build_full_instructions_all_context_types",
+          "name": "test_creates_grid_with_widgets",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_creates_grid_with_widgets",
           "state": "passed"
         },
         {
-          "name": "test_build_full_instructions_includes_hints",
-          "fullName": "context/test_context_instructions.py::TestContextAwareInstructions::test_build_full_instructions_includes_hints",
+          "name": "test_custom_gap_and_min_width",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_custom_gap_and_min_width",
           "state": "passed"
         },
         {
-          "name": "test_low_health_hint",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_low_health_hint",
+          "name": "test_default_columns",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_default_columns",
           "state": "passed"
         },
         {
-          "name": "test_low_health_threshold",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_low_health_threshold",
+          "name": "test_default_gap",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_default_gap",
           "state": "passed"
         },
         {
-          "name": "test_healthy_project_no_hint",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_healthy_project_no_hint",
+          "name": "test_default_min_item_width",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_default_min_item_width",
           "state": "passed"
         },
         {
-          "name": "test_near_completion_hint",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_near_completion_hint",
+          "name": "test_preserves_widget_titles",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_preserves_widget_titles",
           "state": "passed"
         },
         {
-          "name": "test_near_completion_threshold",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_near_completion_threshold",
+          "name": "test_handles_missing_widget_fields",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestCreateGridLayout::test_handles_missing_widget_fields",
           "state": "passed"
         },
         {
-          "name": "test_early_stage_hint",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_early_stage_hint",
+          "name": "test_compare_task_selects_split",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_compare_task_selects_split",
           "state": "passed"
         },
         {
-          "name": "test_early_stage_threshold",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_early_stage_threshold",
+          "name": "test_setup_task_selects_wizard",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_setup_task_selects_wizard",
           "state": "passed"
         },
         {
-          "name": "test_no_early_stage_hint_at_20",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_no_early_stage_hint_at_20",
+          "name": "test_overview_many_items_selects_grid",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_overview_many_items_selects_grid",
           "state": "passed"
         },
         {
-          "name": "test_selection_hint",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_selection_hint",
+          "name": "test_detail_selects_single",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_detail_selects_single",
           "state": "passed"
         },
         {
-          "name": "test_selection_hint_different_types",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_selection_hint_different_types",
+          "name": "test_single_item_defaults_to_single",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_single_item_defaults_to_single",
           "state": "passed"
         },
         {
-          "name": "test_no_selection_hint_zero_count",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_no_selection_hint_zero_count",
+          "name": "test_multiple_items_defaults_to_grid",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_multiple_items_defaults_to_grid",
           "state": "passed"
         },
         {
-          "name": "test_recent_create_action_hint",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_recent_create_action_hint",
+          "name": "test_case_insensitive",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_case_insensitive",
           "state": "passed"
         },
         {
-          "name": "test_recent_delete_action_hint",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_recent_delete_action_hint",
+          "name": "test_handles_whitespace",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_handles_whitespace",
           "state": "passed"
         },
         {
-          "name": "test_empty_context_returns_empty_hints",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_empty_context_returns_empty_hints",
+          "name": "test_compare_with_non_2_items_not_split",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_compare_with_non_2_items_not_split",
           "state": "passed"
         },
         {
-          "name": "test_multiple_hints",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_multiple_hints",
+          "name": "test_wizard_task_type",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_wizard_task_type",
           "state": "passed"
         },
         {
-          "name": "test_no_activity_hints_without_recent_actions",
-          "fullName": "context/test_context_instructions.py::TestResponseHints::test_no_activity_hints_without_recent_actions",
+          "name": "test_flow_task_type",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestSelectLayoutForTask::test_flow_task_type",
           "state": "passed"
         },
         {
-          "name": "test_generate_response_hints_alias",
-          "fullName": "context/test_context_instructions.py::TestGenerateResponseHintsAlias::test_generate_response_hints_alias",
+          "name": "test_render_tool_defined",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestLayoutToolDefinitions::test_render_tool_defined",
           "state": "passed"
         },
         {
-          "name": "test_generate_response_hints_empty",
-          "fullName": "context/test_context_instructions.py::TestGenerateResponseHintsAlias::test_generate_response_hints_empty",
+          "name": "test_tool_has_required_parameters",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestLayoutToolDefinitions::test_tool_has_required_parameters",
           "state": "passed"
-        }
-      ]
-    },
-    {
-      "moduleId": "context/test_context_types.py",
-      "tests": [
-        {
-          "name": "test_valid_project_context_full_data",
-          "fullName": "context/test_context_types.py::TestProjectContextModel::test_valid_project_context_full_data",
-          "state": "passed"
-        },
-        {
-          "name": "test_camel_case_alias_support",
-          "fullName": "context/test_context_types.py::TestProjectContextModel::test_camel_case_alias_support",
-          "state": "passed"
-        },
-        {
-          "name": "test_minimal_project_context",
-          "fullName": "context/test_context_types.py::TestProjectContextModel::test_minimal_project_context",
-          "state": "passed"
-        },
-        {
-          "name": "test_health_score_validation",
-          "fullName": "context/test_context_types.py::TestProjectContextModel::test_health_score_validation",
-          "state": "passed"
-        },
-        {
-          "name": "test_progress_validation",
-          "fullName": "context/test_context_types.py::TestProjectContextModel::test_progress_validation",
-          "state": "passed"
-        },
-        {
-          "name": "test_valid_selection_context",
-          "fullName": "context/test_context_types.py::TestSelectionContextModel::test_valid_selection_context",
-          "state": "passed"
-        },
-        {
-          "name": "test_empty_selection",
-          "fullName": "context/test_context_types.py::TestSelectionContextModel::test_empty_selection",
-          "state": "passed"
-        },
-        {
-          "name": "test_selection_types",
-          "fullName": "context/test_context_types.py::TestSelectionContextModel::test_selection_types",
-          "state": "passed"
-        },
-        {
-          "name": "test_valid_recent_action",
-          "fullName": "context/test_context_types.py::TestRecentActionModel::test_valid_recent_action",
-          "state": "passed"
-        },
-        {
-          "name": "test_valid_activity_context",
-          "fullName": "context/test_context_types.py::TestActivityContextModel::test_valid_activity_context",
-          "state": "passed"
-        },
-        {
-          "name": "test_empty_activity_context",
-          "fullName": "context/test_context_types.py::TestActivityContextModel::test_empty_activity_context",
-          "state": "passed"
-        },
-        {
-          "name": "test_multiple_recent_actions",
-          "fullName": "context/test_context_types.py::TestActivityContextModel::test_multiple_recent_actions",
-          "state": "passed"
-        },
-        {
-          "name": "test_valid_document_context",
-          "fullName": "context/test_context_types.py::TestDocumentContextModel::test_valid_document_context",
-          "state": "passed"
-        },
-        {
-          "name": "test_minimal_document_context",
-          "fullName": "context/test_context_types.py::TestDocumentContextModel::test_minimal_document_context",
-          "state": "passed"
-        },
-        {
-          "name": "test_document_types",
-          "fullName": "context/test_context_types.py::TestDocumentContextModel::test_document_types",
-          "state": "passed"
-        },
-        {
-          "name": "test_valid_view_context",
-          "fullName": "context/test_context_types.py::TestViewContextModel::test_valid_view_context",
-          "state": "passed"
-        },
-        {
-          "name": "test_minimal_view_context",
-          "fullName": "context/test_context_types.py::TestViewContextModel::test_minimal_view_context",
-          "state": "passed"
-        },
-        {
-          "name": "test_view_types",
-          "fullName": "context/test_context_types.py::TestViewContextModel::test_view_types",
-          "state": "passed"
-        },
-        {
-          "name": "test_full_context_bundle",
-          "fullName": "context/test_context_types.py::TestFrontendContext::test_full_context_bundle",
-          "state": "passed"
-        },
-        {
-          "name": "test_partial_context_bundle",
-          "fullName": "context/test_context_types.py::TestFrontendContext::test_partial_context_bundle",
-          "state": "passed"
-        },
-        {
-          "name": "test_empty_context_bundle",
-          "fullName": "context/test_context_types.py::TestFrontendContext::test_empty_context_bundle",
-          "state": "passed"
-        },
-        {
-          "name": "test_to_dict_method",
-          "fullName": "context/test_context_types.py::TestFrontendContext::test_to_dict_method",
-          "state": "passed"
-        },
-        {
-          "name": "test_to_dict_camel_case_output",
-          "fullName": "context/test_context_types.py::TestFrontendContext::test_to_dict_camel_case_output",
-          "state": "passed"
-        },
-        {
-          "name": "test_to_dict_with_all_contexts",
-          "fullName": "context/test_context_types.py::TestFrontendContext::test_to_dict_with_all_contexts",
-          "state": "passed"
         },
         {
-          "name": "test_project_model_dump_by_alias",
-          "fullName": "context/test_context_types.py::TestModelSerialization::test_project_model_dump_by_alias",
+          "name": "test_layout_type_has_enum",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestLayoutToolDefinitions::test_layout_type_has_enum",
           "state": "passed"
         },
         {
-          "name": "test_activity_model_dump_by_alias",
-          "fullName": "context/test_context_types.py::TestModelSerialization::test_activity_model_dump_by_alias",
+          "name": "test_tool_has_description",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestLayoutToolDefinitions::test_tool_has_description",
           "state": "passed"
         },
         {
-          "name": "test_document_model_dump_by_alias",
-          "fullName": "context/test_context_types.py::TestModelSerialization::test_document_model_dump_by_alias",
+          "name": "test_returns_list_of_functions",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestGetLayoutTools::test_returns_list_of_functions",
           "state": "passed"
         },
         {
-          "name": "test_view_model_dump_by_alias",
-          "fullName": "context/test_context_types.py::TestModelSerialization::test_view_model_dump_by_alias",
+          "name": "test_includes_all_layout_functions",
+          "fullName": "gateway/__tests__/test_layout_tools.py::TestGetLayoutTools::test_includes_all_layout_functions",
           "state": "passed"
         }
       ]

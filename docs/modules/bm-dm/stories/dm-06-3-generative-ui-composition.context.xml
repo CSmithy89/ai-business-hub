@@ -1,0 +1,690 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-06.3 Generative UI Composition
+  Generated: 2025-12-31
+  Epic: DM-06 - Contextual Intelligence
+  Dependencies: DM-06.2 (Complete), DM-01.3 (Complete), DM-03.3 (Complete)
+-->
+<story-context>
+  <!-- =========================================================================
+       STORY SUMMARY
+       ========================================================================= -->
+  <summary>
+    <title>Generative UI Composition</title>
+    <epic>DM-06 - Contextual Intelligence</epic>
+    <points>8</points>
+    <status>ready-for-dev</status>
+    <priority>High (Enables dynamic agent-composed layouts)</priority>
+
+    <overview>
+      Enable agents to dynamically compose UI layouts based on task complexity and context.
+      This story implements the Generative UI pattern using CopilotKit's renderAndWait tool
+      call mechanism, allowing agents to construct appropriate layouts (single, split, wizard,
+      grid) for different user requests.
+    </overview>
+
+    <deliverables>
+      <item>Layout type definitions for single, split, wizard, and grid layouts</item>
+      <item>Generative layout React components with smooth transitions</item>
+      <item>Python layout tools for agents to compose UI</item>
+      <item>Layout hook using CopilotKit's useRenderToolCall</item>
+      <item>Widget registry for dynamic component rendering</item>
+    </deliverables>
+  </summary>
+
+  <!-- =========================================================================
+       ACCEPTANCE CRITERIA
+       ========================================================================= -->
+  <acceptance-criteria>
+    <criterion id="AC1">LayoutType type union defined with 'single', 'split', 'wizard', 'grid' variants</criterion>
+    <criterion id="AC2">LayoutSlot interface defines slot structure with id, widget, data, and optional title</criterion>
+    <criterion id="AC3">SingleLayoutConfig, SplitLayoutConfig, WizardLayoutConfig, GridLayoutConfig interfaces created</criterion>
+    <criterion id="AC4">GenerativeLayout interface combines type, config, slots, and metadata</criterion>
+    <criterion id="AC5">GenerativeLayoutRenderer component dispatches to appropriate layout component</criterion>
+    <criterion id="AC6">SingleLayout component renders a single slot full-width</criterion>
+    <criterion id="AC7">SplitLayout component renders two slots with configurable direction and ratio</criterion>
+    <criterion id="AC8">WizardLayout component renders step-by-step with progress indicator and transitions</criterion>
+    <criterion id="AC9">GridLayout component renders multiple slots in a responsive grid</criterion>
+    <criterion id="AC10">SlotRenderer component uses widget registry to render slot content</criterion>
+    <criterion id="AC11">registerWidget function allows registering custom widgets</criterion>
+    <criterion id="AC12">create_single_layout() Python function creates single layout definition</criterion>
+    <criterion id="AC13">create_split_layout() Python function creates split layout with direction/ratio</criterion>
+    <criterion id="AC14">create_wizard_layout() Python function creates wizard with steps and progress</criterion>
+    <criterion id="AC15">create_grid_layout() Python function creates grid with columns and gap</criterion>
+    <criterion id="AC16">select_layout_for_task() Python function returns recommended layout type</criterion>
+    <criterion id="AC17">useGenerativeLayout hook manages layout state with history</criterion>
+    <criterion id="AC18">render_generative_layout tool registered with CopilotKit's useRenderToolCall</criterion>
+    <criterion id="AC19">Layout transitions use Framer Motion with fade/slide animations</criterion>
+    <criterion id="AC20">Unit tests pass with >85% coverage for layout components and tools</criterion>
+  </acceptance-criteria>
+
+  <!-- =========================================================================
+       IMPLEMENTATION TASKS
+       ========================================================================= -->
+  <implementation-tasks>
+    <task id="1" points="1.5">
+      <name>Create Layout Type Definitions</name>
+      <file>apps/web/src/lib/generative-ui/layout-types.ts</file>
+      <description>
+        Define TypeScript types for layout system:
+        - LayoutType = 'single' | 'split' | 'wizard' | 'grid'
+        - LayoutSlot interface with id, widget, data, title
+        - Layout config interfaces for each type
+        - GenerativeLayout composite interface
+        - LayoutTransition for animation configuration
+      </description>
+    </task>
+
+    <task id="2" points="2.5">
+      <name>Create Generative Layout Components</name>
+      <file>apps/web/src/components/generative-ui/GenerativeLayout.tsx</file>
+      <description>
+        Implement React components:
+        - WIDGET_REGISTRY record mapping widget names to components
+        - registerWidget() function for custom widget registration
+        - GenerativeLayoutRenderer dispatching to layout types
+        - SingleLayout, SplitLayout, WizardLayout, GridLayout components
+        - SlotRenderer using widget registry with fallback
+        - Framer Motion AnimatePresence transitions
+      </description>
+    </task>
+
+    <task id="3" points="2.5">
+      <name>Create Python Layout Tools</name>
+      <file>agents/gateway/layout_tools.py</file>
+      <description>
+        Implement Python tools:
+        - create_single_layout(widget, data, title)
+        - create_split_layout(left/right widgets, direction, ratio)
+        - create_wizard_layout(steps, current_step, show_progress)
+        - create_grid_layout(widgets, columns, gap)
+        - select_layout_for_task(task_type, item_count, context)
+        - LAYOUT_TOOLS list with render_generative_layout schema
+      </description>
+    </task>
+
+    <task id="4" points="1.5">
+      <name>Create Layout Hook</name>
+      <file>apps/web/src/lib/generative-ui/use-generative-layout.ts</file>
+      <description>
+        Implement useGenerativeLayout hook:
+        - currentLayout state for active layout
+        - layoutHistory state (last 10 layouts)
+        - clearLayout(), goBack(), hasHistory
+        - useRenderToolCall for 'render_generative_layout'
+        - Pending state shows skeleton
+        - Completed state renders GenerativeLayoutRenderer
+      </description>
+    </task>
+  </implementation-tasks>
+
+  <!-- =========================================================================
+       FILES TO CREATE
+       ========================================================================= -->
+  <files-to-create>
+    <file path="apps/web/src/lib/generative-ui/layout-types.ts">Layout type definitions and interfaces</file>
+    <file path="apps/web/src/lib/generative-ui/use-generative-layout.ts">Layout hook with tool call handling</file>
+    <file path="apps/web/src/lib/generative-ui/index.ts">Module exports</file>
+    <file path="apps/web/src/components/generative-ui/GenerativeLayout.tsx">Layout renderer and layout components</file>
+    <file path="apps/web/src/components/generative-ui/index.ts">Component exports</file>
+    <file path="agents/gateway/layout_tools.py">Python layout creation tools</file>
+    <file path="agents/gateway/__tests__/test_layout_tools.py">Unit tests for layout tools</file>
+    <file path="apps/web/src/components/generative-ui/__tests__/GenerativeLayout.test.tsx">Unit tests for layout components</file>
+    <file path="apps/web/src/lib/generative-ui/__tests__/use-generative-layout.test.ts">Unit tests for layout hook</file>
+  </files-to-create>
+
+  <!-- =========================================================================
+       FILES TO MODIFY
+       ========================================================================= -->
+  <files-to-modify>
+    <file path="agents/gateway/agent.py">Import and register layout tools with agent</file>
+    <file path="agents/gateway/__init__.py">Export layout_tools module</file>
+    <file path="apps/web/src/app/(dashboard)/dashboard/page.tsx">Integrate useGenerativeLayout hook</file>
+    <file path="docs/modules/bm-dm/sprint-status.yaml">Update story status</file>
+  </files-to-modify>
+
+  <!-- =========================================================================
+       EXISTING PATTERNS - COPILOTKIT INTEGRATION
+       ========================================================================= -->
+  <existing-patterns>
+    <pattern name="CopilotKit Provider">
+      <file>/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/copilot/CopilotKitProvider.tsx</file>
+      <description>
+        CopilotKit provider wrapper configured for AG-UI protocol.
+        Uses NEXT_PUBLIC_AGNO_URL with /agui endpoint.
+        Includes HITLActionRegistration for approval workflows.
+      </description>
+      <code-snippet><![CDATA[
+export function CopilotKitProvider({ children }: CopilotKitProviderProps) {
+  const runtimeUrl = process.env.NEXT_PUBLIC_AGNO_URL
+    ? `${process.env.NEXT_PUBLIC_AGNO_URL}/agui`
+    : '/api/copilotkit';
+
+  return (
+    <CopilotKit
+      runtimeUrl={runtimeUrl}
+      publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_KEY}
+    >
+      <HITLActionRegistration />
+      {children}
+    </CopilotKit>
+  );
+}
+      ]]></code-snippet>
+    </pattern>
+
+    <pattern name="HITL Action Registration Pattern">
+      <file>/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/hitl/HITLActionRegistration.tsx</file>
+      <description>
+        Pattern for registering tool handlers with CopilotKit.
+        Uses useHITLAction hook which wraps useCopilotAction.
+        renderAndWaitForResponse pattern for approval UI.
+      </description>
+      <code-snippet><![CDATA[
+// Example HITL action registration
+function useSignContractAction() {
+  useHITLAction({
+    name: 'sign_contract',
+    description: 'Human-in-the-loop approval for contract signing',
+    renderApproval: ({ args, respond, status }) => (
+      <ContractApprovalCard
+        args={args}
+        isExecuting={status === 'executing'}
+        onApprove={() => respond?.({ approved: true })}
+        onReject={(reason) => respond?.({ approved: false, reason })}
+      />
+    ),
+    onExecute: () => { /* success toast */ },
+    onReject: (reason) => { /* cancelled toast */ },
+  });
+}
+      ]]></code-snippet>
+    </pattern>
+
+    <pattern name="useHITLAction Hook (renderAndWaitForResponse)">
+      <file>/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/lib/hitl/use-hitl-action.tsx</file>
+      <description>
+        Hook wrapping useCopilotAction with renderAndWaitForResponse pattern.
+        This is the pattern to follow for useGenerativeLayout hook.
+      </description>
+      <code-snippet><![CDATA[
+// Key pattern: useCopilotAction with renderAndWaitForResponse
+useCopilotAction({
+  name: `hitl_${name}`,
+  description: description || `Human-in-the-loop approval for ${name}`,
+  parameters: [
+    { name: 'toolName', type: 'string', required: true },
+    { name: 'toolArgs', type: 'object', required: true },
+    // ... more parameters
+  ],
+  // Use renderAndWaitForResponse to show UI and block until response
+  renderAndWaitForResponse: ({ args, respond, status }) => {
+    // Parse args, track state, render component
+    return renderApproval({
+      args: hitlArgs,
+      status: mappedStatus,
+      respond: wrappedRespond,
+    });
+  },
+});
+      ]]></code-snippet>
+    </pattern>
+  </existing-patterns>
+
+  <!-- =========================================================================
+       EXISTING PATTERNS - DASHBOARD COMPONENTS
+       ========================================================================= -->
+  <existing-patterns>
+    <pattern name="Dashboard Grid">
+      <file>/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/components/dashboard/DashboardGrid.tsx</file>
+      <description>
+        Responsive grid layout for rendering widgets.
+        Uses Tailwind responsive classes for mobile/tablet/desktop.
+      </description>
+      <code-snippet><![CDATA[
+export function DashboardGrid({ children, className }: DashboardGridProps) {
+  return (
+    <div
+      className={cn(
+        'grid gap-4',
+        'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+        'auto-rows-auto',
+        className
+      )}
+      role="region"
+      aria-label="Dashboard widgets"
+      data-testid="dashboard-grid"
+    >
+      {children}
+    </div>
+  );
+}
+      ]]></code-snippet>
+    </pattern>
+
+    <pattern name="Dashboard Agent Section">
+      <file>/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/app/(dashboard)/dashboard/DashboardAgentSection.tsx</file>
+      <description>
+        Client component providing AI-powered section with widget grid and chat.
+        Integrates with CopilotKit context providers from DM-06.1.
+      </description>
+      <code-snippet><![CDATA[
+export function DashboardAgentSection() {
+  const activity = useDashboardStateStore((state) => state.widgets.activity);
+
+  // Transform data into context format for CopilotKit agents
+  const activityContext = useMemo<ActivityContext | null>(() => {
+    if (!activity) return null;
+    return {
+      recentActions: activity.activities.map((a) => ({
+        action: a.action,
+        target: a.target ?? '',
+        timestamp: a.timestamp,
+      })),
+      currentPage: '/dashboard',
+      sessionDuration: Date.now() - (activity.lastUpdated || Date.now()),
+    };
+  }, [activity]);
+
+  // Expose contexts to CopilotKit agents
+  useActivityContext(activityContext);
+  useViewContext(viewContext);
+
+  return (
+    <section className="space-y-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <DashboardGrid>
+            <WidgetPlaceholder />
+          </DashboardGrid>
+        </div>
+        <div className="lg:sticky lg:top-4">
+          <DashboardChat />
+        </div>
+      </div>
+    </section>
+  );
+}
+      ]]></code-snippet>
+    </pattern>
+  </existing-patterns>
+
+  <!-- =========================================================================
+       EXISTING PATTERNS - PYTHON TOOLS
+       ========================================================================= -->
+  <existing-patterns>
+    <pattern name="Dashboard Gateway Tools">
+      <file>/home/chris/projects/work/Ai Bussiness Hub/agents/gateway/tools.py</file>
+      <description>
+        Tool definitions for Dashboard Gateway agent.
+        Pattern for render_dashboard_widget shows how tools return data for frontend.
+      </description>
+      <code-snippet><![CDATA[
+WIDGET_TYPES = [
+    "ProjectStatus", "TaskList", "Metrics", "Alert",
+    "KanbanBoard", "GanttChart", "BurndownChart", "TeamActivity",
+]
+
+def render_dashboard_widget(
+    widget_type: str,
+    data: Dict[str, Any],
+    title: Optional[str] = None,
+    slot_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Render a widget on the user's dashboard."""
+    if widget_type not in WIDGET_TYPES:
+        return {
+            "error": f"Unknown widget type: {widget_type}",
+            "available_types": WIDGET_TYPES,
+            "rendered": False,
+        }
+    return {
+        "type": widget_type,
+        "data": data,
+        "title": title,
+        "slot_id": slot_id,
+        "rendered": True,
+    }
+
+def get_all_tools() -> List:
+    """Get all Dashboard Gateway tools."""
+    return [
+        render_dashboard_widget,
+        get_dashboard_capabilities,
+        route_to_agent,
+        get_project_status,
+        get_health_summary,
+        get_recent_activity,
+        gather_dashboard_data,
+    ]
+      ]]></code-snippet>
+    </pattern>
+
+    <pattern name="Dashboard Gateway Agent">
+      <file>/home/chris/projects/work/Ai Bussiness Hub/agents/gateway/agent.py</file>
+      <description>
+        Agent creation with tool registration.
+        Shows how to integrate new tools with the agent.
+      </description>
+      <code-snippet><![CDATA[
+def create_dashboard_gateway_agent(
+    workspace_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    state_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    frontend_context: Optional[Dict[str, Any]] = None,
+):
+    """Create a Dashboard Gateway agent instance with context awareness."""
+    # ... context processing ...
+
+    agent = Agent(
+        name="dashboard_gateway",
+        role="Dashboard Gateway",
+        description="Orchestrates dashboard widgets...",
+        model=Claude(id=model_id or "claude-sonnet-4-20250514"),
+        instructions=instructions,
+        tools=get_all_tools(),  # <- New layout tools should be added here
+        add_datetime_to_instructions=True,
+        markdown=True,
+        show_tool_calls=True,
+    )
+    return agent
+      ]]></code-snippet>
+    </pattern>
+
+    <pattern name="Gateway Module Exports">
+      <file>/home/chris/projects/work/Ai Bussiness Hub/agents/gateway/__init__.py</file>
+      <description>
+        Module exports pattern for gateway.
+        New layout_tools should be exported here.
+      </description>
+      <code-snippet><![CDATA[
+from .agent import (
+    DASHBOARD_INSTRUCTIONS,
+    MockAgent,
+    create_dashboard_gateway_agent,
+    get_agent_metadata,
+)
+from .tools import (
+    WIDGET_TYPES,
+    get_all_tools,
+    get_dashboard_capabilities,
+    render_dashboard_widget,
+    route_to_agent,
+)
+# Add: from .layout_tools import (...)
+
+__all__ = [
+    "create_dashboard_gateway_agent",
+    "get_agent_metadata",
+    # ... other exports
+    # Add: layout tool exports
+]
+      ]]></code-snippet>
+    </pattern>
+  </existing-patterns>
+
+  <!-- =========================================================================
+       EXISTING PATTERNS - CONTEXT PROVIDERS
+       ========================================================================= -->
+  <existing-patterns>
+    <pattern name="Copilot Context Hooks">
+      <file>/home/chris/projects/work/Ai Bussiness Hub/apps/web/src/lib/context/copilot-context.ts</file>
+      <description>
+        Context provider hooks using useCopilotReadable.
+        Provides pattern for exposing data to agents.
+      </description>
+      <code-snippet><![CDATA[
+export interface ProjectContext {
+  id: string;
+  name: string;
+  status: 'active' | 'on-hold' | 'completed';
+  currentPhase?: string;
+  healthScore?: number;
+  progress: number;
+  tasksTotal: number;
+  tasksCompleted: number;
+  team?: Array<{ id: string; name: string; role: string }>;
+}
+
+export function useProjectContext(project: ProjectContext | null): void {
+  const contextValue = useMemo(() => {
+    if (!project) return null;
+    return {
+      id: project.id,
+      name: project.name,
+      status: project.status,
+      // ... filtered fields
+    };
+  }, [project]);
+
+  useCopilotReadable({
+    description: 'The currently active project the user is viewing',
+    value: contextValue,
+  });
+}
+      ]]></code-snippet>
+    </pattern>
+  </existing-patterns>
+
+  <!-- =========================================================================
+       INTERFACE DEFINITIONS
+       ========================================================================= -->
+  <interface-definitions>
+    <interface name="TypeScript Layout Types">
+      <code><![CDATA[
+export type LayoutType = 'single' | 'split' | 'wizard' | 'grid';
+
+export interface LayoutSlot {
+  id: string;
+  widget: string;
+  data: Record<string, unknown>;
+  title?: string;
+}
+
+export interface SingleLayoutConfig {
+  type: 'single';
+}
+
+export interface SplitLayoutConfig {
+  type: 'split';
+  direction: 'horizontal' | 'vertical';
+  ratio: [number, number];
+  resizable?: boolean;
+}
+
+export interface WizardLayoutConfig {
+  type: 'wizard';
+  currentStep: number;
+  totalSteps: number;
+  allowSkip?: boolean;
+  showProgress?: boolean;
+}
+
+export interface GridLayoutConfig {
+  type: 'grid';
+  columns: number;
+  gap?: number;
+  minItemWidth?: number;
+}
+
+export type LayoutConfig =
+  | SingleLayoutConfig
+  | SplitLayoutConfig
+  | WizardLayoutConfig
+  | GridLayoutConfig;
+
+export interface GenerativeLayout {
+  id: string;
+  type: LayoutType;
+  config: LayoutConfig;
+  slots: LayoutSlot[];
+  metadata?: {
+    title?: string;
+    description?: string;
+    createdAt: number;
+    agentId?: string;
+  };
+}
+
+export interface LayoutTransition {
+  from: LayoutType;
+  to: LayoutType;
+  duration?: number;
+  easing?: string;
+}
+      ]]></code>
+    </interface>
+
+    <interface name="useGenerativeLayout Hook">
+      <code><![CDATA[
+interface UseGenerativeLayoutOptions {
+  onLayoutChange?: (layout: GenerativeLayout | null) => void;
+}
+
+interface UseGenerativeLayoutReturn {
+  currentLayout: GenerativeLayout | null;
+  layoutHistory: GenerativeLayout[];
+  clearLayout: () => void;
+  goBack: () => void;
+  hasHistory: boolean;
+}
+
+export function useGenerativeLayout(
+  options?: UseGenerativeLayoutOptions
+): UseGenerativeLayoutReturn;
+      ]]></code>
+    </interface>
+
+    <interface name="Python Layout Tool Signatures">
+      <code><![CDATA[
+LayoutType = Literal['single', 'split', 'wizard', 'grid']
+
+def create_single_layout(
+    widget: str,
+    data: Dict[str, Any],
+    title: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Create a single-widget layout."""
+    ...
+
+def create_split_layout(
+    left_widget: str,
+    left_data: Dict[str, Any],
+    right_widget: str,
+    right_data: Dict[str, Any],
+    direction: Literal['horizontal', 'vertical'] = 'horizontal',
+    ratio: tuple = (1, 1),
+    left_title: Optional[str] = None,
+    right_title: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Create a split comparison layout."""
+    ...
+
+def create_wizard_layout(
+    steps: List[Dict[str, Any]],
+    current_step: int = 0,
+    show_progress: bool = True,
+    allow_skip: bool = False,
+) -> Dict[str, Any]:
+    """Create a multi-step wizard layout."""
+    ...
+
+def create_grid_layout(
+    widgets: List[Dict[str, Any]],
+    columns: int = 2,
+    gap: int = 4,
+    min_item_width: int = 200,
+) -> Dict[str, Any]:
+    """Create a dashboard grid layout."""
+    ...
+
+def select_layout_for_task(
+    task_type: str,
+    item_count: int = 1,
+    context: Optional[Dict[str, Any]] = None,
+) -> LayoutType:
+    """Select appropriate layout based on task type and complexity."""
+    ...
+      ]]></code>
+    </interface>
+  </interface-definitions>
+
+  <!-- =========================================================================
+       LAYOUT SELECTION LOGIC
+       ========================================================================= -->
+  <layout-selection>
+    <description>
+      Agents use select_layout_for_task() to determine appropriate layouts.
+    </description>
+    <rules>
+      <rule task="compare" items="2" layout="split" />
+      <rule task="setup" items="any" layout="wizard" />
+      <rule task="onboard" items="any" layout="wizard" />
+      <rule task="configure" items="any" layout="wizard" />
+      <rule task="overview" items="gt-2" layout="grid" />
+      <rule task="detail" items="1" layout="single" />
+      <rule task="default" items="gt-1" layout="grid" />
+      <rule task="default" items="1" layout="single" />
+    </rules>
+  </layout-selection>
+
+  <!-- =========================================================================
+       DEPENDENCIES
+       ========================================================================= -->
+  <dependencies>
+    <depends-on>
+      <story id="DM-06.2" status="complete">Agent context consumption for task understanding</story>
+      <story id="DM-01.3" status="complete">Base widget components for slot rendering</story>
+      <story id="DM-03.3" status="complete">Widget rendering pipeline</story>
+    </depends-on>
+    <required-by>
+      <story id="DM-06.5">Universal Agent Mesh uses layouts for multi-agent UI composition</story>
+    </required-by>
+  </dependencies>
+
+  <!-- =========================================================================
+       TECHNICAL NOTES
+       ========================================================================= -->
+  <technical-notes>
+    <note name="CopilotKit renderAndWait Pattern">
+      CopilotKit's useRenderToolCall (or useCopilotAction with renderAndWaitForResponse)
+      enables agents to render custom UI components as part of their response:
+      1. Agent calls tool - Agent includes render_generative_layout tool call
+      2. CopilotKit intercepts - The hook matches the tool name
+      3. Component renders - Custom render function produces React component
+      4. Tool completes - Agent continues after render is acknowledged
+    </note>
+
+    <note name="Layout History Management">
+      The hook maintains a history of the last 10 layouts for navigation.
+      On new layout: append to history, slice to last 10.
+      goBack(): pop last item, set previous as current.
+    </note>
+
+    <note name="Framer Motion Transitions">
+      Layouts use AnimatePresence for smooth enter/exit transitions:
+      - initial: opacity 0, y 20
+      - animate: opacity 1, y 0
+      - exit: opacity 0, y -20
+      - duration: 0.3s
+    </note>
+
+    <note name="Widget Registry">
+      Widgets must be registered before use. The existing WIDGET_TYPES from
+      tools.py should be registered in the frontend widget registry.
+      Unknown widgets show a fallback component.
+    </note>
+  </technical-notes>
+
+  <!-- =========================================================================
+       REFERENCE DOCUMENTATION
+       ========================================================================= -->
+  <references>
+    <reference type="tech-spec">docs/modules/bm-dm/epics/epic-dm-06-tech-spec.md - Section 3.3</reference>
+    <reference type="architecture">docs/architecture/dynamic-module-system.md - Phase 6</reference>
+    <reference type="external">https://docs.copilotkit.ai/coagents/generative-ui - Render tool calls</reference>
+    <reference type="external">https://www.framer.com/motion/animate-presence/ - Transition animations</reference>
+    <reference type="story">docs/modules/bm-dm/stories/dm-01-3-base-widget-components.md - Widget foundation</reference>
+  </references>
+</story-context>

@@ -35,6 +35,7 @@ from context.context_instructions import (
 
 from .state_emitter import DashboardStateEmitter, create_state_emitter
 from .tools import WIDGET_TYPES, get_all_tools
+from .layout_tools import get_layout_tools
 
 logger = logging.getLogger(__name__)
 
@@ -287,7 +288,7 @@ def create_dashboard_gateway_agent(
         ),
         model=Claude(id=model_id or "claude-sonnet-4-20250514"),
         instructions=instructions,
-        tools=get_all_tools(),
+        tools=get_all_tools() + get_layout_tools(),
         add_datetime_to_instructions=True,
         markdown=True,
         show_tool_calls=True,
@@ -336,7 +337,7 @@ class MockAgent:
         self.model_id = model_id or "claude-sonnet-4-20250514"
         self.user_id = user_id
         self.frontend_context = frontend_context
-        self.tools = get_all_tools()
+        self.tools = get_all_tools() + get_layout_tools()
 
         # Build instructions with context awareness (DM-06.2)
         if frontend_context:
@@ -402,6 +403,12 @@ def get_agent_metadata() -> Dict[str, Any]:
             "get_health_summary",
             "get_recent_activity",
             "gather_dashboard_data",
+            # Generative UI layout tools (added in DM-06.3)
+            "create_single_layout",
+            "create_split_layout",
+            "create_wizard_layout",
+            "create_grid_layout",
+            "select_layout_for_task",
         ],
         "interfaces": {
             "agui": {
