@@ -9,6 +9,8 @@ and the backend agent system. It provides:
 - Widget rendering tools for visual dashboard components
 - Agent routing for specialist delegation
 - State emission for real-time widget updates (DM-04.3)
+- HITL tools for human-in-the-loop approval workflows (DM-05.1)
+- Long-running task examples for multi-step operations (DM-05.5)
 
 Usage:
     from gateway import create_dashboard_gateway_agent, get_agent_metadata
@@ -29,6 +31,17 @@ Usage:
     from agentos.factory import create_agui_interface, create_a2a_interface
     agui = create_agui_interface(agent, "/agui")
     a2a = create_a2a_interface(agent, "/a2a/dashboard")
+
+    # HITL tools (DM-05.1)
+    from gateway import get_hitl_tools, sign_contract
+    hitl_tools = get_hitl_tools()  # Returns list of all HITL tools
+
+    # Long-running tasks (DM-05.5)
+    from gateway import research_competitor_landscape, bulk_data_export
+    result = await research_competitor_landscape(
+        competitors=["Acme", "BigCorp"],
+        state_emitter=emitter,
+    )
 """
 from .agent import (
     DASHBOARD_INSTRUCTIONS,
@@ -47,6 +60,21 @@ from .tools import (
     render_dashboard_widget,
     route_to_agent,
 )
+from .hitl_tools import (
+    # HITL example tools (DM-05.1)
+    sign_contract,
+    delete_project,
+    approve_expense,
+    send_bulk_notification,
+    get_hitl_tools,
+    get_hitl_tool_metadata,
+)
+from .long_tasks import (
+    # Long-running task examples (DM-05.5)
+    research_competitor_landscape,
+    bulk_data_export,
+    get_long_task_examples,
+)
 
 __all__ = [
     # Agent
@@ -63,4 +91,15 @@ __all__ = [
     "route_to_agent",
     "get_all_tools",
     "WIDGET_TYPES",
+    # HITL Tools (DM-05.1)
+    "sign_contract",
+    "delete_project",
+    "approve_expense",
+    "send_bulk_notification",
+    "get_hitl_tools",
+    "get_hitl_tool_metadata",
+    # Long-running Tasks (DM-05.5)
+    "research_competitor_landscape",
+    "bulk_data_export",
+    "get_long_task_examples",
 ]

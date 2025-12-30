@@ -1,0 +1,1709 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-05.4 - Realtime Progress Streaming
+  Generated: 2025-12-30
+  Epic: DM-05 (Advanced HITL & Streaming)
+  Points: 8
+  Status: ready-for-dev
+
+  This context file assembles all relevant code and documentation
+  needed to implement realtime progress streaming for long-running agent tasks.
+-->
+<story-context story-id="dm-05-4-realtime-progress-streaming">
+
+  <!-- ============================================================== -->
+  <!-- STORY SUMMARY -->
+  <!-- ============================================================== -->
+  <summary>
+    <title>Realtime Progress Streaming</title>
+    <description>
+      Implement real-time progress streaming for long-running agent tasks, extending
+      the DashboardStateEmitter from DM-04 with progress tracking methods. This story
+      adds task progress schemas, state emitter extensions, frontend progress hooks,
+      and UI components to display step-by-step task execution.
+    </description>
+    <key-deliverables>
+      <deliverable>TaskStepStatus and TaskStatus enums (Python + TypeScript)</deliverable>
+      <deliverable>TaskStep and TaskProgress Pydantic/Zod schemas</deliverable>
+      <deliverable>DashboardStateEmitter progress methods (start_task, update_task_step, complete_task, fail_task, cancel_task)</deliverable>
+      <deliverable>Frontend hooks (useActiveTasks, useTaskProgress, useHasRunningTasks)</deliverable>
+      <deliverable>TaskProgressCard component with step indicators and cancel/dismiss actions</deliverable>
+      <deliverable>Store extensions for task progress state management</deliverable>
+    </key-deliverables>
+    <dependencies>
+      <dependency story="dm-04-3" status="done">Agent State Emissions - DashboardStateEmitter class</dependency>
+      <dependency story="dm-04-2" status="done">Frontend State Subscription - useAgentStateSync hook</dependency>
+      <dependency story="dm-04-1" status="done">State Schema Definition - DashboardState model</dependency>
+    </dependencies>
+  </summary>
+
+  <!-- ============================================================== -->
+  <!-- ACCEPTANCE CRITERIA -->
+  <!-- ============================================================== -->
+  <acceptance-criteria>
+    <criterion id="AC1">TaskStepStatus and TaskStatus enums added to agents/schemas/dashboard_state.py</criterion>
+    <criterion id="AC2">TaskStep and TaskProgress Pydantic models added with proper aliases for camelCase output</criterion>
+    <criterion id="AC3">DashboardState model extended with active_tasks: List[TaskProgress] field</criterion>
+    <criterion id="AC4">DashboardStateEmitter.start_task() creates a new task with pending steps and emits state</criterion>
+    <criterion id="AC5">DashboardStateEmitter.update_task_step() updates step status/progress and emits state</criterion>
+    <criterion id="AC6">DashboardStateEmitter.complete_task() marks task as completed and emits state</criterion>
+    <criterion id="AC7">DashboardStateEmitter.fail_task() marks task as failed with error message and emits state</criterion>
+    <criterion id="AC8">DashboardStateEmitter.cancel_task() marks task as cancelled and emits state</criterion>
+    <criterion id="AC9">TypeScript TaskStepSchema, TaskProgressSchema added to dashboard-state.ts</criterion>
+    <criterion id="AC10">DashboardStateSchema extended with activeTasks field</criterion>
+    <criterion id="AC11">DashboardStateStore extended with task progress actions</criterion>
+    <criterion id="AC12">useActiveTasks() hook returns array of active tasks from store</criterion>
+    <criterion id="AC13">useTaskProgress(taskId) hook returns specific task or null</criterion>
+    <criterion id="AC14">useHasRunningTasks() hook returns boolean for any running/pending tasks</criterion>
+    <criterion id="AC15">TaskProgressCard component renders task progress with step indicators</criterion>
+    <criterion id="AC16">TaskProgressCard shows overall progress percentage and estimated time remaining</criterion>
+    <criterion id="AC17">TaskProgressCard provides cancel button for running tasks and dismiss for completed</criterion>
+    <criterion id="AC18">Progress updates stream to frontend in real-time (less than 100ms latency target)</criterion>
+    <criterion id="AC19">Unit tests pass for state emitter progress methods with greater than 80% coverage</criterion>
+    <criterion id="AC20">Unit tests pass for TaskProgressCard rendering all states</criterion>
+    <criterion id="AC21">Integration tests verify progress streams from backend to frontend</criterion>
+  </acceptance-criteria>
+
+  <!-- ============================================================== -->
+  <!-- FILES TO CREATE -->
+  <!-- ============================================================== -->
+  <files-to-create>
+    <file path="apps/web/src/lib/hooks/use-task-progress.ts">
+      Frontend hooks for task progress subscription (useActiveTasks, useTaskProgress, useHasRunningTasks, useTasksByStatus)
+    </file>
+    <file path="apps/web/src/components/progress/TaskProgressCard.tsx">
+      UI component for displaying task progress with step indicators, cancel/dismiss actions
+    </file>
+    <file path="apps/web/src/components/progress/index.ts">
+      Component exports for progress directory
+    </file>
+    <file path="agents/gateway/test_state_emitter_progress.py">
+      Unit tests for progress methods in DashboardStateEmitter
+    </file>
+    <file path="apps/web/src/components/progress/__tests__/TaskProgressCard.test.tsx">
+      Component tests for TaskProgressCard
+    </file>
+  </files-to-create>
+
+  <!-- ============================================================== -->
+  <!-- FILES TO MODIFY -->
+  <!-- ============================================================== -->
+  <files-to-modify>
+    <file path="agents/schemas/dashboard_state.py">
+      Add TaskStepStatus, TaskStatus, TaskStep, TaskProgress models
+    </file>
+    <file path="agents/gateway/state_emitter.py">
+      Add start_task, update_task_step, complete_task, fail_task, cancel_task methods
+    </file>
+    <file path="apps/web/src/lib/schemas/dashboard-state.ts">
+      Add TaskStep and TaskProgress Zod schemas, extend DashboardStateSchema
+    </file>
+    <file path="apps/web/src/stores/dashboard-state-store.ts">
+      Add task progress actions (setActiveTasks, addTask, updateTask, updateTaskStep, removeTask)
+    </file>
+    <file path="agents/constants/dm_constants.py">
+      Add MAX_ACTIVE_TASKS and TASK_RETENTION_MS constants
+    </file>
+  </files-to-modify>
+
+  <!-- ============================================================== -->
+  <!-- EXISTING CODE: PYTHON STATE SCHEMA (agents/schemas/dashboard_state.py) -->
+  <!-- ============================================================== -->
+  <existing-code file="agents/schemas/dashboard_state.py" language="python">
+    <description>
+      Python Pydantic models for dashboard state. This file needs to be extended
+      with TaskStepStatus, TaskStatus, TaskStep, and TaskProgress models. Also
+      the DashboardState model needs a new active_tasks field.
+    </description>
+    <code><![CDATA[
+"""
+Dashboard Shared State Schemas
+
+These Pydantic models mirror the TypeScript schemas for state
+shared between the Dashboard Gateway agent and the frontend.
+The schemas use Field aliases for camelCase output to ensure
+cross-language compatibility with the TypeScript frontend.
+
+@see docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
+Epic: DM-04 | Story: DM-04.1
+"""
+
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field
+
+# =============================================================================
+# STATE VERSION
+# =============================================================================
+
+# State schema version for migrations.
+# Must match the TypeScript STATE_VERSION constant.
+STATE_VERSION = 1
+
+
+# =============================================================================
+# ENUMS
+# =============================================================================
+
+
+class ProjectStatus(str, Enum):
+    """Project status values matching TypeScript ProjectStatusEnum."""
+
+    ON_TRACK = "on-track"
+    AT_RISK = "at-risk"
+    BEHIND = "behind"
+    COMPLETED = "completed"
+
+
+class TrendDirection(str, Enum):
+    """Metric trend direction matching TypeScript TrendDirectionEnum."""
+
+    UP = "up"
+    DOWN = "down"
+    NEUTRAL = "neutral"
+
+
+class AlertType(str, Enum):
+    """Alert severity type matching TypeScript AlertTypeEnum."""
+
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+    SUCCESS = "success"
+
+
+# =============================================================================
+# WIDGET STATE MODELS
+# =============================================================================
+
+# ... (ProjectStatusState, MetricEntry, MetricsState, ActivityEntry, ActivityState, AlertEntry models)
+
+
+# =============================================================================
+# LOADING & ERROR STATE
+# =============================================================================
+
+
+class LoadingState(BaseModel):
+    """
+    Loading State.
+
+    Tracks loading status and which agents are being queried.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    is_loading: bool = Field(
+        default=False, alias="isLoading", description="Whether any loading is in progress"
+    )
+    loading_agents: List[str] = Field(
+        default_factory=list,
+        alias="loadingAgents",
+        description="List of agents currently being queried",
+    )
+    started_at: Optional[int] = Field(
+        None, alias="startedAt", description="Loading start timestamp (Unix ms)"
+    )
+
+
+# =============================================================================
+# ROOT DASHBOARD STATE
+# =============================================================================
+
+
+class WidgetsState(BaseModel):
+    """
+    Widget Container State.
+
+    Holds all widget-specific state objects.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    project_status: Optional[ProjectStatusState] = Field(
+        None, alias="projectStatus", description="Project status widget data"
+    )
+    metrics: Optional[MetricsState] = Field(None, description="Metrics widget data")
+    activity: Optional[ActivityState] = Field(None, description="Activity feed widget data")
+    alerts: List[AlertEntry] = Field(
+        default_factory=list, description="Alert entries (array, not single widget)"
+    )
+
+
+class DashboardState(BaseModel):
+    """
+    Root Dashboard State.
+
+    This is the complete state object shared between agent and frontend
+    via the AG-UI protocol's state synchronization mechanism.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    version: int = Field(default=STATE_VERSION, description="Schema version for migrations")
+    timestamp: int = Field(..., description="Last update timestamp (Unix ms)")
+    active_project: Optional[str] = Field(
+        None, alias="activeProject", description="Currently focused project ID"
+    )
+    workspace_id: Optional[str] = Field(
+        None, alias="workspaceId", description="Current workspace ID"
+    )
+    user_id: Optional[str] = Field(None, alias="userId", description="Current user ID")
+
+    # Widget data container
+    widgets: WidgetsState = Field(
+        default_factory=WidgetsState, description="Widget data container"
+    )
+
+    # Loading state
+    loading: LoadingState = Field(
+        default_factory=LoadingState, description="Loading state"
+    )
+
+    # Error state (agentId -> error message)
+    errors: Dict[str, str] = Field(
+        default_factory=dict, description="Error state (agentId -> error message)"
+    )
+
+    @classmethod
+    def create_initial(
+        cls,
+        workspace_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        active_project: Optional[str] = None,
+    ) -> "DashboardState":
+        """
+        Create initial empty dashboard state.
+        """
+        return cls(
+            timestamp=int(datetime.utcnow().timestamp() * 1000),
+            active_project=active_project,
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+
+    def to_frontend_dict(self) -> Dict[str, Any]:
+        """
+        Convert to frontend-compatible dictionary with camelCase keys.
+        """
+        return self.model_dump(by_alias=True, exclude_none=True)
+]]></code>
+    <extension-point>
+      <location>After AlertType enum, before WIDGET STATE MODELS section</location>
+      <add-code><![CDATA[
+# =============================================================================
+# TASK PROGRESS ENUMS AND MODELS (DM-05.4)
+# =============================================================================
+
+
+class TaskStepStatus(str, Enum):
+    """Step execution status."""
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class TaskStatus(str, Enum):
+    """Overall task status."""
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class TaskStep(BaseModel):
+    """Individual step within a task."""
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    index: int = Field(..., description="Step index (0-based)")
+    name: str = Field(..., description="Step display name")
+    status: TaskStepStatus = Field(
+        default=TaskStepStatus.PENDING,
+        description="Step execution status"
+    )
+    started_at: Optional[int] = Field(
+        None, alias="startedAt", description="Step start timestamp (Unix ms)"
+    )
+    completed_at: Optional[int] = Field(
+        None, alias="completedAt", description="Step completion timestamp (Unix ms)"
+    )
+    progress: Optional[int] = Field(
+        None, ge=0, le=100, description="Sub-step progress percentage (0-100)"
+    )
+
+
+class TaskProgress(BaseModel):
+    """Progress state for a long-running task."""
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    task_id: str = Field(..., alias="taskId", description="Unique task identifier")
+    task_name: str = Field(..., alias="taskName", description="Human-readable task name")
+    status: TaskStatus = Field(
+        default=TaskStatus.PENDING,
+        description="Overall task status"
+    )
+    current_step: int = Field(
+        0, alias="currentStep", description="Index of current step"
+    )
+    total_steps: int = Field(
+        0, alias="totalSteps", description="Total number of steps"
+    )
+    steps: List[TaskStep] = Field(
+        default_factory=list, description="List of task steps"
+    )
+    started_at: Optional[int] = Field(
+        None, alias="startedAt", description="Task start timestamp (Unix ms)"
+    )
+    estimated_completion_ms: Optional[int] = Field(
+        None, alias="estimatedCompletionMs", description="Estimated total duration"
+    )
+    error: Optional[str] = Field(
+        None, description="Error message if task failed"
+    )
+]]></add-code>
+    </extension-point>
+    <extension-point>
+      <location>In DashboardState model, after errors field</location>
+      <add-code><![CDATA[
+    # Active tasks for progress tracking (DM-05.4)
+    active_tasks: List[TaskProgress] = Field(
+        default_factory=list,
+        alias="activeTasks",
+        description="Currently active long-running tasks"
+    )
+]]></add-code>
+    </extension-point>
+  </existing-code>
+
+  <!-- ============================================================== -->
+  <!-- EXISTING CODE: STATE EMITTER (agents/gateway/state_emitter.py) -->
+  <!-- ============================================================== -->
+  <existing-code file="agents/gateway/state_emitter.py" language="python">
+    <description>
+      DashboardStateEmitter class that manages and emits dashboard state updates.
+      This file needs to be extended with progress tracking methods: start_task,
+      update_task_step, complete_task, fail_task, cancel_task, and cleanup_completed_tasks.
+    </description>
+    <code><![CDATA[
+"""
+Dashboard Gateway State Emitter
+
+Manages agent state and emits updates via AG-UI protocol.
+The emitted state is automatically synchronized to the frontend
+via CopilotKit's useCoAgentStateRender.
+
+@see docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
+Epic: DM-04 | Story: DM-04.3
+"""
+
+import asyncio
+import logging
+import time
+import uuid
+from typing import Any, Callable, Dict, List, Optional
+
+from constants.dm_constants import DMConstants
+from schemas.dashboard_state import (
+    ActivityEntry,
+    ActivityState,
+    AlertEntry,
+    AlertType,
+    DashboardState,
+    LoadingState,
+    MetricEntry,
+    MetricsState,
+    ProjectStatus,
+    ProjectStatusState,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class DashboardStateEmitter:
+    """
+    Manages dashboard state and emits updates to the frontend.
+
+    The emitter maintains the current state and provides methods
+    to update individual widgets. Each update triggers a state
+    emission via the agent's state callback.
+
+    State emissions are debounced by default (100ms) to prevent
+    flooding the frontend with rapid updates. Loading states
+    bypass debouncing for immediate UI feedback.
+    """
+
+    def __init__(
+        self,
+        on_state_change: Callable[[Dict[str, Any]], None],
+        workspace_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> None:
+        """
+        Initialize state emitter.
+        """
+        self._on_state_change = on_state_change
+        self._state = DashboardState.create_initial(
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+        self._debounce_task: Optional[asyncio.Task] = None
+        self._pending_update = False
+        self._lock = asyncio.Lock()
+
+        logger.debug(
+            f"DashboardStateEmitter initialized: workspace={workspace_id}, user={user_id}"
+        )
+
+    @property
+    def state(self) -> DashboardState:
+        """Get current state (read-only)."""
+        return self._state
+
+    async def emit_now(self) -> None:
+        """
+        Force immediate state emission (bypass debounce).
+
+        Use this for time-sensitive updates like loading states
+        where immediate UI feedback is important.
+        """
+        async with self._lock:
+            # Cancel any pending debounced emission
+            if self._debounce_task and not self._debounce_task.done():
+                self._debounce_task.cancel()
+                try:
+                    await self._debounce_task
+                except asyncio.CancelledError:
+                    pass
+            self._pending_update = False
+            self._state.timestamp = int(time.time() * 1000)
+            self._emit()
+
+    def _schedule_emit(self) -> None:
+        """Schedule a debounced state emission."""
+        self._pending_update = True
+        self._state.timestamp = int(time.time() * 1000)
+
+        # Cancel existing task to reset debounce timer on each call
+        if self._debounce_task and not self._debounce_task.done():
+            self._debounce_task.cancel()
+
+        self._debounce_task = asyncio.create_task(self._emit_debounced())
+
+    def _emit(self) -> None:
+        """Emit current state to frontend."""
+        import json
+
+        state_dict = self._state.to_frontend_dict()
+
+        # Validate state size before emission
+        state_json = json.dumps(state_dict)
+        state_size = len(state_json.encode("utf-8"))
+        if state_size > DMConstants.STATE.MAX_STATE_SIZE_BYTES:
+            logger.warning(
+                f"State size ({state_size} bytes) exceeds max "
+                f"({DMConstants.STATE.MAX_STATE_SIZE_BYTES} bytes), truncating alerts"
+            )
+            # Truncate alerts in output only
+            if state_dict.get("widgets", {}).get("alerts"):
+                state_dict["widgets"]["alerts"] = state_dict["widgets"]["alerts"][:10]
+
+        logger.debug(f"Emitting dashboard state: timestamp={self._state.timestamp}")
+        self._on_state_change(state_dict)
+
+    # ... (existing methods: set_loading, set_error, set_project_status, set_metrics, etc.)
+]]></code>
+    <extension-point>
+      <location>Update imports to include new task progress types</location>
+      <add-code><![CDATA[
+from schemas.dashboard_state import (
+    ActivityEntry,
+    ActivityState,
+    AlertEntry,
+    AlertType,
+    DashboardState,
+    LoadingState,
+    MetricEntry,
+    MetricsState,
+    ProjectStatus,
+    ProjectStatusState,
+    # DM-05.4: Task progress types
+    TaskProgress,
+    TaskStep,
+    TaskStatus,
+    TaskStepStatus,
+)
+]]></add-code>
+    </extension-point>
+    <extension-point>
+      <location>After BULK UPDATES section, add new TASK PROGRESS section</location>
+      <add-code><![CDATA[
+    # =========================================================================
+    # TASK PROGRESS (DM-05.4)
+    # =========================================================================
+
+    async def start_task(
+        self,
+        task_id: str,
+        task_name: str,
+        steps: List[str],
+        estimated_duration_ms: Optional[int] = None,
+    ) -> None:
+        """
+        Start tracking a new long-running task.
+
+        Creates a TaskProgress with pending steps and emits immediately
+        (bypassing debounce for responsiveness).
+
+        Args:
+            task_id: Unique task identifier
+            task_name: Human-readable task name
+            steps: List of step names
+            estimated_duration_ms: Optional estimated total duration
+        """
+        # Cleanup old completed tasks before adding new one
+        self._cleanup_completed_tasks()
+
+        # Check max active tasks limit
+        if len(self._state.active_tasks) >= DMConstants.STATE.MAX_ACTIVE_TASKS:
+            logger.warning(
+                f"Max active tasks ({DMConstants.STATE.MAX_ACTIVE_TASKS}) reached, "
+                f"cannot start task {task_id}"
+            )
+            return
+
+        now = int(time.time() * 1000)
+        task_steps = [
+            TaskStep(index=i, name=name, status=TaskStepStatus.PENDING)
+            for i, name in enumerate(steps)
+        ]
+
+        task = TaskProgress(
+            task_id=task_id,
+            task_name=task_name,
+            status=TaskStatus.RUNNING,
+            current_step=0,
+            total_steps=len(steps),
+            steps=task_steps,
+            started_at=now,
+            estimated_completion_ms=estimated_duration_ms,
+        )
+
+        self._state.active_tasks.append(task)
+        logger.info(f"Task started: {task_id} ({task_name}) with {len(steps)} steps")
+        await self.emit_now()  # Immediate emission for responsiveness
+
+    async def update_task_step(
+        self,
+        task_id: str,
+        step_index: int,
+        status: str = "running",
+        progress: Optional[int] = None,
+    ) -> None:
+        """
+        Update progress of a task step.
+
+        Args:
+            task_id: Task identifier
+            step_index: Step index to update
+            status: Step status (pending, running, completed, failed)
+            progress: Optional progress percentage for the step (0-100)
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        if step_index < 0 or step_index >= len(task.steps):
+            logger.warning(f"Invalid step index {step_index} for task {task_id}")
+            return
+
+        step = task.steps[step_index]
+        now = int(time.time() * 1000)
+
+        # Update step status
+        step.status = TaskStepStatus(status)
+
+        # Set timestamps based on status
+        if status == "running" and step.started_at is None:
+            step.started_at = now
+        elif status in ("completed", "failed"):
+            step.completed_at = now
+
+        # Set progress if provided
+        if progress is not None:
+            step.progress = min(100, max(0, progress))
+
+        # Update current_step to highest running/completed step
+        task.current_step = step_index
+
+        logger.debug(f"Task {task_id} step {step_index} updated to {status}")
+        await self.emit_now()
+
+    async def complete_task(self, task_id: str) -> None:
+        """
+        Mark a task as completed successfully.
+
+        Marks the task and all its steps as completed.
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        now = int(time.time() * 1000)
+        task.status = TaskStatus.COMPLETED
+
+        # Mark all steps as completed
+        for step in task.steps:
+            if step.status != TaskStepStatus.COMPLETED:
+                step.status = TaskStepStatus.COMPLETED
+                if step.completed_at is None:
+                    step.completed_at = now
+
+        logger.info(f"Task completed: {task_id}")
+        await self.emit_now()
+
+    async def fail_task(self, task_id: str, error: str) -> None:
+        """
+        Mark a task as failed with error message.
+
+        Marks the task as failed and stores the error message.
+        Any currently running step is also marked as failed.
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        now = int(time.time() * 1000)
+        task.status = TaskStatus.FAILED
+        task.error = error
+
+        # Mark current running step as failed
+        for step in task.steps:
+            if step.status == TaskStepStatus.RUNNING:
+                step.status = TaskStepStatus.FAILED
+                step.completed_at = now
+                break
+
+        logger.warning(f"Task failed: {task_id} - {error}")
+        await self.emit_now()
+
+    async def cancel_task(self, task_id: str) -> None:
+        """
+        Cancel a running task.
+
+        Marks the task as cancelled and stops any running steps.
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        now = int(time.time() * 1000)
+        task.status = TaskStatus.CANCELLED
+
+        # Stop any running steps
+        for step in task.steps:
+            if step.status == TaskStepStatus.RUNNING:
+                step.status = TaskStepStatus.PENDING
+                step.completed_at = now
+                break
+
+        logger.info(f"Task cancelled: {task_id}")
+        await self.emit_now()
+
+    def _find_task(self, task_id: str) -> Optional[TaskProgress]:
+        """Find a task by ID in active_tasks."""
+        for task in self._state.active_tasks:
+            if task.task_id == task_id:
+                return task
+        return None
+
+    def _cleanup_completed_tasks(
+        self, retention_ms: int = DMConstants.STATE.TASK_RETENTION_MS
+    ) -> None:
+        """
+        Remove tasks completed more than retention_ms ago.
+
+        Called automatically when starting a new task.
+        """
+        now = int(time.time() * 1000)
+        terminal_statuses = (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED)
+
+        self._state.active_tasks = [
+            t for t in self._state.active_tasks
+            if t.status not in terminal_statuses
+            or (
+                t.started_at
+                and now - t.started_at < retention_ms
+            )
+        ]
+]]></add-code>
+    </extension-point>
+  </existing-code>
+
+  <!-- ============================================================== -->
+  <!-- EXISTING CODE: TYPESCRIPT STATE SCHEMA -->
+  <!-- ============================================================== -->
+  <existing-code file="apps/web/src/lib/schemas/dashboard-state.ts" language="typescript">
+    <description>
+      TypeScript Zod schemas for dashboard state. This file needs TaskStepStatusEnum,
+      TaskStatusEnum, TaskStepSchema, TaskProgressSchema and an update to
+      DashboardStateSchema with activeTasks field.
+    </description>
+    <code><![CDATA[
+/**
+ * Dashboard Shared State Schemas
+ *
+ * These schemas define the structure of state shared between
+ * the Dashboard Gateway agent and the frontend via AG-UI protocol.
+ *
+ * @see docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
+ * Epic: DM-04 | Story: DM-04.1
+ */
+import { z } from 'zod';
+
+export const STATE_VERSION = 1;
+
+// ... existing enums (ProjectStatusEnum, TrendDirectionEnum, AlertTypeEnum) ...
+
+// ... existing widget schemas (ProjectStatusStateSchema, MetricEntrySchema, etc.) ...
+
+/**
+ * Root Dashboard State
+ */
+export const DashboardStateSchema = z.object({
+  version: z.number().default(STATE_VERSION),
+  timestamp: z.number(),
+  activeProject: z.string().nullable().default(null),
+  workspaceId: z.string().optional(),
+  userId: z.string().optional(),
+  widgets: WidgetsStateSchema.default({
+    projectStatus: null,
+    metrics: null,
+    activity: null,
+    alerts: [],
+  }),
+  loading: LoadingStateSchema.default({
+    isLoading: false,
+    loadingAgents: [],
+  }),
+  errors: ErrorStateSchema.default({}),
+});
+
+export type DashboardState = z.infer<typeof DashboardStateSchema>;
+]]></code>
+    <extension-point>
+      <location>After AlertTypeEnum, add task progress schemas</location>
+      <add-code><![CDATA[
+// =============================================================================
+// TASK PROGRESS SCHEMAS (DM-05.4)
+// =============================================================================
+
+/**
+ * Task step execution status
+ */
+export const TaskStepStatusEnum = z.enum(['pending', 'running', 'completed', 'failed']);
+export type TaskStepStatus = z.infer<typeof TaskStepStatusEnum>;
+
+/**
+ * Overall task status
+ */
+export const TaskStatusEnum = z.enum(['pending', 'running', 'completed', 'failed', 'cancelled']);
+export type TaskStatusValue = z.infer<typeof TaskStatusEnum>;
+
+/**
+ * Individual step within a task
+ */
+export const TaskStepSchema = z.object({
+  /** Step index (0-based) */
+  index: z.number().int().min(0),
+  /** Step display name */
+  name: z.string(),
+  /** Step execution status */
+  status: TaskStepStatusEnum.default('pending'),
+  /** Step start timestamp (Unix ms) */
+  startedAt: z.number().optional(),
+  /** Step completion timestamp (Unix ms) */
+  completedAt: z.number().optional(),
+  /** Sub-step progress percentage (0-100) */
+  progress: z.number().min(0).max(100).optional(),
+});
+export type TaskStep = z.infer<typeof TaskStepSchema>;
+
+/**
+ * Progress state for a long-running task
+ */
+export const TaskProgressSchema = z.object({
+  /** Unique task identifier */
+  taskId: z.string(),
+  /** Human-readable task name */
+  taskName: z.string(),
+  /** Overall task status */
+  status: TaskStatusEnum.default('pending'),
+  /** Index of current step */
+  currentStep: z.number().int().min(0).default(0),
+  /** Total number of steps */
+  totalSteps: z.number().int().min(0).default(0),
+  /** List of task steps */
+  steps: z.array(TaskStepSchema).default([]),
+  /** Task start timestamp (Unix ms) */
+  startedAt: z.number().optional(),
+  /** Estimated total duration in ms */
+  estimatedCompletionMs: z.number().optional(),
+  /** Error message if task failed */
+  error: z.string().optional(),
+});
+export type TaskProgress = z.infer<typeof TaskProgressSchema>;
+]]></add-code>
+    </extension-point>
+    <extension-point>
+      <location>In DashboardStateSchema, add activeTasks after errors</location>
+      <add-code><![CDATA[
+  /** Currently active long-running tasks (DM-05.4) */
+  activeTasks: z.array(TaskProgressSchema).default([]),
+]]></add-code>
+    </extension-point>
+  </existing-code>
+
+  <!-- ============================================================== -->
+  <!-- EXISTING CODE: DASHBOARD STATE STORE -->
+  <!-- ============================================================== -->
+  <existing-code file="apps/web/src/stores/dashboard-state-store.ts" language="typescript">
+    <description>
+      Zustand store for dashboard state. Needs to be extended with task progress
+      actions: setActiveTasks, addTask, updateTask, updateTaskStep, removeTask.
+    </description>
+    <code><![CDATA[
+/**
+ * Dashboard State Store
+ *
+ * Zustand store for managing dashboard shared state with CopilotKit integration.
+ *
+ * @see docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
+ * Epic: DM-04 | Story: DM-04.2
+ */
+
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import {
+  type DashboardState,
+  type DashboardStateUpdate,
+  type ProjectStatusState,
+  type MetricsState,
+  type ActivityState,
+  type AlertEntry,
+  createInitialDashboardState,
+  validateDashboardState,
+} from '@/lib/schemas/dashboard-state';
+
+const MAX_ALERTS = 50;
+
+export interface DashboardStateStore extends DashboardState {
+  setFullState: (state: DashboardState) => void;
+  updateState: (update: DashboardStateUpdate) => void;
+  setActiveProject: (projectId: string | null) => void;
+  setProjectStatus: (status: ProjectStatusState | null) => void;
+  setMetrics: (metrics: MetricsState | null) => void;
+  setActivity: (activity: ActivityState | null) => void;
+  addAlert: (alert: AlertEntry) => void;
+  dismissAlert: (alertId: string) => void;
+  clearAlerts: () => void;
+  setLoading: (isLoading: boolean, agents?: string[]) => void;
+  setError: (agentId: string, error: string | null) => void;
+  clearErrors: () => void;
+  reset: () => void;
+}
+
+export const useDashboardStateStore = create<DashboardStateStore>()(
+  subscribeWithSelector((set) => ({
+    ...createInitialDashboardState(),
+
+    setFullState: (state: DashboardState) => {
+      const validated = validateDashboardState(state);
+      if (validated) {
+        set(validated);
+      } else {
+        console.warn('[DashboardStateStore] Invalid state rejected');
+      }
+    },
+
+    updateState: (update: DashboardStateUpdate) => {
+      set((current) => ({
+        ...current,
+        ...update,
+        timestamp: Date.now(),
+        widgets: update.widgets
+          ? { ...current.widgets, ...update.widgets }
+          : current.widgets,
+        loading: update.loading
+          ? { ...current.loading, ...update.loading }
+          : current.loading,
+        errors: update.errors
+          ? { ...current.errors, ...update.errors }
+          : current.errors,
+      }));
+    },
+
+    // ... (existing setProjectStatus, setMetrics, setActivity, etc.)
+
+    reset: () => {
+      set(createInitialDashboardState());
+    },
+  }))
+);
+
+export { MAX_ALERTS };
+]]></code>
+    <extension-point>
+      <location>In imports, add TaskProgress and TaskStep types</location>
+      <add-code><![CDATA[
+import {
+  type DashboardState,
+  type DashboardStateUpdate,
+  type ProjectStatusState,
+  type MetricsState,
+  type ActivityState,
+  type AlertEntry,
+  type TaskProgress,  // DM-05.4
+  type TaskStep,      // DM-05.4
+  createInitialDashboardState,
+  validateDashboardState,
+} from '@/lib/schemas/dashboard-state';
+]]></add-code>
+    </extension-point>
+    <extension-point>
+      <location>In DashboardStateStore interface, add task progress actions</location>
+      <add-code><![CDATA[
+  // Task progress actions (DM-05.4)
+  /** Set all active tasks (replaces existing) */
+  setActiveTasks: (tasks: TaskProgress[]) => void;
+  /** Add a new task to active tasks */
+  addTask: (task: TaskProgress) => void;
+  /** Update a task by ID with partial data */
+  updateTask: (taskId: string, update: Partial<TaskProgress>) => void;
+  /** Update a specific step within a task */
+  updateTaskStep: (taskId: string, stepIndex: number, update: Partial<TaskStep>) => void;
+  /** Remove a task by ID */
+  removeTask: (taskId: string) => void;
+]]></add-code>
+    </extension-point>
+    <extension-point>
+      <location>In store implementation, add task progress action implementations before reset</location>
+      <add-code><![CDATA[
+    // =========================================================================
+    // TASK PROGRESS (DM-05.4)
+    // =========================================================================
+
+    setActiveTasks: (tasks: TaskProgress[]) => {
+      set({ activeTasks: tasks, timestamp: Date.now() });
+    },
+
+    addTask: (task: TaskProgress) => {
+      set((state) => ({
+        activeTasks: [...state.activeTasks, task],
+        timestamp: Date.now(),
+      }));
+    },
+
+    updateTask: (taskId: string, update: Partial<TaskProgress>) => {
+      set((state) => ({
+        activeTasks: state.activeTasks.map((t) =>
+          t.taskId === taskId ? { ...t, ...update } : t
+        ),
+        timestamp: Date.now(),
+      }));
+    },
+
+    updateTaskStep: (taskId: string, stepIndex: number, update: Partial<TaskStep>) => {
+      set((state) => ({
+        activeTasks: state.activeTasks.map((t) => {
+          if (t.taskId !== taskId) return t;
+          return {
+            ...t,
+            steps: t.steps.map((s, i) =>
+              i === stepIndex ? { ...s, ...update } : s
+            ),
+          };
+        }),
+        timestamp: Date.now(),
+      }));
+    },
+
+    removeTask: (taskId: string) => {
+      set((state) => ({
+        activeTasks: state.activeTasks.filter((t) => t.taskId !== taskId),
+        timestamp: Date.now(),
+      }));
+    },
+]]></add-code>
+    </extension-point>
+    <extension-point>
+      <location>Update setFullState and updateState to handle activeTasks</location>
+      <description>
+        Ensure setFullState passes activeTasks through validation.
+        Ensure updateState merges activeTasks properly.
+      </description>
+    </extension-point>
+  </existing-code>
+
+  <!-- ============================================================== -->
+  <!-- EXISTING CODE: DM CONSTANTS -->
+  <!-- ============================================================== -->
+  <existing-code file="agents/constants/dm_constants.py" language="python">
+    <description>
+      DM constants file. Needs MAX_ACTIVE_TASKS and TASK_RETENTION_MS added
+      to the STATE class.
+    </description>
+    <code><![CDATA[
+class DMConstants:
+    """Dynamic Module System constants - no magic numbers in code."""
+
+    # ... existing classes (AGENTOS, A2A, AGUI, CCR, DASHBOARD, PERFORMANCE, TASK_CLASSIFICATION) ...
+
+    # Shared State Configuration (for DM-04+)
+    class STATE:
+        """Shared state constants for DM-04+."""
+
+        VERSION = 1
+        UPDATE_DEBOUNCE_MS = 100
+        MAX_STATE_SIZE_BYTES = 1024 * 1024  # 1MB
+        STATE_EMIT_INTERVAL_MS = 5000  # 5 seconds
+        REDIS_KEY_PREFIX = "dashboard:state:"
+        REDIS_TTL_SECONDS = 86400
+        MAX_ALERTS = 50
+        MAX_ACTIVITIES = 100
+]]></code>
+    <extension-point>
+      <location>In STATE class, after MAX_ACTIVITIES</location>
+      <add-code><![CDATA[
+        # Task progress constants (DM-05.4)
+        MAX_ACTIVE_TASKS = 10  # Maximum concurrent task tracking
+        TASK_RETENTION_MS = 300000  # 5 minutes after completion
+]]></add-code>
+    </extension-point>
+  </existing-code>
+
+  <!-- ============================================================== -->
+  <!-- EXISTING UI PATTERNS: Progress Component -->
+  <!-- ============================================================== -->
+  <existing-code file="apps/web/src/components/ui/progress.tsx" language="typescript">
+    <description>
+      Shadcn/ui Progress component built on Radix. Use this as the base for
+      progress bars in TaskProgressCard.
+    </description>
+    <code><![CDATA[
+"use client"
+
+import * as React from "react"
+import * as ProgressPrimitive from "@radix-ui/react-progress"
+
+import { cn } from "@/lib/utils"
+
+interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
+  indicatorClassName?: string
+}
+
+const Progress = React.forwardRef<
+  React.ElementRef<typeof ProgressPrimitive.Root>,
+  ProgressProps
+>(({ className, value, indicatorClassName, ...props }, ref) => (
+  <ProgressPrimitive.Root
+    ref={ref}
+    className={cn(
+      "relative h-4 w-full overflow-hidden rounded-full bg-secondary",
+      className
+    )}
+    {...props}
+  >
+    <ProgressPrimitive.Indicator
+      className={cn(
+        "h-full w-full flex-1 bg-primary transition-all",
+        indicatorClassName
+      )}
+      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+    />
+  </ProgressPrimitive.Root>
+))
+Progress.displayName = ProgressPrimitive.Root.displayName
+
+export { Progress }
+]]></code>
+  </existing-code>
+
+  <!-- ============================================================== -->
+  <!-- EXISTING UI PATTERNS: LoadingWidget Component -->
+  <!-- ============================================================== -->
+  <existing-code file="apps/web/src/components/slots/widgets/LoadingWidget.tsx" language="typescript">
+    <description>
+      LoadingWidget shows skeleton state during tool calls. Reference for loading
+      patterns and Loader2Icon usage.
+    </description>
+    <code><![CDATA[
+'use client';
+
+/**
+ * LoadingWidget
+ *
+ * Loading state wrapper for widgets during tool call execution.
+ */
+
+import { Loader2Icon } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export interface LoadingWidgetProps {
+  type?: string;
+  message?: string;
+}
+
+function getWidgetLabel(type?: string): string {
+  if (!type) return 'widget';
+  const readable = type
+    .replace(/([A-Z])/g, ' $1')
+    .trim()
+    .toLowerCase();
+  return readable;
+}
+
+export function LoadingWidget({ type, message }: LoadingWidgetProps) {
+  const displayMessage = message || `Loading ${getWidgetLabel(type)}...`;
+
+  return (
+    <Card data-testid="loading-widget">
+      <CardContent className="pt-6">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5 rounded-full" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+
+        <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground">
+          <Loader2Icon className="h-3 w-3 animate-spin" aria-hidden="true" />
+          <span>{displayMessage}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+]]></code>
+  </existing-code>
+
+  <!-- ============================================================== -->
+  <!-- NEW CODE: use-task-progress.ts Hook -->
+  <!-- ============================================================== -->
+  <new-code file="apps/web/src/lib/hooks/use-task-progress.ts" language="typescript">
+    <description>
+      Frontend hooks for subscribing to task progress from the dashboard state store.
+    </description>
+    <template><![CDATA[
+/**
+ * Task Progress Hooks
+ *
+ * React hooks for subscribing to task progress from the dashboard state store.
+ * These hooks provide efficient subscriptions to specific task state slices.
+ *
+ * @see docs/modules/bm-dm/stories/dm-05-4-realtime-progress-streaming.md
+ * Epic: DM-05 | Story: DM-05.4
+ */
+'use client';
+
+import { useDashboardStateStore } from '@/stores/dashboard-state-store';
+import type { TaskProgress, TaskStatusValue } from '@/lib/schemas/dashboard-state';
+
+/**
+ * Get all active tasks from the store.
+ *
+ * @returns Array of active TaskProgress objects
+ *
+ * @example
+ * ```tsx
+ * function TaskList() {
+ *   const tasks = useActiveTasks();
+ *   return (
+ *     <div>
+ *       {tasks.map((task) => (
+ *         <TaskProgressCard key={task.taskId} task={task} />
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useActiveTasks(): TaskProgress[] {
+  return useDashboardStateStore((state) => state.activeTasks ?? []);
+}
+
+/**
+ * Get a specific task by ID.
+ *
+ * @param taskId - The task ID to find
+ * @returns The TaskProgress object or null if not found
+ *
+ * @example
+ * ```tsx
+ * function TaskStatus({ taskId }: { taskId: string }) {
+ *   const task = useTaskProgress(taskId);
+ *   if (!task) return <div>Task not found</div>;
+ *   return <div>{task.taskName}: {task.status}</div>;
+ * }
+ * ```
+ */
+export function useTaskProgress(taskId: string): TaskProgress | null {
+  return useDashboardStateStore(
+    (state) => state.activeTasks?.find((t) => t.taskId === taskId) ?? null
+  );
+}
+
+/**
+ * Check if any tasks are currently running or pending.
+ *
+ * @returns true if any tasks are in 'running' or 'pending' status
+ *
+ * @example
+ * ```tsx
+ * function TaskIndicator() {
+ *   const hasRunning = useHasRunningTasks();
+ *   return hasRunning ? <Spinner /> : null;
+ * }
+ * ```
+ */
+export function useHasRunningTasks(): boolean {
+  return useDashboardStateStore((state) =>
+    state.activeTasks?.some(
+      (t) => t.status === 'running' || t.status === 'pending'
+    ) ?? false
+  );
+}
+
+/**
+ * Get tasks filtered by status.
+ *
+ * @param status - The status to filter by
+ * @returns Array of TaskProgress objects matching the status
+ *
+ * @example
+ * ```tsx
+ * function CompletedTasks() {
+ *   const completed = useTasksByStatus('completed');
+ *   return <div>Completed: {completed.length}</div>;
+ * }
+ * ```
+ */
+export function useTasksByStatus(status: TaskStatusValue): TaskProgress[] {
+  return useDashboardStateStore(
+    (state) => state.activeTasks?.filter((t) => t.status === status) ?? []
+  );
+}
+
+/**
+ * Get count of tasks by status.
+ *
+ * @returns Object with counts for each status
+ */
+export function useTaskCounts(): Record<TaskStatusValue, number> {
+  return useDashboardStateStore((state) => {
+    const tasks = state.activeTasks ?? [];
+    return {
+      pending: tasks.filter((t) => t.status === 'pending').length,
+      running: tasks.filter((t) => t.status === 'running').length,
+      completed: tasks.filter((t) => t.status === 'completed').length,
+      failed: tasks.filter((t) => t.status === 'failed').length,
+      cancelled: tasks.filter((t) => t.status === 'cancelled').length,
+    };
+  });
+}
+]]></template>
+  </new-code>
+
+  <!-- ============================================================== -->
+  <!-- NEW CODE: TaskProgressCard Component -->
+  <!-- ============================================================== -->
+  <new-code file="apps/web/src/components/progress/TaskProgressCard.tsx" language="typescript">
+    <description>
+      UI component for displaying task progress with step indicators,
+      overall progress bar, estimated time, and cancel/dismiss actions.
+    </description>
+    <template><![CDATA[
+/**
+ * TaskProgressCard Component
+ *
+ * Displays real-time progress for a long-running agent task.
+ * Shows step-by-step execution with status icons, overall progress,
+ * estimated time remaining, and cancel/dismiss actions.
+ *
+ * @see docs/modules/bm-dm/stories/dm-05-4-realtime-progress-streaming.md
+ * Epic: DM-05 | Story: DM-05.4
+ */
+'use client';
+
+import { useMemo } from 'react';
+import { Circle, Check, X, Loader2, Clock, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import type { TaskProgress, TaskStep, TaskStepStatus, TaskStatusValue } from '@/lib/schemas/dashboard-state';
+
+export interface TaskProgressCardProps {
+  /** Task progress data */
+  task: TaskProgress;
+  /** Callback when user clicks cancel */
+  onCancel?: (taskId: string) => void;
+  /** Callback when user clicks dismiss */
+  onDismiss?: (taskId: string) => void;
+  /** Whether to show step details (default true) */
+  showSteps?: boolean;
+  /** Additional CSS classes */
+  className?: string;
+}
+
+/**
+ * Status badge variant mapping
+ */
+const statusVariants: Record<TaskStatusValue, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  pending: 'secondary',
+  running: 'default',
+  completed: 'secondary',
+  failed: 'destructive',
+  cancelled: 'outline',
+};
+
+/**
+ * Status badge labels
+ */
+const statusLabels: Record<TaskStatusValue, string> = {
+  pending: 'Pending',
+  running: 'Running',
+  completed: 'Completed',
+  failed: 'Failed',
+  cancelled: 'Cancelled',
+};
+
+/**
+ * Get icon for step status
+ */
+function StepIcon({ status }: { status: TaskStepStatus }) {
+  switch (status) {
+    case 'pending':
+      return <Circle className="h-4 w-4 text-muted-foreground" />;
+    case 'running':
+      return <Loader2 className="h-4 w-4 text-primary animate-spin" />;
+    case 'completed':
+      return <Check className="h-4 w-4 text-green-600" />;
+    case 'failed':
+      return <X className="h-4 w-4 text-destructive" />;
+    default:
+      return <Circle className="h-4 w-4 text-muted-foreground" />;
+  }
+}
+
+/**
+ * Calculate overall progress percentage from steps
+ */
+function calculateProgress(task: TaskProgress): number {
+  if (task.totalSteps === 0) return 0;
+  const completedSteps = task.steps.filter((s) => s.status === 'completed').length;
+  return Math.round((completedSteps / task.totalSteps) * 100);
+}
+
+/**
+ * Calculate weighted progress including sub-step progress
+ */
+function calculateWeightedProgress(task: TaskProgress): number {
+  if (task.totalSteps === 0) return 0;
+  let totalProgress = 0;
+  for (const step of task.steps) {
+    if (step.status === 'completed') {
+      totalProgress += 100;
+    } else if (step.status === 'running' && step.progress !== undefined) {
+      totalProgress += step.progress;
+    }
+  }
+  return Math.round(totalProgress / task.totalSteps);
+}
+
+/**
+ * Calculate estimated time remaining
+ */
+function getEstimatedRemaining(task: TaskProgress): string | null {
+  if (!task.startedAt || !task.estimatedCompletionMs) return null;
+  const elapsed = Date.now() - task.startedAt;
+  const remaining = Math.max(0, task.estimatedCompletionMs - elapsed);
+
+  if (remaining === 0) return 'Almost done...';
+
+  const seconds = Math.floor(remaining / 1000);
+  if (seconds < 60) return `${seconds}s remaining`;
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}m ${remainingSeconds}s remaining`;
+}
+
+/**
+ * Format elapsed time
+ */
+function formatElapsedTime(startedAt: number | undefined): string {
+  if (!startedAt) return '';
+  const elapsed = Date.now() - startedAt;
+  const seconds = Math.floor(elapsed / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}m ${remainingSeconds}s`;
+}
+
+/**
+ * TaskProgressCard - Displays progress for a long-running task
+ */
+export function TaskProgressCard({
+  task,
+  onCancel,
+  onDismiss,
+  showSteps = true,
+  className,
+}: TaskProgressCardProps) {
+  const isTerminal = ['completed', 'failed', 'cancelled'].includes(task.status);
+  const isRunning = task.status === 'running' || task.status === 'pending';
+
+  const progressPercent = useMemo(
+    () => calculateWeightedProgress(task),
+    [task]
+  );
+
+  const estimatedRemaining = useMemo(
+    () => (isRunning ? getEstimatedRemaining(task) : null),
+    [task, isRunning]
+  );
+
+  return (
+    <Card className={cn('relative', className)} data-testid="task-progress-card">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-medium">
+            {task.taskName}
+          </CardTitle>
+          <Badge variant={statusVariants[task.status]}>
+            {statusLabels[task.status]}
+          </Badge>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Progress Bar */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              Step {task.currentStep + 1} of {task.totalSteps}
+            </span>
+            <span>{progressPercent}%</span>
+          </div>
+          <Progress value={progressPercent} className="h-2" />
+        </div>
+
+        {/* Time Info */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          {task.startedAt && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {formatElapsedTime(task.startedAt)} elapsed
+            </span>
+          )}
+          {estimatedRemaining && (
+            <span className="text-primary">{estimatedRemaining}</span>
+          )}
+        </div>
+
+        {/* Step List */}
+        {showSteps && task.steps.length > 0 && (
+          <div className="space-y-2 pt-2 border-t">
+            {task.steps.map((step) => (
+              <div
+                key={step.index}
+                className={cn(
+                  'flex items-center gap-2 text-sm',
+                  step.status === 'pending' && 'text-muted-foreground',
+                  step.status === 'running' && 'text-primary font-medium',
+                  step.status === 'completed' && 'text-muted-foreground',
+                  step.status === 'failed' && 'text-destructive'
+                )}
+              >
+                <StepIcon status={step.status} />
+                <span className="flex-1">{step.name}</span>
+                {step.status === 'running' && step.progress !== undefined && (
+                  <span className="text-xs">{step.progress}%</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error Message */}
+        {task.error && (
+          <div className="flex items-start gap-2 p-2 rounded bg-destructive/10 text-destructive text-sm">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{task.error}</span>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-2 pt-2">
+          {isRunning && onCancel && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onCancel(task.taskId)}
+            >
+              Cancel
+            </Button>
+          )}
+          {isTerminal && onDismiss && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDismiss(task.taskId)}
+            >
+              Dismiss
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+]]></template>
+  </new-code>
+
+  <!-- ============================================================== -->
+  <!-- NEW CODE: Progress Component Index -->
+  <!-- ============================================================== -->
+  <new-code file="apps/web/src/components/progress/index.ts" language="typescript">
+    <description>
+      Export file for progress components.
+    </description>
+    <template><![CDATA[
+/**
+ * Progress Components
+ *
+ * Components for displaying task and operation progress.
+ *
+ * @see docs/modules/bm-dm/stories/dm-05-4-realtime-progress-streaming.md
+ * Epic: DM-05 | Story: DM-05.4
+ */
+
+export { TaskProgressCard, type TaskProgressCardProps } from './TaskProgressCard';
+]]></template>
+  </new-code>
+
+  <!-- ============================================================== -->
+  <!-- TECHNICAL NOTES -->
+  <!-- ============================================================== -->
+  <technical-notes>
+    <note title="Progress State Size Considerations">
+      To prevent state bloat, implement limits:
+      - MAX_ACTIVE_TASKS = 10 (maximum concurrent task tracking)
+      - TASK_RETENTION_MS = 300000 (5 minutes after completion)
+      These constants should be added to DMConstants.STATE class.
+    </note>
+
+    <note title="Immediate Emission for Progress">
+      Progress updates should bypass the normal 100ms debounce for responsiveness.
+      Use emit_now() instead of _schedule_emit() in all progress methods.
+    </note>
+
+    <note title="Frontend Progress Calculation">
+      Two methods available:
+      1. Simple: (completedSteps / totalSteps) * 100
+      2. Weighted: Include sub-step progress for running steps
+      TaskProgressCard uses weighted calculation for smoother UI.
+    </note>
+
+    <note title="Time Estimation">
+      estimatedCompletionMs is optional and set by the agent when starting a task.
+      Time remaining = estimatedCompletionMs - (now - startedAt).
+      Clamped to 0 to prevent negative values.
+    </note>
+
+    <note title="CopilotKit Integration">
+      Progress state is synced via CopilotKit's useCoAgentStateRender.
+      The activeTasks field is automatically included in state emissions.
+      No additional integration code needed - works with existing DM-04 infrastructure.
+    </note>
+
+    <note title="Task Cleanup">
+      _cleanup_completed_tasks is called automatically in start_task().
+      Removes tasks in terminal states (completed, failed, cancelled)
+      that are older than TASK_RETENTION_MS.
+    </note>
+  </technical-notes>
+
+  <!-- ============================================================== -->
+  <!-- TESTING GUIDANCE -->
+  <!-- ============================================================== -->
+  <testing-guidance>
+    <unit-tests>
+      <test file="agents/gateway/test_state_emitter_progress.py">
+        <case>test_start_task_creates_pending_steps - Verify steps created with pending status</case>
+        <case>test_start_task_respects_max_limit - Verify MAX_ACTIVE_TASKS is enforced</case>
+        <case>test_update_task_step_sets_running - Verify status and started_at timestamp</case>
+        <case>test_update_task_step_with_progress - Verify sub-step progress 0-100</case>
+        <case>test_complete_task_marks_all_steps_done - Verify all steps completed</case>
+        <case>test_fail_task_sets_error - Verify error message stored</case>
+        <case>test_cancel_task_marks_cancelled - Verify status and running steps stopped</case>
+        <case>test_progress_emits_immediately - Verify no debounce delay</case>
+        <case>test_cleanup_removes_old_completed_tasks - Verify retention period</case>
+      </test>
+
+      <test file="apps/web/src/components/progress/__tests__/TaskProgressCard.test.tsx">
+        <case>renders task name and status badge</case>
+        <case>shows progress bar with correct percentage</case>
+        <case>renders step list with correct icons</case>
+        <case>shows cancel button for running tasks</case>
+        <case>shows dismiss button for completed tasks</case>
+        <case>shows error message for failed tasks</case>
+        <case>shows estimated time remaining</case>
+        <case>handles missing optional callbacks</case>
+        <case>hides steps when showSteps is false</case>
+      </test>
+
+      <test file="apps/web/src/lib/hooks/__tests__/use-task-progress.test.tsx">
+        <case>useActiveTasks returns tasks from store</case>
+        <case>useTaskProgress returns specific task by ID</case>
+        <case>useTaskProgress returns null for missing task</case>
+        <case>useHasRunningTasks returns true when tasks running</case>
+        <case>useHasRunningTasks returns false when no running tasks</case>
+        <case>useTasksByStatus filters correctly</case>
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>
+        Progress updates appear in real-time: Trigger a long-running task,
+        verify TaskProgressCard appears, steps update in sequence, and
+        completion is shown with dismiss action.
+      </test>
+      <test>
+        Latency target: Verify progress updates arrive within 100ms
+        of backend emission (monitor network timing).
+      </test>
+      <test>
+        Cancel flow: Start task, click cancel, verify task status
+        changes to cancelled in UI.
+      </test>
+    </integration-tests>
+  </testing-guidance>
+
+</story-context>

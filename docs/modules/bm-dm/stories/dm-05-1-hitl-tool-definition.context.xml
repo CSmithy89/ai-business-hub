@@ -1,0 +1,817 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>dm-05-1-hitl-tool-definition</story-id>
+    <epic>DM-05: Advanced HITL and Streaming</epic>
+    <points>8</points>
+    <dependencies>DM-04.5 (Complete - State Persistence)</dependencies>
+    <generated>2025-12-30T00:00:00Z</generated>
+  </metadata>
+
+  <story-requirements>
+    <overview>
+Create backend tool definitions with Human-in-the-Loop (HITL) markers for approval workflows.
+This implements the foundational Python infrastructure for confidence-based approval routing,
+where tools can be decorated to require human approval before execution based on calculated
+confidence scores.
+
+Key Deliverables:
+- HITL tool decorator (@hitl_tool) with configurable thresholds
+- Confidence calculation utilities for tool invocations
+- Approval level determination (auto/quick/full)
+- Example HITL tools for common high-risk operations
+- Audit logging for auto-executed actions
+- HITL module structure with proper exports
+    </overview>
+
+    <acceptance-criteria>
+      <criterion id="AC1">@hitl_tool decorator implemented with configurable thresholds (auto_threshold, quick_threshold)</criterion>
+      <criterion id="AC2">HITLConfig Pydantic model defines all HITL configuration options (approval_type, risk_level, thresholds, UI labels)</criterion>
+      <criterion id="AC3">calculate_confidence() function evaluates tool invocations and returns a score 0-100</criterion>
+      <criterion id="AC4">determine_approval_level() function returns ApprovalLevel.AUTO, QUICK, or FULL based on confidence</criterion>
+      <criterion id="AC5">HITLToolResult model contains approval metadata for frontend consumption</criterion>
+      <criterion id="AC6">Auto-executed actions are logged for audit trail via _log_auto_execution()</criterion>
+      <criterion id="AC7">Example HITL tools created: sign_contract, delete_project, approve_expense, send_bulk_notification</criterion>
+      <criterion id="AC8">is_hitl_tool() and get_hitl_config() utility functions work for introspection</criterion>
+      <criterion id="AC9">HITL module properly exports all public APIs via __init__.py</criterion>
+      <criterion id="AC10">Unit tests pass with >85% coverage for decorator and utilities</criterion>
+    </acceptance-criteria>
+
+    <confidence-thresholds>
+      <threshold level="AUTO" min="85" description="Auto-execute with audit logging only"/>
+      <threshold level="QUICK" min="60" max="84" description="Inline HITL via CopilotKit renderAndWaitForResponse"/>
+      <threshold level="FULL" max="59" description="Queue to Foundation approval system for full review"/>
+    </confidence-thresholds>
+
+    <files-to-create>
+      <file path="agents/hitl/__init__.py" description="HITL module exports"/>
+      <file path="agents/hitl/decorators.py" description="HITL decorator, models, and utilities"/>
+      <file path="agents/gateway/hitl_tools.py" description="Example HITL tools for dashboard operations"/>
+      <file path="agents/hitl/test_decorators.py" description="Pytest unit tests"/>
+    </files-to-create>
+
+    <files-to-modify>
+      <file path="agents/gateway/__init__.py" change="Export HITL tools"/>
+      <file path="agents/gateway/tools.py" change="Register HITL tools (if needed)"/>
+      <file path="docs/modules/bm-dm/sprint-status.yaml" change="Update story status"/>
+    </files-to-modify>
+  </story-requirements>
+
+  <architecture-context>
+    <hitl-flow>
+HITL Flow Architecture:
+
+User Request
+     |
+     v
+Dashboard Agent (evaluates confidence)
+     |
+     +--------+--------+--------+
+     |        |        |        |
+   >=85%    60-84%    &lt;60%
+   (AUTO)   (QUICK)   (FULL)
+     |        |        |
+     v        v        v
+  Execute  Inline    Queue to
+  Directly HITL      Foundation
+  +Logging (DM-05.2) Approval
+                     (DM-05.3)
+     |        |        |
+     v        v        v
+     +--------+--------+
+              |
+              v
+       ACTION EXECUTION
+    (with audit logging in both paths)
+    </hitl-flow>
+
+    <design-decisions>
+      <decision name="async-first">All HITL tools must be async functions for non-blocking operations</decision>
+      <decision name="metadata-attachment">Config stored on function via _hitl_config attribute for introspection</decision>
+      <decision name="context-injection">Tools can receive _hitl_context kwarg for user/workspace info</decision>
+      <decision name="marker-response">Non-auto tools return {"__hitl_pending__": True, "hitl_result": ...}</decision>
+    </design-decisions>
+
+    <hitl-marker-format>
+When a tool requires approval (QUICK or FULL), it returns:
+
+{
+    "__hitl_pending__": True,
+    "hitl_result": {
+        "requires_approval": True,
+        "approval_level": "quick",  // or "full"
+        "confidence_score": 72,
+        "tool_name": "sign_contract",
+        "tool_args": {"contract_id": "...", "amount": 5000},
+        "config": {...}
+    }
+}
+    </hitl-marker-format>
+  </architecture-context>
+
+  <existing-code>
+    <!-- Gateway Module Init - shows export pattern -->
+    <file path="agents/gateway/__init__.py">
+<![CDATA[
+"""
+Dashboard Gateway Module
+
+The Dashboard Gateway is the primary interface between the frontend CopilotKit
+and the backend agent system. It provides:
+
+- AG-UI interface for CopilotKit streaming communication
+- A2A interface for backend agent orchestration
+- Widget rendering tools for visual dashboard components
+- Agent routing for specialist delegation
+- State emission for real-time widget updates (DM-04.3)
+
+Usage:
+    from gateway import create_dashboard_gateway_agent, get_agent_metadata
+
+    # Create agent instance (basic)
+    agent = create_dashboard_gateway_agent(workspace_id="ws_123")
+
+    # Create agent with state emission (DM-04.3)
+    def emit_to_frontend(state):
+        websocket.send(json.dumps(state))
+
+    agent = create_dashboard_gateway_agent(
+        workspace_id="ws_123",
+        state_callback=emit_to_frontend,
+    )
+
+    # Mount interfaces (done in main.py)
+    from agentos.factory import create_agui_interface, create_a2a_interface
+    agui = create_agui_interface(agent, "/agui")
+    a2a = create_a2a_interface(agent, "/a2a/dashboard")
+"""
+from .agent import (
+    DASHBOARD_INSTRUCTIONS,
+    MockAgent,
+    create_dashboard_gateway_agent,
+    get_agent_metadata,
+)
+from .state_emitter import (
+    DashboardStateEmitter,
+    create_state_emitter,
+)
+from .tools import (
+    WIDGET_TYPES,
+    get_all_tools,
+    get_dashboard_capabilities,
+    render_dashboard_widget,
+    route_to_agent,
+)
+
+__all__ = [
+    # Agent
+    "create_dashboard_gateway_agent",
+    "get_agent_metadata",
+    "DASHBOARD_INSTRUCTIONS",
+    "MockAgent",
+    # State Emitter (DM-04.3)
+    "DashboardStateEmitter",
+    "create_state_emitter",
+    # Tools
+    "render_dashboard_widget",
+    "get_dashboard_capabilities",
+    "route_to_agent",
+    "get_all_tools",
+    "WIDGET_TYPES",
+]
+]]>
+    </file>
+
+    <!-- Gateway Tools - shows tool pattern and get_all_tools -->
+    <file path="agents/gateway/tools.py">
+<![CDATA[
+"""
+Dashboard Gateway Tools
+
+Tool definitions for the Dashboard Gateway agent. These tools enable:
+- Widget rendering via CopilotKit's useRenderToolCall
+- Capability discovery for frontend
+- Agent routing for backend orchestration
+- A2A orchestration for data gathering from specialist agents
+"""
+import logging
+from typing import Any, Dict, List, Optional
+
+from constants.dm_constants import DMConstants
+
+logger = logging.getLogger(__name__)
+
+
+# Widget types that can be rendered
+WIDGET_TYPES = [
+    "ProjectStatus",
+    "TaskList",
+    "Metrics",
+    "Alert",
+    "KanbanBoard",
+    "GanttChart",
+    "BurndownChart",
+    "TeamActivity",
+]
+
+
+def render_dashboard_widget(
+    widget_type: str,
+    data: Dict[str, Any],
+    title: Optional[str] = None,
+    slot_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Render a widget on the user's dashboard."""
+    if widget_type not in WIDGET_TYPES:
+        return {
+            "error": f"Unknown widget type: {widget_type}",
+            "available_types": WIDGET_TYPES,
+            "rendered": False,
+        }
+
+    return {
+        "type": widget_type,
+        "data": data,
+        "title": title,
+        "slot_id": slot_id,
+        "rendered": True,
+    }
+
+
+def get_all_tools() -> List:
+    """
+    Get all Dashboard Gateway tools.
+
+    Returns:
+        List of tool functions for agent registration
+    """
+    return [
+        # Widget rendering
+        render_dashboard_widget,
+        get_dashboard_capabilities,
+        route_to_agent,
+        # A2A orchestration (added in DM-03.2)
+        get_project_status,
+        get_health_summary,
+        get_recent_activity,
+        gather_dashboard_data,
+    ]
+]]>
+    </file>
+
+    <!-- Dashboard State Schemas - shows Pydantic model patterns -->
+    <file path="agents/schemas/dashboard_state.py">
+<![CDATA[
+"""
+Dashboard Shared State Schemas
+
+These Pydantic models mirror the TypeScript schemas for state
+shared between the Dashboard Gateway agent and the frontend.
+The schemas use Field aliases for camelCase output.
+"""
+
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ProjectStatus(str, Enum):
+    """Project status values matching TypeScript ProjectStatusEnum."""
+    ON_TRACK = "on-track"
+    AT_RISK = "at-risk"
+    BEHIND = "behind"
+    COMPLETED = "completed"
+
+
+class TrendDirection(str, Enum):
+    """Metric trend direction."""
+    UP = "up"
+    DOWN = "down"
+    NEUTRAL = "neutral"
+
+
+class AlertType(str, Enum):
+    """Alert severity type."""
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+    SUCCESS = "success"
+
+
+class ProjectStatusState(BaseModel):
+    """Project Status Widget State."""
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    project_id: str = Field(..., alias="projectId")
+    name: str = Field(...)
+    status: ProjectStatus = Field(...)
+    progress: int = Field(..., ge=0, le=100)
+    tasks_completed: int = Field(..., ge=0, alias="tasksCompleted")
+    tasks_total: int = Field(..., ge=0, alias="tasksTotal")
+    last_updated: int = Field(..., alias="lastUpdated")
+    summary: Optional[str] = Field(None)
+
+
+class DashboardState(BaseModel):
+    """Root Dashboard State."""
+    model_config = ConfigDict(populate_by_name=True)
+
+    version: int = Field(default=1)
+    timestamp: int = Field(...)
+    active_project: Optional[str] = Field(None, alias="activeProject")
+    workspace_id: Optional[str] = Field(None, alias="workspaceId")
+    user_id: Optional[str] = Field(None, alias="userId")
+
+    def to_frontend_dict(self) -> Dict[str, Any]:
+        """Convert to frontend-compatible dictionary with camelCase keys."""
+        return self.model_dump(by_alias=True, exclude_none=True)
+]]>
+    </file>
+
+    <!-- State Emitter - shows async patterns and logging -->
+    <file path="agents/gateway/state_emitter.py">
+<![CDATA[
+"""
+Dashboard Gateway State Emitter
+
+Manages agent state and emits updates via AG-UI protocol.
+"""
+
+import asyncio
+import logging
+import time
+import uuid
+from typing import Any, Callable, Dict, List, Optional
+
+from constants.dm_constants import DMConstants
+from schemas.dashboard_state import (
+    ActivityEntry,
+    ActivityState,
+    AlertEntry,
+    AlertType,
+    DashboardState,
+    LoadingState,
+    MetricEntry,
+    MetricsState,
+    ProjectStatus,
+    ProjectStatusState,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class DashboardStateEmitter:
+    """Manages dashboard state and emits updates to the frontend."""
+
+    def __init__(
+        self,
+        on_state_change: Callable[[Dict[str, Any]], None],
+        workspace_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> None:
+        self._on_state_change = on_state_change
+        self._state = DashboardState.create_initial(
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+        self._debounce_task: Optional[asyncio.Task] = None
+        self._pending_update = False
+        self._lock = asyncio.Lock()
+
+        logger.debug(
+            f"DashboardStateEmitter initialized: workspace={workspace_id}, user={user_id}"
+        )
+
+    async def emit_now(self) -> None:
+        """Force immediate state emission (bypass debounce)."""
+        async with self._lock:
+            if self._debounce_task and not self._debounce_task.done():
+                self._debounce_task.cancel()
+                try:
+                    await self._debounce_task
+                except asyncio.CancelledError:
+                    pass
+            self._pending_update = False
+            self._state.timestamp = int(time.time() * 1000)
+            self._emit()
+
+    def _emit(self) -> None:
+        """Emit current state to frontend."""
+        state_dict = self._state.to_frontend_dict()
+        logger.debug(f"Emitting dashboard state: timestamp={self._state.timestamp}")
+        self._on_state_change(state_dict)
+
+
+def create_state_emitter(
+    on_state_change: Callable[[Dict[str, Any]], None],
+    workspace_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+) -> DashboardStateEmitter:
+    """Create a state emitter for the Dashboard Gateway agent."""
+    return DashboardStateEmitter(
+        on_state_change=on_state_change,
+        workspace_id=workspace_id,
+        user_id=user_id,
+    )
+]]>
+    </file>
+
+    <!-- Core Platform Approval Schemas - existing approval types -->
+    <file path="agents/core_platform/schemas/approval.py">
+<![CDATA[
+"""
+Approval Agent Schemas
+Pydantic models for approval workflows
+"""
+
+from pydantic import BaseModel, Field
+from typing import Optional, Literal
+from datetime import datetime
+from enum import Enum
+
+
+class ApprovalStatus(str, Enum):
+    """Status of an approval request."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+class ApprovalRequest(BaseModel):
+    """An approval request waiting for human decision."""
+    id: str = Field(description="Unique approval request ID")
+    action_type: str = Field(description="Type of action requiring approval")
+    description: str = Field(description="Human-readable description")
+    resource_id: str = Field(description="ID of resource being acted upon")
+    resource_type: str = Field(description="Type of resource")
+    status: ApprovalStatus = Field(default=ApprovalStatus.PENDING)
+    requester_id: Optional[str] = Field(default=None)
+    approver_id: Optional[str] = Field(default=None)
+    metadata: dict = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.now)
+    expires_at: Optional[datetime] = Field(default=None)
+
+
+class ApprovalDecision(BaseModel):
+    """A decision on an approval request."""
+    request_id: str = Field(description="ID of the approval request")
+    decision: Literal["approved", "rejected"] = Field(description="The decision")
+    decided_by: str = Field(description="Who made the decision")
+    reason: Optional[str] = Field(default=None, description="Reason for rejection")
+    decided_at: datetime = Field(default_factory=datetime.now)
+]]>
+    </file>
+  </existing-code>
+
+  <integration-points>
+    <!-- Foundation Approval System - TypeScript API -->
+    <file path="apps/api/src/approvals/services/confidence-calculator.service.ts" purpose="Reference for confidence calculation patterns">
+<![CDATA[
+/**
+ * ConfidenceCalculatorService - Core confidence scoring system
+ *
+ * Calculates confidence scores from weighted factors and returns routing recommendations.
+ *
+ * Confidence routing:
+ * - score >= 85% = Auto-approve (immediate execution)
+ * - score 60-84% = Quick review (1-click approval)
+ * - score < 60% = Full review (with AI reasoning)
+ */
+@Injectable()
+export class ConfidenceCalculatorService {
+  private readonly logger = new Logger(ConfidenceCalculatorService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Calculate confidence score from weighted factors
+   */
+  async calculate(
+    factors: ConfidenceFactor[],
+    workspaceId: string,
+  ): Promise<ConfidenceResult> {
+    // 1. Validate factors
+    this.validateFactors(factors);
+
+    // 2. Calculate weighted average
+    const overallScore = this.calculateWeightedAverage(factors);
+
+    // 3. Get thresholds (workspace-specific or default)
+    const thresholds = await this.getThresholds(workspaceId);
+
+    // 4. Determine recommendation
+    const recommendation = this.getRecommendation(overallScore, thresholds);
+
+    // 5. Generate AI reasoning for low confidence
+    const aiReasoning =
+      recommendation === 'full_review'
+        ? this.generateReasoning(factors, overallScore)
+        : undefined;
+
+    return {
+      overallScore,
+      factors,
+      recommendation,
+      aiReasoning,
+    };
+  }
+
+  private getRecommendation(
+    score: number,
+    thresholds: ConfidenceThresholds,
+  ): ConfidenceRecommendation {
+    if (score >= thresholds.autoApprove) {
+      return 'approve';
+    }
+    if (score >= thresholds.quickReview) {
+      return 'review';
+    }
+    return 'full_review';
+  }
+}
+]]>
+    </file>
+
+    <file path="apps/api/src/approvals/services/approval-router.service.ts" purpose="Reference for approval routing patterns">
+<![CDATA[
+/**
+ * ApprovalRouterService - Routes approval requests based on confidence score
+ *
+ * Routing logic:
+ * - score >= 85% = auto_approved (immediate execution)
+ * - score 60-84% = pending with quick review (1-click approval)
+ * - score < 60% = pending with full review (requires AI reasoning review)
+ */
+@Injectable()
+export class ApprovalRouterService {
+  /**
+   * Determine status and review type based on confidence score
+   *
+   * Thresholds:
+   * - >85%: auto_approved (immediate execution)
+   * - 60-85%: pending with quick review (1-click)
+   * - <60%: pending with full review (AI reasoning required)
+   */
+  private determineStatusAndReviewType(score: number): {
+    status: string;
+    reviewType: string;
+  } {
+    if (score > 85) {
+      return { status: 'auto_approved', reviewType: 'auto' };
+    } else if (score >= 60) {
+      return { status: 'pending', reviewType: 'quick' };
+    } else {
+      return { status: 'pending', reviewType: 'full' };
+    }
+  }
+}
+]]>
+    </file>
+
+    <file path="apps/api/src/approvals/dto/create-approval.dto.ts" purpose="Reference for approval DTOs">
+<![CDATA[
+/**
+ * CreateApprovalDto - Request body for creating approval items
+ */
+export class CreateApprovalDto {
+  @IsString()
+  type!: string;  // e.g., 'content', 'email', 'agent_action'
+
+  @IsString()
+  title!: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsObject()
+  previewData?: any;
+
+  @IsOptional()
+  @IsString()
+  sourceModule?: string;
+
+  @IsOptional()
+  @IsString()
+  sourceId?: string;
+
+  @IsOptional()
+  @IsEnum(['low', 'medium', 'high', 'urgent'])
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  factors!: ConfidenceFactor[];  // Must sum to 1.0
+}
+]]>
+    </file>
+  </integration-points>
+
+  <implementation-guidance>
+    <tech-spec-section-3-1>
+Implementation Tasks from Tech Spec Section 3.1:
+
+1. **Create HITL decorators module (agents/hitl/decorators.py):**
+
+   a. Enums and Models:
+      - ApprovalLevel enum: AUTO, QUICK, FULL
+      - HITLConfig Pydantic model with all configuration fields
+      - HITLToolResult Pydantic model for frontend consumption
+
+   b. Core Functions:
+      - calculate_confidence(tool_name, args, context) -> int (0-100)
+      - determine_approval_level(confidence, config) -> ApprovalLevel
+
+   c. Decorator:
+      - @hitl_tool(...) decorator with all configuration parameters
+      - Wraps function to intercept calls and route based on confidence
+      - Stores config on function for introspection
+
+   d. Utilities:
+      - is_hitl_tool(func) -> bool
+      - get_hitl_config(func) -> Optional[HITLConfig]
+      - _log_auto_execution(...) for audit trail
+
+2. **Create example HITL tools (agents/gateway/hitl_tools.py):**
+
+   a. sign_contract - High risk, contract signing
+      - auto_threshold: 95, quick_threshold: 70
+      - requires_reason: True
+
+   b. delete_project - High risk, destructive action
+      - auto_threshold: 90, quick_threshold: 60
+      - requires_reason: True
+
+   c. approve_expense - Medium risk, financial
+      - auto_threshold: 85, quick_threshold: 65
+      - requires_reason: False
+
+   d. send_bulk_notification - Low risk, communication
+      - auto_threshold: 80, quick_threshold: 50
+      - requires_reason: False
+
+   e. get_hitl_tools() - Returns list of all HITL tools for registration
+
+3. **Create module init (agents/hitl/__init__.py):**
+   Export all public APIs
+
+4. **Write unit tests (agents/hitl/test_decorators.py):**
+   Tests for all functions with >85% coverage
+    </tech-spec-section-3-1>
+
+    <base-confidence-scores>
+Base Scores by Tool Type (from story spec):
+
+| Tool Type           | Base Score | Rationale                    |
+|---------------------|------------|------------------------------|
+| sign_contract       | 50         | High-risk financial commitment|
+| delete_project      | 40         | Destructive, irreversible    |
+| approve_expense     | 60         | Financial but routine        |
+| send_notification   | 80         | Low-risk communication       |
+| update_task_status  | 85         | Routine operation            |
+| Default             | 70         | Unknown tools start neutral  |
+
+Context Adjustments:
+- User role "admin": +10 points
+- Workspace verified: +5 points
+- Final score clamped to 0-100
+    </base-confidence-scores>
+
+    <async-requirement>
+All HITL tools must be async functions:
+
+```python
+# Correct
+@hitl_tool(...)
+async def my_tool(arg: str) -> dict:
+    return await some_async_operation()
+
+# Incorrect - will not work properly
+@hitl_tool(...)
+def my_tool(arg: str) -> dict:
+    return some_sync_operation()
+```
+    </async-requirement>
+
+    <context-injection-pattern>
+HITL tools can receive context via the _hitl_context kwarg:
+
+```python
+# Called by the agent system
+result = await sign_contract(
+    contract_id="C123",
+    amount=5000,
+    _hitl_context={
+        "user_id": "user_123",
+        "user_role": "admin",
+        "workspace_id": "ws_456",
+        "workspace_verified": True,
+    }
+)
+```
+    </context-injection-pattern>
+
+    <test-examples>
+Test Examples from Story Spec:
+
+```python
+class TestApprovalLevel:
+    def test_enum_values(self):
+        assert ApprovalLevel.AUTO.value == "auto"
+        assert ApprovalLevel.QUICK.value == "quick"
+        assert ApprovalLevel.FULL.value == "full"
+
+class TestHITLConfig:
+    def test_defaults(self):
+        config = HITLConfig()
+        assert config.auto_threshold == 85
+        assert config.quick_threshold == 60
+
+    def test_validation(self):
+        with pytest.raises(ValidationError):
+            HITLConfig(auto_threshold=150)  # > 100
+
+class TestCalculateConfidence:
+    def test_known_tool(self):
+        score = calculate_confidence("sign_contract", {})
+        assert 0 <= score <= 100
+        assert score == 50  # Base score
+
+    def test_context_adjustment(self):
+        score = calculate_confidence(
+            "sign_contract", {},
+            context={"user_role": "admin"}
+        )
+        assert score == 60  # 50 + 10
+
+class TestDetermineApprovalLevel:
+    def test_auto(self):
+        config = HITLConfig()
+        assert determine_approval_level(90, config) == ApprovalLevel.AUTO
+
+    def test_quick(self):
+        config = HITLConfig()
+        assert determine_approval_level(70, config) == ApprovalLevel.QUICK
+
+    def test_full(self):
+        config = HITLConfig()
+        assert determine_approval_level(50, config) == ApprovalLevel.FULL
+
+class TestHITLDecorator:
+    @pytest.mark.asyncio
+    async def test_auto_execution(self):
+        @hitl_tool(auto_threshold=50)
+        async def test_tool(value: str) -> dict:
+            return {"value": value}
+
+        result = await test_tool(
+            value="test",
+            _hitl_context={"user_role": "admin"}
+        )
+        assert result == {"value": "test"}  # Executed directly
+
+    @pytest.mark.asyncio
+    async def test_hitl_marker(self):
+        @hitl_tool(auto_threshold=95)
+        async def test_tool(value: str) -> dict:
+            return {"value": value}
+
+        result = await test_tool(value="test")
+        assert result["__hitl_pending__"] == True
+        assert "hitl_result" in result
+```
+    </test-examples>
+  </implementation-guidance>
+
+  <downstream-dependencies>
+    <story id="DM-05.2" title="Frontend HITL Handlers">
+Uses HITLToolResult for rendering approval UI in CopilotKit
+    </story>
+    <story id="DM-05.3" title="Approval Workflow Integration">
+Uses ApprovalLevel for routing decisions to Foundation approval queue
+    </story>
+  </downstream-dependencies>
+
+  <definition-of-done>
+    <item>@hitl_tool decorator implemented with all configuration options</item>
+    <item>ApprovalLevel enum with AUTO, QUICK, FULL values</item>
+    <item>HITLConfig Pydantic model with validation</item>
+    <item>HITLToolResult Pydantic model for frontend consumption</item>
+    <item>calculate_confidence() function implemented</item>
+    <item>determine_approval_level() function implemented</item>
+    <item>is_hitl_tool() utility function works</item>
+    <item>get_hitl_config() utility function works</item>
+    <item>_log_auto_execution() audit logging implemented</item>
+    <item>Example tools created: sign_contract, delete_project, approve_expense, send_bulk_notification</item>
+    <item>get_hitl_tools() returns list of all HITL tools</item>
+    <item>HITL module exports configured in __init__.py</item>
+    <item>Unit tests created with >85% coverage</item>
+    <item>Documentation added to module files</item>
+    <item>Sprint status updated to review</item>
+  </definition-of-done>
+</story-context>

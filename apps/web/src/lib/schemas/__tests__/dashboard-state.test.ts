@@ -394,6 +394,7 @@ describe('Dashboard State Schema', () => {
           loadingAgents: [],
         },
         errors: {},
+        activeTasks: [],
       };
       const result = DashboardStateSchema.safeParse(state);
       expect(result.success).toBe(true);

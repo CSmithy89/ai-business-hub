@@ -193,6 +193,8 @@ export function useStatePersistence(
           // Reset transient state - don't persist loading/error states
           loading: { isLoading: false, loadingAgents: [] },
           errors: {},
+          // Don't persist active tasks - they are transient runtime state
+          activeTasks: [],
         };
 
         const stateJson = JSON.stringify(stateToSave);

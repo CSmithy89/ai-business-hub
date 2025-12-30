@@ -34,6 +34,11 @@ from schemas.dashboard_state import (
     MetricsState,
     ProjectStatus,
     ProjectStatusState,
+    # DM-05.4: Task progress types
+    TaskProgress,
+    TaskStep,
+    TaskStatus,
+    TaskStepStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -601,6 +606,241 @@ class DashboardStateEmitter:
         except Exception as e:
             logger.warning(f"Failed to parse Herald response: {e}")
         return None
+
+    # =========================================================================
+    # TASK PROGRESS (DM-05.4)
+    # =========================================================================
+
+    async def start_task(
+        self,
+        task_id: str,
+        task_name: str,
+        steps: List[str],
+        estimated_duration_ms: Optional[int] = None,
+    ) -> None:
+        """
+        Start tracking a new long-running task.
+
+        Creates a TaskProgress with pending steps and emits immediately
+        (bypassing debounce for responsiveness).
+
+        Args:
+            task_id: Unique task identifier
+            task_name: Human-readable task name
+            steps: List of step names
+            estimated_duration_ms: Optional estimated total duration
+        """
+        # Cleanup old completed tasks before adding new one
+        self._cleanup_completed_tasks()
+
+        # Check max active tasks limit
+        if len(self._state.active_tasks) >= DMConstants.STATE.MAX_ACTIVE_TASKS:
+            logger.warning(
+                f"Max active tasks ({DMConstants.STATE.MAX_ACTIVE_TASKS}) reached, "
+                f"cannot start task {task_id}"
+            )
+            return
+
+        now = int(time.time() * 1000)
+        task_steps = [
+            TaskStep(index=i, name=name, status=TaskStepStatus.PENDING)
+            for i, name in enumerate(steps)
+        ]
+
+        task = TaskProgress(
+            task_id=task_id,
+            task_name=task_name,
+            status=TaskStatus.RUNNING,
+            current_step=0,
+            total_steps=len(steps),
+            steps=task_steps,
+            started_at=now,
+            estimated_completion_ms=estimated_duration_ms,
+        )
+
+        self._state.active_tasks.append(task)
+        logger.info(f"Task started: {task_id} ({task_name}) with {len(steps)} steps")
+        await self.emit_now()  # Immediate emission for responsiveness
+
+    async def update_task_step(
+        self,
+        task_id: str,
+        step_index: int,
+        status: str = "running",
+        progress: Optional[int] = None,
+    ) -> None:
+        """
+        Update progress of a task step.
+
+        Args:
+            task_id: Task identifier
+            step_index: Step index to update
+            status: Step status (pending, running, completed, failed)
+            progress: Optional progress percentage for the step (0-100)
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        if step_index < 0 or step_index >= len(task.steps):
+            logger.warning(f"Invalid step index {step_index} for task {task_id}")
+            return
+
+        step = task.steps[step_index]
+        now = int(time.time() * 1000)
+
+        # Update step status
+        step.status = TaskStepStatus(status)
+
+        # Set timestamps based on status
+        if status == "running" and step.started_at is None:
+            step.started_at = now
+        elif status in ("completed", "failed"):
+            step.completed_at = now
+
+        # Set progress if provided
+        if progress is not None:
+            step.progress = min(100, max(0, progress))
+
+        # Update current_step to highest running/completed step
+        task.current_step = step_index
+
+        logger.debug(f"Task {task_id} step {step_index} updated to {status}")
+        await self.emit_now()  # Immediate emission for responsiveness
+
+    async def complete_task(self, task_id: str) -> None:
+        """
+        Mark a task as completed successfully.
+
+        Marks the task and all its steps as completed.
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        now = int(time.time() * 1000)
+        task.status = TaskStatus.COMPLETED
+        task.completed_at = now
+
+        # Mark all steps as completed
+        for step in task.steps:
+            if step.status != TaskStepStatus.COMPLETED:
+                step.status = TaskStepStatus.COMPLETED
+                if step.completed_at is None:
+                    step.completed_at = now
+
+        logger.info(f"Task completed: {task_id}")
+        await self.emit_now()  # Immediate emission for responsiveness
+
+    async def fail_task(self, task_id: str, error: str) -> None:
+        """
+        Mark a task as failed with error message.
+
+        Marks the task as failed and stores the error message.
+        Any currently running step is also marked as failed.
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        now = int(time.time() * 1000)
+        task.status = TaskStatus.FAILED
+        task.completed_at = now
+        task.error = error
+
+        # Mark current running step as failed
+        for step in task.steps:
+            if step.status == TaskStepStatus.RUNNING:
+                step.status = TaskStepStatus.FAILED
+                step.completed_at = now
+                break
+
+        logger.warning(f"Task failed: {task_id} - {error}")
+        await self.emit_now()  # Immediate emission for responsiveness
+
+    async def cancel_task(self, task_id: str) -> None:
+        """
+        Cancel a running task.
+
+        Marks the task as cancelled and stops any running steps.
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        now = int(time.time() * 1000)
+        task.status = TaskStatus.CANCELLED
+        task.completed_at = now
+
+        # Stop any running steps (mark as pending, they weren't completed)
+        for step in task.steps:
+            if step.status == TaskStepStatus.RUNNING:
+                step.status = TaskStepStatus.PENDING
+                step.completed_at = now
+                break
+
+        logger.info(f"Task cancelled: {task_id}")
+        await self.emit_now()  # Immediate emission for responsiveness
+
+    def remove_task(self, task_id: str) -> None:
+        """
+        Remove a task from active tasks.
+
+        Used for dismissing completed/failed/cancelled tasks from the UI.
+
+        Args:
+            task_id: Task identifier to remove
+        """
+        self._state.active_tasks = [
+            t for t in self._state.active_tasks if t.task_id != task_id
+        ]
+        self._schedule_emit()
+
+    def _find_task(self, task_id: str) -> Optional[TaskProgress]:
+        """
+        Find a task by ID in active_tasks.
+
+        Args:
+            task_id: Task identifier to find
+
+        Returns:
+            TaskProgress if found, None otherwise
+        """
+        for task in self._state.active_tasks:
+            if task.task_id == task_id:
+                return task
+        return None
+
+    def _cleanup_completed_tasks(
+        self, retention_ms: Optional[int] = None
+    ) -> None:
+        """
+        Remove tasks completed more than retention_ms ago.
+
+        Called automatically when starting a new task.
+
+        Args:
+            retention_ms: Retention period in milliseconds.
+                         Defaults to DMConstants.STATE.TASK_RETENTION_MS
+        """
+        if retention_ms is None:
+            retention_ms = DMConstants.STATE.TASK_RETENTION_MS
+
+        now = int(time.time() * 1000)
+        terminal_statuses = (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED)
+
+        self._state.active_tasks = [
+            t for t in self._state.active_tasks
+            if t.status not in terminal_statuses
+            or (
+                t.completed_at is not None
+                and now - t.completed_at < retention_ms
+            )
+        ]
 
 
 def create_state_emitter(

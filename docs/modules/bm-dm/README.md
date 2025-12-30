@@ -5,7 +5,7 @@
 The **Dynamic Module System (bm-dm)** is an infrastructure module that implements unified agent-to-user and agent-to-agent communication using industry-standard protocols. It transforms how HYVVE's agents interact with the frontend and each other.
 
 **Module Type:** Infrastructure / Platform Core
-**Status:** Phase 1-4 Complete, Phase 5 Ready
+**Status:** Phase 1-5 Complete, Phase 6 Ready
 **Total Scope:** 6 Epics | 38 Stories | 231 Points
 
 ## Purpose
@@ -47,7 +47,7 @@ BM-DM enables:
 | DM-02 | Agno Multi-Interface Backend | 2 | 9 | 51 | **Complete** |
 | DM-03 | Dashboard Agent Integration | 3 | 5 | 34 | **Complete** |
 | DM-04 | Shared State & Real-Time | 4 | 5 | 26 | **Complete** |
-| DM-05 | Advanced HITL & Streaming | 5 | 5 | 34 | Backlog |
+| DM-05 | Advanced HITL & Streaming | 5 | 5 | 34 | **Complete** |
 | DM-06 | Contextual Intelligence | 6 | 6 | 42 | Backlog |
 
 ## Phase Overview
@@ -134,8 +134,23 @@ Shared state synchronization between agents and frontend for real-time updates.
 - `agents/gateway/state_emitter.py` — Agent state emitter
 - `apps/web/src/components/slots/widgets/StateWidget.tsx` — State widgets
 
-### Phase 5: Advanced Features (DM-05)
+### Phase 5: Advanced Features (DM-05) ✅ Complete
+
 Human-in-the-Loop approval workflows and real-time feedback streaming.
+
+**Delivered (5 stories, 34 points):**
+- HITL tool decorators with configurable confidence thresholds
+- Frontend HITL handlers with CopilotKit's `renderAndWaitForResponse`
+- Approval queue bridge for low-confidence actions (<60%)
+- Real-time progress streaming for long-running tasks
+- Task manager with timeout, cancellation, and retry support
+
+**Key Files:**
+- `agents/hitl/` - HITL decorators, approval bridge, task manager
+- `apps/web/src/lib/hitl/` - Frontend HITL hooks and utilities
+- `apps/web/src/components/hitl/` - HITL approval UI components
+- `apps/web/src/components/progress/` - Task progress components
+- `apps/web/src/lib/hooks/use-task-progress.ts` - Progress hooks
 
 ### Phase 6: Contextual Intelligence (DM-06)
 Bidirectional knowledge sync, Generative UI composition, and Universal Agent Mesh.
@@ -186,7 +201,7 @@ One agent, multiple protocols = maximum interoperability.
 
 - **Sprint Status:** [sprint-status.yaml](./sprint-status.yaml)
 - **Epic Details:** [epics/](./epics/)
-- **Stories:** [stories/](./stories/) (DM-01, DM-02, DM-03, DM-04 complete)
+- **Stories:** [stories/](./stories/) (DM-01 through DM-05 complete)
 
 ## Next Steps
 
@@ -198,8 +213,10 @@ One agent, multiple protocols = maximum interoperability.
 6. ~~Implement DM-03 (5 stories, 34 points)~~ ✅
 7. ~~Context DM-04 epic and draft stories~~ ✅
 8. ~~Implement DM-04 (5 stories, 26 points)~~ ✅
-9. Context DM-05 epic and draft stories
-10. Begin Phase 5: Advanced HITL & Streaming
+9. ~~Context DM-05 epic and draft stories~~ ✅
+10. ~~Implement DM-05 (5 stories, 34 points)~~ ✅
+11. Context DM-06 epic and draft stories
+12. Begin Phase 6: Contextual Intelligence
 
 ## Related Documentation
 

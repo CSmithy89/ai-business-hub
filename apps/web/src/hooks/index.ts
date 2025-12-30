@@ -80,3 +80,20 @@ export {
   type UseStatePersistenceOptions,
   type UseStatePersistenceResult,
 } from './use-state-persistence';
+
+// HITL hooks (Story DM-05.2)
+export {
+  useHITLAction,
+  useGenericHITLAction,
+  type UseHITLActionOptions,
+  type GenericHITLOptions,
+} from '@/lib/hitl';
+
+export type {
+  HITLActionArgs,
+  HITLConfig,
+  HITLResponse,
+  HITLRenderProps,
+  ApprovalLevel,
+  RiskLevel,
+} from '@/lib/hitl';

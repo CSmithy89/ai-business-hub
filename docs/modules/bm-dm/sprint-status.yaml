@@ -134,12 +134,12 @@ development_status:
   # Phase 5 | 5 stories | 34 points
   # Human-in-the-Loop, Progress, Long Tasks
   # ===========================================
-  dm-05: backlog
-  dm-05-1-hitl-tool-definition: backlog
-  dm-05-2-frontend-hitl-handlers: backlog
-  dm-05-3-approval-workflow-integration: backlog
-  dm-05-4-realtime-progress-streaming: backlog
-  dm-05-5-long-running-task-support: backlog
+  dm-05: complete
+  dm-05-1-hitl-tool-definition: done
+  dm-05-2-frontend-hitl-handlers: done
+  dm-05-3-approval-workflow-integration: done
+  dm-05-4-realtime-progress-streaming: done
+  dm-05-5-long-running-task-support: done
   dm-05-retrospective: optional
 
   # ===========================================

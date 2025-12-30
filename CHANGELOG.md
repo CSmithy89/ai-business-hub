@@ -6,7 +6,121 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 **Foundation Complete:** 17 Epics | 190 Stories | 541 Points | 100% Complete
 **Core-PM Complete:** 16 Epics | 61 Stories | Complete
-**Dynamic Module System:** Phase 1-4 Complete (DM-01, DM-02, DM-03, DM-04)
+**Dynamic Module System:** Phase 1-5 Complete (DM-01, DM-02, DM-03, DM-04, DM-05)
+
+---
+
+## EPIC-DM-05: Advanced HITL & Streaming (5 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-30
+**Branch:** `epic/05-advanced-hitl-streaming`
+
+### Added
+
+- **HITL Tool Decorators**: Backend infrastructure for Human-in-the-Loop approval workflows
+  - `@hitl_tool` decorator with configurable confidence thresholds (`auto_threshold`, `quick_threshold`)
+  - `HITLConfig` Pydantic model with approval_type, risk_level, UI labels
+  - `HITLToolResult` model for frontend consumption with approval metadata
+  - `calculate_confidence()` function for context-aware confidence scoring
+  - `determine_approval_level()` routing: AUTO (>=85%), QUICK (60-84%), FULL (<60%)
+  - `is_hitl_tool()` and `get_hitl_config()` introspection utilities
+  - Example tools: `sign_contract`, `delete_project`, `approve_expense`, `send_bulk_notification`
+  - Audit logging for auto-executed actions with sensitive data filtering
+
+- **Frontend HITL Handlers**: React components and hooks for inline approval UIs
+  - `useHITLAction` hook wrapping CopilotKit's `useCopilotAction` with `renderAndWaitForResponse`
+  - `useHITLStore` Zustand store for tracking pending HITL requests
+  - `HITLApprovalCard` generic component with risk badge, confidence indicator, configurable labels
+  - `ContractApprovalCard` specialized for contract signing (ID, amount, terms)
+  - `DeleteConfirmCard` with name verification for destructive actions
+  - `HITLActionRegistration` component registering all HITL handlers
+  - HITL marker detection via `isHITLPending()` and `parseHITLResult()`
+  - Toast notifications via sonner for approval/rejection feedback
+
+- **Approval Queue Bridge**: Integration with Foundation approval system for low-confidence actions
+  - `ApprovalQueueBridge` class for creating approval items from HITL tool results
+  - Confidence factors generated for queue display (4 weighted factors)
+  - Priority calculation: high risk OR <30% confidence = urgent
+  - Due date calculation: high=4h, medium=24h, low=72h
+  - `useApprovalQueue` hook for creating and tracking queued approvals
+  - `useApprovalEvents` hook for WebSocket subscription to approval events
+  - `ApprovalPendingCard` component showing queued status with progress indicator
+  - HITL store extended with `queuedApprovals` state and actions
+
+- **Realtime Progress Streaming**: Real-time task progress for long-running agent operations
+  - `TaskStepStatus` and `TaskStatus` enums in Python/TypeScript
+  - `TaskStep` and `TaskProgress` Pydantic/Zod schemas with camelCase serialization
+  - `DashboardState.activeTasks` field for tracking active tasks
+  - State emitter methods: `start_task()`, `update_task_step()`, `complete_task()`, `fail_task()`, `cancel_task()`
+  - Progress hooks: `useActiveTasks()`, `useTaskProgress()`, `useHasRunningTasks()`, `useTasksByStatus()`
+  - `TaskProgressCard` component with step indicators, progress bar, time estimation
+  - Cancel button for running tasks, dismiss for completed/failed/cancelled
+  - Immediate emission via `emit_now()` bypassing 100ms debounce
+
+- **Long Running Task Support**: Async task patterns with timeout, cancellation, and background execution
+  - `TaskManager` class with singleton pattern and semaphore-based concurrency limiting (default: 5)
+  - `TaskState` enum: PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, TIMEOUT
+  - `TaskStep` dataclass with handler, name, timeout, retries
+  - `TaskResult` dataclass capturing task_id, state, result, error, duration_ms, steps
+  - Per-step timeout with retry logic, overall task timeout
+  - Cooperative cancellation via `cancel_requested` flag + asyncio task cancellation
+  - `cleanup_completed()` for memory management (configurable retention)
+  - Example tasks: `research_competitor_landscape()`, `bulk_data_export()`
+  - Graceful shutdown handling for server restarts
+
+### Key Files
+
+**Backend (Python):**
+- `agents/hitl/__init__.py` - HITL module exports
+- `agents/hitl/decorators.py` - HITL decorator, models, and utilities
+- `agents/hitl/approval_bridge.py` - ApprovalQueueBridge class
+- `agents/hitl/task_manager.py` - TaskManager with full lifecycle management
+- `agents/gateway/hitl_tools.py` - Example HITL tools
+- `agents/gateway/long_tasks.py` - Example long-running tasks
+- `agents/gateway/state_emitter.py` - Extended with progress methods
+- `agents/schemas/dashboard_state.py` - TaskStepStatus, TaskStatus, TaskStep, TaskProgress models
+
+**Frontend (TypeScript):**
+- `apps/web/src/lib/hitl/types.ts` - HITL TypeScript interfaces
+- `apps/web/src/lib/hitl/utils.ts` - HITL utilities (marker detection, formatting)
+- `apps/web/src/lib/hitl/use-hitl-action.tsx` - useHITLAction hook
+- `apps/web/src/lib/hitl/use-approval-queue.ts` - Approval queue hook
+- `apps/web/src/lib/hitl/use-approval-events.ts` - WebSocket subscription
+- `apps/web/src/stores/hitl-store.ts` - Zustand store for HITL state
+- `apps/web/src/components/hitl/HITLApprovalCard.tsx` - Generic approval card
+- `apps/web/src/components/hitl/ContractApprovalCard.tsx` - Contract approval
+- `apps/web/src/components/hitl/DeleteConfirmCard.tsx` - Deletion confirmation
+- `apps/web/src/components/hitl/ApprovalPendingCard.tsx` - Queue status card
+- `apps/web/src/components/hitl/HITLActionRegistration.tsx` - Handler registration
+- `apps/web/src/lib/hooks/use-task-progress.ts` - Progress subscription hooks
+- `apps/web/src/components/progress/TaskProgressCard.tsx` - Progress UI component
+- `apps/web/src/lib/schemas/dashboard-state.ts` - Extended with TaskProgress schemas
+- `apps/web/src/stores/dashboard-state-store.ts` - Extended with task actions
+
+### Confidence-Based Routing
+
+| Confidence | Level | Behavior |
+|------------|-------|----------|
+| >= 85% | AUTO | Backend auto-execute with audit logging |
+| 60-84% | QUICK | Inline CopilotKit approval UI |
+| < 60% | FULL | Routed to Foundation approval queue |
+
+### Test Coverage
+
+- 66 Python unit tests for HITL decorators (97% coverage)
+- 33 TypeScript tests for frontend HITL handlers
+- 25+ Python tests for ApprovalQueueBridge (>85% coverage)
+- 22 Python tests for state emitter progress methods
+- 27+ TypeScript tests for TaskProgressCard
+- 35 Python tests for TaskManager (88% coverage)
+
+### Notes
+
+- Tech spec: `docs/modules/bm-dm/epics/epic-dm-05-tech-spec.md`
+- Stories: 5 (DM-05.1 through DM-05.5)
+- Total points: 34 (8 + 8 + 5 + 8 + 5)
+- Integration tests for E2E progress streaming deferred to E2E testing phase
 
 ---
 

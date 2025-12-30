@@ -1,0 +1,1078 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-05.5 - Long Running Task Support
+  Generated: 2025-12-30
+  Epic: DM-05 - Advanced HITL & Streaming
+  Points: 5
+  Dependencies: DM-05.4 (Realtime Progress Streaming), DM-04.3 (Agent State Emissions)
+
+  This context file contains all relevant code snippets and documentation
+  needed to implement long-running task support with TaskManager, timeout
+  handling, cancellation support, and integration with progress streaming.
+-->
+<story-context>
+  <story id="dm-05-5" name="Long Running Task Support" points="5">
+    <summary>
+      Implement async task patterns for handling long-running agent operations
+      with timeout handling, cancellation support, and background task execution.
+      This story builds on the progress streaming infrastructure from DM-05.4
+      to provide robust task lifecycle management.
+    </summary>
+
+    <deliverables>
+      <deliverable>TaskManager class in agents/hitl/task_manager.py with singleton pattern</deliverable>
+      <deliverable>TaskState enum with PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, TIMEOUT states</deliverable>
+      <deliverable>TaskStep dataclass with handler, name, timeout, and retry count</deliverable>
+      <deliverable>TaskResult dataclass capturing task_id, state, result, error, duration_ms, steps</deliverable>
+      <deliverable>ManagedTask dataclass tracking full task state including asyncio_task reference</deliverable>
+      <deliverable>Example long-running tasks in agents/gateway/long_tasks.py</deliverable>
+      <deliverable>Module exports in agents/hitl/__init__.py and agents/gateway/__init__.py</deliverable>
+      <deliverable>Unit tests with greater than 85% coverage</deliverable>
+    </deliverables>
+  </story>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 1: STATE EMITTER PROGRESS METHODS (DM-05.4 Implementation)  -->
+  <!-- =================================================================== -->
+  <existing-code file="agents/gateway/state_emitter.py" description="Progress tracking methods to integrate with">
+    <![CDATA[
+"""
+Dashboard Gateway State Emitter
+
+Manages agent state and emits updates via AG-UI protocol.
+The emitted state is automatically synchronized to the frontend
+via CopilotKit's useCoAgentStateRender.
+"""
+
+import asyncio
+import logging
+import time
+import uuid
+from typing import Any, Callable, Dict, List, Optional
+
+from constants.dm_constants import DMConstants
+from schemas.dashboard_state import (
+    ActivityEntry,
+    ActivityState,
+    AlertEntry,
+    AlertType,
+    DashboardState,
+    LoadingState,
+    MetricEntry,
+    MetricsState,
+    ProjectStatus,
+    ProjectStatusState,
+    # DM-05.4: Task progress types
+    TaskProgress,
+    TaskStep,
+    TaskStatus,
+    TaskStepStatus,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class DashboardStateEmitter:
+    """
+    Manages dashboard state and emits updates to the frontend.
+    """
+
+    def __init__(
+        self,
+        on_state_change: Callable[[Dict[str, Any]], None],
+        workspace_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> None:
+        self._on_state_change = on_state_change
+        self._state = DashboardState.create_initial(
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+        self._debounce_task: Optional[asyncio.Task] = None
+        self._pending_update = False
+        self._lock = asyncio.Lock()
+
+    # =========================================================================
+    # TASK PROGRESS (DM-05.4)
+    # =========================================================================
+
+    async def start_task(
+        self,
+        task_id: str,
+        task_name: str,
+        steps: List[str],
+        estimated_duration_ms: Optional[int] = None,
+    ) -> None:
+        """
+        Start tracking a new long-running task.
+
+        Creates a TaskProgress with pending steps and emits immediately
+        (bypassing debounce for responsiveness).
+
+        Args:
+            task_id: Unique task identifier
+            task_name: Human-readable task name
+            steps: List of step names
+            estimated_duration_ms: Optional estimated total duration
+        """
+        # Cleanup old completed tasks before adding new one
+        self._cleanup_completed_tasks()
+
+        # Check max active tasks limit
+        if len(self._state.active_tasks) >= DMConstants.STATE.MAX_ACTIVE_TASKS:
+            logger.warning(
+                f"Max active tasks ({DMConstants.STATE.MAX_ACTIVE_TASKS}) reached, "
+                f"cannot start task {task_id}"
+            )
+            return
+
+        now = int(time.time() * 1000)
+        task_steps = [
+            TaskStep(index=i, name=name, status=TaskStepStatus.PENDING)
+            for i, name in enumerate(steps)
+        ]
+
+        task = TaskProgress(
+            task_id=task_id,
+            task_name=task_name,
+            status=TaskStatus.RUNNING,
+            current_step=0,
+            total_steps=len(steps),
+            steps=task_steps,
+            started_at=now,
+            estimated_completion_ms=estimated_duration_ms,
+        )
+
+        self._state.active_tasks.append(task)
+        logger.info(f"Task started: {task_id} ({task_name}) with {len(steps)} steps")
+        await self.emit_now()  # Immediate emission for responsiveness
+
+    async def update_task_step(
+        self,
+        task_id: str,
+        step_index: int,
+        status: str = "running",
+        progress: Optional[int] = None,
+    ) -> None:
+        """
+        Update progress of a task step.
+
+        Args:
+            task_id: Task identifier
+            step_index: Step index to update
+            status: Step status (pending, running, completed, failed)
+            progress: Optional progress percentage for the step (0-100)
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        if step_index < 0 or step_index >= len(task.steps):
+            logger.warning(f"Invalid step index {step_index} for task {task_id}")
+            return
+
+        step = task.steps[step_index]
+        now = int(time.time() * 1000)
+
+        # Update step status
+        step.status = TaskStepStatus(status)
+
+        # Set timestamps based on status
+        if status == "running" and step.started_at is None:
+            step.started_at = now
+        elif status in ("completed", "failed"):
+            step.completed_at = now
+
+        # Set progress if provided
+        if progress is not None:
+            step.progress = min(100, max(0, progress))
+
+        # Update current_step to highest running/completed step
+        task.current_step = step_index
+
+        logger.debug(f"Task {task_id} step {step_index} updated to {status}")
+        await self.emit_now()  # Immediate emission for responsiveness
+
+    async def complete_task(self, task_id: str) -> None:
+        """
+        Mark a task as completed successfully.
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        now = int(time.time() * 1000)
+        task.status = TaskStatus.COMPLETED
+
+        # Mark all steps as completed
+        for step in task.steps:
+            if step.status != TaskStepStatus.COMPLETED:
+                step.status = TaskStepStatus.COMPLETED
+                if step.completed_at is None:
+                    step.completed_at = now
+
+        logger.info(f"Task completed: {task_id}")
+        await self.emit_now()
+
+    async def fail_task(self, task_id: str, error: str) -> None:
+        """
+        Mark a task as failed with error message.
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        now = int(time.time() * 1000)
+        task.status = TaskStatus.FAILED
+        task.error = error
+
+        # Mark current running step as failed
+        for step in task.steps:
+            if step.status == TaskStepStatus.RUNNING:
+                step.status = TaskStepStatus.FAILED
+                step.completed_at = now
+                break
+
+        logger.warning(f"Task failed: {task_id} - {error}")
+        await self.emit_now()
+
+    async def cancel_task(self, task_id: str) -> None:
+        """
+        Cancel a running task.
+        """
+        task = self._find_task(task_id)
+        if not task:
+            logger.warning(f"Task not found: {task_id}")
+            return
+
+        now = int(time.time() * 1000)
+        task.status = TaskStatus.CANCELLED
+
+        # Stop any running steps
+        for step in task.steps:
+            if step.status == TaskStepStatus.RUNNING:
+                step.status = TaskStepStatus.PENDING
+                step.completed_at = now
+                break
+
+        logger.info(f"Task cancelled: {task_id}")
+        await self.emit_now()
+
+    def remove_task(self, task_id: str) -> None:
+        """Remove a task from active tasks."""
+        self._state.active_tasks = [
+            t for t in self._state.active_tasks if t.task_id != task_id
+        ]
+        self._schedule_emit()
+
+    def _find_task(self, task_id: str) -> Optional[TaskProgress]:
+        """Find a task by ID in active_tasks."""
+        for task in self._state.active_tasks:
+            if task.task_id == task_id:
+                return task
+        return None
+
+    def _cleanup_completed_tasks(
+        self, retention_ms: Optional[int] = None
+    ) -> None:
+        """Remove tasks completed more than retention_ms ago."""
+        if retention_ms is None:
+            retention_ms = DMConstants.STATE.TASK_RETENTION_MS
+
+        now = int(time.time() * 1000)
+        terminal_statuses = (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED)
+
+        self._state.active_tasks = [
+            t for t in self._state.active_tasks
+            if t.status not in terminal_statuses
+            or (
+                t.started_at is not None
+                and now - t.started_at < retention_ms
+            )
+        ]
+]]>
+  </existing-code>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 2: TASK PROGRESS SCHEMA (DM-05.4 Implementation)            -->
+  <!-- =================================================================== -->
+  <existing-code file="agents/schemas/dashboard_state.py" description="Task progress types already implemented">
+    <![CDATA[
+# =============================================================================
+# TASK PROGRESS ENUMS AND MODELS (DM-05.4)
+# =============================================================================
+
+
+class TaskStepStatus(str, Enum):
+    """Step execution status matching TypeScript TaskStepStatusEnum."""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class TaskStatus(str, Enum):
+    """Overall task status matching TypeScript TaskStatusEnum."""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class TaskStep(BaseModel):
+    """
+    Individual step within a task.
+
+    Tracks execution state and progress of a single step in a multi-step task.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    index: int = Field(..., ge=0, description="Step index (0-based)")
+    name: str = Field(..., description="Step display name")
+    status: TaskStepStatus = Field(
+        default=TaskStepStatus.PENDING, description="Step execution status"
+    )
+    started_at: Optional[int] = Field(
+        None, alias="startedAt", description="Step start timestamp (Unix ms)"
+    )
+    completed_at: Optional[int] = Field(
+        None, alias="completedAt", description="Step completion timestamp (Unix ms)"
+    )
+    progress: Optional[int] = Field(
+        None, ge=0, le=100, description="Sub-step progress percentage (0-100)"
+    )
+
+
+class TaskProgress(BaseModel):
+    """
+    Progress state for a long-running task.
+
+    Tracks overall task status and individual step progress for
+    real-time streaming to the frontend.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    task_id: str = Field(..., alias="taskId", description="Unique task identifier")
+    task_name: str = Field(..., alias="taskName", description="Human-readable task name")
+    status: TaskStatus = Field(
+        default=TaskStatus.PENDING, description="Overall task status"
+    )
+    current_step: int = Field(
+        0, ge=0, alias="currentStep", description="Index of current step"
+    )
+    total_steps: int = Field(
+        0, ge=0, alias="totalSteps", description="Total number of steps"
+    )
+    steps: List[TaskStep] = Field(
+        default_factory=list, description="List of task steps"
+    )
+    started_at: Optional[int] = Field(
+        None, alias="startedAt", description="Task start timestamp (Unix ms)"
+    )
+    estimated_completion_ms: Optional[int] = Field(
+        None, alias="estimatedCompletionMs", description="Estimated total duration in ms"
+    )
+    error: Optional[str] = Field(None, description="Error message if task failed")
+
+
+class DashboardState(BaseModel):
+    """Root Dashboard State."""
+    # ... other fields ...
+
+    # Active tasks for progress tracking (DM-05.4)
+    active_tasks: List[TaskProgress] = Field(
+        default_factory=list,
+        alias="activeTasks",
+        description="Currently active long-running tasks",
+    )
+]]>
+  </existing-code>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 3: DM CONSTANTS                                             -->
+  <!-- =================================================================== -->
+  <existing-code file="agents/constants/dm_constants.py" description="Constants for task management">
+    <![CDATA[
+class DMConstants:
+    """Dynamic Module System constants - no magic numbers in code."""
+
+    # Shared State Configuration (for DM-04+)
+    class STATE:
+        """Shared state constants for DM-04+."""
+
+        # State schema version (must match TypeScript STATE_VERSION)
+        VERSION = 1
+
+        # State update debounce to avoid flooding frontend (ms)
+        UPDATE_DEBOUNCE_MS = 100
+
+        # Maximum state size before rejection (bytes)
+        MAX_STATE_SIZE_BYTES = 1024 * 1024  # 1MB
+
+        # State emission interval for periodic updates (ms)
+        STATE_EMIT_INTERVAL_MS = 5000  # 5 seconds
+
+        # Redis key prefix for state persistence
+        REDIS_KEY_PREFIX = "dashboard:state:"
+
+        # State TTL in Redis (seconds) - 24 hours
+        REDIS_TTL_SECONDS = 86400
+
+        # Maximum alerts to keep in state
+        MAX_ALERTS = 50
+
+        # Maximum activities to keep in state
+        MAX_ACTIVITIES = 100
+
+        # Task progress constants (DM-05.4)
+        MAX_ACTIVE_TASKS = 10  # Maximum concurrent task tracking
+        TASK_RETENTION_MS = 300000  # 5 minutes after completion
+]]>
+  </existing-code>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 4: HITL MODULE EXPORTS (Pattern to Follow)                  -->
+  <!-- =================================================================== -->
+  <existing-code file="agents/hitl/__init__.py" description="Module exports pattern - extend with TaskManager">
+    <![CDATA[
+"""
+HITL (Human-in-the-Loop) Module
+
+This module provides infrastructure for confidence-based approval routing
+in the HYVVE agent system. It enables tools to be decorated with HITL
+markers that route actions through different approval paths based on
+calculated confidence scores.
+
+Approval Paths:
+- AUTO (>= 85%): Immediate execution with audit logging
+- QUICK (60-84%): Inline CopilotKit approval (1-click)
+- FULL (< 60%): Queue to Foundation approval system
+"""
+
+from .decorators import (
+    # Core decorator
+    hitl_tool,
+    # Enums
+    ApprovalLevel,
+    # Pydantic models
+    HITLConfig,
+    HITLToolResult,
+    # Core functions
+    calculate_confidence,
+    determine_approval_level,
+    # Utility functions
+    is_hitl_tool,
+    get_hitl_config,
+    is_hitl_pending,
+    # Constants
+    BASE_CONFIDENCE_SCORES,
+    DEFAULT_CONFIDENCE_SCORE,
+)
+
+from .approval_bridge import (
+    # Bridge class
+    ApprovalQueueBridge,
+    # Singleton accessors
+    get_approval_bridge,
+    close_approval_bridge,
+    # Constants
+    PRIORITY_HOURS,
+    RISK_TO_PRIORITY,
+)
+
+__all__ = [
+    # Core decorator
+    "hitl_tool",
+    # Enums
+    "ApprovalLevel",
+    # Pydantic models
+    "HITLConfig",
+    "HITLToolResult",
+    # Core functions
+    "calculate_confidence",
+    "determine_approval_level",
+    # Utility functions
+    "is_hitl_tool",
+    "get_hitl_config",
+    "is_hitl_pending",
+    # Constants
+    "BASE_CONFIDENCE_SCORES",
+    "DEFAULT_CONFIDENCE_SCORE",
+    # Approval Queue Bridge (DM-05.3)
+    "ApprovalQueueBridge",
+    "get_approval_bridge",
+    "close_approval_bridge",
+    "PRIORITY_HOURS",
+    "RISK_TO_PRIORITY",
+    # TODO: Add TaskManager exports (DM-05.5)
+    # "TaskManager",
+    # "TaskState",
+    # "TaskStep",
+    # "TaskResult",
+    # "ManagedTask",
+    # "get_task_manager",
+]
+]]>
+  </existing-code>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 5: DECORATOR PATTERNS (Follow for TaskManager)              -->
+  <!-- =================================================================== -->
+  <existing-code file="agents/hitl/decorators.py" description="Decorator and dataclass patterns to follow">
+    <![CDATA[
+"""
+HITL Tool Decorators
+
+Human-in-the-Loop tool decorators and utilities for confidence-based
+approval routing. This module provides:
+
+- @hitl_tool decorator for marking functions as requiring HITL
+- Confidence calculation based on tool type and context
+- Approval level determination (AUTO, QUICK, FULL)
+- Utility functions for introspection
+"""
+
+import functools
+import logging
+import time
+import uuid
+from enum import Enum
+from typing import Any, Callable, Dict, Optional, TypeVar, cast
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# ENUMS
+# =============================================================================
+
+
+class ApprovalLevel(str, Enum):
+    """
+    Approval requirement levels based on confidence thresholds.
+    """
+
+    AUTO = "auto"
+    QUICK = "quick"
+    FULL = "full"
+
+
+# =============================================================================
+# PYDANTIC MODELS
+# =============================================================================
+
+
+class HITLConfig(BaseModel):
+    """
+    Configuration for HITL tool behavior.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    # Confidence thresholds
+    auto_threshold: int = Field(
+        default=85,
+        ge=0,
+        le=100,
+        description="Minimum confidence for auto-execution (default 85)",
+    )
+    quick_threshold: int = Field(
+        default=60,
+        ge=0,
+        le=100,
+        description="Minimum confidence for quick approval (default 60)",
+    )
+
+    # Tool metadata
+    approval_type: str = Field(
+        default="general",
+        description="Type of approval (e.g., 'contract', 'financial', 'deletion')",
+    )
+    risk_level: str = Field(
+        default="medium",
+        description="Risk level: low, medium, high",
+    )
+    requires_reason: bool = Field(
+        default=False,
+        description="Whether rejection requires a reason",
+    )
+    timeout_seconds: int = Field(
+        default=300,
+        ge=1,
+        description="Timeout for approval in seconds (default 5 minutes)",
+    )
+
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+
+def is_hitl_tool(func: Callable[..., Any]) -> bool:
+    """Check if a function is decorated with @hitl_tool."""
+    return getattr(func, "_is_hitl_tool", False)
+
+
+def get_hitl_config(func: Callable[..., Any]) -> Optional[HITLConfig]:
+    """Get the HITL configuration from a decorated function."""
+    return getattr(func, "_hitl_config", None)
+
+
+def is_hitl_pending(result: Any) -> bool:
+    """Check if a result indicates HITL approval is pending."""
+    return isinstance(result, dict) and result.get("__hitl_pending__") is True
+]]>
+  </existing-code>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 6: PYTHON ASYNCIO PATTERNS IN CODEBASE                      -->
+  <!-- =================================================================== -->
+  <async-patterns description="Existing asyncio patterns to follow in the codebase">
+    <pattern name="Lock for singleton protection" file="agents/a2a/client.py">
+      <![CDATA[
+# Singleton instance for Dashboard Gateway
+_a2a_client: Optional[HyvveA2AClient] = None
+_client_lock = asyncio.Lock()
+
+class HyvveA2AClient:
+    def __init__(self, ...):
+        self._client_lock = asyncio.Lock()
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        """Get or create HTTP client with lock protection."""
+        async with self._client_lock:
+            if self._client is None:
+                self._client = httpx.AsyncClient(...)
+            return self._client
+]]>
+    </pattern>
+
+    <pattern name="wait_for with timeout" file="agents/main.py">
+      <![CDATA[
+# Execute with timeout
+response = await asyncio.wait_for(
+    team.arun(message=request_data.message),
+    timeout=TEAM_EXECUTION_TIMEOUT
+)
+
+# Handle timeout error
+except asyncio.TimeoutError:
+    raise HTTPException(status_code=504, detail=f"{team_name} team timed out")
+]]>
+    </pattern>
+
+    <pattern name="create_task for background execution" file="agents/services/ccr_health.py">
+      <![CDATA[
+class CCRHealthChecker:
+    _instance: Optional["CCRHealthChecker"] = None
+    _lock: asyncio.Lock = asyncio.Lock()
+
+    async def start(self) -> None:
+        """Start the health check background loop."""
+        self._client = httpx.AsyncClient(timeout=DMConstants.CCR.PROVIDER_TIMEOUT_SECONDS)
+        self._running = True
+        self._task = asyncio.create_task(self._run_health_loop())
+
+    async def stop(self) -> None:
+        """Stop the health check loop."""
+        self._running = False
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            self._task = None
+
+    async def _run_health_loop(self) -> None:
+        """Run periodic health checks."""
+        while self._running:
+            try:
+                await self.check_health()
+                await asyncio.sleep(self.check_interval)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.exception("Error in health check loop: %s", e)
+                await asyncio.sleep(self.check_interval)
+]]>
+    </pattern>
+
+    <pattern name="Semaphore for concurrency limiting" file="agents/knowledge/factory.py">
+      <![CDATA[
+# Concurrency guard: prevent duplicate creation for the same workspace.
+lock = self._locks.get(workspace_id)
+if lock is None:
+    lock = asyncio.Lock()
+    self._locks[workspace_id] = lock
+
+async with lock:
+    # Protected code
+    ...
+]]>
+    </pattern>
+
+    <pattern name="Polling with sleep" file="agents/hitl/approval_bridge.py">
+      <![CDATA[
+async def wait_for_approval(
+    self,
+    workspace_id: str,
+    approval_id: str,
+    timeout_seconds: int = 3600,
+    poll_interval_seconds: int = 5,
+) -> Dict[str, Any]:
+    """Wait for an approval to be resolved with polling."""
+    start_time = datetime.utcnow()
+
+    while True:
+        status = await self.get_approval_status(workspace_id, approval_id)
+
+        if status['status'] in ('approved', 'rejected', 'auto_approved'):
+            return status
+
+        elapsed = (datetime.utcnow() - start_time).total_seconds()
+        if elapsed >= timeout_seconds:
+            raise TimeoutError(
+                f"Approval {approval_id} not resolved within {timeout_seconds}s"
+            )
+
+        # Wait before next poll
+        await asyncio.sleep(poll_interval_seconds)
+]]>
+    </pattern>
+  </async-patterns>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 7: GATEWAY MODULE EXPORTS (Pattern to Follow)               -->
+  <!-- =================================================================== -->
+  <existing-code file="agents/gateway/__init__.py" description="Gateway exports - extend with long_tasks">
+    <![CDATA[
+"""
+Dashboard Gateway Module
+
+The Dashboard Gateway is the primary interface between the frontend CopilotKit
+and the backend agent system.
+"""
+from .agent import (
+    DASHBOARD_INSTRUCTIONS,
+    MockAgent,
+    create_dashboard_gateway_agent,
+    get_agent_metadata,
+)
+from .state_emitter import (
+    DashboardStateEmitter,
+    create_state_emitter,
+)
+from .tools import (
+    WIDGET_TYPES,
+    get_all_tools,
+    get_dashboard_capabilities,
+    render_dashboard_widget,
+    route_to_agent,
+)
+from .hitl_tools import (
+    # HITL example tools (DM-05.1)
+    sign_contract,
+    delete_project,
+    approve_expense,
+    send_bulk_notification,
+    get_hitl_tools,
+    get_hitl_tool_metadata,
+)
+
+__all__ = [
+    # Agent
+    "create_dashboard_gateway_agent",
+    "get_agent_metadata",
+    "DASHBOARD_INSTRUCTIONS",
+    "MockAgent",
+    # State Emitter (DM-04.3)
+    "DashboardStateEmitter",
+    "create_state_emitter",
+    # Tools
+    "render_dashboard_widget",
+    "get_dashboard_capabilities",
+    "route_to_agent",
+    "get_all_tools",
+    "WIDGET_TYPES",
+    # HITL Tools (DM-05.1)
+    "sign_contract",
+    "delete_project",
+    "approve_expense",
+    "send_bulk_notification",
+    "get_hitl_tools",
+    "get_hitl_tool_metadata",
+    # TODO: Add long task functions (DM-05.5)
+    # "research_competitor_landscape",
+    # "bulk_data_export",
+]
+]]>
+  </existing-code>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 8: TECH SPEC REFERENCE                                      -->
+  <!-- =================================================================== -->
+  <tech-spec-reference file="docs/modules/bm-dm/epics/epic-dm-05-tech-spec.md" section="3.5">
+    <task-manager-class>
+      <![CDATA[
+class TaskManager:
+    """
+    Manages long-running tasks with progress tracking.
+
+    Features:
+    - Step-by-step execution with progress callbacks
+    - Timeout handling per step and overall
+    - Cancellation support
+    - Automatic retry for failed steps
+    - Integration with state emitter for UI updates
+    """
+
+    def __init__(
+        self,
+        state_emitter: Optional[Any] = None,  # DashboardStateEmitter
+        default_step_timeout: int = 60,
+        max_concurrent_tasks: int = 5,
+    ):
+        """
+        Initialize task manager.
+
+        Args:
+            state_emitter: Optional state emitter for progress updates
+            default_step_timeout: Default timeout for steps in seconds
+            max_concurrent_tasks: Maximum concurrent tasks
+        """
+        self._state_emitter = state_emitter
+        self._default_timeout = default_step_timeout
+        self._max_concurrent = max_concurrent_tasks
+        self._tasks: Dict[str, ManagedTask] = {}
+        self._semaphore = asyncio.Semaphore(max_concurrent_tasks)
+]]>
+    </task-manager-class>
+
+    <task-state-enum>
+      <![CDATA[
+class TaskState(str, Enum):
+    """Task execution state."""
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    TIMEOUT = "timeout"
+]]>
+    </task-state-enum>
+
+    <task-step-dataclass>
+      <![CDATA[
+@dataclass
+class TaskStep:
+    """Definition of a task step."""
+    name: str
+    handler: Callable[..., Any]
+    timeout_seconds: int = 60
+    retries: int = 0
+]]>
+    </task-step-dataclass>
+
+    <task-result-dataclass>
+      <![CDATA[
+@dataclass
+class TaskResult:
+    """Result of a task execution."""
+    task_id: str
+    state: TaskState
+    result: Any = None
+    error: Optional[str] = None
+    duration_ms: int = 0
+    steps_completed: int = 0
+    total_steps: int = 0
+]]>
+    </task-result-dataclass>
+
+    <managed-task-dataclass>
+      <![CDATA[
+@dataclass
+class ManagedTask:
+    """A task being managed by the TaskManager."""
+    task_id: str
+    name: str
+    steps: List[TaskStep]
+    state: TaskState = TaskState.PENDING
+    current_step: int = 0
+    started_at: Optional[float] = None
+    completed_at: Optional[float] = None
+    error: Optional[str] = None
+    result: Any = None
+    cancel_requested: bool = False
+    asyncio_task: Optional[asyncio.Task] = field(default=None, repr=False)
+]]>
+    </managed-task-dataclass>
+
+    <example-long-task>
+      <![CDATA[
+async def research_competitor_landscape(
+    competitors: list[str],
+    state_emitter: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """
+    Long-running task: Research competitor landscape.
+
+    This is an example of a multi-step task that might take several minutes.
+    """
+    manager = get_task_manager(state_emitter)
+
+    # Define task steps
+    async def gather_data(prev_result: Any, context: Optional[Dict]) -> Dict:
+        """Step 1: Gather competitor data from various sources."""
+        await asyncio.sleep(2)  # Simulate API calls
+        return {"competitors": context.get("competitors", []), "data": {}}
+
+    async def analyze_strengths(prev_result: Dict, context: Optional[Dict]) -> Dict:
+        """Step 2: Analyze competitive strengths."""
+        await asyncio.sleep(3)  # Simulate analysis
+        prev_result["strengths"] = {c: ["strength1", "strength2"] for c in prev_result["competitors"]}
+        return prev_result
+
+    async def analyze_weaknesses(prev_result: Dict, context: Optional[Dict]) -> Dict:
+        """Step 3: Analyze competitive weaknesses."""
+        await asyncio.sleep(2)  # Simulate analysis
+        prev_result["weaknesses"] = {c: ["weakness1"] for c in prev_result["competitors"]}
+        return prev_result
+
+    async def generate_report(prev_result: Dict, context: Optional[Dict]) -> Dict:
+        """Step 4: Generate comprehensive report."""
+        await asyncio.sleep(1)  # Simulate report generation
+        prev_result["report_generated"] = True
+        return prev_result
+
+    steps = [
+        TaskStep(name="Gathering competitor data", handler=gather_data, timeout_seconds=30),
+        TaskStep(name="Analyzing strengths", handler=analyze_strengths, timeout_seconds=60),
+        TaskStep(name="Analyzing weaknesses", handler=analyze_weaknesses, timeout_seconds=60),
+        TaskStep(name="Generating report", handler=generate_report, timeout_seconds=30),
+    ]
+
+    # Submit task
+    task_id = await manager.submit_task(
+        name="Competitor Landscape Research",
+        steps=steps,
+        context={"competitors": competitors},
+        overall_timeout=300,  # 5 minute overall timeout
+    )
+
+    # Wait for completion
+    result = await manager.wait_for_task(task_id)
+
+    return {
+        "task_id": task_id,
+        "state": result.state.value,
+        "result": result.result,
+        "error": result.error,
+        "duration_ms": result.duration_ms,
+    }
+]]>
+    </example-long-task>
+  </tech-spec-reference>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 9: FILES TO CREATE AND MODIFY                               -->
+  <!-- =================================================================== -->
+  <files>
+    <create>
+      <file path="agents/hitl/task_manager.py" description="TaskManager class with full task lifecycle management">
+        Contains: TaskState, TaskStep, TaskResult, ManagedTask, TaskManager, get_task_manager
+      </file>
+      <file path="agents/gateway/long_tasks.py" description="Example long-running task implementations">
+        Contains: research_competitor_landscape, bulk_data_export
+      </file>
+      <file path="agents/hitl/test_task_manager.py" description="Unit tests for TaskManager">
+        Contains: TestTaskManager with all test methods from story
+      </file>
+    </create>
+    <modify>
+      <file path="agents/hitl/__init__.py" description="Add TaskManager exports">
+        Add: TaskManager, TaskState, TaskStep, TaskResult, ManagedTask, get_task_manager
+      </file>
+      <file path="agents/gateway/__init__.py" description="Add long task function exports">
+        Add: research_competitor_landscape, bulk_data_export
+      </file>
+      <file path="docs/modules/bm-dm/sprint-status.yaml" description="Update story status">
+        Change: dm-05-5-long-running-task-support: drafted -> ready-for-dev
+      </file>
+    </modify>
+  </files>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 10: ACCEPTANCE CRITERIA SUMMARY                             -->
+  <!-- =================================================================== -->
+  <acceptance-criteria>
+    <criterion id="AC1">TaskManager class created in agents/hitl/task_manager.py with singleton pattern</criterion>
+    <criterion id="AC2">TaskState enum includes: PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, TIMEOUT</criterion>
+    <criterion id="AC3">TaskStep dataclass defines step handler, name, timeout, and retry count</criterion>
+    <criterion id="AC4">TaskResult dataclass captures task_id, state, result, error, duration_ms, steps completed/total</criterion>
+    <criterion id="AC5">ManagedTask dataclass tracks full task state including asyncio_task reference</criterion>
+    <criterion id="AC6">TaskManager.submit_task() creates and starts task execution in background</criterion>
+    <criterion id="AC7">TaskManager._execute_task() runs steps sequentially with overall timeout</criterion>
+    <criterion id="AC8">TaskManager._execute_steps() executes each step with per-step timeout and retries</criterion>
+    <criterion id="AC9">Step execution integrates with DashboardStateEmitter for progress updates</criterion>
+    <criterion id="AC10">TaskManager.cancel_task() requests cancellation and cancels asyncio task</criterion>
+    <criterion id="AC11">TaskManager.get_task_status() returns current TaskResult for any task</criterion>
+    <criterion id="AC12">TaskManager.wait_for_task() awaits task completion with optional timeout</criterion>
+    <criterion id="AC13">TaskManager.cleanup_completed() removes old completed tasks from memory</criterion>
+    <criterion id="AC14">_estimate_duration() calculates estimated task duration from step timeouts</criterion>
+    <criterion id="AC15">Semaphore limits concurrent task execution (default: 5 max concurrent)</criterion>
+    <criterion id="AC16">Example tasks created in agents/gateway/long_tasks.py (competitor research, bulk export)</criterion>
+    <criterion id="AC17">research_competitor_landscape() demonstrates multi-step task pattern</criterion>
+    <criterion id="AC18">bulk_data_export() demonstrates task with retries and variable steps</criterion>
+    <criterion id="AC19">get_task_manager() factory returns singleton instance</criterion>
+    <criterion id="AC20">Module exports added to agents/hitl/__init__.py</criterion>
+    <criterion id="AC21">Unit tests pass with greater than 85% coverage for TaskManager</criterion>
+    <criterion id="AC22">Integration tests verify progress streaming during task execution</criterion>
+  </acceptance-criteria>
+
+  <!-- =================================================================== -->
+  <!-- SECTION 11: TECHNICAL NOTES                                         -->
+  <!-- =================================================================== -->
+  <technical-notes>
+    <note title="Concurrency Control">
+      The TaskManager uses an asyncio Semaphore to limit concurrent task execution.
+      Default is 5 max concurrent tasks. Tasks that exceed the limit wait for
+      the semaphore before starting execution.
+    </note>
+    <note title="Step Handler Signature">
+      Step handlers receive two arguments:
+      - prev_result: Result from previous step (None for first step)
+      - context: Optional Dict passed to submit_task
+      Handler must be async and return any value to pass to next step.
+    </note>
+    <note title="Timeout Handling">
+      Two levels of timeout protection:
+      1. Per-step timeout: Each TaskStep has its own timeout_seconds (default 60s)
+      2. Overall timeout: Total task execution time limit via submit_task(overall_timeout=)
+    </note>
+    <note title="Graceful Cancellation">
+      Cancellation is cooperative via the cancel_requested flag. Before each step,
+      the executor checks if cancellation was requested and raises CancelledError.
+      The asyncio task is also cancelled directly for immediate effect.
+    </note>
+    <note title="Memory Management">
+      Completed tasks accumulate in memory. Call cleanup_completed(max_age_seconds)
+      periodically to remove old completed tasks. Default retention is 1 hour.
+    </note>
+    <note title="State Emitter Integration">
+      The TaskManager optionally integrates with DashboardStateEmitter from DM-05.4.
+      Pass state_emitter to constructor or get_task_manager() to enable real-time
+      progress updates in the frontend.
+    </note>
+  </technical-notes>
+</story-context>
