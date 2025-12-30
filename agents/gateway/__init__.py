@@ -10,6 +10,7 @@ and the backend agent system. It provides:
 - Agent routing for specialist delegation
 - State emission for real-time widget updates (DM-04.3)
 - HITL tools for human-in-the-loop approval workflows (DM-05.1)
+- Long-running task examples for multi-step operations (DM-05.5)
 
 Usage:
     from gateway import create_dashboard_gateway_agent, get_agent_metadata
@@ -34,6 +35,13 @@ Usage:
     # HITL tools (DM-05.1)
     from gateway import get_hitl_tools, sign_contract
     hitl_tools = get_hitl_tools()  # Returns list of all HITL tools
+
+    # Long-running tasks (DM-05.5)
+    from gateway import research_competitor_landscape, bulk_data_export
+    result = await research_competitor_landscape(
+        competitors=["Acme", "BigCorp"],
+        state_emitter=emitter,
+    )
 """
 from .agent import (
     DASHBOARD_INSTRUCTIONS,
@@ -61,6 +69,12 @@ from .hitl_tools import (
     get_hitl_tools,
     get_hitl_tool_metadata,
 )
+from .long_tasks import (
+    # Long-running task examples (DM-05.5)
+    research_competitor_landscape,
+    bulk_data_export,
+    get_long_task_examples,
+)
 
 __all__ = [
     # Agent
@@ -84,4 +98,8 @@ __all__ = [
     "send_bulk_notification",
     "get_hitl_tools",
     "get_hitl_tool_metadata",
+    # Long-running Tasks (DM-05.5)
+    "research_competitor_landscape",
+    "bulk_data_export",
+    "get_long_task_examples",
 ]

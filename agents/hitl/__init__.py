@@ -2,16 +2,19 @@
 HITL (Human-in-the-Loop) Module
 
 This module provides infrastructure for confidence-based approval routing
-in the HYVVE agent system. It enables tools to be decorated with HITL
-markers that route actions through different approval paths based on
-calculated confidence scores.
+and long-running task management in the HYVVE agent system.
+
+Features:
+- HITL decorators for confidence-based approval routing
+- Approval queue bridge for queuing low-confidence actions
+- TaskManager for long-running task lifecycle management
 
 Approval Paths:
 - AUTO (>= 85%): Immediate execution with audit logging
 - QUICK (60-84%): Inline CopilotKit approval (1-click)
 - FULL (< 60%): Queue to Foundation approval system
 
-Usage:
+Usage - HITL Tools:
     from hitl import hitl_tool, ApprovalLevel, HITLConfig
 
     @hitl_tool(
@@ -45,8 +48,35 @@ Usage:
         )
         print(f"Queued for approval: {approval['id']}")
 
+Usage - Task Manager (DM-05.5):
+    from hitl import get_task_manager_sync, TaskStep, TaskState
+
+    # Get singleton task manager
+    manager = get_task_manager_sync(state_emitter=emitter)
+
+    # Define task steps
+    async def step_one(prev_result, context):
+        return {"data": "processed"}
+
+    steps = [
+        TaskStep(name="Step One", handler=step_one, timeout_seconds=30),
+        TaskStep(name="Step Two", handler=step_two, timeout_seconds=60, retries=2),
+    ]
+
+    # Submit and wait for task
+    task_id = await manager.submit_task(
+        name="My Long Task",
+        steps=steps,
+        context={"input": "data"},
+        overall_timeout=300,
+    )
+    result = await manager.wait_for_task(task_id)
+
+    # Or cancel if needed
+    await manager.cancel_task(task_id)
+
 @see docs/modules/bm-dm/epics/epic-dm-05-tech-spec.md
-Epic: DM-05 | Stories: DM-05.1, DM-05.3
+Epic: DM-05 | Stories: DM-05.1, DM-05.3, DM-05.5
 """
 
 from .decorators import (
@@ -80,6 +110,25 @@ from .approval_bridge import (
     RISK_TO_PRIORITY,
 )
 
+from .task_manager import (
+    # Core class
+    TaskManager,
+    # Enums
+    TaskState,
+    # Dataclasses
+    TaskStep,
+    TaskResult,
+    ManagedTask,
+    # Singleton accessors
+    get_task_manager,
+    get_task_manager_sync,
+    close_task_manager,
+    # Constants
+    MAX_CONCURRENT_TASKS,
+    DEFAULT_STEP_TIMEOUT,
+    DEFAULT_CLEANUP_AGE,
+)
+
 __all__ = [
     # Core decorator
     "hitl_tool",
@@ -104,4 +153,16 @@ __all__ = [
     "close_approval_bridge",
     "PRIORITY_HOURS",
     "RISK_TO_PRIORITY",
+    # Task Manager (DM-05.5)
+    "TaskManager",
+    "TaskState",
+    "TaskStep",
+    "TaskResult",
+    "ManagedTask",
+    "get_task_manager",
+    "get_task_manager_sync",
+    "close_task_manager",
+    "MAX_CONCURRENT_TASKS",
+    "DEFAULT_STEP_TIMEOUT",
+    "DEFAULT_CLEANUP_AGE",
 ]
