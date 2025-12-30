@@ -353,17 +353,18 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed feature history by epic.
 | DM-02 | Agno Multi-Interface Backend | 9/9 | ✅ Complete |
 | DM-03 | Dashboard Agent Integration | 5/5 | ✅ Complete |
 | DM-04 | Shared State & Real-Time | 5/5 | ✅ Complete |
-| DM-05 | HITL Agent Approvals | 0/6 | 🔜 Backlog |
-| DM-06 | Intelligence Layer | 0/5 | 🔜 Backlog |
+| DM-05 | Advanced HITL & Streaming | 5/5 | ✅ Complete |
+| DM-06 | Intelligence Layer | 0/6 | 🔜 Backlog |
 
-**Latest Epic: Shared State & Real-Time (DM-04)**
-- TypeScript Zod + Python Pydantic state schemas with cross-language compatibility
-- Zustand store with CopilotKit useCoAgentStateRender bridge for AG-UI sync
-- Agent state emissions via DashboardStateEmitter with 100ms debouncing
-- State-driven widget wrappers with hybrid mode (tool-only/state-only/hybrid)
-- Browser localStorage persistence with cross-tab sync via BroadcastChannel
-- 145+ unit tests across 5 stories (26 story points)
-- Docs: `docs/modules/bm-dm/epics/epic-dm-04-*.md`, `docs/modules/bm-dm/stories/dm-04-*.md`
+**Latest Epic: Advanced HITL & Streaming (DM-05)**
+- HITL tool decorators with confidence-based approval routing (>=85% auto, 60-84% inline, <60% queue)
+- Frontend HITL handlers using CopilotKit's `renderAndWaitForResponse` for inline approvals
+- Approval queue bridge integrating with Foundation approval system
+- Real-time progress streaming with step-by-step task tracking
+- Long-running task support with timeout handling, cancellation, and retries
+- TaskManager with semaphore-based concurrency limiting (5 concurrent tasks)
+- 180+ unit tests across 5 stories (34 story points)
+- Docs: `docs/modules/bm-dm/epics/epic-dm-05-tech-spec.md`, `docs/modules/bm-dm/stories/dm-05-*.md`
 
 ---
 
