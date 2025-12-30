@@ -6,7 +6,78 @@ This changelog is organized by Epic, following the BMAD Method development proce
 
 **Foundation Complete:** 17 Epics | 190 Stories | 541 Points | 100% Complete
 **Core-PM Complete:** 16 Epics | 61 Stories | Complete
-**Dynamic Module System:** Phase 1-3 Complete (DM-01, DM-02, DM-03)
+**Dynamic Module System:** Phase 1-4 Complete (DM-01, DM-02, DM-03, DM-04)
+
+---
+
+## EPIC-DM-04: Shared State & Real-Time (5 stories)
+
+**Status:** Complete
+**Completed:** 2025-12-30
+**Branch:** `epic/04-shared-state-realtime`
+
+### Added
+
+- **State Schemas**: TypeScript/Python bidirectional state schemas
+  - TypeScript Zod schemas in `apps/web/src/lib/schemas/dashboard-state.ts`
+  - Python Pydantic models in `agents/schemas/dashboard_state.py`
+  - Cross-language compatibility with camelCase/snake_case aliasing
+  - `STATE` constants in `agents/constants/dm_constants.py`
+
+- **Frontend State Subscription**: Zustand store with CopilotKit bridge
+  - `useDashboardState` store in `apps/web/src/stores/dashboard-state-store.ts`
+  - `useAgentStateSync` hook bridging AG-UI to Zustand
+  - Selector hooks (`useProjectStatus`, `useMetrics`, `useTeamActivity`, `useAlerts`)
+  - 100ms debouncing to prevent UI thrashing
+  - Stale state detection via timestamp comparison
+
+- **Agent State Emissions**: Python state emitter for Dashboard Gateway
+  - `DashboardStateEmitter` class in `agents/gateway/state_emitter.py`
+  - Debounced emissions (100ms) with `emit_now()` for immediate updates
+  - Bulk updates via `update_from_gather()` for parallel agent results
+  - Response parsers for Navi, Pulse, Herald agents
+  - Dashboard Gateway agent accepts `state_callback` parameter
+
+- **Real-Time Widget Updates**: State-driven widget wrappers
+  - `StateProjectStatusWidget`, `StateMetricsWidget`, `StateActivityWidget`, `StateAlertsWidget`
+  - Hybrid rendering mode (tool-only/state-only/hybrid) in `DashboardSlots`
+  - `RealTimeIndicator` component with status dot and last update time
+  - `formatTimestamp()` utility for relative time formatting
+  - Cached data priority during background refreshes
+
+- **State Persistence**: Browser localStorage with cross-tab sync
+  - `useStatePersistence` hook with 1-second debounced saves
+  - 24-hour TTL with stale state detection and cleanup
+  - Cross-tab synchronization via BroadcastChannel API
+  - `useDashboardStateWithPersistence()` combined hook
+  - Utility functions: `clearPersistedDashboardState()`, `hasPersistedDashboardState()`
+
+### Key Files
+
+- `apps/web/src/lib/schemas/dashboard-state.ts` - TypeScript Zod schemas
+- `agents/schemas/dashboard_state.py` - Python Pydantic models
+- `apps/web/src/stores/dashboard-state-store.ts` - Zustand store
+- `apps/web/src/hooks/use-agent-state-sync.ts` - CopilotKit to Zustand bridge
+- `apps/web/src/hooks/use-dashboard-selectors.ts` - Selector hooks
+- `agents/gateway/state_emitter.py` - Agent state emission
+- `apps/web/src/components/slots/widgets/StateWidget.tsx` - State-driven widgets
+- `apps/web/src/components/slots/widgets/RealTimeIndicator.tsx` - Update indicator
+- `apps/web/src/hooks/use-state-persistence.ts` - localStorage persistence
+
+### DashboardSlots Rendering Modes
+
+| Mode | Tool Calls | State Updates | Use Case |
+|------|------------|---------------|----------|
+| `hybrid` (default) | Yes | Yes | Normal operation |
+| `tool-only` | Yes | No | DM-03 compatibility |
+| `state-only` | No | Yes | Pure state-driven |
+
+### Notes
+
+- Tech spec: `docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md`
+- Stories: 5 (DM-04.1 through DM-04.5)
+- Total points: 26 (5 + 5 + 5 + 5 + 6)
+- Redis server-side persistence documented for future enhancement
 
 ---
 
