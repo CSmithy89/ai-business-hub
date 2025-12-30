@@ -155,7 +155,7 @@ development_status:
   dm-06-1-deep-context-providers: done
   dm-06-2-agent-context-consumption: done
   dm-06-3-generative-ui-composition: done
-  dm-06-4-mcp-tool-integration: backlog
+  dm-06-4-mcp-tool-integration: done
   dm-06-5-universal-agent-mesh: backlog
   dm-06-6-rag-context-indexing: backlog
   dm-06-retrospective: optional
