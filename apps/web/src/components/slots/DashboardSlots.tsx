@@ -58,18 +58,36 @@ export function DashboardSlots() {
     available: 'disabled',
     render: ({ args, status }) => {
       const { type, data } = args as RenderWidgetArgs;
-      const widgetType = type as string;
+      const widgetType = (type as string) || 'Unknown';
 
       // Show loading state during inProgress or executing
       if (status === 'inProgress' || status === 'executing') {
         return <LoadingWidget type={widgetType} />;
       }
 
-      // Handle data-level errors from agent responses
-      if (data && typeof data === 'object' && 'error' in data && data.error) {
+      // Note: CopilotKit status is 'complete' when done - no explicit 'error' status
+      // Error handling is done via data.error field from agent responses
+
+      // Validate that we have data to render
+      if (data === null || data === undefined) {
         return (
           <ErrorWidget
-            message={String(data.error)}
+            message="No data provided for widget"
+            widgetType={widgetType}
+          />
+        );
+      }
+
+      // Handle data-level errors from agent responses
+      if (typeof data === 'object' && 'error' in data && data.error) {
+        // Handle Error objects properly
+        const errorMessage =
+          data.error instanceof Error
+            ? data.error.message
+            : String(data.error);
+        return (
+          <ErrorWidget
+            message={errorMessage}
             widgetType={widgetType}
           />
         );

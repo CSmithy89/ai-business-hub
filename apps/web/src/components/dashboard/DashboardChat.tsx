@@ -16,6 +16,7 @@
  * @see docs/modules/bm-dm/epics/epic-dm-03-tech-spec.md - Section 3.4
  */
 
+import { useEffect, useState } from 'react';
 import { useCopilotChatState } from '@/components/copilot';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,6 +87,15 @@ export function DashboardChat({
   quickActions = QUICK_ACTIONS,
 }: DashboardChatProps) {
   const { open: openChat } = useCopilotChatState();
+  const [modifierKey, setModifierKey] = useState('Ctrl');
+
+  // Detect platform to show correct modifier key (Cmd on Mac, Ctrl otherwise)
+  useEffect(() => {
+    const isMac =
+      typeof navigator !== 'undefined' &&
+      /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    setModifierKey(isMac ? 'Cmd' : 'Ctrl');
+  }, []);
 
   /**
    * Handle quick action button click.
@@ -141,7 +151,7 @@ export function DashboardChat({
         <p className="text-center text-xs text-muted-foreground">
           Press{' '}
           <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium">
-            Cmd+/
+            {modifierKey}+/
           </kbd>{' '}
           to toggle assistant
         </p>

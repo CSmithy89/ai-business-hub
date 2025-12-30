@@ -404,7 +404,7 @@ async def gather_dashboard_data(
         {
             "agent_id": "pulse",
             "task": f"Get health metrics for project {project_id}" if project_id else "Get workspace health",
-            "context": {"project_id": project_id},
+            "context": {"project_id": project_id, "workspace_wide": not project_id},
         },
         {
             "agent_id": "herald",

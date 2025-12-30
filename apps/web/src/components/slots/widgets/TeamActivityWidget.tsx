@@ -51,7 +51,7 @@ function getInitials(name: string): string {
  * Get a consistent color class for a user based on their name.
  * Uses a simple hash to assign colors.
  */
-function getUserColorClass(name: string): string {
+function getUserColorClass(name: string | null | undefined): string {
   const colors = [
     'bg-blue-500/20 text-blue-700 dark:text-blue-300',
     'bg-green-500/20 text-green-700 dark:text-green-300',
@@ -60,6 +60,11 @@ function getUserColorClass(name: string): string {
     'bg-pink-500/20 text-pink-700 dark:text-pink-300',
     'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300',
   ];
+
+  // Handle null/undefined name - return first color as default
+  if (!name) {
+    return colors[0];
+  }
 
   // Simple hash based on character codes
   let hash = 0;

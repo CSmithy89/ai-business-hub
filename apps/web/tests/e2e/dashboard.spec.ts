@@ -144,8 +144,8 @@ test.describe('Dashboard Chat Interaction', () => {
     await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
-    // Verify keyboard shortcut hint
-    await expect(page.getByText(/Cmd\+\//)).toBeVisible();
+    // Verify keyboard shortcut hint (platform-aware: Cmd on Mac, Ctrl otherwise)
+    await expect(page.getByText(/(Cmd|Ctrl)\+\//)).toBeVisible();
     await expect(page.getByText(/to toggle assistant/i)).toBeVisible();
   });
 });
@@ -243,13 +243,20 @@ test.describe('Dashboard CopilotKit Integration', () => {
 
 test.describe('Dashboard Agent A2A Health', () => {
   // These tests verify the backend agents are reachable
+  // They will fail gracefully if agent service is not running
 
   test('dashboard gateway agent is healthy', async ({ page }) => {
-    const response = await page.request.get(`${AGENT_BASE_URL}/health`);
+    let response;
+    try {
+      response = await page.request.get(`${AGENT_BASE_URL}/health`);
+    } catch {
+      test.skip(true, 'Agent service not reachable');
+      return;
+    }
 
-    // Skip if agent service not running
+    // Handle case where service returns error status (not running)
     if (!response.ok()) {
-      test.skip();
+      test.skip(true, 'Agent health endpoint returned non-200');
       return;
     }
 
@@ -257,13 +264,19 @@ test.describe('Dashboard Agent A2A Health', () => {
   });
 
   test('agent card discovery endpoint is available', async ({ page }) => {
-    const response = await page.request.get(
-      `${AGENT_BASE_URL}/.well-known/agent-card.json`
-    );
+    let response;
+    try {
+      response = await page.request.get(
+        `${AGENT_BASE_URL}/.well-known/agent-card.json`
+      );
+    } catch {
+      test.skip(true, 'Agent service not reachable');
+      return;
+    }
 
-    // Skip if agent service not running
+    // Handle case where service returns error status (not running)
     if (!response.ok()) {
-      test.skip();
+      test.skip(true, 'Agent card endpoint returned non-200');
       return;
     }
 
@@ -273,11 +286,17 @@ test.describe('Dashboard Agent A2A Health', () => {
   });
 
   test('navi agent A2A endpoint is available', async ({ page }) => {
-    const response = await page.request.get(`${AGENT_BASE_URL}/a2a/navi/agent-card`);
+    let response;
+    try {
+      response = await page.request.get(`${AGENT_BASE_URL}/a2a/navi/agent-card`);
+    } catch {
+      test.skip(true, 'Agent service not reachable');
+      return;
+    }
 
-    // Skip if agent service not running
+    // Handle case where service returns error status (not running)
     if (!response.ok()) {
-      test.skip();
+      test.skip(true, 'Navi agent endpoint returned non-200');
       return;
     }
 
@@ -285,11 +304,17 @@ test.describe('Dashboard Agent A2A Health', () => {
   });
 
   test('pulse agent A2A endpoint is available', async ({ page }) => {
-    const response = await page.request.get(`${AGENT_BASE_URL}/a2a/pulse/agent-card`);
+    let response;
+    try {
+      response = await page.request.get(`${AGENT_BASE_URL}/a2a/pulse/agent-card`);
+    } catch {
+      test.skip(true, 'Agent service not reachable');
+      return;
+    }
 
-    // Skip if agent service not running
+    // Handle case where service returns error status (not running)
     if (!response.ok()) {
-      test.skip();
+      test.skip(true, 'Pulse agent endpoint returned non-200');
       return;
     }
 
@@ -297,11 +322,17 @@ test.describe('Dashboard Agent A2A Health', () => {
   });
 
   test('herald agent A2A endpoint is available', async ({ page }) => {
-    const response = await page.request.get(`${AGENT_BASE_URL}/a2a/herald/agent-card`);
+    let response;
+    try {
+      response = await page.request.get(`${AGENT_BASE_URL}/a2a/herald/agent-card`);
+    } catch {
+      test.skip(true, 'Agent service not reachable');
+      return;
+    }
 
-    // Skip if agent service not running
+    // Handle case where service returns error status (not running)
     if (!response.ok()) {
-      test.skip();
+      test.skip(true, 'Herald agent endpoint returned non-200');
       return;
     }
 
@@ -323,8 +354,9 @@ test.describe('Dashboard Navigation', () => {
     const dashboardLink = page.getByRole('link', { name: /Dashboard/i });
 
     // Skip if navigation doesn't have dashboard link yet
-    if (!(await dashboardLink.isVisible({ timeout: 3000 }).catch(() => false))) {
-      test.skip();
+    const isVisible = await dashboardLink.isVisible({ timeout: 3000 }).catch(() => false);
+    if (!isVisible) {
+      test.skip(true, 'Dashboard link not visible in navigation');
       return;
     }
 

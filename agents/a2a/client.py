@@ -5,7 +5,8 @@ Implements the HYVVE A2A client wrapper for calling PM agents (Navi, Pulse, Hera
 from the Dashboard Gateway agent via the Google A2A protocol.
 
 Features:
-- Connection pooling via httpx for efficient HTTP/2 communication
+- Connection pooling via httpx for efficient HTTP communication
+- HTTP/2 support when h2 package is installed (optional)
 - JSON-RPC 2.0 format for A2A task execution
 - Parallel agent calls with asyncio.gather
 - Structured A2ATaskResult responses
@@ -14,13 +15,23 @@ Features:
 Reference: https://github.com/google/a2a-protocol
 """
 import asyncio
+import json
 import logging
+import secrets
 import time
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional
 
 import httpx
 from pydantic import BaseModel, Field
+
+# Check if HTTP/2 support is available (requires h2 package)
+try:
+    import h2  # noqa: F401
+
+    HTTP2_AVAILABLE = True
+except ImportError:
+    HTTP2_AVAILABLE = False
 
 from config import get_settings
 from constants.dm_constants import DMConstants
@@ -140,8 +151,14 @@ class HyvveA2AClient:
                             max_connections=DMConstants.DASHBOARD.CONCURRENT_AGENT_CALLS * 2,
                             max_keepalive_connections=DMConstants.DASHBOARD.CONCURRENT_AGENT_CALLS,
                         ),
-                        http2=True,  # Enable HTTP/2 for multiplexing
+                        http2=HTTP2_AVAILABLE,  # Enable HTTP/2 if h2 package available
                     )
+                    if HTTP2_AVAILABLE:
+                        logger.debug("A2A client initialized with HTTP/2 support")
+                    else:
+                        logger.debug(
+                            "A2A client initialized with HTTP/1.1 (install h2 for HTTP/2)"
+                        )
         return self._client
 
     def _generate_request_id(self, agent_id: str) -> str:
@@ -152,10 +169,11 @@ class HyvveA2AClient:
             agent_id: Target agent identifier
 
         Returns:
-            Unique request ID string
+            Unique request ID string with timestamp and random nonce
         """
         timestamp = int(time.time() * 1000)
-        return f"a2a-{agent_id}-{timestamp}"
+        nonce = secrets.token_hex(4)  # 8 char hex string for uniqueness
+        return f"a2a-{agent_id}-{timestamp}-{nonce}"
 
     async def call_agent(
         self,
@@ -254,7 +272,17 @@ class HyvveA2AClient:
                     duration_ms=duration_ms,
                 )
 
-            data = response.json()
+            try:
+                data = response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f"A2A call to {agent_id} returned invalid JSON: {e}")
+                return A2ATaskResult(
+                    content="",
+                    success=False,
+                    error=f"Invalid JSON response from {agent_id}: {str(e)}",
+                    agent_id=agent_id,
+                    duration_ms=duration_ms,
+                )
 
             # Handle JSON-RPC error response
             if "error" in data and data["error"]:
@@ -289,7 +317,7 @@ class HyvveA2AClient:
             return A2ATaskResult(
                 content="",
                 success=False,
-                error=f"Timeout calling {agent_id} after {timeout or self.timeout}s",
+                error=f"Timeout calling {agent_id} after {effective_timeout}s",
                 agent_id=agent_id,
                 duration_ms=duration_ms,
             )
