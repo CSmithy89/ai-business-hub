@@ -57,6 +57,88 @@ class AlertType(str, Enum):
 
 
 # =============================================================================
+# TASK PROGRESS ENUMS AND MODELS (DM-05.4)
+# =============================================================================
+
+
+class TaskStepStatus(str, Enum):
+    """Step execution status matching TypeScript TaskStepStatusEnum."""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class TaskStatus(str, Enum):
+    """Overall task status matching TypeScript TaskStatusEnum."""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class TaskStep(BaseModel):
+    """
+    Individual step within a task.
+
+    Tracks execution state and progress of a single step in a multi-step task.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    index: int = Field(..., ge=0, description="Step index (0-based)")
+    name: str = Field(..., description="Step display name")
+    status: TaskStepStatus = Field(
+        default=TaskStepStatus.PENDING, description="Step execution status"
+    )
+    started_at: Optional[int] = Field(
+        None, alias="startedAt", description="Step start timestamp (Unix ms)"
+    )
+    completed_at: Optional[int] = Field(
+        None, alias="completedAt", description="Step completion timestamp (Unix ms)"
+    )
+    progress: Optional[int] = Field(
+        None, ge=0, le=100, description="Sub-step progress percentage (0-100)"
+    )
+
+
+class TaskProgress(BaseModel):
+    """
+    Progress state for a long-running task.
+
+    Tracks overall task status and individual step progress for
+    real-time streaming to the frontend.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    task_id: str = Field(..., alias="taskId", description="Unique task identifier")
+    task_name: str = Field(..., alias="taskName", description="Human-readable task name")
+    status: TaskStatus = Field(
+        default=TaskStatus.PENDING, description="Overall task status"
+    )
+    current_step: int = Field(
+        0, ge=0, alias="currentStep", description="Index of current step"
+    )
+    total_steps: int = Field(
+        0, ge=0, alias="totalSteps", description="Total number of steps"
+    )
+    steps: List[TaskStep] = Field(
+        default_factory=list, description="List of task steps"
+    )
+    started_at: Optional[int] = Field(
+        None, alias="startedAt", description="Task start timestamp (Unix ms)"
+    )
+    estimated_completion_ms: Optional[int] = Field(
+        None, alias="estimatedCompletionMs", description="Estimated total duration in ms"
+    )
+    error: Optional[str] = Field(None, description="Error message if task failed")
+
+
+# =============================================================================
 # WIDGET STATE MODELS
 # =============================================================================
 
@@ -275,6 +357,13 @@ class DashboardState(BaseModel):
     # Error state (agentId -> error message)
     errors: Dict[str, str] = Field(
         default_factory=dict, description="Error state (agentId -> error message)"
+    )
+
+    # Active tasks for progress tracking (DM-05.4)
+    active_tasks: List[TaskProgress] = Field(
+        default_factory=list,
+        alias="activeTasks",
+        description="Currently active long-running tasks",
     )
 
     @classmethod

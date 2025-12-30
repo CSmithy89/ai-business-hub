@@ -44,6 +44,71 @@ export const AlertTypeEnum = z.enum(['error', 'warning', 'info', 'success']);
 export type AlertType = z.infer<typeof AlertTypeEnum>;
 
 // =============================================================================
+// TASK PROGRESS SCHEMAS (DM-05.4)
+// =============================================================================
+
+/**
+ * Task step execution status
+ */
+export const TaskStepStatusEnum = z.enum(['pending', 'running', 'completed', 'failed']);
+export type TaskStepStatus = z.infer<typeof TaskStepStatusEnum>;
+
+/**
+ * Overall task status
+ */
+export const TaskStatusEnum = z.enum(['pending', 'running', 'completed', 'failed', 'cancelled']);
+export type TaskStatusValue = z.infer<typeof TaskStatusEnum>;
+
+/**
+ * Individual step within a task
+ * Tracks execution state and progress of a single step in a multi-step task.
+ */
+export const TaskStepSchema = z.object({
+  /** Step index (0-based) */
+  index: z.number().int().min(0),
+  /** Step display name */
+  name: z.string(),
+  /** Step execution status */
+  status: TaskStepStatusEnum.default('pending'),
+  /** Step start timestamp (Unix ms) */
+  startedAt: z.number().optional(),
+  /** Step completion timestamp (Unix ms) */
+  completedAt: z.number().optional(),
+  /** Sub-step progress percentage (0-100) */
+  progress: z.number().min(0).max(100).optional(),
+});
+
+export type TaskStep = z.infer<typeof TaskStepSchema>;
+
+/**
+ * Progress state for a long-running task
+ * Tracks overall task status and individual step progress for
+ * real-time streaming from the agent.
+ */
+export const TaskProgressSchema = z.object({
+  /** Unique task identifier */
+  taskId: z.string(),
+  /** Human-readable task name */
+  taskName: z.string(),
+  /** Overall task status */
+  status: TaskStatusEnum.default('pending'),
+  /** Index of current step */
+  currentStep: z.number().int().min(0).default(0),
+  /** Total number of steps */
+  totalSteps: z.number().int().min(0).default(0),
+  /** List of task steps */
+  steps: z.array(TaskStepSchema).default([]),
+  /** Task start timestamp (Unix ms) */
+  startedAt: z.number().optional(),
+  /** Estimated total duration in ms */
+  estimatedCompletionMs: z.number().optional(),
+  /** Error message if task failed */
+  error: z.string().optional(),
+});
+
+export type TaskProgress = z.infer<typeof TaskProgressSchema>;
+
+// =============================================================================
 // WIDGET STATE SCHEMAS
 // =============================================================================
 
@@ -259,6 +324,9 @@ export const DashboardStateSchema = z.object({
 
   /** Error state (agentId -> error message) */
   errors: ErrorStateSchema.default({}),
+
+  /** Currently active long-running tasks (DM-05.4) */
+  activeTasks: z.array(TaskProgressSchema).default([]),
 });
 
 export type DashboardState = z.infer<typeof DashboardStateSchema>;
@@ -340,5 +408,6 @@ export function createInitialDashboardState(options?: {
       loadingAgents: [],
     },
     errors: {},
+    activeTasks: [],
   };
 }

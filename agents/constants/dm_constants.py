@@ -125,3 +125,7 @@ class DMConstants:
 
         # Maximum activities to keep in state
         MAX_ACTIVITIES = 100
+
+        # Task progress constants (DM-05.4)
+        MAX_ACTIVE_TASKS = 10  # Maximum concurrent task tracking
+        TASK_RETENTION_MS = 300000  # 5 minutes after completion

@@ -256,6 +256,7 @@ export function useAgentStateWidget<T>(
     widgets: store.widgets,
     loading: store.loading,
     errors: store.errors,
+    activeTasks: store.activeTasks,
   };
 
   return selector(dashboardState);

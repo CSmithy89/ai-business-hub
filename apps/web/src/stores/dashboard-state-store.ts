@@ -24,6 +24,8 @@ import {
   type MetricsState,
   type ActivityState,
   type AlertEntry,
+  type TaskProgress,
+  type TaskStep,
   createInitialDashboardState,
   validateDashboardState,
 } from '@/lib/schemas/dashboard-state';
@@ -79,6 +81,18 @@ export interface DashboardStateStore extends DashboardState {
   /** Clear all errors */
   clearErrors: () => void;
 
+  // Task progress actions (DM-05.4)
+  /** Set all active tasks (replaces existing) */
+  setActiveTasks: (tasks: TaskProgress[]) => void;
+  /** Add a new task to active tasks */
+  addTask: (task: TaskProgress) => void;
+  /** Update a task by ID with partial data */
+  updateTask: (taskId: string, update: Partial<TaskProgress>) => void;
+  /** Update a specific step within a task */
+  updateTaskStep: (taskId: string, stepIndex: number, update: Partial<TaskStep>) => void;
+  /** Remove a task by ID */
+  removeTask: (taskId: string) => void;
+
   // Reset
   /** Reset store to initial state */
   reset: () => void;
@@ -128,6 +142,8 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         errors: update.errors
           ? { ...current.errors, ...update.errors }
           : current.errors,
+        // Active tasks from agent updates replace existing (DM-05.4)
+        activeTasks: update.activeTasks ?? current.activeTasks,
       }));
     },
 
@@ -239,6 +255,52 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
     clearErrors: () => {
       set({ errors: {}, timestamp: Date.now() });
+    },
+
+    // =========================================================================
+    // TASK PROGRESS (DM-05.4)
+    // =========================================================================
+
+    setActiveTasks: (tasks: TaskProgress[]) => {
+      set({ activeTasks: tasks, timestamp: Date.now() });
+    },
+
+    addTask: (task: TaskProgress) => {
+      set((state) => ({
+        activeTasks: [...state.activeTasks, task],
+        timestamp: Date.now(),
+      }));
+    },
+
+    updateTask: (taskId: string, update: Partial<TaskProgress>) => {
+      set((state) => ({
+        activeTasks: state.activeTasks.map((t) =>
+          t.taskId === taskId ? { ...t, ...update } : t
+        ),
+        timestamp: Date.now(),
+      }));
+    },
+
+    updateTaskStep: (taskId: string, stepIndex: number, update: Partial<TaskStep>) => {
+      set((state) => ({
+        activeTasks: state.activeTasks.map((t) => {
+          if (t.taskId !== taskId) return t;
+          return {
+            ...t,
+            steps: t.steps.map((s, i) =>
+              i === stepIndex ? { ...s, ...update } : s
+            ),
+          };
+        }),
+        timestamp: Date.now(),
+      }));
+    },
+
+    removeTask: (taskId: string) => {
+      set((state) => ({
+        activeTasks: state.activeTasks.filter((t) => t.taskId !== taskId),
+        timestamp: Date.now(),
+      }));
     },
 
     // =========================================================================
