@@ -5,13 +5,32 @@ import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
 import { EventTypes } from '@hyvve/shared'
 
+// Define mock types for proper type inference
+type MockPrisma = {
+  knowledgePage: {
+    findUnique: jest.Mock
+    findMany: jest.Mock
+    update: jest.Mock
+  }
+  pageActivity: {
+    create: jest.Mock
+  }
+  user: {
+    findMany: jest.Mock
+  }
+}
+
+type MockEventPublisher = {
+  publish: jest.Mock
+}
+
 describe('VerificationService', () => {
   let service: VerificationService
-  let prisma: jest.Mocked<PrismaService>
-  let eventPublisher: jest.Mocked<EventPublisherService>
+  let prisma: MockPrisma
+  let eventPublisher: MockEventPublisher
 
   beforeEach(async () => {
-    const mockPrisma = {
+    const mockPrisma: MockPrisma = {
       knowledgePage: {
         findUnique: jest.fn(),
         findMany: jest.fn(),
@@ -20,9 +39,12 @@ describe('VerificationService', () => {
       pageActivity: {
         create: jest.fn(),
       },
+      user: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
     }
 
-    const mockEventPublisher = {
+    const mockEventPublisher: MockEventPublisher = {
       publish: jest.fn(),
     }
 
@@ -35,10 +57,8 @@ describe('VerificationService', () => {
     }).compile()
 
     service = module.get<VerificationService>(VerificationService)
-    prisma = module.get(PrismaService) as jest.Mocked<PrismaService>
-    eventPublisher = module.get(
-      EventPublisherService,
-    ) as jest.Mocked<EventPublisherService>
+    prisma = mockPrisma
+    eventPublisher = mockEventPublisher
   })
 
   afterEach(() => {
@@ -75,7 +95,7 @@ describe('VerificationService', () => {
       prisma.knowledgePage.findUnique.mockResolvedValue(mockPage as any)
       prisma.knowledgePage.update.mockResolvedValue(mockUpdatedPage as any)
       prisma.pageActivity.create.mockResolvedValue({} as any)
-      eventPublisher.publish.mockResolvedValue(undefined)
+      eventPublisher.publish.mockResolvedValue('event-id-123')
 
       const result = await service.markVerified(pageId, userId, dto)
 
@@ -86,10 +106,10 @@ describe('VerificationService', () => {
           pageId,
           userId,
           type: 'VERIFIED',
-          data: {
+          data: expect.objectContaining({
             expiresIn: '30d',
             verifyExpires: expect.any(String),
-          },
+          }),
         },
       })
       expect(eventPublisher.publish).toHaveBeenCalledWith(
@@ -99,6 +119,10 @@ describe('VerificationService', () => {
           workspaceId,
           tenantId,
           verifiedById: userId,
+        }),
+        expect.objectContaining({
+          tenantId,
+          userId,
         }),
       )
     })
@@ -122,7 +146,7 @@ describe('VerificationService', () => {
         verifyExpires: null,
       } as any)
       prisma.pageActivity.create.mockResolvedValue({} as any)
-      eventPublisher.publish.mockResolvedValue(undefined)
+      eventPublisher.publish.mockResolvedValue('event-id-123')
 
       await service.markVerified(pageId, userId, dto)
 
@@ -187,7 +211,7 @@ describe('VerificationService', () => {
       prisma.knowledgePage.findUnique.mockResolvedValue(mockPage as any)
       prisma.knowledgePage.update.mockResolvedValue(mockUpdatedPage as any)
       prisma.pageActivity.create.mockResolvedValue({} as any)
-      eventPublisher.publish.mockResolvedValue(undefined)
+      eventPublisher.publish.mockResolvedValue('event-id-123')
 
       const result = await service.removeVerification(pageId, userId)
 
@@ -206,6 +230,10 @@ describe('VerificationService', () => {
           pageId,
           workspaceId,
           tenantId,
+        }),
+        expect.objectContaining({
+          tenantId,
+          userId,
         }),
       )
     })

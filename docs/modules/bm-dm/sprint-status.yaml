@@ -173,7 +173,7 @@ development_status:
   dm-07: contexted
   dm-07-1-fix-kb-ssr-build: done
   dm-07-2-fix-python-test-failures: done
-  dm-07-3-fix-typescript-test-failures: backlog
+  dm-07-3-fix-typescript-test-failures: done
   dm-07-4-reconcile-dm02-status: backlog
   dm-07-5-unify-keyboard-shortcuts: backlog
 
