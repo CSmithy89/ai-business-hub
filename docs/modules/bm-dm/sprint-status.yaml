@@ -118,7 +118,7 @@ development_status:
   # Tech Spec: docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
   # ===========================================
   dm-04: contexted
-  dm-04-1-state-schema-definition: backlog
+  dm-04-1-state-schema-definition: done
   dm-04-2-frontend-state-subscription: backlog
   dm-04-3-agent-state-emissions: backlog
   dm-04-4-realtime-widget-updates: backlog

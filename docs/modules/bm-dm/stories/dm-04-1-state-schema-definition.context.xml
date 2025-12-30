@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-04.1 State Schema Definition
+  Generated: 2025-12-30
+  Epic: DM-04 - Shared State & Real-Time
+  Module: bm-dm (Dynamic Module System)
+
+  This context file provides implementation guidance for story DM-04.1.
+  It includes relevant code snippets, patterns, and file references.
+-->
+<story-context>
+  <!-- ============================================= -->
+  <!-- SECTION 1: STORY REQUIREMENTS -->
+  <!-- ============================================= -->
+  <story>
+    <id>dm-04-1-state-schema-definition</id>
+    <title>State Schema Definition</title>
+    <points>5</points>
+    <epic>DM-04 - Shared State &amp; Real-Time</epic>
+
+    <summary>
+      Define shared state schemas in both TypeScript and Python with validation
+      for bidirectional state synchronization between the Dashboard Gateway agent
+      and the frontend via AG-UI protocol.
+    </summary>
+
+    <acceptance-criteria>
+      <criterion id="AC1">TypeScript schemas defined with Zod validation in apps/web/src/lib/state/dashboard-state.types.ts</criterion>
+      <criterion id="AC2">Python schemas defined with Pydantic in agents/state/dashboard_state.py</criterion>
+      <criterion id="AC3">Schemas are compatible between TypeScript and Python (camelCase/snake_case aliasing)</criterion>
+      <criterion id="AC4">createInitialDashboardState() works in both languages</criterion>
+      <criterion id="AC5">Unit tests pass with greater than 90% coverage for schema validation</criterion>
+    </acceptance-criteria>
+
+    <files-to-create>
+      <file>apps/web/src/lib/state/dashboard-state.types.ts</file>
+      <file>apps/web/src/lib/state/index.ts</file>
+      <file>agents/state/__init__.py</file>
+      <file>agents/state/dashboard_state.py</file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file>agents/constants/dm_constants.py</file>
+    </files-to-modify>
+  </story>
+
+  <!-- ============================================= -->
+  <!-- SECTION 2: TECHNICAL SPECIFICATION -->
+  <!-- ============================================= -->
+  <tech-spec>
+    <reference>docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md - Section 3.1</reference>
+
+    <architecture-decision>
+      <title>State Schema Design</title>
+      <description>
+        Use a hierarchical state schema that captures all dashboard data:
+        - Single state object enables atomic updates
+        - Hierarchical structure maps to widget types
+        - Loading/error states enable optimistic UI
+        - Version field enables future migrations
+      </description>
+    </architecture-decision>
+
+    <state-schema>
+      <![CDATA[
+interface DashboardState {
+  version: number;              // Schema version for migrations
+  timestamp: number;            // Last update timestamp (Unix ms)
+  activeProject: string | null; // Currently focused project
+  workspaceId?: string;
+  userId?: string;
+
+  widgets: {
+    projectStatus: ProjectStatusState | null;
+    metrics: MetricsState | null;
+    activity: ActivityState | null;
+    alerts: AlertEntry[];
+  };
+
+  loading: {
+    isLoading: boolean;
+    loadingAgents: string[];
+    startedAt?: number;
+  };
+
+  errors: Record<string, string>;  // agentId -> error message
+}
+      ]]>
+    </state-schema>
+
+    <cross-language-compatibility>
+      <pattern>
+        Python uses Field aliases for camelCase output to match TypeScript:
+        - Python: project_id = Field(..., alias="projectId")
+        - Python: class Config: populate_by_name = True, use_enum_values = True
+        - TypeScript: Uses Zod schemas with camelCase keys
+      </pattern>
+    </cross-language-compatibility>
+
+    <constants-to-add>
+      <![CDATA[
+class STATE:
+    """Shared state constants for DM-04+."""
+    VERSION = 1
+    UPDATE_DEBOUNCE_MS = 100
+    MAX_STATE_SIZE_BYTES = 1024 * 1024  # 1MB
+    REDIS_KEY_PREFIX = "dashboard:state:"
+    REDIS_TTL_SECONDS = 86400  # 24 hours
+    MAX_ALERTS = 50
+    MAX_ACTIVITIES = 100
+      ]]>
+    </constants-to-add>
+  </tech-spec>
+
+  <!-- ============================================= -->
+  <!-- SECTION 3: CODEBASE CONTEXT -->
+  <!-- ============================================= -->
+  <codebase-context>
+
+    <!-- EXISTING ZOD SCHEMA PATTERN -->
+    <pattern name="zod-schema-pattern">
+      <file>apps/web/src/lib/agent-schemas.ts</file>
+      <description>Existing Zod schema pattern in the codebase</description>
+      <code><![CDATA[
+import { z } from 'zod'
+
+export const AgentResponseSchema = z.object({
+  success: z.boolean(),
+  content: z.string().optional(),
+  session_id: z.string(),
+  agent_name: z.string().optional(),
+  error: z.string().optional(),
+  metadata: z
+    .object({
+      business_id: z.string(),
+      team: z.string(),
+      workspace_id: z.string().optional(),
+    })
+    .passthrough(),
+})
+
+export type AgentResponseValidated = z.infer<typeof AgentResponseSchema>
+      ]]></code>
+    </pattern>
+
+    <!-- EXISTING ZUSTAND STORE PATTERN -->
+    <pattern name="zustand-store-pattern">
+      <file>apps/web/src/components/copilot/use-copilot-chat-state.ts</file>
+      <description>Existing Zustand store pattern for state management</description>
+      <code><![CDATA[
+import { create } from 'zustand';
+
+interface CopilotChatState {
+  /** Whether the chat panel is currently open */
+  isOpen: boolean;
+  /** Set the open state directly */
+  setIsOpen: (open: boolean) => void;
+  /** Toggle the chat panel open/closed */
+  toggle: () => void;
+  /** Open the chat panel */
+  open: () => void;
+  /** Close the chat panel */
+  close: () => void;
+}
+
+export const useCopilotChatState = create<CopilotChatState>((set) => ({
+  isOpen: false,
+  setIsOpen: (open) => set({ isOpen: open }),
+  toggle: () => set((state) => ({ isOpen: !state.isOpen })),
+  open: () => set({ isOpen: true }),
+  close: () => set({ isOpen: false }),
+}));
+      ]]></code>
+    </pattern>
+
+    <!-- EXISTING DM CONSTANTS PATTERN -->
+    <pattern name="dm-constants-pattern">
+      <file>agents/constants/dm_constants.py</file>
+      <description>Existing constants pattern - add STATE class to this file</description>
+      <code><![CDATA[
+"""
+Dynamic Module System Constants
+
+All magic numbers for DM-02+ epics must be defined here.
+Do NOT hardcode values in agent code.
+"""
+
+class DMConstants:
+    """Dynamic Module System constants - no magic numbers in code."""
+
+    # AgentOS Configuration
+    class AGENTOS:
+        DEFAULT_PORT = 8000
+        WORKER_COUNT = 4
+        REQUEST_TIMEOUT_SECONDS = 30
+        # ... more constants
+
+    # A2A Protocol
+    class A2A:
+        PROTOCOL_VERSION = "0.3.0"
+        TASK_TIMEOUT_SECONDS = 300
+        # ... more constants
+
+    # Dashboard Agent (for DM-02.4+)
+    class DASHBOARD:
+        MAX_WIDGETS_PER_REQUEST = 12
+        WIDGET_DATA_TTL_SECONDS = 60
+        # ... more constants
+
+    # ADD STATE CLASS HERE for DM-04+
+      ]]></code>
+    </pattern>
+
+    <!-- EXISTING WIDGET TYPES -->
+    <pattern name="widget-types">
+      <file>apps/web/src/components/slots/types.ts</file>
+      <description>Existing widget data types that DashboardState widgets should align with</description>
+      <code><![CDATA[
+/**
+ * Data for ProjectStatusWidget
+ * Shows project progress with status indicator
+ */
+export interface ProjectStatusData extends WidgetData {
+  projectId: string;
+  projectName: string;
+  status: 'on_track' | 'at_risk' | 'behind';
+  progress: number; // 0-100
+  dueDate?: string;
+  tasksCompleted: number;
+  tasksTotal: number;
+}
+
+/**
+ * Data for MetricsWidget
+ * Shows key metrics with optional change indicators
+ */
+export interface MetricsData extends WidgetData {
+  metrics: Array<{
+    label: string;
+    value: number | string;
+    change?: { value: number; direction: 'up' | 'down' };
+    icon?: string;
+  }>;
+}
+
+/**
+ * Data for AlertWidget
+ * Displays an alert message with severity level
+ */
+export interface AlertData extends WidgetData {
+  severity: 'info' | 'warning' | 'error' | 'success';
+  title: string;
+  message: string;
+  action?: { label: string; href: string };
+}
+
+/**
+ * Data for TeamActivityWidget
+ * Shows recent team activity feed
+ */
+export interface TeamActivityData extends WidgetData {
+  activities: Array<{
+    user: string;
+    action: string;
+    target?: string;
+    time: string;
+  }>;
+}
+      ]]></code>
+    </pattern>
+
+    <!-- EXISTING DASHBOARD GATEWAY AGENT -->
+    <pattern name="dashboard-gateway-agent">
+      <file>agents/gateway/agent.py</file>
+      <description>Dashboard Gateway agent that will use the state schemas in DM-04.3</description>
+      <code><![CDATA[
+"""
+Dashboard Gateway Agent
+
+The Dashboard Gateway is the primary interface between the frontend CopilotKit
+and the backend agent system. It orchestrates dashboard widgets by coordinating
+with specialist agents and rendering visual components.
+"""
+import logging
+from typing import Any, Dict, Optional
+
+from constants.dm_constants import DMConstants
+from .tools import WIDGET_TYPES, get_all_tools
+
+def create_dashboard_gateway_agent(
+    workspace_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+):
+    """
+    Create a Dashboard Gateway agent instance.
+    In DM-04.3, this will be extended to include state_callback parameter.
+    """
+    # ... existing implementation
+      ]]></code>
+    </pattern>
+
+    <!-- WIDGET TOOLS PATTERN -->
+    <pattern name="widget-tools">
+      <file>agents/gateway/tools.py</file>
+      <description>Widget types constant for reference</description>
+      <code><![CDATA[
+# Widget types that can be rendered
+# These correspond to React components registered in the frontend widget registry
+WIDGET_TYPES = [
+    "ProjectStatus",
+    "TaskList",
+    "Metrics",
+    "Alert",
+    "KanbanBoard",
+    "GanttChart",
+    "BurndownChart",
+    "TeamActivity",
+]
+      ]]></code>
+    </pattern>
+
+    <!-- COPILOTKIT PROVIDER -->
+    <pattern name="copilotkit-provider">
+      <file>apps/web/src/components/copilot/CopilotKitProvider.tsx</file>
+      <description>CopilotKit provider - state subscription hooks will integrate here</description>
+      <code><![CDATA[
+'use client';
+
+import { CopilotKit } from '@copilotkit/react-core';
+
+interface CopilotKitProviderProps {
+  children: React.ReactNode;
+}
+
+export function CopilotKitProvider({ children }: CopilotKitProviderProps) {
+  const runtimeUrl = process.env.NEXT_PUBLIC_AGNO_URL
+    ? `${process.env.NEXT_PUBLIC_AGNO_URL}/agui`
+    : '/api/copilotkit';
+
+  return (
+    <CopilotKit
+      runtimeUrl={runtimeUrl}
+      publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_KEY}
+    >
+      {children}
+    </CopilotKit>
+  );
+}
+      ]]></code>
+    </pattern>
+  </codebase-context>
+
+  <!-- ============================================= -->
+  <!-- SECTION 4: IMPLEMENTATION GUIDANCE -->
+  <!-- ============================================= -->
+  <implementation-guidance>
+
+    <task id="1" points="2">
+      <title>Create TypeScript State Schemas</title>
+      <file>apps/web/src/lib/state/dashboard-state.types.ts</file>
+      <guidance>
+        1. Create new directory: apps/web/src/lib/state/
+        2. Follow existing Zod pattern from agent-schemas.ts
+        3. Define STATE_VERSION = 1 constant
+        4. Create widget state schemas that align with existing widget types:
+           - ProjectStatusStateSchema (align with ProjectStatusData)
+           - MetricEntrySchema + MetricsStateSchema (align with MetricsData)
+           - ActivityEntrySchema + ActivityStateSchema (align with TeamActivityData)
+           - AlertEntrySchema (align with AlertData severity: error/warning/info/success)
+        5. Create LoadingStateSchema and ErrorStateSchema
+        6. Create root DashboardStateSchema and DashboardStateUpdateSchema
+        7. Add validateDashboardState() and createInitialDashboardState() helpers
+        8. Export types using z.infer pattern
+      </guidance>
+      <key-differences-from-widget-types>
+        - State schemas add timestamp fields (Unix ms)
+        - State schemas use 'on-track' instead of 'on_track' (kebab-case)
+        - ActivityState adds hasMore boolean
+        - AlertEntry adds id, dismissed, dismissable fields
+        - Metrics use TrendDirection enum instead of 'up'/'down' strings
+      </key-differences-from-widget-types>
+    </task>
+
+    <task id="2" points="2">
+      <title>Create Python State Schemas</title>
+      <file>agents/state/dashboard_state.py</file>
+      <guidance>
+        1. Create new directory: agents/state/
+        2. Use Pydantic BaseModel with Field aliases for camelCase
+        3. Define enums: ProjectStatus, TrendDirection, AlertType
+        4. Mirror TypeScript schemas with snake_case and aliases:
+           - ProjectStatusState with alias="projectId", etc.
+           - MetricEntry, MetricsState
+           - ActivityEntry, ActivityState
+           - AlertEntry
+           - LoadingState
+           - WidgetsState
+           - DashboardState with create_initial() and to_frontend_dict()
+        5. Use class Config: populate_by_name = True, use_enum_values = True
+        6. Import STATE_VERSION from constants or define locally
+      </guidance>
+    </task>
+
+    <task id="3" points="0.5">
+      <title>Add State Constants</title>
+      <file>agents/constants/dm_constants.py</file>
+      <guidance>
+        Add STATE class inside DMConstants with:
+        - VERSION = 1
+        - UPDATE_DEBOUNCE_MS = 100
+        - MAX_STATE_SIZE_BYTES = 1024 * 1024
+        - REDIS_KEY_PREFIX = "dashboard:state:"
+        - REDIS_TTL_SECONDS = 86400
+        - MAX_ALERTS = 50
+        - MAX_ACTIVITIES = 100
+      </guidance>
+    </task>
+
+    <task id="4" points="0.5">
+      <title>Write Unit Tests</title>
+      <guidance>
+        TypeScript tests (apps/web/src/lib/state/__tests__/dashboard-state.types.test.ts):
+        - Test schema validation with valid data
+        - Test schema rejection of invalid data
+        - Test createInitialDashboardState() returns valid state
+        - Test validateDashboardState() with edge cases
+
+        Python tests (agents/tests/test_state/test_dashboard_state.py):
+        - Test Pydantic model validation
+        - Test to_frontend_dict() produces camelCase keys
+        - Test create_initial() factory method
+        - Test enum serialization
+        - Test cross-language compatibility (JSON round-trip)
+      </guidance>
+    </task>
+
+    <module-exports>
+      <typescript-exports file="apps/web/src/lib/state/index.ts">
+        <![CDATA[
+export * from './dashboard-state.types';
+        ]]>
+      </typescript-exports>
+      <python-exports file="agents/state/__init__.py">
+        <![CDATA[
+from .dashboard_state import (
+    DashboardState,
+    WidgetsState,
+    ProjectStatusState,
+    MetricsState,
+    MetricEntry,
+    ActivityState,
+    ActivityEntry,
+    AlertEntry,
+    LoadingState,
+    ProjectStatus,
+    TrendDirection,
+    AlertType,
+    STATE_VERSION,
+)
+        ]]>
+      </python-exports>
+    </module-exports>
+  </implementation-guidance>
+
+  <!-- ============================================= -->
+  <!-- SECTION 5: TEST REQUIREMENTS -->
+  <!-- ============================================= -->
+  <test-requirements>
+    <coverage-target>90%</coverage-target>
+
+    <typescript-tests>
+      <test-file>apps/web/src/lib/state/__tests__/dashboard-state.types.test.ts</test-file>
+      <test-cases>
+        <case>Schema validates correct ProjectStatusState data</case>
+        <case>Schema rejects ProjectStatusState with invalid status enum</case>
+        <case>Schema validates MetricsState with multiple metrics</case>
+        <case>Schema validates ActivityState with activities array</case>
+        <case>Schema validates AlertEntry with all alert types</case>
+        <case>Schema validates complete DashboardState</case>
+        <case>createInitialDashboardState returns valid state with all defaults</case>
+        <case>validateDashboardState returns null for invalid data</case>
+        <case>validateDashboardState returns parsed state for valid data</case>
+        <case>DashboardStateUpdateSchema allows partial updates</case>
+      </test-cases>
+    </typescript-tests>
+
+    <python-tests>
+      <test-file>agents/tests/test_state/test_dashboard_state.py</test-file>
+      <test-cases>
+        <case>ProjectStatusState validates with all required fields</case>
+        <case>ProjectStatusState rejects invalid status values</case>
+        <case>MetricEntry handles optional trend field</case>
+        <case>AlertEntry uses enum values correctly</case>
+        <case>DashboardState.create_initial() returns valid empty state</case>
+        <case>DashboardState.to_frontend_dict() produces camelCase keys</case>
+        <case>Models support both snake_case and camelCase input (populate_by_name)</case>
+        <case>JSON round-trip produces compatible output</case>
+      </test-cases>
+    </python-tests>
+  </test-requirements>
+
+  <!-- ============================================= -->
+  <!-- SECTION 6: REFERENCES -->
+  <!-- ============================================= -->
+  <references>
+    <reference type="story">docs/modules/bm-dm/stories/dm-04-1-state-schema-definition.md</reference>
+    <reference type="tech-spec">docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md</reference>
+    <reference type="architecture">docs/architecture/dynamic-module-system.md</reference>
+    <reference type="external">https://zod.dev/</reference>
+    <reference type="external">https://docs.pydantic.dev/</reference>
+    <reference type="external">https://docs.copilotkit.ai/concepts/coagent-state</reference>
+  </references>
+
+</story-context>
