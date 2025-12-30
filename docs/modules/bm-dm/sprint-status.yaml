@@ -121,7 +121,7 @@ development_status:
   dm-04-1-state-schema-definition: done
   dm-04-2-frontend-state-subscription: done
   dm-04-3-agent-state-emissions: done
-  dm-04-4-realtime-widget-updates: backlog
+  dm-04-4-realtime-widget-updates: done
   dm-04-5-state-persistence: backlog
   dm-04-retrospective: optional
 
