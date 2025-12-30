@@ -204,13 +204,17 @@ export function useAgentStateSync(
     },
   });
 
-  // Cleanup debounce timer on unmount
+  // Cleanup refs on unmount to free memory
   useEffect(() => {
     return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
         debounceTimer.current = null;
       }
+      // Free memory held by refs
+      lastState.current = null;
+      lastSyncTimestamp.current = null;
+      isActive.current = false;
     };
   }, []);
 

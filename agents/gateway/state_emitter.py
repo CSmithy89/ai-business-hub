@@ -161,10 +161,16 @@ class DashboardStateEmitter:
                 f"State size ({state_size} bytes) exceeds max "
                 f"({DMConstants.STATE.MAX_STATE_SIZE_BYTES} bytes), truncating alerts"
             )
-            # Truncate alerts to reduce size
-            if self._state.widgets.alerts:
-                self._state.widgets.alerts = self._state.widgets.alerts[:10]
-                state_dict = self._state.to_frontend_dict()
+            # Truncate alerts in output only (don't mutate internal state)
+            if state_dict.get("widgets", {}).get("alerts"):
+                state_dict["widgets"]["alerts"] = state_dict["widgets"]["alerts"][:10]
+                # Re-check size after truncation
+                state_json = json.dumps(state_dict)
+                state_size = len(state_json.encode("utf-8"))
+                if state_size > DMConstants.STATE.MAX_STATE_SIZE_BYTES:
+                    logger.error(
+                        f"State still exceeds max after truncation ({state_size} bytes)"
+                    )
 
         logger.debug(f"Emitting dashboard state: timestamp={self._state.timestamp}")
         self._on_state_change(state_dict)
@@ -173,15 +179,18 @@ class DashboardStateEmitter:
         """
         Schedule a debounced state emission.
 
-        Updates the timestamp and schedules an async task to emit
-        after the debounce interval. If a task is already scheduled
-        and pending, it will emit the latest state when it fires.
+        Updates the timestamp and cancels any existing pending task before
+        scheduling a new one. This ensures every call resets the debounce
+        timer and the latest state is always emitted.
         """
         self._pending_update = True
         self._state.timestamp = int(time.time() * 1000)
 
-        if self._debounce_task is None or self._debounce_task.done():
-            self._debounce_task = asyncio.create_task(self._emit_debounced())
+        # Cancel existing task to reset debounce timer on each call
+        if self._debounce_task and not self._debounce_task.done():
+            self._debounce_task.cancel()
+
+        self._debounce_task = asyncio.create_task(self._emit_debounced())
 
     async def emit_now(self) -> None:
         """

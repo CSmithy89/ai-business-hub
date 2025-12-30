@@ -88,10 +88,16 @@ interface CrossTabMessage {
   state?: DashboardState;
 }
 
-/** Unique ID for this tab to prevent echo loops */
-const TAB_ID = typeof crypto !== 'undefined' && crypto.randomUUID
-  ? crypto.randomUUID()
-  : Math.random().toString(36).substring(2);
+/** Unique ID for this tab to prevent echo loops (generated lazily for SSR safety) */
+let _tabId: string | null = null;
+function getTabId(): string {
+  if (_tabId === null && typeof window !== 'undefined') {
+    _tabId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).substring(2);
+  }
+  return _tabId || 'ssr-placeholder';
+}
 
 // =============================================================================
 // HOOK IMPLEMENTATION
@@ -201,7 +207,7 @@ export function useStatePersistence(
           const message: CrossTabMessage = {
             type: 'state_update',
             timestamp: state.timestamp,
-            senderId: TAB_ID,
+            senderId: getTabId(),
             state: stateToSave,
           };
           broadcastChannel.current.postMessage(message);
@@ -251,7 +257,7 @@ export function useStatePersistence(
         const message: CrossTabMessage = {
           type: 'state_cleared',
           timestamp: Date.now(),
-          senderId: TAB_ID,
+          senderId: getTabId(),
         };
         broadcastChannel.current.postMessage(message);
       }
@@ -320,7 +326,7 @@ export function useStatePersistence(
       const { type, timestamp, senderId, state } = event.data;
 
       // Ignore messages from our own tab (prevent echo loops)
-      if (senderId === TAB_ID) {
+      if (senderId === getTabId()) {
         return;
       }
 
@@ -463,7 +469,7 @@ export function clearPersistedDashboardState(
       const message: CrossTabMessage = {
         type: 'state_cleared',
         timestamp: Date.now(),
-        senderId: TAB_ID,
+        senderId: getTabId(),
       };
       channel.postMessage(message);
       channel.close();

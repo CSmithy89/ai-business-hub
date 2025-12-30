@@ -14,7 +14,10 @@
  * Epic: DM-04 | Story: DM-04.2
  */
 
-import { useDashboardStateStore } from '@/stores/dashboard-state-store';
+import {
+  useDashboardStateStore,
+  type DashboardStateStore,
+} from '@/stores/dashboard-state-store';
 import type {
   ProjectStatusState,
   MetricsState,
@@ -240,26 +243,33 @@ export function useLastUpdated(): number {
 // =============================================================================
 
 /**
+ * Selector that extracts all actions from the store in a single subscription.
+ * Actions are stable references that don't change between renders.
+ */
+const actionsSelector = (s: DashboardStateStore) => ({
+  setFullState: s.setFullState,
+  updateState: s.updateState,
+  setActiveProject: s.setActiveProject,
+  setProjectStatus: s.setProjectStatus,
+  setMetrics: s.setMetrics,
+  setActivity: s.setActivity,
+  addAlert: s.addAlert,
+  dismissAlert: s.dismissAlert,
+  clearAlerts: s.clearAlerts,
+  setLoading: s.setLoading,
+  setError: s.setError,
+  clearErrors: s.clearErrors,
+  reset: s.reset,
+});
+
+/**
  * Select all store actions without state.
  *
  * Returns stable action references that don't cause re-renders.
+ * Uses a single store subscription for efficiency.
  *
  * @returns Object with all store actions
  */
 export function useDashboardActions() {
-  return {
-    setFullState: useDashboardStateStore((s) => s.setFullState),
-    updateState: useDashboardStateStore((s) => s.updateState),
-    setActiveProject: useDashboardStateStore((s) => s.setActiveProject),
-    setProjectStatus: useDashboardStateStore((s) => s.setProjectStatus),
-    setMetrics: useDashboardStateStore((s) => s.setMetrics),
-    setActivity: useDashboardStateStore((s) => s.setActivity),
-    addAlert: useDashboardStateStore((s) => s.addAlert),
-    dismissAlert: useDashboardStateStore((s) => s.dismissAlert),
-    clearAlerts: useDashboardStateStore((s) => s.clearAlerts),
-    setLoading: useDashboardStateStore((s) => s.setLoading),
-    setError: useDashboardStateStore((s) => s.setError),
-    clearErrors: useDashboardStateStore((s) => s.clearErrors),
-    reset: useDashboardStateStore((s) => s.reset),
-  };
+  return useDashboardStateStore(actionsSelector);
 }
