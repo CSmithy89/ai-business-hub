@@ -12,17 +12,28 @@
  * - hitl_approve_expense: Expense approval
  * - hitl_send_bulk_notification: Bulk notification approval
  * - hitl_generic: Fallback for any unknown HITL tool
+ * - hitl_queue: Handler for FULL approval level routing (DM-05.3)
+ *
+ * Approval Routing:
+ * - AUTO (>= 85%): Execute immediately (handled by backend)
+ * - QUICK (60-84%): Inline approval cards (above handlers)
+ * - FULL (< 60%): Route to Foundation approval queue (hitl_queue)
  *
  * @see docs/modules/bm-dm/stories/dm-05-2-frontend-hitl-handlers.md
- * Epic: DM-05 | Story: DM-05.2
+ * @see docs/modules/bm-dm/stories/dm-05-3-approval-workflow-integration.md
+ * Epic: DM-05 | Stories: DM-05.2, DM-05.3
  */
 'use client';
 
+import React from 'react';
 import { toast } from 'sonner';
 import { useHITLAction } from '@/lib/hitl/use-hitl-action';
+import { useApprovalQueue } from '@/lib/hitl/use-approval-queue';
+import { useApprovalEvents } from '@/lib/hitl/use-approval-events';
 import { HITLApprovalCard } from './HITLApprovalCard';
 import { ContractApprovalCard } from './ContractApprovalCard';
 import { DeleteConfirmCard } from './DeleteConfirmCard';
+import { ApprovalPendingCard } from './ApprovalPendingCard';
 
 // =============================================================================
 // CONTRACT SIGNING HANDLER
@@ -196,6 +207,121 @@ function useGenericAction() {
 }
 
 // =============================================================================
+// QUEUE HANDLER FOR FULL APPROVAL LEVEL (DM-05.3)
+// =============================================================================
+
+/**
+ * Register handler for FULL approval level routing.
+ *
+ * When a tool has confidence < 60%, it is routed to the Foundation
+ * approval queue instead of showing inline approval UI.
+ */
+function useQueueAction() {
+  const { createApproval, isCreating } = useApprovalQueue();
+
+  useHITLAction({
+    name: 'queue',
+    description: 'Route low-confidence actions to Foundation approval queue',
+    renderApproval: ({ args, respond }) => {
+      // Immediately queue to approval system
+      const handleQueue = async () => {
+        const approval = await createApproval({
+          toolName: args.toolName,
+          toolArgs: args.toolArgs,
+          confidenceScore: args.confidenceScore,
+          config: {
+            approvalType: args.config.approvalType,
+            riskLevel: args.config.riskLevel,
+            requiresReason: args.config.requiresReason,
+            descriptionTemplate: args.config.descriptionTemplate,
+          },
+          requestId: args.requestId,
+        });
+
+        if (approval) {
+          // Return the approval ID to the agent so it can track the result
+          respond?.({
+            approved: false, // Not immediately approved
+            metadata: {
+              queued: true,
+              approvalId: approval.id,
+              status: 'pending',
+            },
+          });
+        } else {
+          // Queue failed, reject the action
+          respond?.({
+            approved: false,
+            reason: 'Failed to queue for approval',
+          });
+        }
+      };
+
+      // Trigger queueing on mount and show pending card
+      // Note: We use a key to ensure this effect runs once
+      return (
+        <QueueingHandler
+          args={args}
+          onQueue={handleQueue}
+          isCreating={isCreating}
+        />
+      );
+    },
+    onExecute: () => {
+      // This shouldn't be called since we respond with approved: false
+    },
+    onReject: (reason) => {
+      if (reason !== 'Failed to queue for approval') {
+        // Queued successfully, no toast needed (useApprovalQueue shows one)
+      } else {
+        toast.error('Failed to queue for approval', {
+          description: 'The action could not be added to the approval queue.',
+        });
+      }
+    },
+  });
+}
+
+/**
+ * Helper component to handle the queueing effect.
+ */
+function QueueingHandler({
+  args,
+  onQueue,
+  isCreating,
+}: {
+  args: {
+    toolName: string;
+    confidenceScore: number;
+  };
+  onQueue: () => Promise<void>;
+  isCreating: boolean;
+}) {
+  // Trigger queueing on mount
+  // Using a state-based approach to ensure it only runs once
+  const hasQueued = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!hasQueued.current) {
+      hasQueued.current = true;
+      onQueue();
+    }
+  }, [onQueue]);
+
+  // Show a loading state while queueing
+  return (
+    <ApprovalPendingCard
+      approvalId="pending"
+      toolName={args.toolName}
+      confidenceScore={args.confidenceScore}
+      createdAt={Date.now()}
+      status="pending"
+      isCancelling={isCreating}
+    />
+  );
+}
+
+// =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
@@ -204,6 +330,10 @@ function useGenericAction() {
  *
  * Registers all HITL action handlers with CopilotKit.
  * Renders nothing - just uses hooks for registration.
+ *
+ * Approval Routing:
+ * - For QUICK level (60-84%): Shows inline approval cards
+ * - For FULL level (<60%): Routes to Foundation approval queue
  *
  * Usage:
  * Place inside CopilotKitProvider to register all HITL handlers.
@@ -223,6 +353,12 @@ export function HITLActionRegistration() {
   useApproveExpenseAction();
   useSendBulkNotificationAction();
   useGenericAction();
+
+  // Register queue handler for FULL level (DM-05.3)
+  useQueueAction();
+
+  // Subscribe to approval events for real-time updates (DM-05.3)
+  useApprovalEvents();
 
   // This component renders nothing
   return null;

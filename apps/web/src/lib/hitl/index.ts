@@ -4,7 +4,8 @@
  * Central export file for all HITL types, utilities, and hooks.
  *
  * @see docs/modules/bm-dm/stories/dm-05-2-frontend-hitl-handlers.md
- * Epic: DM-05 | Story: DM-05.2
+ * @see docs/modules/bm-dm/stories/dm-05-3-approval-workflow-integration.md
+ * Epic: DM-05 | Stories: DM-05.2, DM-05.3
  */
 
 // =============================================================================
@@ -32,6 +33,9 @@ export type {
   HITLApprovalCardProps,
   ContractApprovalCardProps,
   DeleteConfirmCardProps,
+  // Queued approval types (DM-05.3)
+  QueuedApproval,
+  CreateQueuedApprovalParams,
 } from './types';
 
 // =============================================================================
@@ -71,3 +75,18 @@ export {
   type UseHITLActionOptions,
   type GenericHITLOptions,
 } from './use-hitl-action';
+
+// =============================================================================
+// APPROVAL QUEUE HOOKS (DM-05.3)
+// =============================================================================
+
+export {
+  useApprovalQueue,
+  type UseApprovalQueueReturn,
+  type ApprovalItemResponse,
+} from './use-approval-queue';
+
+export {
+  useApprovalEvents,
+  type UseApprovalEventsReturn,
+} from './use-approval-events';

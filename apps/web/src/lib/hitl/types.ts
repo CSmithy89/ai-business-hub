@@ -173,6 +173,60 @@ export interface HITLPendingRequest {
 }
 
 // =============================================================================
+// QUEUED APPROVAL TYPES (DM-05.3)
+// =============================================================================
+
+/**
+ * Approval queued to Foundation approval queue.
+ * Tracks HITL actions that have been sent to the full approval workflow.
+ *
+ * @see docs/modules/bm-dm/stories/dm-05-3-approval-workflow-integration.md
+ */
+export interface QueuedApproval {
+  /** Foundation approval ID for tracking */
+  approvalId: string;
+  /** Tool name that triggered the approval */
+  toolName: string;
+  /** Tool arguments */
+  toolArgs: Record<string, unknown>;
+  /** Confidence score (0-100) */
+  confidenceScore: number;
+  /** Current status in the queue */
+  status: 'pending' | 'approved' | 'rejected';
+  /** Timestamp when queued */
+  createdAt: number;
+  /** Timestamp when resolved (if resolved) */
+  resolvedAt?: number;
+  /** Resolution details (if resolved) */
+  resolution?: {
+    action: 'approved' | 'rejected';
+    reason?: string;
+    decidedById?: string;
+  };
+}
+
+/**
+ * Parameters for creating a queued approval.
+ */
+export interface CreateQueuedApprovalParams {
+  /** Tool name that triggered the approval */
+  toolName: string;
+  /** Tool arguments */
+  toolArgs: Record<string, unknown>;
+  /** Confidence score (0-100) */
+  confidenceScore: number;
+  /** HITL configuration */
+  config: {
+    approvalType: string;
+    riskLevel: RiskLevel;
+    requiresReason: boolean;
+    descriptionTemplate?: string;
+  };
+  /** Optional HITL request ID for correlation */
+  requestId?: string;
+}
+
+// =============================================================================
 // HITL MARKER RESPONSE (FROM BACKEND)
 // =============================================================================
 

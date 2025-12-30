@@ -5,12 +5,14 @@
  * Uses subscribeWithSelector middleware for efficient re-renders.
  *
  * This store manages:
- * - Pending HITL requests awaiting user approval
+ * - Pending HITL requests awaiting user approval (inline)
  * - Request status tracking (pending, approved, rejected)
  * - Active request selection for UI focus
+ * - Queued approvals in Foundation approval queue (DM-05.3)
  *
  * @see docs/modules/bm-dm/stories/dm-05-2-frontend-hitl-handlers.md
- * Epic: DM-05 | Story: DM-05.2
+ * @see docs/modules/bm-dm/stories/dm-05-3-approval-workflow-integration.md
+ * Epic: DM-05 | Stories: DM-05.2, DM-05.3
  */
 
 import { create } from 'zustand';
@@ -18,6 +20,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import type {
   HITLPendingRequest,
   HITLRequestStatus,
+  QueuedApproval,
 } from '@/lib/hitl/types';
 
 // =============================================================================
@@ -34,6 +37,8 @@ export interface HITLState {
   activeRequestId: string | null;
   /** Timestamp of last state update */
   timestamp: number;
+  /** Map of approvals queued to Foundation approval queue (DM-05.3) */
+  queuedApprovals: Map<string, QueuedApproval>;
 }
 
 /**
@@ -93,6 +98,51 @@ export interface HITLActions {
    * Reset store to initial state.
    */
   reset: () => void;
+
+  // =========================================================================
+  // QUEUED APPROVALS ACTIONS (DM-05.3)
+  // =========================================================================
+
+  /**
+   * Add a new queued approval (sent to Foundation approval queue).
+   * @param approval - The queued approval to add
+   */
+  addQueuedApproval: (approval: QueuedApproval) => void;
+
+  /**
+   * Update a queued approval (e.g., when resolved).
+   * @param approvalId - The approval ID to update
+   * @param update - Partial update to apply
+   */
+  updateQueuedApproval: (
+    approvalId: string,
+    update: Partial<QueuedApproval>
+  ) => void;
+
+  /**
+   * Remove a queued approval by ID.
+   * @param approvalId - The approval ID to remove
+   */
+  removeQueuedApproval: (approvalId: string) => void;
+
+  /**
+   * Get a specific queued approval by ID.
+   * @param approvalId - The approval ID
+   * @returns The approval or undefined
+   */
+  getQueuedApproval: (approvalId: string) => QueuedApproval | undefined;
+
+  /**
+   * Get all queued approvals as an array.
+   * @returns Array of queued approvals
+   */
+  getQueuedApprovalsArray: () => QueuedApproval[];
+
+  /**
+   * Get count of pending queued approvals.
+   * @returns Number of pending queued approvals
+   */
+  getQueuedPendingCount: () => number;
 }
 
 /**
@@ -112,6 +162,7 @@ function createInitialState(): HITLState {
     pendingRequests: new Map(),
     activeRequestId: null,
     timestamp: Date.now(),
+    queuedApprovals: new Map(),
   };
 }
 
@@ -207,11 +258,74 @@ export const useHITLStore = create<HITLStore>()(
         pendingRequests: new Map(),
         activeRequestId: null,
         timestamp: Date.now(),
+        queuedApprovals: new Map(),
       });
     },
 
     reset: () => {
       set(createInitialState());
+    },
+
+    // =========================================================================
+    // QUEUED APPROVALS ACTIONS (DM-05.3)
+    // =========================================================================
+
+    addQueuedApproval: (approval: QueuedApproval) => {
+      set((state) => {
+        const newApprovals = new Map(state.queuedApprovals);
+        newApprovals.set(approval.approvalId, approval);
+        return {
+          queuedApprovals: newApprovals,
+          timestamp: Date.now(),
+        };
+      });
+    },
+
+    updateQueuedApproval: (approvalId: string, update: Partial<QueuedApproval>) => {
+      set((state) => {
+        const approval = state.queuedApprovals.get(approvalId);
+        if (!approval) {
+          return state;
+        }
+
+        const newApprovals = new Map(state.queuedApprovals);
+        newApprovals.set(approvalId, { ...approval, ...update });
+
+        return {
+          queuedApprovals: newApprovals,
+          timestamp: Date.now(),
+        };
+      });
+    },
+
+    removeQueuedApproval: (approvalId: string) => {
+      set((state) => {
+        const newApprovals = new Map(state.queuedApprovals);
+        newApprovals.delete(approvalId);
+        return {
+          queuedApprovals: newApprovals,
+          timestamp: Date.now(),
+        };
+      });
+    },
+
+    getQueuedApproval: (approvalId: string) => {
+      return get().queuedApprovals.get(approvalId);
+    },
+
+    getQueuedApprovalsArray: () => {
+      return Array.from(get().queuedApprovals.values());
+    },
+
+    getQueuedPendingCount: () => {
+      const approvals = get().queuedApprovals;
+      let count = 0;
+      approvals.forEach((approval) => {
+        if (approval.status === 'pending') {
+          count++;
+        }
+      });
+      return count;
     },
   }))
 );
@@ -311,5 +425,82 @@ export function useHITLActions(): Pick<
     updateRequestStatus: state.updateRequestStatus,
     setActiveRequest: state.setActiveRequest,
     clearAll: state.clearAll,
+  }));
+}
+
+// =============================================================================
+// QUEUED APPROVALS SELECTORS (DM-05.3)
+// =============================================================================
+
+/**
+ * Get all queued approvals as an array.
+ */
+export const selectQueuedApprovals = (state: HITLStore): QueuedApproval[] =>
+  Array.from(state.queuedApprovals.values());
+
+/**
+ * Get only approvals with 'pending' status.
+ */
+export const selectOnlyPendingQueued = (state: HITLStore): QueuedApproval[] =>
+  Array.from(state.queuedApprovals.values()).filter((a) => a.status === 'pending');
+
+/**
+ * Get count of pending queued approvals.
+ */
+export const selectQueuedPendingCount = (state: HITLStore): number =>
+  Array.from(state.queuedApprovals.values()).filter((a) => a.status === 'pending')
+    .length;
+
+/**
+ * Check if there are any pending queued approvals.
+ */
+export const selectHasQueuedPending = (state: HITLStore): boolean =>
+  Array.from(state.queuedApprovals.values()).some((a) => a.status === 'pending');
+
+// =============================================================================
+// QUEUED APPROVALS HOOKS (DM-05.3)
+// =============================================================================
+
+/**
+ * Hook to get all queued approvals.
+ */
+export function useQueuedApprovals(): QueuedApproval[] {
+  return useHITLStore(selectQueuedApprovals);
+}
+
+/**
+ * Hook to get only pending queued approvals.
+ */
+export function useOnlyPendingQueued(): QueuedApproval[] {
+  return useHITLStore(selectOnlyPendingQueued);
+}
+
+/**
+ * Hook to get count of pending queued approvals.
+ */
+export function useQueuedPendingCount(): number {
+  return useHITLStore(selectQueuedPendingCount);
+}
+
+/**
+ * Hook to check if there are any pending queued approvals.
+ */
+export function useHasQueuedPending(): boolean {
+  return useHITLStore(selectHasQueuedPending);
+}
+
+/**
+ * Hook to get queued approval actions.
+ */
+export function useQueuedApprovalActions(): Pick<
+  HITLStore,
+  | 'addQueuedApproval'
+  | 'updateQueuedApproval'
+  | 'removeQueuedApproval'
+> {
+  return useHITLStore((state) => ({
+    addQueuedApproval: state.addQueuedApproval,
+    updateQueuedApproval: state.updateQueuedApproval,
+    removeQueuedApproval: state.removeQueuedApproval,
   }));
 }

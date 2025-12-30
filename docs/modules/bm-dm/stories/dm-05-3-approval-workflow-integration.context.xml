@@ -1,0 +1,1209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-05-3 Approval Workflow Integration
+  Generated: 2025-12-30
+  Epic: DM-05 - Advanced HITL & Streaming
+  Points: 5
+
+  This context file provides all relevant code and documentation for implementing
+  the bridge between CopilotKit HITL system and Foundation's approval queue.
+-->
+<story-context>
+  <metadata>
+    <story-id>dm-05-3</story-id>
+    <title>Approval Workflow Integration</title>
+    <epic>DM-05 - Advanced HITL &amp; Streaming</epic>
+    <status>ready-for-dev</status>
+    <points>5</points>
+    <dependencies>
+      <dependency status="done">DM-05.1 - HITL Tool Definition</dependency>
+      <dependency status="done">DM-05.2 - Frontend HITL Handlers</dependency>
+      <dependency status="foundation">Approval Queue API</dependency>
+    </dependencies>
+  </metadata>
+
+  <!-- ========================================================================
+       SECTION 1: STORY REQUIREMENTS
+       ======================================================================== -->
+  <requirements>
+    <summary>
+      Create a bridge between the CopilotKit HITL system and the Foundation approval
+      queue for low-confidence actions. When HITL tool invocations have confidence
+      scores below the quick threshold (&lt;60%), actions are routed to the Foundation
+      approval system for full review.
+    </summary>
+
+    <acceptance-criteria>
+      <criterion id="AC1">ApprovalQueueBridge class implemented in agents/hitl/approval_bridge.py</criterion>
+      <criterion id="AC2">Bridge maps HITLConfig and HITLToolResult to Foundation CreateApprovalDto format</criterion>
+      <criterion id="AC3">create_approval_item() returns approval ID for tracking and status polling</criterion>
+      <criterion id="AC4">Confidence factors are generated from HITL context for Foundation queue display</criterion>
+      <criterion id="AC5">Priority calculation uses risk_level and confidence_score (high risk or &lt;30% = urgent)</criterion>
+      <criterion id="AC6">Due dates are automatically set based on risk level (high=4h, medium=24h, low=72h)</criterion>
+      <criterion id="AC7">get_approval_status() and wait_for_approval() methods support status polling</criterion>
+      <criterion id="AC8">Frontend useApprovalQueue hook creates approvals and tracks pending status</criterion>
+      <criterion id="AC9">HITL store (useHITLStore) is updated when approvals are created and resolved</criterion>
+      <criterion id="AC10">Event subscription listens for approval.approved and approval.rejected events</criterion>
+      <criterion id="AC11">Integration with HITLActionRegistration to route FULL level to queue</criterion>
+      <criterion id="AC12">Unit tests pass for ApprovalQueueBridge with &gt;85% coverage</criterion>
+      <criterion id="AC13">Integration tests verify end-to-end approval workflow</criterion>
+    </acceptance-criteria>
+
+    <files-to-create>
+      <file path="agents/hitl/approval_bridge.py">Backend bridge to Foundation approval queue</file>
+      <file path="apps/web/src/lib/hitl/use-approval-queue.ts">Frontend hook for approval queue interaction</file>
+      <file path="apps/web/src/lib/hitl/use-approval-events.ts">WebSocket subscription for approval events</file>
+      <file path="apps/web/src/components/hitl/ApprovalPendingCard.tsx">UI for queued approval status</file>
+      <file path="agents/hitl/test_approval_bridge.py">Unit tests for ApprovalQueueBridge</file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file path="agents/hitl/__init__.py">Export ApprovalQueueBridge</file>
+      <file path="agents/gateway/dashboard_agent.py">Integrate bridge for FULL level routing</file>
+      <file path="apps/web/src/components/hitl/HITLActionRegistration.tsx">Add queue handler and status widget</file>
+      <file path="apps/web/src/lib/hitl/index.ts">Export new hooks</file>
+      <file path="apps/web/src/stores/hitl-store.ts">Add approval tracking state</file>
+    </files-to-modify>
+  </requirements>
+
+  <!-- ========================================================================
+       SECTION 2: BACKEND HITL IMPLEMENTATION (from DM-05.1)
+       ======================================================================== -->
+  <backend-hitl-module>
+    <file path="agents/hitl/__init__.py">
+      <description>
+        HITL module exports. This file should be updated to export the new
+        ApprovalQueueBridge class after implementation.
+      </description>
+      <![CDATA[
+"""
+HITL (Human-in-the-Loop) Module
+
+This module provides infrastructure for confidence-based approval routing
+in the HYVVE agent system. It enables tools to be decorated with HITL
+markers that route actions through different approval paths based on
+calculated confidence scores.
+
+Approval Paths:
+- AUTO (>= 85%): Immediate execution with audit logging
+- QUICK (60-84%): Inline CopilotKit approval (1-click)
+- FULL (< 60%): Queue to Foundation approval system
+
+Usage:
+    from hitl import hitl_tool, ApprovalLevel, HITLConfig
+
+    @hitl_tool(
+        approval_type="contract",
+        risk_level="high",
+        auto_threshold=95,
+        quick_threshold=70,
+    )
+    async def sign_contract(contract_id: str, amount: float) -> dict:
+        return {"status": "signed", "contract_id": contract_id}
+
+    # Check if a function is an HITL tool
+    if is_hitl_tool(sign_contract):
+        config = get_hitl_config(sign_contract)
+        print(f"Auto threshold: {config.auto_threshold}")
+
+    # Check if a result requires approval
+    result = await sign_contract(contract_id="C123", amount=5000)
+    if is_hitl_pending(result):
+        # Handle approval UI
+        hitl_result = result["hitl_result"]
+
+@see docs/modules/bm-dm/epics/epic-dm-05-tech-spec.md
+Epic: DM-05 | Story: DM-05.1
+"""
+
+from .decorators import (
+    # Core decorator
+    hitl_tool,
+    # Enums
+    ApprovalLevel,
+    # Pydantic models
+    HITLConfig,
+    HITLToolResult,
+    # Core functions
+    calculate_confidence,
+    determine_approval_level,
+    # Utility functions
+    is_hitl_tool,
+    get_hitl_config,
+    is_hitl_pending,
+    # Constants
+    BASE_CONFIDENCE_SCORES,
+    DEFAULT_CONFIDENCE_SCORE,
+)
+
+__all__ = [
+    # Core decorator
+    "hitl_tool",
+    # Enums
+    "ApprovalLevel",
+    # Pydantic models
+    "HITLConfig",
+    "HITLToolResult",
+    # Core functions
+    "calculate_confidence",
+    "determine_approval_level",
+    # Utility functions
+    "is_hitl_tool",
+    "get_hitl_config",
+    "is_hitl_pending",
+    # Constants
+    "BASE_CONFIDENCE_SCORES",
+    "DEFAULT_CONFIDENCE_SCORE",
+]
+      ]]>
+    </file>
+
+    <file path="agents/hitl/decorators.py">
+      <description>
+        Core HITL decorator and models. Key classes:
+        - ApprovalLevel enum (AUTO, QUICK, FULL)
+        - HITLConfig Pydantic model (thresholds, risk, UI hints)
+        - HITLToolResult Pydantic model (approval requirements, tool info)
+        - hitl_tool decorator
+      </description>
+      <![CDATA[
+# Key enums and models from decorators.py:
+
+class ApprovalLevel(str, Enum):
+    """
+    Approval requirement levels based on confidence thresholds.
+    - AUTO: Immediate execution with audit logging
+    - QUICK: Inline HITL via CopilotKit (1-click approval)
+    - FULL: Queue to Foundation approval system for full review
+    """
+    AUTO = "auto"
+    QUICK = "quick"
+    FULL = "full"
+
+
+class HITLConfig(BaseModel):
+    """Configuration for HITL tool behavior."""
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    # Confidence thresholds
+    auto_threshold: int = Field(default=85, ge=0, le=100)
+    quick_threshold: int = Field(default=60, ge=0, le=100)
+
+    # Tool metadata
+    approval_type: str = Field(default="general")
+    risk_level: str = Field(default="medium")  # low, medium, high
+    requires_reason: bool = Field(default=False)
+    timeout_seconds: int = Field(default=300, ge=1)
+
+    # UI hints for frontend
+    approve_label: str = Field(default="Approve")
+    reject_label: str = Field(default="Reject")
+    description_template: Optional[str] = None
+
+
+class HITLToolResult(BaseModel):
+    """Result from HITL tool evaluation."""
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    requires_approval: bool
+    approval_level: ApprovalLevel
+    confidence_score: int = Field(ge=0, le=100)
+    tool_name: str
+    tool_args: Dict[str, Any] = Field(default_factory=dict)
+    config: HITLConfig
+    approval_id: Optional[str] = None  # Populated if queued to Foundation approval
+    request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+    def to_marker_dict(self) -> Dict[str, Any]:
+        """Convert to HITL marker format for frontend detection."""
+        return {
+            "__hitl_pending__": True,
+            "hitl_result": self.model_dump(by_alias=True),
+        }
+
+
+def determine_approval_level(confidence: int, config: HITLConfig) -> ApprovalLevel:
+    """Determine the approval level based on confidence score and thresholds."""
+    if confidence >= config.auto_threshold:
+        return ApprovalLevel.AUTO
+    elif confidence >= config.quick_threshold:
+        return ApprovalLevel.QUICK
+    else:
+        return ApprovalLevel.FULL
+      ]]>
+    </file>
+  </backend-hitl-module>
+
+  <!-- ========================================================================
+       SECTION 3: FOUNDATION APPROVAL SYSTEM
+       ======================================================================== -->
+  <foundation-approval-system>
+    <file path="apps/api/src/approvals/dto/create-approval.dto.ts">
+      <description>
+        DTO for creating approval items. The ApprovalQueueBridge must map
+        HITLConfig/HITLToolResult to this format.
+      </description>
+      <![CDATA[
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsObject,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { ConfidenceFactor } from '@hyvve/shared';
+
+export class CreateApprovalDto {
+  /** Approval type (e.g., 'contract', 'financial', 'deletion', 'agent_action') */
+  @IsString()
+  type!: string;
+
+  /** Approval title */
+  @IsString()
+  title!: string;
+
+  /** Optional description */
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  /** Optional preview data for UI rendering */
+  @IsOptional()
+  @IsObject()
+  previewData?: any;
+
+  /** Source module that created this approval */
+  @IsOptional()
+  @IsString()
+  sourceModule?: string;
+
+  /** Source entity ID (e.g., tool_name) */
+  @IsOptional()
+  @IsString()
+  sourceId?: string;
+
+  /** Priority level (determines due date) */
+  @IsOptional()
+  @IsEnum(['low', 'medium', 'high', 'urgent'])
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+
+  /** Confidence factors for scoring (weights must sum to 1.0) */
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => Object)
+  factors!: ConfidenceFactor[];
+}
+      ]]>
+    </file>
+
+    <file path="apps/api/src/approvals/dto/approval-response.dto.ts">
+      <description>Response DTO for approval items.</description>
+      <![CDATA[
+import { ConfidenceFactor } from '@hyvve/shared';
+
+export interface ApprovalResponseDto {
+  id: string;
+  workspaceId: string;
+  type: string;
+  title: string;
+  description?: string;
+  previewData?: any;
+  confidenceScore: number;
+  factors: ConfidenceFactor[];
+  aiReasoning?: string;
+  status: string;  // 'pending' | 'approved' | 'rejected' | 'auto_approved'
+  recommendation: string;
+  reviewType: string;  // 'auto' | 'quick' | 'full'
+  priority: string;
+  assignedToId?: string;
+  dueAt: Date;
+  decidedById?: string;
+  decidedAt?: Date;
+  decisionNotes?: string;
+  sourceModule?: string;
+  sourceId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+      ]]>
+    </file>
+
+    <file path="apps/api/src/approvals/services/approval-router.service.ts">
+      <description>
+        Routes approval requests based on confidence score. Key reference for
+        how approvals are created in Foundation. Shows priority-to-hours mapping.
+      </description>
+      <![CDATA[
+/**
+ * Priority to due date hours mapping (from approval-router.service.ts)
+ */
+const PRIORITY_HOURS = {
+  urgent: 4,
+  high: 24,
+  medium: 48,
+  low: 72,
+} as const;
+
+/**
+ * ApprovalRouterService - Routes approval requests based on confidence score
+ *
+ * Routing logic:
+ * - score >= 85% = auto_approved (immediate execution)
+ * - score 60-84% = pending with quick review (1-click approval)
+ * - score < 60% = pending with full review (requires AI reasoning review)
+ */
+@Injectable()
+export class ApprovalRouterService {
+  async routeApproval(
+    workspaceId: string,
+    requestedBy: string,
+    type: string,
+    title: string,
+    factors: ConfidenceFactor[],
+    options?: {
+      description?: string;
+      previewData?: any;
+      sourceModule?: string;
+      sourceId?: string;
+      priority?: 'low' | 'medium' | 'high' | 'urgent';
+    },
+  ): Promise<any> {
+    // Step 1: Calculate confidence
+    const confidenceResult = await this.confidenceCalculator.calculate(factors, workspaceId);
+
+    // Step 2: Determine status and review type based on score
+    const { status, reviewType } = this.determineStatusAndReviewType(confidenceResult.overallScore);
+
+    // Step 3: Calculate due date based on priority
+    const priority = options?.priority || 'medium';
+    const dueAt = this.calculateDueDate(priority);
+
+    // Step 4: Get default approver
+    const assignedToId = await this.getDefaultApprover(workspaceId);
+
+    // Step 5: Create approval item
+    const approvalItem = await this.prisma.approvalItem.create({
+      data: {
+        workspaceId,
+        type,
+        title,
+        description: options?.description,
+        previewData: options?.previewData,
+        confidenceScore: Math.round(confidenceResult.overallScore),
+        confidenceFactors: confidenceResult.factors,
+        aiRecommendation: confidenceResult.recommendation,
+        aiReasoning: confidenceResult.aiReasoning,
+        status,
+        priority,
+        assignedToId,
+        dueAt,
+        sourceModule: options?.sourceModule,
+        sourceId: options?.sourceId,
+        requestedBy,
+      },
+    });
+
+    // Step 6: Emit event based on status
+    if (status === 'auto_approved') {
+      await this.eventPublisher.publish(EventTypes.APPROVAL_AUTO_APPROVED, {...});
+    } else {
+      await this.eventPublisher.publish(EventTypes.APPROVAL_REQUESTED, {...});
+    }
+
+    return approvalItem;
+  }
+
+  private determineStatusAndReviewType(score: number) {
+    if (score > 85) {
+      return { status: 'auto_approved', reviewType: 'auto' };
+    } else if (score >= 60) {
+      return { status: 'pending', reviewType: 'quick' };
+    } else {
+      return { status: 'pending', reviewType: 'full' };
+    }
+  }
+
+  private calculateDueDate(priority: 'low' | 'medium' | 'high' | 'urgent'): Date {
+    const now = new Date();
+    const hours = PRIORITY_HOURS[priority];
+    return new Date(now.getTime() + hours * 60 * 60 * 1000);
+  }
+}
+      ]]>
+    </file>
+
+    <file path="apps/api/src/approvals/approvals.service.ts">
+      <description>
+        Main approval service with approve/reject methods. Events are emitted
+        on approval decisions.
+      </description>
+      <![CDATA[
+// Key methods from ApprovalsService:
+
+async approve(workspaceId: string, id: string, userId: string, dto: ApproveItemDto) {
+  const approval = await this.prisma.approvalItem.findUnique({ where: { id } });
+
+  // Validate
+  if (!approval || approval.workspaceId !== workspaceId) {
+    throw new NotFoundException('Approval item not found in this workspace');
+  }
+  if (approval.status !== 'pending') {
+    throw new BadRequestException(`Cannot approve item with status: ${approval.status}`);
+  }
+
+  // Update
+  const updated = await this.prisma.approvalItem.update({
+    where: { id },
+    data: {
+      status: 'approved',
+      resolvedById: userId,
+      resolvedAt: new Date(),
+      resolution: { action: 'approved', notes: dto.notes, decidedAt: new Date() },
+    },
+  });
+
+  // Emit event
+  const approvalPayload: ApprovalDecisionPayload = {
+    approvalId: updated.id,
+    type: updated.type,
+    title: updated.title,
+    decision: 'approved',
+    decidedById: userId,
+    decisionNotes: dto.notes,
+    confidenceScore: updated.confidenceScore,
+  };
+  await this.eventPublisher.publish(EventTypes.APPROVAL_APPROVED, approvalPayload, {
+    tenantId: workspaceId,
+    userId,
+    source: 'approvals',
+  });
+
+  return updated;
+}
+
+async reject(workspaceId: string, id: string, userId: string, dto: RejectItemDto) {
+  // Similar to approve but emits APPROVAL_REJECTED
+}
+      ]]>
+    </file>
+
+    <file path="apps/api/src/approvals/approvals.controller.ts">
+      <description>REST API endpoints for approval operations.</description>
+      <![CDATA[
+@Controller('approvals')
+@UseGuards(AuthGuard, TenantGuard, RolesGuard)
+export class ApprovalsController {
+  // GET /api/approvals - List approvals
+  @Get()
+  @Roles('owner', 'admin', 'member')
+  async listApprovals(@CurrentWorkspace() workspaceId: string, @Query() query: ApprovalQueryDto) {
+    return this.approvalsService.findAll(workspaceId, query);
+  }
+
+  // GET /api/approvals/:id - Get single approval
+  @Get(':id')
+  @Roles('owner', 'admin', 'member')
+  async getApproval(@CurrentWorkspace() workspaceId: string, @Param('id') id: string) {
+    return this.approvalsService.findOne(workspaceId, id);
+  }
+
+  // POST /api/approvals/:id/approve - Approve item
+  @Post(':id/approve')
+  @Roles('owner', 'admin')
+  async approveItem(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: ApproveItemDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.approvalsService.approve(workspaceId, id, user.id, dto);
+  }
+
+  // POST /api/approvals/:id/reject - Reject item
+  @Post(':id/reject')
+  @Roles('owner', 'admin')
+  async rejectItem(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: RejectItemDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.approvalsService.reject(workspaceId, id, user.id, dto);
+  }
+}
+      ]]>
+    </file>
+  </foundation-approval-system>
+
+  <!-- ========================================================================
+       SECTION 4: EVENT TYPES
+       ======================================================================== -->
+  <event-types>
+    <file path="packages/shared/src/types/events.ts">
+      <description>
+        Event type definitions for approval events. The ApprovalQueueBridge and
+        frontend event subscription should listen for these events.
+      </description>
+      <![CDATA[
+// Approval Events (from packages/shared/src/types/events.ts)
+export const EventTypes = {
+  // ...
+  APPROVAL_REQUESTED: 'approval.item.requested',
+  APPROVAL_CREATED: 'approval.item.created',
+  APPROVAL_APPROVED: 'approval.item.approved',
+  APPROVAL_REJECTED: 'approval.item.rejected',
+  APPROVAL_ESCALATED: 'approval.item.escalated',
+  APPROVAL_EXPIRED: 'approval.item.expired',
+  APPROVAL_AUTO_APPROVED: 'approval.item.auto_approved',
+  // ...
+} as const;
+
+// Approval event payloads
+export interface ApprovalRequestedPayload {
+  approvalId: string;
+  type: string;
+  title: string;
+  confidenceScore: number;
+  recommendation: 'approve' | 'review' | 'full_review';
+  assignedToId?: string;
+  dueAt: string;
+  sourceModule?: string;
+  sourceId?: string;
+}
+
+export interface ApprovalDecisionPayload {
+  approvalId: string;
+  type: string;
+  title: string;
+  decision: 'approved' | 'rejected' | 'auto_approved';
+  decidedById?: string;
+  decisionNotes?: string;
+  confidenceScore: number;
+}
+      ]]>
+    </file>
+  </event-types>
+
+  <!-- ========================================================================
+       SECTION 5: FRONTEND HITL IMPLEMENTATION (from DM-05.2)
+       ======================================================================== -->
+  <frontend-hitl-module>
+    <file path="apps/web/src/lib/hitl/types.ts">
+      <description>
+        TypeScript interfaces for HITL system. The new QueuedApproval interface
+        should be added here.
+      </description>
+      <![CDATA[
+export type ApprovalLevel = 'auto' | 'quick' | 'full';
+export type RiskLevel = 'low' | 'medium' | 'high';
+export type HITLRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface HITLConfig {
+  autoThreshold: number;
+  quickThreshold: number;
+  approvalType: string;
+  riskLevel: RiskLevel;
+  requiresReason: boolean;
+  timeoutSeconds?: number;
+  approveLabel: string;
+  rejectLabel: string;
+  descriptionTemplate?: string;
+}
+
+export interface HITLToolResult {
+  requiresApproval: boolean;
+  approvalLevel: ApprovalLevel;
+  confidenceScore: number;
+  toolName: string;
+  toolArgs: Record<string, unknown>;
+  config: HITLConfig;
+  approvalId?: string;
+  requestId: string;
+}
+
+export interface HITLActionArgs {
+  toolName: string;
+  toolArgs: Record<string, unknown>;
+  confidenceScore: number;
+  approvalLevel: ApprovalLevel;
+  config: HITLConfig;
+  requestId?: string;
+}
+
+export interface HITLResponse {
+  approved: boolean;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface HITLPendingRequest {
+  requestId: string;
+  toolName: string;
+  toolArgs: Record<string, unknown>;
+  confidenceScore: number;
+  approvalLevel: ApprovalLevel;
+  config: HITLConfig;
+  status: HITLRequestStatus;
+  createdAt: number;
+}
+
+// DM-05.3: New type to add for queued approvals
+export interface QueuedApproval {
+  approvalId: string;
+  toolName: string;
+  toolArgs: Record<string, unknown>;
+  confidenceScore: number;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: number;
+  resolvedAt?: number;
+  resolution?: {
+    action: 'approved' | 'rejected';
+    reason?: string;
+    decidedById?: string;
+  };
+}
+      ]]>
+    </file>
+
+    <file path="apps/web/src/stores/hitl-store.ts">
+      <description>
+        Zustand store for HITL requests. Needs to be extended with queuedApprovals
+        tracking for DM-05.3.
+      </description>
+      <![CDATA[
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import type { HITLPendingRequest, HITLRequestStatus } from '@/lib/hitl/types';
+
+export interface HITLState {
+  pendingRequests: Map<string, HITLPendingRequest>;
+  activeRequestId: string | null;
+  timestamp: number;
+}
+
+export interface HITLActions {
+  addPendingRequest: (request: HITLPendingRequest) => void;
+  removePendingRequest: (requestId: string) => void;
+  updateRequestStatus: (requestId: string, status: HITLRequestStatus) => void;
+  setActiveRequest: (requestId: string | null) => void;
+  getRequest: (requestId: string) => HITLPendingRequest | undefined;
+  getPendingCount: () => number;
+  getPendingArray: () => HITLPendingRequest[];
+  clearAll: () => void;
+  reset: () => void;
+}
+
+export interface HITLStore extends HITLState, HITLActions {}
+
+// DM-05.3: Add these to the store interface:
+// queuedApprovals: Map<string, QueuedApproval>;
+// addQueuedApproval: (approval: QueuedApproval) => void;
+// updateQueuedApproval: (approvalId: string, update: Partial<QueuedApproval>) => void;
+// removeQueuedApproval: (approvalId: string) => void;
+
+export const useHITLStore = create<HITLStore>()(
+  subscribeWithSelector((set, get) => ({
+    pendingRequests: new Map(),
+    activeRequestId: null,
+    timestamp: Date.now(),
+
+    addPendingRequest: (request) => {
+      set((state) => {
+        const newRequests = new Map(state.pendingRequests);
+        newRequests.set(request.requestId, request);
+        return { pendingRequests: newRequests, timestamp: Date.now() };
+      });
+    },
+
+    removePendingRequest: (requestId) => {
+      set((state) => {
+        const newRequests = new Map(state.pendingRequests);
+        newRequests.delete(requestId);
+        return {
+          pendingRequests: newRequests,
+          activeRequestId: state.activeRequestId === requestId ? null : state.activeRequestId,
+          timestamp: Date.now(),
+        };
+      });
+    },
+
+    updateRequestStatus: (requestId, status) => {
+      set((state) => {
+        const request = state.pendingRequests.get(requestId);
+        if (!request) return state;
+        const newRequests = new Map(state.pendingRequests);
+        newRequests.set(requestId, { ...request, status });
+        return { pendingRequests: newRequests, timestamp: Date.now() };
+      });
+    },
+
+    setActiveRequest: (requestId) => set({ activeRequestId: requestId, timestamp: Date.now() }),
+    getRequest: (requestId) => get().pendingRequests.get(requestId),
+    getPendingCount: () => Array.from(get().pendingRequests.values()).filter(r => r.status === 'pending').length,
+    getPendingArray: () => Array.from(get().pendingRequests.values()),
+    clearAll: () => set({ pendingRequests: new Map(), activeRequestId: null, timestamp: Date.now() }),
+    reset: () => set({ pendingRequests: new Map(), activeRequestId: null, timestamp: Date.now() }),
+  }))
+);
+      ]]>
+    </file>
+
+    <file path="apps/web/src/components/hitl/HITLActionRegistration.tsx">
+      <description>
+        Registers HITL action handlers. Needs to be modified to handle FULL
+        approval level by routing to the approval queue.
+      </description>
+      <![CDATA[
+'use client';
+
+import { toast } from 'sonner';
+import { useHITLAction } from '@/lib/hitl/use-hitl-action';
+import { HITLApprovalCard } from './HITLApprovalCard';
+import { ContractApprovalCard } from './ContractApprovalCard';
+import { DeleteConfirmCard } from './DeleteConfirmCard';
+
+// DM-05.3: Need to add:
+// 1. Handler for 'hitl_queue' action type
+// 2. When approval_level is 'full', call createApproval() instead of showing inline UI
+// 3. Show toast notification with link to approval queue
+// 4. ApprovalPendingCard component for "Queued for Review" status
+
+function useSignContractAction() {
+  useHITLAction({
+    name: 'sign_contract',
+    description: 'Human-in-the-loop approval for contract signing',
+    renderApproval: ({ args, respond, status }) => (
+      <ContractApprovalCard
+        args={args}
+        isExecuting={status !== 'executing'}
+        onApprove={() => respond?.({ approved: true })}
+        onReject={(reason) => respond?.({ approved: false, reason })}
+      />
+    ),
+    onExecute: () => {
+      toast.success('Contract signed successfully', {
+        description: 'The contract has been signed and recorded.',
+      });
+    },
+    onReject: (reason) => {
+      toast.info('Contract signing cancelled', {
+        description: reason || 'The contract was not signed.',
+      });
+    },
+  });
+}
+
+// ... other action registrations ...
+
+export function HITLActionRegistration() {
+  useSignContractAction();
+  useDeleteProjectAction();
+  useApproveExpenseAction();
+  useSendBulkNotificationAction();
+  useGenericAction();
+  return null;
+}
+      ]]>
+    </file>
+
+    <file path="apps/web/src/lib/hitl/use-hitl-action.tsx">
+      <description>
+        Hook for registering HITL actions with CopilotKit. Uses
+        renderAndWaitForResponse pattern.
+      </description>
+      <![CDATA[
+'use client';
+
+import { type ReactElement, useCallback, useRef } from 'react';
+import { useCopilotAction } from '@copilotkit/react-core';
+import { useHITLStore } from '@/stores/hitl-store';
+import type { HITLActionArgs, HITLConfig, HITLResponse, HITLRenderProps, ApprovalLevel } from './types';
+
+export interface UseHITLActionOptions {
+  name: string;
+  renderApproval: (props: HITLRenderProps) => ReactElement;
+  onExecute?: (result: unknown) => void;
+  onReject?: (reason?: string) => void;
+  description?: string;
+}
+
+export function useHITLAction({
+  name,
+  renderApproval,
+  onExecute,
+  onReject,
+  description,
+}: UseHITLActionOptions): void {
+  const addPendingRequest = useHITLStore((s) => s.addPendingRequest);
+  const updateRequestStatus = useHITLStore((s) => s.updateRequestStatus);
+  const removePendingRequest = useHITLStore((s) => s.removePendingRequest);
+
+  useCopilotAction({
+    name: `hitl_${name}`,
+    description: description || `Human-in-the-loop approval for ${name}`,
+    parameters: [
+      { name: 'toolName', type: 'string', required: true },
+      { name: 'toolArgs', type: 'object', required: true },
+      { name: 'confidenceScore', type: 'number', required: true },
+      { name: 'approvalLevel', type: 'string', required: true },
+      { name: 'config', type: 'object', required: true },
+      { name: 'requestId', type: 'string', required: false },
+    ],
+    renderAndWaitForResponse: ({ args, respond, status }) => {
+      const requestId = (args.requestId as string) || crypto.randomUUID();
+      const hitlArgs: HITLActionArgs = {
+        toolName: (args.toolName as string) || name,
+        toolArgs: (args.toolArgs as Record<string, unknown>) || {},
+        confidenceScore: (args.confidenceScore as number) || 0,
+        approvalLevel: (args.approvalLevel as ApprovalLevel) || 'quick',
+        config: (args.config as HITLConfig) || {
+          autoThreshold: 85,
+          quickThreshold: 60,
+          approvalType: 'general',
+          riskLevel: 'medium',
+          requiresReason: false,
+          approveLabel: 'Approve',
+          rejectLabel: 'Reject',
+        },
+        requestId,
+      };
+
+      // DM-05.3: Check if approvalLevel is 'full' and route to queue instead
+      // if (hitlArgs.approvalLevel === 'full') {
+      //   // Create approval via useApprovalQueue hook
+      //   // Show ApprovalPendingCard instead
+      // }
+
+      return renderApproval({
+        args: hitlArgs,
+        status: status === 'inProgress' || status === 'executing' ? 'executing' : 'complete',
+        respond: respond ? (response) => respond(response) : undefined,
+      });
+    },
+  });
+}
+      ]]>
+    </file>
+
+    <file path="apps/web/src/lib/hitl/index.ts">
+      <description>
+        HITL module exports. Needs to export new hooks: useApprovalQueue,
+        useApprovalEvents.
+      </description>
+      <![CDATA[
+export type {
+  ApprovalLevel,
+  RiskLevel,
+  HITLRequestStatus,
+  HITLConfig,
+  HITLToolResult,
+  HITLActionArgs,
+  HITLResponse,
+  HITLRenderProps,
+  HITLPendingRequest,
+  HITLMarkerResponse,
+  HITLApprovalCardProps,
+  ContractApprovalCardProps,
+  DeleteConfirmCardProps,
+} from './types';
+
+export {
+  isHITLPending,
+  parseHITLResult,
+  getConfidenceLevel,
+  formatConfidence,
+  getRiskBadgeVariant,
+  getRiskColorClasses,
+  formatDescriptionTemplate,
+  formatKey,
+  formatValue,
+  formatCurrency,
+  formatToolName,
+  getToolIcon,
+  requiresUserApproval,
+  getApprovalLevelDescription,
+} from './utils';
+
+export {
+  useHITLAction,
+  useGenericHITLAction,
+  type UseHITLActionOptions,
+  type GenericHITLOptions,
+} from './use-hitl-action';
+
+// DM-05.3: Add these exports:
+// export { useApprovalQueue, type UseApprovalQueueReturn, type CreateApprovalParams } from './use-approval-queue';
+// export { useApprovalEvents } from './use-approval-events';
+      ]]>
+    </file>
+  </frontend-hitl-module>
+
+  <!-- ========================================================================
+       SECTION 6: FRONTEND APPROVAL COMPONENTS
+       ======================================================================== -->
+  <frontend-approval-components>
+    <file path="apps/web/src/hooks/use-approvals.ts">
+      <description>
+        Existing approval hooks using React Query. The useApprovalQueue hook
+        should follow similar patterns.
+      </description>
+      <![CDATA[
+// Key API functions from use-approvals.ts:
+
+async function approveApproval(id: string, data: ApprovalActionRequest = {}): Promise<ApprovalResponse> {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${id}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  // ... handle response
+}
+
+async function rejectApproval(id: string, data: ApprovalActionRequest = {}): Promise<ApprovalResponse> {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${id}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  // ... handle response
+}
+
+export function useApprovalMutations() {
+  const queryClient = useQueryClient();
+
+  const approveMutation = useMutation({
+    mutationFn: ({ id, data }) => approveApproval(id, data),
+    onSuccess: (response) => {
+      toast.success('Approval granted');
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, data }) => rejectApproval(id, data),
+    onSuccess: (response) => {
+      toast.success('Approval rejected');
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+    },
+  });
+
+  return {
+    approve: approveMutation.mutate,
+    reject: rejectMutation.mutate,
+    isApproving: approveMutation.isPending,
+    isRejecting: rejectMutation.isPending,
+    approveError: approveMutation.error,
+    rejectError: rejectMutation.error,
+  };
+}
+      ]]>
+    </file>
+
+    <file path="apps/web/src/components/approval/approval-actions.tsx">
+      <description>
+        Approval action buttons component with dialogs. Reference for UI patterns.
+      </description>
+      <![CDATA[
+interface ApprovalActionsProps {
+  approvalId: string;
+  onApprove?: () => void;
+  onReject?: () => void;
+  variant?: 'default' | 'compact';
+  className?: string;
+}
+
+export function ApprovalActions({
+  approvalId,
+  onApprove,
+  onReject,
+  variant = 'default',
+  className,
+}: ApprovalActionsProps) {
+  const [notes, setNotes] = useState('');
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+
+  const { approve, reject, isApproving, isRejecting } = useApprovalMutations();
+
+  const handleApprove = () => {
+    approve({ id: approvalId, data: notes ? { notes } : undefined }, {
+      onSuccess: () => {
+        setNotes('');
+        setShowApproveDialog(false);
+        onApprove?.();
+      },
+    });
+  };
+
+  const handleReject = () => {
+    reject({ id: approvalId, data: notes ? { notes } : undefined }, {
+      onSuccess: () => {
+        setNotes('');
+        setShowRejectDialog(false);
+        onReject?.();
+      },
+    });
+  };
+
+  // ... render buttons and dialogs
+}
+      ]]>
+    </file>
+
+    <file path="apps/web/src/components/approval/approval-card.tsx">
+      <description>
+        Approval card component with compact and expanded variants.
+        Reference for ApprovalPendingCard styling.
+      </description>
+      <![CDATA[
+interface ApprovalCardProps {
+  approval: ApprovalItem;
+  variant?: 'compact' | 'expanded';
+  showActions?: boolean;
+  onActionComplete?: () => void;
+  // ...
+}
+
+export const ApprovalCard = forwardRef<HTMLDivElement, ApprovalCardProps>(function ApprovalCard({
+  approval,
+  variant = 'compact',
+  showActions = true,
+  onActionComplete,
+  // ...
+}, ref) {
+  // Border color based on confidence level
+  const borderColor = {
+    high: 'border-l-green-500',
+    medium: 'border-l-yellow-500',
+    low: 'border-l-red-500',
+  }[approval.confidenceLevel];
+
+  // Priority configuration
+  const priorityConfig = {
+    1: { label: 'Low', variant: 'outline' },
+    2: { label: 'Medium', variant: 'secondary' },
+    3: { label: 'High', variant: 'destructive' },
+  }[approval.priority];
+
+  return (
+    <Card className={cn('border-l-4', borderColor, className)}>
+      {/* ... card content */}
+    </Card>
+  );
+});
+      ]]>
+    </file>
+  </frontend-approval-components>
+
+  <!-- ========================================================================
+       SECTION 7: IMPLEMENTATION GUIDANCE
+       ======================================================================== -->
+  <implementation-guidance>
+    <task id="1" title="Create ApprovalQueueBridge Class" points="2">
+      <description>
+        Create agents/hitl/approval_bridge.py with:
+        - ApprovalQueueBridge class using httpx for async HTTP
+        - create_approval_item() method mapping HITLConfig to CreateApprovalDto
+        - get_approval_status() method for polling
+        - wait_for_approval() method with timeout
+        - Helper methods for title, description, priority, due date generation
+        - Singleton pattern via get_approval_bridge()
+      </description>
+      <key-mappings>
+        <mapping from="HITLConfig.approval_type" to="CreateApprovalDto.type"/>
+        <mapping from="HITLConfig.risk_level" to="priority (high risk = urgent)"/>
+        <mapping from="risk_level" to="dueAt (high=4h, medium=24h, low=72h)"/>
+        <mapping from="HITLToolResult" to="previewData"/>
+        <mapping from="confidence_score" to="factors array"/>
+      </key-mappings>
+    </task>
+
+    <task id="2" title="Create Frontend useApprovalQueue Hook" points="1.5">
+      <description>
+        Create apps/web/src/lib/hitl/use-approval-queue.ts with:
+        - createApproval() function calling POST /api/approvals
+        - checkApprovalStatus() for polling
+        - pendingApprovals Map for tracking
+        - isCreating, error state
+        - Callbacks: onCreated, onResolved
+      </description>
+    </task>
+
+    <task id="3" title="Integrate with HITLActionRegistration" points="1">
+      <description>
+        Modify HITLActionRegistration.tsx:
+        - Add handler for FULL approval level
+        - When approval_level is 'full', call useApprovalQueue.createApproval()
+        - Show ApprovalPendingCard instead of inline approval UI
+        - Toast notification with link to /approvals
+        - Update HITL store with queued approval
+      </description>
+    </task>
+
+    <task id="4" title="Create Event Subscription" points="0.5">
+      <description>
+        Create apps/web/src/lib/hitl/use-approval-events.ts:
+        - WebSocket subscription to approval.approved and approval.rejected events
+        - Filter by sourceModule === 'hitl'
+        - Update HITL store on resolution
+        - Handle reconnection
+      </description>
+    </task>
+
+    <priority-calculation>
+      <rule>risk_level === 'high' ? 'urgent' : confidence_score &lt; 30 ? 'urgent' : risk_level</rule>
+      <mapping>
+        <item risk="high" confidence="any" priority="urgent"/>
+        <item risk="medium" confidence="&lt;30" priority="urgent"/>
+        <item risk="medium" confidence="30-59" priority="high"/>
+        <item risk="low" confidence="&lt;30" priority="high"/>
+        <item risk="low" confidence="30-59" priority="medium"/>
+      </mapping>
+    </priority-calculation>
+
+    <due-date-calculation>
+      <rule>Based on risk_level: high=4h, medium=24h, low=72h</rule>
+    </due-date-calculation>
+  </implementation-guidance>
+
+  <!-- ========================================================================
+       SECTION 8: TESTING REQUIREMENTS
+       ======================================================================== -->
+  <testing-requirements>
+    <unit-tests>
+      <test-file path="agents/hitl/test_approval_bridge.py">
+        <test-case>test_create_approval_item_success</test-case>
+        <test-case>test_generate_title_with_template</test-case>
+        <test-case>test_calculate_priority_high_risk</test-case>
+        <test-case>test_calculate_priority_low_confidence</test-case>
+        <test-case>test_calculate_due_date</test-case>
+        <test-case>test_get_approval_status</test-case>
+        <test-case>test_wait_for_approval_timeout</test-case>
+      </test-file>
+
+      <test-file path="apps/web/src/lib/hitl/__tests__/use-approval-queue.test.tsx">
+        <test-case>creates approval and tracks in pending</test-case>
+        <test-case>removes from pending when resolved</test-case>
+        <test-case>calls onResolved callback</test-case>
+      </test-file>
+    </unit-tests>
+
+    <integration-tests>
+      <test-case>Full approval workflow: HITL tool -> queue -> approval -> execution</test-case>
+    </integration-tests>
+
+    <coverage-target>85%</coverage-target>
+  </testing-requirements>
+</story-context>

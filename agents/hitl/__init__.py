@@ -34,8 +34,19 @@ Usage:
         # Handle approval UI
         hitl_result = result["hitl_result"]
 
+    # For low-confidence actions, use ApprovalQueueBridge (DM-05.3)
+    from hitl import get_approval_bridge
+
+    if hitl_result.approval_level == "full":
+        bridge = get_approval_bridge()
+        approval = await bridge.create_from_hitl_result(
+            workspace_id="ws_123",
+            hitl_result=hitl_result,
+        )
+        print(f"Queued for approval: {approval['id']}")
+
 @see docs/modules/bm-dm/epics/epic-dm-05-tech-spec.md
-Epic: DM-05 | Story: DM-05.1
+Epic: DM-05 | Stories: DM-05.1, DM-05.3
 """
 
 from .decorators import (
@@ -58,6 +69,17 @@ from .decorators import (
     DEFAULT_CONFIDENCE_SCORE,
 )
 
+from .approval_bridge import (
+    # Bridge class
+    ApprovalQueueBridge,
+    # Singleton accessors
+    get_approval_bridge,
+    close_approval_bridge,
+    # Constants
+    PRIORITY_HOURS,
+    RISK_TO_PRIORITY,
+)
+
 __all__ = [
     # Core decorator
     "hitl_tool",
@@ -76,4 +98,10 @@ __all__ = [
     # Constants
     "BASE_CONFIDENCE_SCORES",
     "DEFAULT_CONFIDENCE_SCORE",
+    # Approval Queue Bridge (DM-05.3)
+    "ApprovalQueueBridge",
+    "get_approval_bridge",
+    "close_approval_bridge",
+    "PRIORITY_HOURS",
+    "RISK_TO_PRIORITY",
 ]
