@@ -1,0 +1,1131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-05.2 Frontend HITL Handlers
+  Generated: 2025-12-30
+  Epic: DM-05 - Advanced HITL & Streaming
+  Points: 8
+  Dependencies: DM-05.1 (Complete), DM-04.2, DM-01.4, Foundation approval components
+-->
+<story-context>
+  <metadata>
+    <story-id>dm-05-2</story-id>
+    <title>Frontend HITL Handlers</title>
+    <epic>DM-05</epic>
+    <points>8</points>
+    <status>ready-for-dev</status>
+    <priority>High</priority>
+  </metadata>
+
+  <overview>
+    <summary>
+      Implement React components and hooks for rendering Human-in-the-Loop (HITL) approval UIs
+      using CopilotKit's `renderAndWaitForResponse` pattern. This story creates the frontend
+      infrastructure that handles HITL tool responses from the backend agents created in DM-05.1.
+    </summary>
+    <key-deliverables>
+      - `useHITLAction` hook wrapping CopilotKit's `useCopilotAction` with HITL-specific behavior
+      - Zustand store for tracking pending HITL requests
+      - HITL marker detection from agent responses
+      - Generic `HITLApprovalCard` component for inline approval UI
+      - Specialized approval cards (ContractApprovalCard, DeleteConfirmCard)
+      - `HITLActionRegistration` component for registering all HITL handlers
+      - Integration with existing approval UI components from Foundation
+    </key-deliverables>
+  </overview>
+
+  <!-- ====================================================================== -->
+  <!-- BACKEND MODELS TO MATCH (from DM-05.1) -->
+  <!-- ====================================================================== -->
+  <backend-models>
+    <file path="agents/hitl/decorators.py">
+      <description>
+        HITL decorator and Pydantic models. Frontend TypeScript types MUST match these models.
+      </description>
+      <code-snippet name="ApprovalLevel-enum">
+<![CDATA[
+class ApprovalLevel(str, Enum):
+    """
+    Approval requirement levels based on confidence thresholds.
+
+    These levels determine how a tool invocation is handled:
+    - AUTO: Immediate execution with audit logging
+    - QUICK: Inline HITL via CopilotKit (1-click approval)
+    - FULL: Queue to Foundation approval system for full review
+    """
+
+    AUTO = "auto"
+    QUICK = "quick"
+    FULL = "full"
+]]>
+      </code-snippet>
+      <code-snippet name="HITLConfig-model">
+<![CDATA[
+class HITLConfig(BaseModel):
+    """
+    Configuration for HITL tool behavior.
+
+    This model defines all settings for a tool's HITL behavior,
+    including confidence thresholds, risk classification, and UI hints.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    # Confidence thresholds
+    auto_threshold: int = Field(
+        default=85,
+        ge=0,
+        le=100,
+        description="Minimum confidence for auto-execution (default 85)",
+    )
+    quick_threshold: int = Field(
+        default=60,
+        ge=0,
+        le=100,
+        description="Minimum confidence for quick approval (default 60)",
+    )
+
+    # Tool metadata
+    approval_type: str = Field(
+        default="general",
+        description="Type of approval (e.g., 'contract', 'financial', 'deletion')",
+    )
+    risk_level: str = Field(
+        default="medium",
+        description="Risk level: low, medium, high",
+    )
+    requires_reason: bool = Field(
+        default=False,
+        description="Whether rejection requires a reason",
+    )
+    timeout_seconds: int = Field(
+        default=300,
+        ge=1,
+        description="Timeout for approval in seconds (default 5 minutes)",
+    )
+
+    # UI hints for frontend
+    approve_label: str = Field(
+        default="Approve",
+        description="Button label for approval action",
+    )
+    reject_label: str = Field(
+        default="Reject",
+        description="Button label for rejection action",
+    )
+    description_template: Optional[str] = Field(
+        default=None,
+        description="Template for generating approval description",
+    )
+]]>
+      </code-snippet>
+      <code-snippet name="HITLToolResult-model">
+<![CDATA[
+class HITLToolResult(BaseModel):
+    """
+    Result from HITL tool evaluation.
+
+    This model is returned when a tool requires approval.
+    It contains all information needed for the frontend to render
+    the approval UI and for the approval system to process the request.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
+
+    requires_approval: bool = Field(
+        ...,
+        description="Whether approval is required",
+    )
+    approval_level: ApprovalLevel = Field(
+        ...,
+        description="The type of approval needed",
+    )
+    confidence_score: int = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Calculated confidence score (0-100)",
+    )
+    tool_name: str = Field(
+        ...,
+        description="Name of the tool requiring approval",
+    )
+    tool_args: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arguments passed to the tool",
+    )
+    config: HITLConfig = Field(
+        ...,
+        description="HITL configuration for this tool",
+    )
+    approval_id: Optional[str] = Field(
+        default=None,
+        description="ID if queued to Foundation approval (for FULL level)",
+    )
+    request_id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique identifier for this HITL request",
+    )
+
+    def to_marker_dict(self) -> Dict[str, Any]:
+        """
+        Convert to HITL marker format for frontend detection.
+
+        Returns a dictionary with __hitl_pending__ marker that
+        the frontend can detect and handle appropriately.
+        """
+        return {
+            "__hitl_pending__": True,
+            "hitl_result": self.model_dump(by_alias=True),
+        }
+]]>
+      </code-snippet>
+      <code-snippet name="is_hitl_pending-utility">
+<![CDATA[
+def is_hitl_pending(result: Any) -> bool:
+    """
+    Check if a result indicates HITL approval is pending.
+
+    Args:
+        result: Result from a tool invocation
+
+    Returns:
+        True if the result contains a HITL pending marker
+
+    Example:
+        >>> result = {"__hitl_pending__": True, "hitl_result": {...}}
+        >>> is_hitl_pending(result)
+        True
+    """
+    return isinstance(result, dict) and result.get("__hitl_pending__") is True
+]]>
+      </code-snippet>
+    </file>
+
+    <file path="agents/gateway/hitl_tools.py">
+      <description>
+        Example HITL tools showing configurations for different approval types.
+        Frontend handlers MUST match these tool names and configurations.
+      </description>
+      <code-snippet name="sign_contract-tool">
+<![CDATA[
+@hitl_tool(
+    approval_type="contract",
+    risk_level="high",
+    auto_threshold=95,
+    quick_threshold=70,
+    requires_reason=True,
+    timeout_seconds=600,
+    approve_label="Sign Contract",
+    reject_label="Cancel",
+    description_template="Sign contract {contract_id} for ${amount}",
+)
+async def sign_contract(
+    contract_id: str,
+    amount: float,
+    signatory_name: Optional[str] = None,
+    notes: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Sign a contract on behalf of the organization."""
+    # Implementation...
+]]>
+      </code-snippet>
+      <code-snippet name="delete_project-tool">
+<![CDATA[
+@hitl_tool(
+    approval_type="deletion",
+    risk_level="high",
+    auto_threshold=90,
+    quick_threshold=60,
+    requires_reason=True,
+    timeout_seconds=300,
+    approve_label="Confirm Delete",
+    reject_label="Cancel",
+    description_template="Delete project '{project_name}' and all associated data",
+)
+async def delete_project(
+    project_id: str,
+    project_name: str,
+    archive_first: bool = True,
+    notify_team: bool = True,
+) -> Dict[str, Any]:
+    """Delete a project and all associated data."""
+    # Implementation...
+]]>
+      </code-snippet>
+      <code-snippet name="approve_expense-tool">
+<![CDATA[
+@hitl_tool(
+    approval_type="financial",
+    risk_level="medium",
+    auto_threshold=85,
+    quick_threshold=65,
+    requires_reason=False,
+    timeout_seconds=300,
+    approve_label="Approve Expense",
+    reject_label="Reject",
+    description_template="Approve expense of ${amount} for '{description}'",
+)
+async def approve_expense(
+    expense_id: str,
+    amount: float,
+    description: str,
+    category: str = "general",
+    requester_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Approve an expense reimbursement or purchase request."""
+    # Implementation...
+]]>
+      </code-snippet>
+      <code-snippet name="send_bulk_notification-tool">
+<![CDATA[
+@hitl_tool(
+    approval_type="communication",
+    risk_level="low",
+    auto_threshold=80,
+    quick_threshold=50,
+    requires_reason=False,
+    timeout_seconds=120,
+    approve_label="Send Notifications",
+    reject_label="Cancel",
+    description_template="Send notification to {recipient_count} recipients",
+)
+async def send_bulk_notification(
+    subject: str,
+    message: str,
+    recipient_ids: List[str],
+    notification_type: str = "info",
+    priority: str = "normal",
+) -> Dict[str, Any]:
+    """Send a notification to multiple recipients."""
+    # Implementation...
+]]>
+      </code-snippet>
+      <code-snippet name="get_hitl_tools-registry">
+<![CDATA[
+def get_hitl_tools() -> List:
+    """
+    Get all HITL tools for registration with the Dashboard Gateway.
+
+    Returns:
+        List of HITL tool functions
+    """
+    return [
+        sign_contract,
+        delete_project,
+        approve_expense,
+        send_bulk_notification,
+    ]
+]]>
+      </code-snippet>
+    </file>
+  </backend-models>
+
+  <!-- ====================================================================== -->
+  <!-- EXISTING ZUSTAND STORE PATTERN (from DM-04) -->
+  <!-- ====================================================================== -->
+  <zustand-patterns>
+    <file path="apps/web/src/stores/dashboard-state-store.ts">
+      <description>
+        Reference pattern for creating Zustand stores with subscribeWithSelector middleware.
+        HITL store should follow this same pattern.
+      </description>
+      <code-snippet name="store-structure">
+<![CDATA[
+/**
+ * Dashboard State Store
+ *
+ * Zustand store for managing dashboard shared state with CopilotKit integration.
+ * Uses subscribeWithSelector middleware for efficient re-renders.
+ */
+
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import {
+  type DashboardState,
+  type DashboardStateUpdate,
+  // ... other types
+} from '@/lib/schemas/dashboard-state';
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+/** Maximum number of alerts to keep in state */
+const MAX_ALERTS = 50;
+
+// =============================================================================
+// STORE INTERFACE
+// =============================================================================
+
+export interface DashboardStateStore extends DashboardState {
+  // Full state updates
+  setFullState: (state: DashboardState) => void;
+  updateState: (update: DashboardStateUpdate) => void;
+
+  // Widget-specific setters
+  setProjectStatus: (status: ProjectStatusState | null) => void;
+
+  // Loading state
+  setLoading: (isLoading: boolean, agents?: string[]) => void;
+
+  // Error state
+  setError: (agentId: string, error: string | null) => void;
+  clearErrors: () => void;
+
+  // Reset
+  reset: () => void;
+}
+
+// =============================================================================
+// STORE IMPLEMENTATION
+// =============================================================================
+
+export const useDashboardStateStore = create<DashboardStateStore>()(
+  subscribeWithSelector((set) => ({
+    // Initial state
+    ...createInitialDashboardState(),
+
+    setFullState: (state: DashboardState) => {
+      const validated = validateDashboardState(state);
+      if (validated) {
+        set(validated);
+      } else {
+        console.warn('[DashboardStateStore] Invalid state rejected');
+      }
+    },
+
+    updateState: (update: DashboardStateUpdate) => {
+      set((current) => ({
+        ...current,
+        ...update,
+        timestamp: Date.now(),
+      }));
+    },
+
+    setLoading: (isLoading: boolean, agents: string[] = []) => {
+      set({
+        timestamp: Date.now(),
+        loading: {
+          isLoading,
+          loadingAgents: agents,
+          startedAt: isLoading ? Date.now() : undefined,
+        },
+      });
+    },
+
+    setError: (agentId: string, error: string | null) => {
+      set((state) => {
+        const errors = { ...state.errors };
+        if (error === null) {
+          delete errors[agentId];
+        } else {
+          errors[agentId] = error;
+        }
+        return { errors, timestamp: Date.now() };
+      });
+    },
+
+    reset: () => {
+      set(createInitialDashboardState());
+    },
+  }))
+);
+]]>
+      </code-snippet>
+    </file>
+  </zustand-patterns>
+
+  <!-- ====================================================================== -->
+  <!-- COPILOTKIT INTEGRATION PATTERN (from DM-04) -->
+  <!-- ====================================================================== -->
+  <copilotkit-patterns>
+    <file path="apps/web/src/hooks/use-agent-state-sync.ts">
+      <description>
+        Reference for CopilotKit hook integration with useCoAgentStateRender.
+        HITL hooks use similar pattern with useCopilotAction.
+      </description>
+      <code-snippet name="copilotkit-hook-pattern">
+<![CDATA[
+'use client';
+
+import { useEffect, useCallback, useRef } from 'react';
+import { useCoAgentStateRender } from '@copilotkit/react-core';
+import { useDashboardStateStore } from '@/stores/dashboard-state-store';
+
+export const DASHBOARD_AGENT_NAME = 'dashboard_gateway';
+export const UPDATE_DEBOUNCE_MS = 100;
+
+export interface UseAgentStateSyncOptions {
+  debug?: boolean;
+  debounceMs?: number;
+  agentName?: string;
+}
+
+export interface UseAgentStateSyncResult {
+  isActive: boolean;
+  lastSyncTimestamp: number | null;
+}
+
+export function useAgentStateSync(
+  options: UseAgentStateSyncOptions = {}
+): UseAgentStateSyncResult {
+  const {
+    debug = false,
+    debounceMs = UPDATE_DEBOUNCE_MS,
+    agentName = DASHBOARD_AGENT_NAME,
+  } = options;
+
+  const setFullState = useDashboardStateStore((s) => s.setFullState);
+  const setLoading = useDashboardStateStore((s) => s.setLoading);
+
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const lastState = useRef<DashboardState | null>(null);
+  const lastSyncTimestamp = useRef<number | null>(null);
+  const isActive = useRef(false);
+
+  // Subscribe to agent state via CopilotKit
+  useCoAgentStateRender({
+    name: agentName,
+    render: ({ state, status }) => {
+      isActive.current = true;
+
+      // Handle loading state immediately
+      if (status === 'inProgress') {
+        handleLoadingUpdate(true, [agentName]);
+      } else if (status === 'complete' || status === 'idle') {
+        handleLoadingUpdate(false);
+      }
+
+      if (state) {
+        handleStateUpdate(state);
+      }
+
+      return null;
+    },
+  });
+
+  // ... debounce logic, cleanup
+
+  return {
+    isActive: isActive.current,
+    lastSyncTimestamp: lastSyncTimestamp.current,
+  };
+}
+]]>
+      </code-snippet>
+    </file>
+
+    <file path="apps/web/src/components/copilot/CopilotKitProvider.tsx">
+      <description>
+        CopilotKit provider setup. HITLActionRegistration should be added inside this provider.
+      </description>
+      <code-snippet name="provider-pattern">
+<![CDATA[
+'use client';
+
+import { CopilotKit } from '@copilotkit/react-core';
+
+interface CopilotKitProviderProps {
+  children: React.ReactNode;
+}
+
+/**
+ * CopilotKit Provider Wrapper
+ *
+ * Wraps children with CopilotKit provider configured for AG-UI protocol.
+ */
+export function CopilotKitProvider({ children }: CopilotKitProviderProps) {
+  const runtimeUrl = process.env.NEXT_PUBLIC_AGNO_URL
+    ? `${process.env.NEXT_PUBLIC_AGNO_URL}/agui`
+    : '/api/copilotkit';
+
+  return (
+    <CopilotKit
+      runtimeUrl={runtimeUrl}
+      publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_KEY}
+    >
+      {children}
+    </CopilotKit>
+  );
+}
+]]>
+      </code-snippet>
+    </file>
+  </copilotkit-patterns>
+
+  <!-- ====================================================================== -->
+  <!-- EXISTING APPROVAL COMPONENTS TO REUSE (from Foundation) -->
+  <!-- ====================================================================== -->
+  <approval-components>
+    <file path="apps/web/src/components/approval/confidence-indicator.tsx">
+      <description>
+        Reusable confidence indicator component. MUST be used in HITLApprovalCard.
+      </description>
+      <code-snippet name="confidence-indicator">
+<![CDATA[
+'use client'
+
+import type { ConfidenceLevel } from '@hyvve/shared'
+import { cn } from '@/lib/utils'
+
+interface ConfidenceIndicatorProps {
+  /** Confidence score from 0-100 */
+  score: number
+  /** Confidence level category */
+  level: ConfidenceLevel
+  /** Show score label (default: true) */
+  showLabel?: boolean
+  /** Size variant (default: md) */
+  size?: 'sm' | 'md' | 'lg'
+  /** Show recommendation text (default: false) */
+  showRecommendation?: boolean
+  /** Custom className */
+  className?: string
+}
+
+/**
+ * Visual confidence score indicator with color coding
+ * - Green (>85%): High confidence - auto-approve
+ * - Yellow (60-85%): Medium confidence - quick review
+ * - Red (<60%): Low confidence - full review
+ */
+export function ConfidenceIndicator({
+  score,
+  level,
+  showLabel = true,
+  size = 'md',
+  showRecommendation = false,
+  className,
+}: ConfidenceIndicatorProps) {
+  const colorConfig = {
+    high: {
+      bg: 'bg-green-100',
+      text: 'text-green-700',
+      progressBg: 'bg-green-500',
+      border: 'border-green-500',
+      recommendation: 'Auto-approved',
+    },
+    medium: {
+      bg: 'bg-yellow-100',
+      text: 'text-yellow-700',
+      progressBg: 'bg-yellow-500',
+      border: 'border-yellow-500',
+      recommendation: 'Quick review needed',
+    },
+    low: {
+      bg: 'bg-red-100',
+      text: 'text-red-700',
+      progressBg: 'bg-red-500',
+      border: 'border-red-500',
+      recommendation: 'Full review required',
+    },
+  }[level]
+
+  // ... render implementation
+}
+
+/**
+ * Compact confidence badge variant
+ */
+export function ConfidenceBadge({
+  score,
+  level,
+}: {
+  score: number
+  level: ConfidenceLevel
+}) {
+  // ... render implementation
+}
+]]>
+      </code-snippet>
+    </file>
+
+    <file path="apps/web/src/components/approval/approval-actions.tsx">
+      <description>
+        Reference for approval action buttons with loading states.
+        Pattern for approve/reject buttons with dialogs.
+      </description>
+      <code-snippet name="approval-buttons-pattern">
+<![CDATA[
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface ApprovalActionsProps {
+  approvalId: string
+  onApprove?: () => void
+  onReject?: () => void
+  variant?: 'default' | 'compact'
+  className?: string
+}
+
+export function ApprovalActions({
+  approvalId,
+  onApprove,
+  onReject,
+  variant = 'default',
+  className,
+}: ApprovalActionsProps) {
+  const [notes, setNotes] = useState('')
+  const isLoading = isApproving || isRejecting
+
+  // Compact variant - just buttons
+  if (variant === 'compact') {
+    return (
+      <div className={cn('flex gap-2', className)}>
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => setShowApproveDialog(true)}
+          disabled={isLoading}
+        >
+          {isApproving ? (
+            <>
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              Approving...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+              Approve
+            </>
+          )}
+        </Button>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowRejectDialog(true)}
+          disabled={isLoading}
+        >
+          {isRejecting ? (
+            <>
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              Rejecting...
+            </>
+          ) : (
+            <>
+              <XCircle className="mr-1.5 h-3.5 w-3.5" />
+              Reject
+            </>
+          )}
+        </Button>
+      </div>
+    )
+  }
+
+  // Default variant - full form with notes textarea
+  // ...
+}
+]]>
+      </code-snippet>
+    </file>
+
+    <file path="apps/web/src/components/approval/approval-card.tsx">
+      <description>
+        Reference for approval card structure with confidence badges, risk levels, and actions.
+      </description>
+      <code-snippet name="card-structure-pattern">
+<![CDATA[
+'use client'
+
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { ConfidenceIndicator, ConfidenceBadge } from './confidence-indicator'
+import { cn } from '@/lib/utils'
+
+interface ApprovalCardProps {
+  approval: ApprovalItem
+  variant?: 'compact' | 'expanded'
+  showActions?: boolean
+  className?: string
+}
+
+export const ApprovalCard = forwardRef<HTMLDivElement, ApprovalCardProps>(
+  function ApprovalCard({ approval, variant, showActions, className }, ref) {
+    // Determine border color based on confidence level
+    const borderColor = {
+      high: 'border-l-green-500',
+      medium: 'border-l-yellow-500',
+      low: 'border-l-red-500',
+    }[approval.confidenceLevel]
+
+    return (
+      <Card
+        ref={ref}
+        className={cn('border-l-4', borderColor, className)}
+      >
+        <div className="p-6 space-y-4">
+          {/* Header with badges */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{approval.type}</Badge>
+            <ConfidenceBadge score={approval.confidenceScore} level={approval.confidenceLevel} />
+          </div>
+
+          {/* Title and description */}
+          <h3 className="text-lg font-semibold">{approval.title}</h3>
+          <p className="text-sm text-gray-600">{approval.description}</p>
+
+          {/* Confidence Indicator */}
+          <ConfidenceIndicator
+            score={approval.confidenceScore}
+            level={approval.confidenceLevel}
+            size="sm"
+            showRecommendation
+          />
+
+          {/* Actions */}
+          {showActions && (
+            <ApprovalActions approvalId={approval.id} />
+          )}
+        </div>
+      </Card>
+    )
+  }
+)
+]]>
+      </code-snippet>
+    </file>
+  </approval-components>
+
+  <!-- ====================================================================== -->
+  <!-- TECH SPEC SECTION 3.2 - FRONTEND HITL HANDLERS -->
+  <!-- ====================================================================== -->
+  <tech-spec>
+    <section name="3.2-frontend-hitl-handlers">
+      <description>
+        CopilotKit HITL pattern from epic tech spec. Key implementation guidance.
+      </description>
+      <code-snippet name="useHITLAction-hook-spec">
+<![CDATA[
+/**
+ * HITL Action Hooks
+ *
+ * React hooks for handling Human-in-the-Loop actions via CopilotKit.
+ * Integrates with CopilotKit's useCopilotAction and renderAndWaitForResponse.
+ */
+'use client';
+
+import { useCopilotAction } from '@copilotkit/react-core';
+import { ReactNode } from 'react';
+
+export type ApprovalLevel = 'auto' | 'quick' | 'full';
+
+export interface HITLConfig {
+  approvalType: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  autoThreshold: number;
+  quickThreshold: number;
+  requiresReason: boolean;
+  approveLabel: string;
+  rejectLabel: string;
+  descriptionTemplate?: string;
+}
+
+export interface HITLResponse {
+  approved: boolean;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface HITLActionArgs {
+  toolName: string;
+  toolArgs: Record<string, unknown>;
+  confidenceScore: number;
+  approvalLevel: ApprovalLevel;
+  config: HITLConfig;
+}
+
+export interface HITLRenderProps {
+  args: HITLActionArgs;
+  status: 'executing' | 'complete';
+  respond?: (response: HITLResponse) => void;
+}
+
+/**
+ * Hook to register a HITL action handler.
+ *
+ * @example
+ * useHITLAction({
+ *   name: 'sign_contract',
+ *   renderApproval: ({ args, respond, status }) => (
+ *     <ContractApprovalCard
+ *       contractId={args.toolArgs.contractId}
+ *       amount={args.toolArgs.amount}
+ *       onApprove={() => respond?.({ approved: true })}
+ *       onReject={(reason) => respond?.({ approved: false, reason })}
+ *       disabled={status !== 'executing'}
+ *     />
+ *   ),
+ *   onExecute: (result) => {
+ *     toast.success('Contract signed successfully');
+ *   },
+ * });
+ */
+export function useHITLAction({
+  name,
+  renderApproval,
+  onExecute,
+}: {
+  name: string;
+  renderApproval: (props: HITLRenderProps) => ReactNode;
+  onExecute?: (result: unknown) => void;
+}) {
+  useCopilotAction({
+    name: `hitl_${name}`,
+    description: `Human-in-the-loop approval for ${name}`,
+    parameters: [
+      { name: 'toolName', type: 'string', required: true },
+      { name: 'toolArgs', type: 'object', required: true },
+      { name: 'confidenceScore', type: 'number', required: true },
+      { name: 'approvalLevel', type: 'string', required: true },
+      { name: 'config', type: 'object', required: true },
+    ],
+    renderAndWaitForResponse: ({ args, respond, status }) => {
+      const hitlArgs: HITLActionArgs = {
+        toolName: args.toolName as string,
+        toolArgs: args.toolArgs as Record<string, unknown>,
+        confidenceScore: args.confidenceScore as number,
+        approvalLevel: args.approvalLevel as ApprovalLevel,
+        config: args.config as HITLConfig,
+      };
+
+      return renderApproval({
+        args: hitlArgs,
+        status,
+        respond: respond
+          ? (response: HITLResponse) => {
+              respond(response);
+            }
+          : undefined,
+      });
+    },
+    handler: async (args, response) => {
+      if (!response?.approved) {
+        return {
+          status: 'rejected',
+          reason: response?.reason || 'User rejected',
+        };
+      }
+      // Execution happens - notify callback
+      if (onExecute) {
+        onExecute({ status: 'approved' });
+      }
+      return { status: 'approved' };
+    },
+  });
+}
+]]>
+      </code-snippet>
+    </section>
+  </tech-spec>
+
+  <!-- ====================================================================== -->
+  <!-- HOOKS INDEX FOR EXPORTS -->
+  <!-- ====================================================================== -->
+  <hooks-index>
+    <file path="apps/web/src/hooks/index.ts">
+      <description>
+        Central hooks export file. HITL hooks should be added here.
+      </description>
+      <code-snippet name="existing-exports">
+<![CDATA[
+// Dashboard state hooks (Epic DM-04)
+export {
+  useAgentStateSync,
+  useAgentStateWidget,
+  DASHBOARD_AGENT_NAME,
+  UPDATE_DEBOUNCE_MS,
+  type UseAgentStateSyncOptions,
+  type UseAgentStateSyncResult,
+} from './use-agent-state-sync';
+
+// State persistence hooks (Story DM-04.5)
+export {
+  useStatePersistence,
+  useDashboardStateWithPersistence,
+  // ...
+} from './use-state-persistence';
+
+// TODO: Add HITL hooks (Story DM-05.2)
+// export {
+//   useHITLAction,
+//   type HITLActionArgs,
+//   type HITLConfig,
+//   type HITLResponse,
+//   type HITLRenderProps,
+// } from '@/lib/hitl';
+]]>
+      </code-snippet>
+    </file>
+  </hooks-index>
+
+  <!-- ====================================================================== -->
+  <!-- FILES TO CREATE -->
+  <!-- ====================================================================== -->
+  <files-to-create>
+    <file path="apps/web/src/lib/hitl/types.ts" points="1">
+      <description>HITL TypeScript interfaces and types matching backend models</description>
+    </file>
+    <file path="apps/web/src/lib/hitl/utils.ts" points="0.5">
+      <description>HITL utility functions (marker detection, formatting)</description>
+    </file>
+    <file path="apps/web/src/lib/hitl/use-hitl-action.ts" points="2">
+      <description>useHITLAction hook wrapping CopilotKit</description>
+    </file>
+    <file path="apps/web/src/lib/hitl/index.ts" points="0">
+      <description>HITL lib module exports</description>
+    </file>
+    <file path="apps/web/src/stores/hitl-store.ts" points="1.5">
+      <description>Zustand store for pending HITL requests</description>
+    </file>
+    <file path="apps/web/src/components/hitl/HITLApprovalCard.tsx" points="2">
+      <description>Generic HITL approval card component</description>
+    </file>
+    <file path="apps/web/src/components/hitl/ContractApprovalCard.tsx" points="0.5">
+      <description>Contract signing approval card</description>
+    </file>
+    <file path="apps/web/src/components/hitl/DeleteConfirmCard.tsx" points="0.5">
+      <description>Deletion confirmation card</description>
+    </file>
+    <file path="apps/web/src/components/hitl/HITLActionRegistration.tsx" points="1">
+      <description>HITL action handlers registration</description>
+    </file>
+    <file path="apps/web/src/components/hitl/index.ts" points="0">
+      <description>HITL component module exports</description>
+    </file>
+    <file path="apps/web/src/components/hitl/__tests__/HITLApprovalCard.test.tsx" points="0.5">
+      <description>Unit tests for HITL components</description>
+    </file>
+  </files-to-create>
+
+  <!-- ====================================================================== -->
+  <!-- FILES TO MODIFY -->
+  <!-- ====================================================================== -->
+  <files-to-modify>
+    <file path="apps/web/src/components/copilot/CopilotKitProvider.tsx">
+      <change>Include HITLActionRegistration component inside provider</change>
+    </file>
+    <file path="apps/web/src/hooks/index.ts">
+      <change>Export HITL hooks from lib/hitl</change>
+    </file>
+    <file path="docs/modules/bm-dm/sprint-status.yaml">
+      <change>Update story status to ready-for-dev</change>
+    </file>
+  </files-to-modify>
+
+  <!-- ====================================================================== -->
+  <!-- ACCEPTANCE CRITERIA CHECKLIST -->
+  <!-- ====================================================================== -->
+  <acceptance-criteria>
+    <ac id="1" status="pending">
+      useHITLAction hook implemented that wraps CopilotKit's useCopilotAction
+      with HITL-specific renderAndWaitForResponse pattern
+    </ac>
+    <ac id="2" status="pending">
+      HITLActionArgs and HITLResponse TypeScript interfaces match backend HITLToolResult model
+    </ac>
+    <ac id="3" status="pending">
+      Generic HITLApprovalCard component renders with risk level badge, confidence indicator,
+      tool arguments preview, and approve/reject buttons
+    </ac>
+    <ac id="4" status="pending">
+      HITLApprovalCard supports configurable labels from HITLConfig (approve_label, reject_label)
+    </ac>
+    <ac id="5" status="pending">
+      HITLApprovalCard shows rejection reason input when requiresReason=true
+    </ac>
+    <ac id="6" status="pending">
+      ContractApprovalCard specialized component renders contract-specific details
+    </ac>
+    <ac id="7" status="pending">
+      HITLActionRegistration component registers handlers for: sign_contract, delete_project,
+      approve_expense, send_bulk_notification, and generic fallback
+    </ac>
+    <ac id="8" status="pending">
+      Zustand store useHITLStore tracks pending HITL requests with request IDs
+    </ac>
+    <ac id="9" status="pending">
+      HITL marker detection via isHITLPending() utility checks for __hitl_pending__: true
+    </ac>
+    <ac id="10" status="pending">
+      Integration with existing ConfidenceIndicator component from @/components/approval
+    </ac>
+    <ac id="11" status="pending">
+      Toast notifications via sonner for approval/rejection feedback
+    </ac>
+    <ac id="12" status="pending">
+      Unit tests pass for all components and hooks
+    </ac>
+  </acceptance-criteria>
+
+  <!-- ====================================================================== -->
+  <!-- DEPENDENCIES -->
+  <!-- ====================================================================== -->
+  <dependencies>
+    <depends-on story="DM-05.1" status="done">HITL tool definitions with HITLToolResult model</depends-on>
+    <depends-on story="DM-04.2" status="done">Zustand state management patterns</depends-on>
+    <depends-on story="DM-01.4" status="done">CopilotKit integration and useCopilotAction</depends-on>
+    <depends-on story="Foundation" status="done">ConfidenceIndicator component for score display</depends-on>
+    <depended-by story="DM-05.3">Approval workflow integration uses HITL handlers</depended-by>
+    <depended-by story="DM-05.4">Progress streaming may use HITL for checkpoints</depended-by>
+  </dependencies>
+
+  <!-- ====================================================================== -->
+  <!-- UI COMPONENTS TO IMPORT -->
+  <!-- ====================================================================== -->
+  <ui-imports>
+    <import from="@/components/ui/card">Card, CardHeader, CardContent, CardFooter</import>
+    <import from="@/components/ui/button">Button</import>
+    <import from="@/components/ui/badge">Badge</import>
+    <import from="@/components/ui/textarea">Textarea</import>
+    <import from="@/components/approval/confidence-indicator">ConfidenceIndicator, ConfidenceBadge</import>
+    <import from="sonner">toast</import>
+    <import from="lucide-react">Info, AlertTriangle, XCircle, CheckCircle2, FileText, Trash2, Loader2</import>
+    <import from="@copilotkit/react-core">useCopilotAction</import>
+    <import from="zustand">create</import>
+    <import from="zustand/middleware">subscribeWithSelector</import>
+  </ui-imports>
+
+  <!-- ====================================================================== -->
+  <!-- TESTING REQUIREMENTS -->
+  <!-- ====================================================================== -->
+  <testing>
+    <unit-tests>
+      <test name="HITLApprovalCard renders with all required elements">
+        Risk badge, confidence indicator, tool args, buttons
+      </test>
+      <test name="HITLApprovalCard shows rejection reason input when requiresReason=true">
+        Click reject -> shows textarea
+      </test>
+      <test name="HITLApprovalCard calls onApprove when approve button clicked">
+        Verify callback
+      </test>
+      <test name="HITLApprovalCard calls onReject with reason when reject confirmed">
+        Enter reason -> click reject -> verify callback
+      </test>
+      <test name="HITLApprovalCard disables buttons when isExecuting=true">
+        Both buttons should be disabled
+      </test>
+      <test name="useHITLAction registers action with CopilotKit">
+        Mock useCopilotAction and verify registration
+      </test>
+      <test name="isHITLPending returns true for valid HITL marker">
+        Test with {__hitl_pending__: true, hitl_result: {...}}
+      </test>
+      <test name="parseHITLResult extracts HITLActionArgs from marker">
+        Verify all fields mapped correctly
+      </test>
+    </unit-tests>
+    <integration-tests>
+      <test>HITLActionRegistration registers all expected actions</test>
+      <test>ContractApprovalCard displays contract-specific data</test>
+      <test>DeleteConfirmCard shows warning styling</test>
+      <test>Toast notifications appear on approve/reject</test>
+    </integration-tests>
+  </testing>
+</story-context>
