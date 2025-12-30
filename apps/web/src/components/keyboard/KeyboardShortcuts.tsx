@@ -190,11 +190,9 @@ export function KeyboardShortcuts() {
       }
 
       // Cmd/Ctrl + /: Toggle Chat Panel
-      if (key === '/') {
-        event.preventDefault();
-        useUIStore.getState().toggleChatPanel();
-        return;
-      }
+      // NOTE: This is now handled by CopilotKeyboardShortcut to avoid conflicts
+      // between legacy ChatPanel and CopilotChat. See DM-07.5 for details.
+      // The CopilotChat is the primary chat interface going forward.
 
       // Cmd/Ctrl + D: Go to Dashboard
       if (key === 'd') {

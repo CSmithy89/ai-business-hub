@@ -170,12 +170,12 @@ development_status:
   # SSR fixes, Test fixes, Shortcut unification
   # Source: tech-debt-consolidated.md Sprint 1
   # ===========================================
-  dm-07: contexted
+  dm-07: complete
   dm-07-1-fix-kb-ssr-build: done
   dm-07-2-fix-python-test-failures: done
   dm-07-3-fix-typescript-test-failures: done
   dm-07-4-reconcile-dm02-status: done
-  dm-07-5-unify-keyboard-shortcuts: backlog
+  dm-07-5-unify-keyboard-shortcuts: done
 
   # ===========================================
   # DM-08: Quality & Performance Hardening

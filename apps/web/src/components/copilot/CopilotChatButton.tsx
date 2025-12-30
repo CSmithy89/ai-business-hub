@@ -12,8 +12,11 @@
  * - Accessible with aria-label
  * - Platform-aware shortcut display (Cmd on Mac, Ctrl on Windows)
  *
+ * Uses DM_CONSTANTS.CHAT.KEYBOARD_SHORTCUT for consistent shortcut display.
+ *
  * @see docs/modules/bm-dm/stories/dm-01-4-copilotkit-chat-integration.md
- * Epic: DM-01 | Story: DM-01.4
+ * @see docs/modules/bm-dm/stories/dm-07-5-unify-keyboard-shortcuts.md
+ * Epic: DM-01 | Story: DM-01.4, DM-07.5
  */
 
 import { useEffect, useState } from 'react';
@@ -25,6 +28,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useCopilotChatState } from './use-copilot-chat-state';
+import { DM_CONSTANTS } from '@/lib/dm-constants';
 
 export function CopilotChatButton() {
   const { isOpen, toggle } = useCopilotChatState();
@@ -37,7 +41,9 @@ export function CopilotChatButton() {
     }
   }, []);
 
-  const shortcutDisplay = isMac ? '\u2318/' : 'Ctrl+/';
+  // Use DM_CONSTANTS for consistent shortcut display
+  const shortcutKey = DM_CONSTANTS.CHAT.KEYBOARD_SHORTCUT;
+  const shortcutDisplay = isMac ? `\u2318${shortcutKey}` : `Ctrl+${shortcutKey}`;
 
   return (
     <Tooltip>
