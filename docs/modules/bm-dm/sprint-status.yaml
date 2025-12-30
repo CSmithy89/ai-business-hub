@@ -158,7 +158,7 @@ development_status:
   dm-06-4-mcp-tool-integration: done
   dm-06-5-universal-agent-mesh: done
   dm-06-6-rag-context-indexing: done
-  dm-06-retrospective: optional
+  dm-06-retrospective: done
 
 # ===========================================
 # Summary
