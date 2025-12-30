@@ -1,0 +1,756 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-06.6 - RAG Context Indexing
+  Epic: DM-06 - Contextual Intelligence
+  Points: 8
+
+  This context file provides comprehensive implementation guidance
+  for the RAG Context Indexing story.
+
+  Generated: 2025-12-31
+-->
+<story-context>
+  <story-id>dm-06-6</story-id>
+  <title>RAG Context Indexing</title>
+  <epic>DM-06 - Contextual Intelligence</epic>
+  <points>8</points>
+  <status>drafted</status>
+
+  <overview>
+    Index application state for RAG (Retrieval-Augmented Generation) queries
+    alongside knowledge base content. This story implements the document
+    embedding pipeline, vector storage integration with pgvector, and
+    semantic search capabilities for context retrieval.
+  </overview>
+
+  <!-- ================================================================== -->
+  <!-- DEPENDENCIES                                                        -->
+  <!-- ================================================================== -->
+  <dependencies>
+    <story-dependencies>
+      <dependency status="complete" story="DM-06.5">
+        Universal Agent Mesh - Agent mesh may coordinate RAG queries
+      </dependency>
+      <dependency status="complete" story="KB-02">
+        RAG Infrastructure - Provides embeddings, pgvector, and search patterns
+      </dependency>
+      <dependency status="complete" story="Foundation">
+        Event Bus - Event-driven index updates for real-time sync
+      </dependency>
+    </story-dependencies>
+
+    <python-dependencies>
+      <package name="pydantic" version="^2.x">Pydantic models for ContextDocument</package>
+      <package name="agno" version="^0.3.x">Vector database and embedder integration</package>
+      <package name="asyncpg" version="^0.29">Async PostgreSQL driver</package>
+      <package name="pgvector" version="^0.2.5">Vector similarity search</package>
+    </python-dependencies>
+
+    <internal-modules>
+      <module path="agents/knowledge/">Knowledge module with embeddings and pgvector</module>
+      <module path="agents/mesh/">Agent mesh patterns for module structure</module>
+    </internal-modules>
+  </dependencies>
+
+  <!-- ================================================================== -->
+  <!-- RELATED CODE - KB-02 INFRASTRUCTURE                                 -->
+  <!-- ================================================================== -->
+  <related-code>
+    <!-- KB-02: Knowledge Factory (embedding + vector store patterns) -->
+    <file path="agents/knowledge/factory.py">
+      <description>
+        KnowledgeFactory creates workspace-scoped knowledge bases with pgvector.
+        Key patterns to follow:
+        - OpenAIEmbedder for generating embeddings
+        - PgVector for vector storage with SearchType.hybrid
+        - Workspace isolation via table naming
+        - BYOAI integration for provider keys
+      </description>
+      <key-imports><![CDATA[
+from agno.vectordb.pgvector import PgVector, SearchType
+from agno.knowledge.knowledge import Knowledge
+from agno.knowledge.embedder.openai import OpenAIEmbedder
+      ]]></key-imports>
+      <key-patterns><![CDATA[
+# Create PgVector instance with tenant-specific table
+vector_db = PgVector(
+    table_name=config.table_name,
+    db_url=self.database_url,
+    search_type=config.search_type,
+    embedder=embedder,
+)
+
+# Create Knowledge instance
+knowledge = Knowledge(
+    vector_db=vector_db,
+)
+      ]]></key-patterns>
+    </file>
+
+    <!-- KB-02: Document Ingestion (content type handling) -->
+    <file path="agents/knowledge/ingestion.py">
+      <description>
+        Ingestion module handles document ingestion into workspace knowledge bases.
+        Key patterns to follow:
+        - DocumentMetadata dataclass for metadata
+        - IngestionResult for return types
+        - search_knowledge function for semantic search
+        - Workspace isolation via filters
+      </description>
+      <search-pattern><![CDATA[
+async def search_knowledge(
+    workspace_id: str,
+    jwt_token: str,
+    query: str,
+    limit: int = 5,
+    offset: int = 0,
+    filters: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    """Search the workspace knowledge base."""
+    # Build filters with workspace isolation
+    search_filters = {"workspace_id": workspace_id}
+    if filters:
+        search_filters.update(filters)
+
+    # Search using Agno's knowledge search
+    results = knowledge.search(
+        query=query,
+        num_documents=limit,
+        filters=search_filters,
+    )
+
+    # Format results
+    formatted = []
+    for doc in results:
+        formatted.append({
+            "content": doc.content if hasattr(doc, 'content') else str(doc),
+            "metadata": doc.metadata if hasattr(doc, 'metadata') else {},
+            "score": doc.score if hasattr(doc, 'score') else None,
+        })
+    return formatted
+      ]]></search-pattern>
+    </file>
+
+    <!-- KB-02: Module Exports -->
+    <file path="agents/knowledge/__init__.py">
+      <description>
+        Knowledge module exports. Follow this pattern for RAG module.
+      </description>
+      <content><![CDATA[
+"""
+HYVVE Knowledge Module
+
+Provides workspace-scoped RAG knowledge bases using Agno's
+PgVector integration with BYOAI embeddings support.
+"""
+
+from .factory import (
+    KnowledgeFactory,
+    get_knowledge_factory,
+    get_workspace_knowledge,
+)
+from .ingestion import (
+    ingest_document,
+    ingest_url,
+    ingest_text,
+    search_knowledge,
+    DocumentMetadata,
+    IngestionResult,
+)
+
+__all__ = [
+    # Factory
+    "KnowledgeFactory",
+    "get_knowledge_factory",
+    "get_workspace_knowledge",
+    # Ingestion
+    "ingest_document",
+    "ingest_url",
+    "ingest_text",
+    "search_knowledge",
+    "DocumentMetadata",
+    "IngestionResult",
+]
+      ]]></content>
+    </file>
+  </related-code>
+
+  <!-- ================================================================== -->
+  <!-- RELATED CODE - AGENT MESH PATTERNS                                  -->
+  <!-- ================================================================== -->
+  <related-code>
+    <!-- Agent Mesh: Pydantic Model Patterns -->
+    <file path="agents/mesh/models.py">
+      <description>
+        Agent mesh models demonstrate Pydantic patterns for this codebase:
+        - Field with default_factory for mutable defaults
+        - field_serializer for custom serialization
+        - model_config with populate_by_name for aliases
+        - to_dict() method pattern
+      </description>
+      <pydantic-patterns><![CDATA[
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field, field_serializer
+
+
+class AgentHealth(str, Enum):
+    """Agent health status."""
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNHEALTHY = "unhealthy"
+    UNKNOWN = "unknown"
+
+
+class MeshAgentCard(BaseModel):
+    """Extended A2A AgentCard for mesh registration."""
+
+    name: str = Field(..., description="Agent name/identifier")
+    description: str = Field(..., description="Agent description")
+    url: str = Field(..., description="A2A endpoint URL")
+    version: str = Field(default="1.0.0", description="Agent version")
+    capabilities: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Protocol capabilities",
+    )
+    skills: List[AgentCapability] = Field(
+        default_factory=list,
+        description="Agent skills/capabilities",
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        alias="createdAt",
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional metadata",
+    )
+
+    model_config = {"populate_by_name": True}
+
+    @field_serializer("created_at")
+    def serialize_datetime(self, value: datetime) -> str:
+        """Serialize datetime to ISO format."""
+        return value.isoformat().replace("+00:00", "Z")
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary with camelCase keys."""
+        return {
+            "name": self.name,
+            "description": self.description,
+            "createdAt": self.serialize_datetime(self.created_at),
+            "metadata": self.metadata,
+        }
+      ]]></pydantic-patterns>
+    </file>
+
+    <!-- Agent Mesh: Module Structure -->
+    <file path="agents/mesh/__init__.py">
+      <description>
+        Module init pattern with comprehensive docstring and exports.
+      </description>
+      <content><![CDATA[
+"""
+Universal Agent Mesh
+
+Provides agent mesh infrastructure for the HYVVE Dynamic Module System.
+Enables agent discovery, registration, health monitoring, and intelligent
+routing across the agent mesh.
+
+@see docs/modules/bm-dm/stories/dm-06-5-universal-agent-mesh.md
+Epic: DM-06 | Story: DM-06.5
+
+Components:
+- models: Core data models
+- registry: Central agent registry
+- discovery: A2A protocol discovery
+- router: Intelligent request routing
+"""
+
+from .models import (
+    AgentCapability,
+    AgentCapabilityType,
+    AgentEndpoint,
+    AgentHealth,
+    MeshAgentCard,
+)
+
+from .registry import (
+    AgentRegistry,
+    RegistryEvent,
+    get_registry,
+    reset_registry,
+)
+
+__all__ = [
+    # Models
+    "AgentCapability",
+    "MeshAgentCard",
+    # Registry
+    "AgentRegistry",
+    "get_registry",
+]
+      ]]></content>
+    </file>
+
+    <!-- Agent Mesh: Test Patterns -->
+    <file path="agents/mesh/__tests__/test_models.py">
+      <description>
+        Test patterns for Pydantic models with pytest.
+      </description>
+      <test-patterns><![CDATA[
+"""
+Tests for Agent Mesh Models
+
+@see docs/modules/bm-dm/stories/dm-06-5-universal-agent-mesh.md
+Epic: DM-06 | Story: DM-06.5
+"""
+from datetime import datetime, timezone
+import pytest
+
+from mesh.models import (
+    AgentCapability,
+    AgentHealth,
+    MeshAgentCard,
+)
+
+
+class TestAgentCapability:
+    """Tests for AgentCapability model."""
+
+    def test_creates_capability_with_defaults(self):
+        """Should create capability with default modes."""
+        cap = AgentCapability(
+            id="search",
+            name="Search",
+            description="Search capability",
+        )
+        assert cap.id == "search"
+        assert cap.input_modes == ["text"]
+
+    def test_to_dict(self):
+        """Should convert to dictionary with camelCase keys."""
+        cap = AgentCapability(
+            id="test",
+            name="Test",
+            description="Test capability",
+        )
+        result = cap.to_dict()
+        assert result["id"] == "test"
+        assert result["inputModes"] == ["text"]
+
+
+class TestMeshAgentCard:
+    """Tests for MeshAgentCard model."""
+
+    def test_creates_agent_card_with_required_fields(self):
+        """Should create agent card with required fields."""
+        card = MeshAgentCard(
+            name="TestAgent",
+            description="A test agent",
+            url="http://localhost:8000",
+        )
+        assert card.name == "TestAgent"
+        assert card.version == "1.0.0"
+        assert card.health == AgentHealth.UNKNOWN
+
+    def test_serialize_datetime(self):
+        """Should serialize datetime to ISO format."""
+        fixed_time = datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        card = MeshAgentCard(
+            name="TestAgent",
+            description="Test",
+            url="http://localhost:8000",
+            created_at=fixed_time,
+        )
+        result = card.to_dict()
+        assert result["createdAt"] == "2025-01-01T12:00:00Z"
+      ]]></test-patterns>
+    </file>
+  </related-code>
+
+  <!-- ================================================================== -->
+  <!-- DATABASE SCHEMA                                                     -->
+  <!-- ================================================================== -->
+  <related-code>
+    <!-- Prisma Schema: PageEmbedding -->
+    <file path="packages/db/prisma/schema.prisma">
+      <description>
+        PageEmbedding model shows existing pgvector pattern in the codebase.
+        Note: RAG context uses same pgvector extension but different storage approach.
+        Uses Agno's PgVector table per workspace (like KnowledgeFactory).
+      </description>
+      <content><![CDATA[
+/// PageEmbedding - Vector embeddings for RAG search
+/// Note: Requires pgvector extension - CREATE EXTENSION IF NOT EXISTS vector;
+model PageEmbedding {
+  id         String @id @default(cuid())
+  pageId     String @map("page_id")
+  chunkIndex Int    @map("chunk_index")
+
+  // Content
+  chunkText String @map("chunk_text") @db.Text
+
+  // Vector embedding (pgvector)
+  // Note: vector(1536) for OpenAI ada-002 / text-embedding-3-small
+  // Using Unsupported for pgvector type - requires raw SQL for operations
+  embedding Unsupported("vector(1536)")
+
+  // Metadata
+  embeddingModel String   @default("text-embedding-3-small") @map("embedding_model") @db.VarChar(100)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  page KnowledgePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  // Vector index created via migration:
+  // CREATE INDEX idx_embedding_vector ON page_embeddings
+  //   USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+  @@map("page_embeddings")
+}
+      ]]></content>
+    </file>
+  </related-code>
+
+  <!-- ================================================================== -->
+  <!-- PATTERNS TO FOLLOW                                                  -->
+  <!-- ================================================================== -->
+  <patterns>
+    <pattern name="pydantic-model">
+      <description>Use Pydantic BaseModel for all data classes</description>
+      <example><![CDATA[
+from datetime import datetime
+from typing import Any, Dict, Optional
+from pydantic import BaseModel, Field
+import hashlib
+
+
+class ContextDocument(BaseModel):
+    """A document to be indexed for RAG."""
+
+    id: str
+    type: str  # project, task, document, activity
+    content: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    workspace_id: str
+    user_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    def content_hash(self) -> str:
+        """Generate hash of content for change detection."""
+        return hashlib.sha256(self.content.encode()).hexdigest()[:16]
+      ]]></example>
+    </pattern>
+
+    <pattern name="async-service">
+      <description>Use async/await for all I/O operations</description>
+      <example><![CDATA[
+async def index_document(self, doc: ContextDocument) -> bool:
+    """Index a single document."""
+    # Check if content changed
+    content_hash = doc.content_hash()
+    if self._content_hashes.get(doc.id) == content_hash:
+        logger.debug(f"Document {doc.id} unchanged, skipping")
+        return False
+
+    # Generate embedding (async)
+    embedding = await self.embedding_service.embed_text(doc.content)
+
+    # Store in vector database (async)
+    await self.vector_store.upsert(
+        id=f"ctx_{doc.id}",
+        embedding=embedding,
+        metadata={...},
+    )
+
+    self._content_hashes[doc.id] = content_hash
+    return True
+      ]]></example>
+    </pattern>
+
+    <pattern name="namespace-prefix">
+      <description>Use ctx_ prefix for context documents to separate from KB docs</description>
+      <example><![CDATA[
+# Index namespacing:
+# - Project: ctx_project_{id}
+# - Task: ctx_task_{id}
+# - Activity: ctx_activity_{workspace_id}_{date}
+# - Document: ctx_document_{id}
+
+await self.vector_store.upsert(
+    id=f"ctx_{doc.id}",  # Prefixed ID
+    embedding=embedding,
+    metadata={...},
+)
+      ]]></example>
+    </pattern>
+
+    <pattern name="event-handling">
+      <description>Handle events with type prefix routing</description>
+      <example><![CDATA[
+async def handle_event(self, event: Dict[str, Any]) -> None:
+    """Handle a state change event and update index."""
+    event_type = event.get("type", "")
+    workspace_id = event.get("workspaceId")
+
+    if not workspace_id:
+        return
+
+    try:
+        if event_type.startswith("project."):
+            await self._handle_project_event(event)
+        elif event_type.startswith("task."):
+            await self._handle_task_event(event)
+        elif event_type.startswith("document."):
+            await self._handle_document_event(event)
+    except Exception as e:
+        logger.error(f"Error handling event {event_type}: {e}")
+      ]]></example>
+    </pattern>
+
+    <pattern name="pytest-async">
+      <description>Use pytest.mark.asyncio for async tests</description>
+      <example><![CDATA[
+import pytest
+from unittest.mock import AsyncMock, MagicMock
+
+
+class TestContextIndexer:
+    """Tests for ContextIndexer class."""
+
+    @pytest.fixture
+    def mock_embedding_service(self):
+        service = AsyncMock()
+        service.embed_text.return_value = [0.1] * 768
+        return service
+
+    @pytest.fixture
+    def mock_vector_store(self):
+        store = AsyncMock()
+        store.upsert.return_value = None
+        store.search.return_value = []
+        store.delete.return_value = None
+        return store
+
+    @pytest.fixture
+    def indexer(self, mock_embedding_service, mock_vector_store):
+        return ContextIndexer(mock_embedding_service, mock_vector_store)
+
+    @pytest.mark.asyncio
+    async def test_index_document_new(self, indexer, mock_embedding_service, mock_vector_store):
+        """Should index new document."""
+        doc = ContextDocument(
+            id="doc_123",
+            type="project",
+            content="Project description",
+            workspace_id="ws_123",
+        )
+
+        result = await indexer.index_document(doc)
+
+        assert result is True
+        mock_embedding_service.embed_text.assert_called_once()
+        mock_vector_store.upsert.assert_called_once()
+      ]]></example>
+    </pattern>
+  </patterns>
+
+  <!-- ================================================================== -->
+  <!-- IMPLEMENTATION NOTES                                                -->
+  <!-- ================================================================== -->
+  <implementation-notes>
+    <note category="architecture">
+      <title>KB-02 Integration</title>
+      <content>
+        This story integrates with KB-02 RAG infrastructure:
+        - Reuse EmbeddingService patterns from knowledge/factory.py
+        - Use same pgvector database but different table/namespace (ctx_ prefix)
+        - Follow search interface patterns from knowledge/ingestion.py
+
+        DO NOT duplicate embedding logic - import and reuse from knowledge module.
+      </content>
+    </note>
+
+    <note category="performance">
+      <title>Performance Targets</title>
+      <content>
+        | Operation | Target | Critical |
+        |-----------|--------|----------|
+        | Index single document | less than 100ms | less than 200ms |
+        | Batch index (100 docs) | less than 5s | less than 10s |
+        | Semantic search | less than 500ms | less than 1s |
+        | Content hash check | less than 1ms | less than 5ms |
+
+        Content hashing is key to performance - skip unchanged documents.
+      </content>
+    </note>
+
+    <note category="structure">
+      <title>File Structure</title>
+      <content>
+        Create these files:
+        - agents/rag/__init__.py - Module exports
+        - agents/rag/models.py - ContextDocument model
+        - agents/rag/context_indexer.py - ContextIndexer class
+        - agents/rag/context_sync.py - ContextSyncService class
+        - agents/rag/__tests__/__init__.py - Test package init
+        - agents/rag/__tests__/test_models.py - Model tests
+        - agents/rag/__tests__/test_context_indexer.py - Indexer tests
+        - agents/rag/__tests__/test_context_sync.py - Sync service tests
+
+        Follow patterns from agents/mesh/ for structure.
+      </content>
+    </note>
+
+    <note category="testing">
+      <title>Testing Strategy</title>
+      <content>
+        Unit tests with mocks (85%+ coverage required):
+        - Mock embedding_service with AsyncMock
+        - Mock vector_store with AsyncMock
+        - Test hash-based change detection
+        - Test event routing
+        - Test lifecycle (start/stop)
+
+        Integration tests (later):
+        - Verify with real pgvector
+        - Test search performance
+        - Test event bus integration
+      </content>
+    </note>
+
+    <note category="events">
+      <title>Event Types</title>
+      <content>
+        Handle these events from the HYVVE event bus:
+        - project.created - Index new project
+        - project.updated - Re-index project
+        - project.deleted - Remove from index
+        - task.created - Index new task
+        - task.updated - Re-index task
+        - task.deleted - Remove from index
+        - document.created - Index new document
+        - document.updated - Re-index document
+        - document.deleted - Remove from index
+      </content>
+    </note>
+
+    <note category="content-hashing">
+      <title>Content Hashing Strategy</title>
+      <content>
+        Documents are hashed using SHA-256 truncated to 16 characters:
+        - Enables fast change detection without re-embedding
+        - Hash cache stored in memory (cleared on restart)
+        - Full re-index can be triggered via sync_workspace()
+
+        This is critical for performance - embedding is expensive.
+      </content>
+    </note>
+  </implementation-notes>
+
+  <!-- ================================================================== -->
+  <!-- FILES TO CREATE                                                     -->
+  <!-- ================================================================== -->
+  <files-to-create>
+    <file path="agents/rag/__init__.py">
+      Module exports for RAG context package
+    </file>
+    <file path="agents/rag/models.py">
+      ContextDocument model with content hashing
+    </file>
+    <file path="agents/rag/context_indexer.py">
+      Context indexer for embedding and search
+    </file>
+    <file path="agents/rag/context_sync.py">
+      Sync service for event-driven updates
+    </file>
+    <file path="agents/rag/__tests__/__init__.py">
+      Test package init
+    </file>
+    <file path="agents/rag/__tests__/test_models.py">
+      Model unit tests
+    </file>
+    <file path="agents/rag/__tests__/test_context_indexer.py">
+      Indexer unit tests
+    </file>
+    <file path="agents/rag/__tests__/test_context_sync.py">
+      Sync service unit tests
+    </file>
+  </files-to-create>
+
+  <!-- ================================================================== -->
+  <!-- FILES TO MODIFY                                                     -->
+  <!-- ================================================================== -->
+  <files-to-modify>
+    <file path="docs/modules/bm-dm/sprint-status.yaml">
+      Update story status to in-progress then done
+    </file>
+  </files-to-modify>
+
+  <!-- ================================================================== -->
+  <!-- ACCEPTANCE CRITERIA CHECKLIST                                       -->
+  <!-- ================================================================== -->
+  <acceptance-criteria>
+    <criterion id="AC1">ContextDocument model defines structure with id, type, content, metadata, workspace_id, timestamps</criterion>
+    <criterion id="AC2">ContextDocument.content_hash() generates SHA-256 hash for change detection</criterion>
+    <criterion id="AC3">ContextIndexer class indexes application context for RAG queries</criterion>
+    <criterion id="AC4">ContextIndexer.__init__() accepts embedding_service and vector_store from KB module</criterion>
+    <criterion id="AC5">ContextIndexer.index_document(doc) embeds and stores document, returns True if indexed</criterion>
+    <criterion id="AC6">ContextIndexer.index_document() skips unchanged documents using content hash comparison</criterion>
+    <criterion id="AC7">ContextIndexer.index_project() indexes project metadata with name and description</criterion>
+    <criterion id="AC8">ContextIndexer.index_task() indexes task with title, description, status, and project_id</criterion>
+    <criterion id="AC9">ContextIndexer.index_activity_batch() indexes activities grouped by day with summaries</criterion>
+    <criterion id="AC10">ContextIndexer.search() returns semantically relevant documents with scores (less than 1s)</criterion>
+    <criterion id="AC11">ContextIndexer.search() supports workspace_id and type_filter parameters</criterion>
+    <criterion id="AC12">ContextIndexer.delete_document() removes document from index and clears hash cache</criterion>
+    <criterion id="AC13">ContextIndexer.clear_workspace() removes all indexed content for a workspace</criterion>
+    <criterion id="AC14">ContextSyncService keeps RAG index synchronized with application state</criterion>
+    <criterion id="AC15">ContextSyncService.start() begins periodic sync at configured interval (default 1 hour)</criterion>
+    <criterion id="AC16">ContextSyncService.stop() stops sync and cleans up resources</criterion>
+    <criterion id="AC17">ContextSyncService.sync_workspace() syncs all context for a workspace, returns counts by type</criterion>
+    <criterion id="AC18">ContextSyncService.handle_event() processes state change events and updates index</criterion>
+    <criterion id="AC19">Event handlers for project.created/updated/deleted update index appropriately</criterion>
+    <criterion id="AC20">Event handlers for task.created/updated/deleted update index appropriately</criterion>
+    <criterion id="AC21">RAG module exports defined in agents/rag/__init__.py</criterion>
+    <criterion id="AC22">Unit tests pass with greater than 85% coverage for RAG context module</criterion>
+  </acceptance-criteria>
+
+  <!-- ================================================================== -->
+  <!-- DEFINITION OF DONE                                                  -->
+  <!-- ================================================================== -->
+  <definition-of-done>
+    <item>ContextDocument model with content hashing</item>
+    <item>ContextIndexer indexes projects, tasks, activities</item>
+    <item>Indexer skips unchanged documents (hash comparison)</item>
+    <item>ContextSyncService handles event-driven updates</item>
+    <item>Sync service supports periodic full sync</item>
+    <item>Search returns relevant results in less than 1s</item>
+    <item>Integration with KB-02 embedding service</item>
+    <item>Integration with KB-02 vector store (pgvector)</item>
+    <item>Module exports defined in __init__.py</item>
+    <item>Unit tests pass with greater than 85% coverage</item>
+    <item>Performance target met (index less than 100ms, search less than 500ms)</item>
+    <item>Sprint status updated</item>
+  </definition-of-done>
+
+  <!-- ================================================================== -->
+  <!-- REFERENCES                                                          -->
+  <!-- ================================================================== -->
+  <references>
+    <reference type="tech-spec" path="docs/modules/bm-dm/epics/epic-dm-06-tech-spec.md">
+      Section 3.6 - RAG Context Indexing implementation details
+    </reference>
+    <reference type="story" path="docs/modules/bm-dm/stories/dm-06-6-rag-context-indexing.md">
+      Full story with all acceptance criteria and test examples
+    </reference>
+    <reference type="module" path="agents/knowledge/">
+      KB-02 RAG infrastructure patterns
+    </reference>
+    <reference type="module" path="agents/mesh/">
+      DM-06.5 Agent mesh patterns for module structure
+    </reference>
+  </references>
+</story-context>

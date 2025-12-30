@@ -1,596 +1,541 @@
 {
   "testModules": [
     {
-      "moduleId": "mesh/__tests__/test_discovery.py",
+      "moduleId": "rag/__tests__/test_context_indexer.py",
       "tests": [
         {
-          "name": "test_init_defaults",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_init_defaults",
+          "name": "test_initializes_with_services",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestContextIndexer::test_initializes_with_services",
           "state": "passed"
         },
         {
-          "name": "test_init_with_config",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_init_with_config",
+          "name": "test_id_prefix",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestContextIndexer::test_id_prefix",
           "state": "passed"
         },
         {
-          "name": "test_start_initializes_client",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_start_initializes_client",
+          "name": "test_get_index_id",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestContextIndexer::test_get_index_id",
           "state": "passed"
         },
         {
-          "name": "test_start_performs_initial_scan",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_start_performs_initial_scan",
+          "name": "test_indexes_new_document",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_indexes_new_document",
           "state": "passed"
         },
         {
-          "name": "test_stop_cleans_up",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_stop_cleans_up",
+          "name": "test_skips_unchanged_document",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_skips_unchanged_document",
           "state": "passed"
         },
         {
-          "name": "test_stop_cancels_periodic_scan",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_stop_cancels_periodic_scan",
+          "name": "test_reindexes_changed_document",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_reindexes_changed_document",
           "state": "passed"
         },
         {
-          "name": "test_discover_agent_parses_response",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_parses_response",
+          "name": "test_includes_user_id_in_metadata",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_includes_user_id_in_metadata",
           "state": "passed"
         },
         {
-          "name": "test_discover_agent_registers_when_enabled",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_registers_when_enabled",
+          "name": "test_includes_custom_metadata",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_includes_custom_metadata",
           "state": "passed"
         },
         {
-          "name": "test_discover_agent_not_found",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_not_found",
+          "name": "test_raises_on_embedding_error",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexDocument::test_raises_on_embedding_error",
           "state": "passed"
         },
         {
-          "name": "test_discover_agent_connection_error",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_connection_error",
+          "name": "test_indexes_batch",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexBatch::test_indexes_batch",
           "state": "passed"
         },
         {
-          "name": "test_discover_agent_timeout",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_timeout",
+          "name": "test_batch_skips_unchanged",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexBatch::test_batch_skips_unchanged",
           "state": "passed"
         },
         {
-          "name": "test_discover_agent_invalid_card",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_discover_agent_invalid_card",
+          "name": "test_batch_handles_failures",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexBatch::test_batch_handles_failures",
           "state": "passed"
         },
         {
-          "name": "test_scan_discovers_all_urls",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_scan_discovers_all_urls",
+          "name": "test_indexes_project",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexProject::test_indexes_project",
           "state": "passed"
         },
         {
-          "name": "test_scan_handles_failures",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_scan_handles_failures",
+          "name": "test_project_content_format",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexProject::test_project_content_format",
           "state": "passed"
         },
         {
-          "name": "test_scan_requires_started_service",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_scan_requires_started_service",
+          "name": "test_project_with_metadata",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexProject::test_project_with_metadata",
           "state": "passed"
         },
         {
-          "name": "test_add_discovery_url",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_add_discovery_url",
+          "name": "test_indexes_task",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexTask::test_indexes_task",
           "state": "passed"
         },
         {
-          "name": "test_add_discovery_url_no_duplicates",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_add_discovery_url_no_duplicates",
+          "name": "test_task_content_format",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexTask::test_task_content_format",
           "state": "passed"
         },
         {
-          "name": "test_remove_discovery_url",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_remove_discovery_url",
+          "name": "test_indexes_activities",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexActivityBatch::test_indexes_activities",
           "state": "passed"
         },
         {
-          "name": "test_remove_discovery_url_not_found",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_remove_discovery_url_not_found",
+          "name": "test_empty_activities",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexActivityBatch::test_empty_activities",
           "state": "passed"
         },
         {
-          "name": "test_get_discovery_urls",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_get_discovery_urls",
+          "name": "test_activity_content_format",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestIndexActivityBatch::test_activity_content_format",
           "state": "passed"
         },
         {
-          "name": "test_check_agent_health_healthy",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_check_agent_health_healthy",
+          "name": "test_search_returns_results",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_returns_results",
           "state": "passed"
         },
         {
-          "name": "test_check_agent_health_unhealthy",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_check_agent_health_unhealthy",
+          "name": "test_search_with_type_filter",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_with_type_filter",
           "state": "passed"
         },
         {
-          "name": "test_check_agent_health_unknown_agent",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_check_agent_health_unknown_agent",
+          "name": "test_search_with_limit",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_with_limit",
           "state": "passed"
         },
         {
-          "name": "test_health_check_all",
-          "fullName": "mesh/__tests__/test_discovery.py::TestDiscoveryService::test_health_check_all",
+          "name": "test_search_includes_workspace_filter",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_includes_workspace_filter",
           "state": "passed"
         },
         {
-          "name": "test_parse_minimal_card",
-          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_minimal_card",
+          "name": "test_search_generates_query_embedding",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestSearch::test_search_generates_query_embedding",
           "state": "passed"
         },
         {
-          "name": "test_parse_card_uses_base_url_fallback",
-          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_card_uses_base_url_fallback",
+          "name": "test_deletes_document",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestDeleteDocument::test_deletes_document",
           "state": "passed"
         },
         {
-          "name": "test_parse_card_with_skills",
-          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_card_with_skills",
+          "name": "test_clears_hash_cache_on_delete",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestDeleteDocument::test_clears_hash_cache_on_delete",
           "state": "passed"
         },
         {
-          "name": "test_parse_card_missing_name",
-          "fullName": "mesh/__tests__/test_discovery.py::TestParseAgentCard::test_parse_card_missing_name",
+          "name": "test_handles_delete_error",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestDeleteDocument::test_handles_delete_error",
           "state": "passed"
         },
         {
-          "name": "test_get_discovery_service_singleton",
-          "fullName": "mesh/__tests__/test_discovery.py::TestGlobalDiscoveryService::test_get_discovery_service_singleton",
+          "name": "test_clears_workspace",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestClearWorkspace::test_clears_workspace",
           "state": "passed"
         },
         {
-          "name": "test_configure_discovery_service",
-          "fullName": "mesh/__tests__/test_discovery.py::TestGlobalDiscoveryService::test_configure_discovery_service",
+          "name": "test_raises_on_clear_error",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestClearWorkspace::test_raises_on_clear_error",
           "state": "passed"
         },
         {
-          "name": "test_shutdown_discovery_service",
-          "fullName": "mesh/__tests__/test_discovery.py::TestGlobalDiscoveryService::test_shutdown_discovery_service",
+          "name": "test_returns_stats",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGetStats::test_returns_stats",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_stats",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGetStats::test_empty_stats",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_indexer_creates_instance",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGlobalIndexer::test_get_context_indexer_creates_instance",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_indexer_returns_same_instance",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGlobalIndexer::test_get_context_indexer_returns_same_instance",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_indexer_requires_services",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGlobalIndexer::test_get_context_indexer_requires_services",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_indexer",
+          "fullName": "rag/__tests__/test_context_indexer.py::TestGlobalIndexer::test_reset_indexer",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "mesh/__tests__/test_models.py",
+      "moduleId": "rag/__tests__/test_context_sync.py",
+      "tests": [
+        {
+          "name": "test_initializes_with_defaults",
+          "fullName": "rag/__tests__/test_context_sync.py::TestContextSyncService::test_initializes_with_defaults",
+          "state": "passed"
+        },
+        {
+          "name": "test_initializes_with_custom_interval",
+          "fullName": "rag/__tests__/test_context_sync.py::TestContextSyncService::test_initializes_with_custom_interval",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_sets_running",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_start_sets_running",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_clears_running",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_stop_clears_running",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_creates_sync_task",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_start_creates_sync_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_cancels_sync_task",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_stop_cancels_sync_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_twice_is_safe",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_start_twice_is_safe",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_without_start_is_safe",
+          "fullName": "rag/__tests__/test_context_sync.py::TestStartStop::test_stop_without_start_is_safe",
+          "state": "passed"
+        },
+        {
+          "name": "test_syncs_all_content",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_syncs_all_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_calls_indexer_for_projects",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_calls_indexer_for_projects",
+          "state": "passed"
+        },
+        {
+          "name": "test_calls_indexer_for_tasks",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_calls_indexer_for_tasks",
+          "state": "passed"
+        },
+        {
+          "name": "test_calls_indexer_for_activities",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_calls_indexer_for_activities",
+          "state": "passed"
+        },
+        {
+          "name": "test_updates_last_sync",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_updates_last_sync",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_counts",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_returns_counts",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_indexer_error",
+          "fullName": "rag/__tests__/test_context_sync.py::TestSyncWorkspace::test_handles_indexer_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_project_created",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_project_created",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_project_updated",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_project_updated",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_project_deleted",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_project_deleted",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_task_created",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_task_created",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_task_updated",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_task_updated",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_task_deleted",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_task_deleted",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_document_created",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_document_created",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_document_deleted",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_document_deleted",
+          "state": "passed"
+        },
+        {
+          "name": "test_ignores_unknown_event_type",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_ignores_unknown_event_type",
+          "state": "passed"
+        },
+        {
+          "name": "test_ignores_event_without_workspace",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_ignores_event_without_workspace",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_workspace_id_snake_case",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_workspace_id_snake_case",
+          "state": "passed"
+        },
+        {
+          "name": "test_tracks_event_counts",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_tracks_event_counts",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_task_project_id_snake_case",
+          "fullName": "rag/__tests__/test_context_sync.py::TestHandleEvent::test_handles_task_project_id_snake_case",
+          "state": "passed"
+        },
+        {
+          "name": "test_periodic_sync_runs",
+          "fullName": "rag/__tests__/test_context_sync.py::TestPeriodicSync::test_periodic_sync_runs",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_none_for_unknown_workspace",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGetLastSync::test_returns_none_for_unknown_workspace",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_timestamp_after_sync",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGetLastSync::test_returns_timestamp_after_sync",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_empty_initially",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGetEventCounts::test_returns_empty_initially",
+          "state": "passed"
+        },
+        {
+          "name": "test_returns_counts_after_events",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGetEventCounts::test_returns_counts_after_events",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_sync_service_creates_instance",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGlobalSyncService::test_get_context_sync_service_creates_instance",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_sync_service_returns_same_instance",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGlobalSyncService::test_get_context_sync_service_returns_same_instance",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_context_sync_service_requires_deps",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGlobalSyncService::test_get_context_sync_service_requires_deps",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_sync_service",
+          "fullName": "rag/__tests__/test_context_sync.py::TestGlobalSyncService::test_reset_sync_service",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_created_uses_content",
+          "fullName": "rag/__tests__/test_context_sync.py::TestDocumentEventHandling::test_document_created_uses_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_created_fallback_to_title",
+          "fullName": "rag/__tests__/test_context_sync.py::TestDocumentEventHandling::test_document_created_fallback_to_title",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_updated_reindexes",
+          "fullName": "rag/__tests__/test_context_sync.py::TestDocumentEventHandling::test_document_updated_reindexes",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "rag/__tests__/test_models.py",
       "tests": [
         {
           "name": "test_enum_values",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentCapabilityType::test_enum_values",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocumentType::test_enum_values",
           "state": "passed"
         },
         {
-          "name": "test_health_values",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentHealth::test_health_values",
+          "name": "test_enum_string_comparison",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocumentType::test_enum_string_comparison",
           "state": "passed"
         },
         {
-          "name": "test_creates_capability_with_defaults",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_creates_capability_with_defaults",
+          "name": "test_creates_document_with_required_fields",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_creates_document_with_required_fields",
           "state": "passed"
         },
         {
-          "name": "test_creates_capability_with_custom_modes",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_creates_capability_with_custom_modes",
+          "name": "test_creates_document_with_all_fields",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_creates_document_with_all_fields",
           "state": "passed"
         },
         {
-          "name": "test_capability_alias_fields",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_capability_alias_fields",
+          "name": "test_content_hash_consistency",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_content_hash_consistency",
           "state": "passed"
         },
         {
-          "name": "test_to_dict",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentCapability::test_to_dict",
+          "name": "test_content_hash_changes_with_content",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_content_hash_changes_with_content",
           "state": "passed"
         },
         {
-          "name": "test_creates_endpoint",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_creates_endpoint",
-          "state": "passed"
-        },
-        {
-          "name": "test_full_url_without_path",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_full_url_without_path",
-          "state": "passed"
-        },
-        {
-          "name": "test_full_url_with_path",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_full_url_with_path",
-          "state": "passed"
-        },
-        {
-          "name": "test_to_dict",
-          "fullName": "mesh/__tests__/test_models.py::TestAgentEndpoint::test_to_dict",
-          "state": "passed"
-        },
-        {
-          "name": "test_creates_agent_card_with_required_fields",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_creates_agent_card_with_required_fields",
-          "state": "passed"
-        },
-        {
-          "name": "test_creates_agent_card_with_all_fields",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_creates_agent_card_with_all_fields",
-          "state": "passed"
-        },
-        {
-          "name": "test_default_timestamps",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_default_timestamps",
-          "state": "passed"
-        },
-        {
-          "name": "test_to_json_ld",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_to_json_ld",
-          "state": "passed"
-        },
-        {
-          "name": "test_to_dict",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_to_dict",
-          "state": "passed"
-        },
-        {
-          "name": "test_update_last_seen",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_update_last_seen",
-          "state": "passed"
-        },
-        {
-          "name": "test_has_capability_true",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_has_capability_true",
-          "state": "passed"
-        },
-        {
-          "name": "test_has_capability_false",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_has_capability_false",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_endpoint",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_get_endpoint",
-          "state": "passed"
-        },
-        {
-          "name": "test_serialize_datetime",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_serialize_datetime",
+          "name": "test_content_hash_is_16_chars",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_content_hash_is_16_chars",
           "state": "passed"
         },
         {
           "name": "test_alias_fields",
-          "fullName": "mesh/__tests__/test_models.py::TestMeshAgentCard::test_alias_fields",
-          "state": "passed"
-        }
-      ]
-    },
-    {
-      "moduleId": "mesh/__tests__/test_registry.py",
-      "tests": [
-        {
-          "name": "test_register_agent",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_register_agent",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_alias_fields",
           "state": "passed"
         },
         {
-          "name": "test_register_updates_existing",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_register_updates_existing",
+          "name": "test_to_dict",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_unregister_agent",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_unregister_agent",
+          "name": "test_default_timestamps",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_default_timestamps",
           "state": "passed"
         },
         {
-          "name": "test_unregister_nonexistent",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_unregister_nonexistent",
+          "name": "test_serialize_datetime",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_serialize_datetime",
           "state": "passed"
         },
         {
-          "name": "test_get_agent",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_agent",
+          "name": "test_empty_content_hash",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_empty_content_hash",
           "state": "passed"
         },
         {
-          "name": "test_get_updates_last_seen",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_updates_last_seen",
+          "name": "test_unicode_content_hash",
+          "fullName": "rag/__tests__/test_models.py::TestContextDocument::test_unicode_content_hash",
           "state": "passed"
         },
         {
-          "name": "test_get_nonexistent",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_nonexistent",
+          "name": "test_creates_with_defaults",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_creates_with_defaults",
           "state": "passed"
         },
         {
-          "name": "test_list_all",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_all",
+          "name": "test_creates_with_values",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_creates_with_values",
           "state": "passed"
         },
         {
-          "name": "test_list_by_module",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_by_module",
+          "name": "test_total_property",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_total_property",
           "state": "passed"
         },
         {
-          "name": "test_list_by_capability",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_by_capability",
+          "name": "test_success_property_true",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_success_property_true",
           "state": "passed"
         },
         {
-          "name": "test_list_healthy",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_healthy",
+          "name": "test_success_property_false",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_success_property_false",
           "state": "passed"
         },
         {
-          "name": "test_list_external",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_external",
+          "name": "test_to_dict",
+          "fullName": "rag/__tests__/test_models.py::TestIndexResult::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_list_internal",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_list_internal",
+          "name": "test_creates_with_required_fields",
+          "fullName": "rag/__tests__/test_models.py::TestSearchResult::test_creates_with_required_fields",
           "state": "passed"
         },
         {
-          "name": "test_update_health",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_update_health",
+          "name": "test_creates_with_all_fields",
+          "fullName": "rag/__tests__/test_models.py::TestSearchResult::test_creates_with_all_fields",
           "state": "passed"
         },
         {
-          "name": "test_update_health_nonexistent",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_update_health_nonexistent",
+          "name": "test_alias_fields",
+          "fullName": "rag/__tests__/test_models.py::TestSearchResult::test_alias_fields",
           "state": "passed"
         },
         {
-          "name": "test_set_health",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_set_health",
+          "name": "test_to_dict",
+          "fullName": "rag/__tests__/test_models.py::TestSearchResult::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_is_healthy",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_is_healthy",
+          "name": "test_creates_with_required_fields",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_creates_with_required_fields",
           "state": "passed"
         },
         {
-          "name": "test_is_healthy_unknown",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_is_healthy_unknown",
+          "name": "test_creates_with_all_fields",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_creates_with_all_fields",
           "state": "passed"
         },
         {
-          "name": "test_get_health_unknown",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_health_unknown",
+          "name": "test_alias_fields",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_alias_fields",
           "state": "passed"
         },
         {
-          "name": "test_subscribe",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_subscribe",
+          "name": "test_to_dict",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_subscribe_unregister",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_subscribe_unregister",
+          "name": "test_to_dict_null_last_sync",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_to_dict_null_last_sync",
           "state": "passed"
         },
         {
-          "name": "test_subscribe_health_update",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_subscribe_health_update",
-          "state": "passed"
-        },
-        {
-          "name": "test_unsubscribe",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_unsubscribe",
-          "state": "passed"
-        },
-        {
-          "name": "test_count",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_count",
-          "state": "passed"
-        },
-        {
-          "name": "test_contains",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_contains",
-          "state": "passed"
-        },
-        {
-          "name": "test_clear",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_clear",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_stats",
-          "fullName": "mesh/__tests__/test_registry.py::TestAgentRegistry::test_get_stats",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_registry_singleton",
-          "fullName": "mesh/__tests__/test_registry.py::TestGlobalRegistry::test_get_registry_singleton",
-          "state": "passed"
-        },
-        {
-          "name": "test_reset_registry",
-          "fullName": "mesh/__tests__/test_registry.py::TestGlobalRegistry::test_reset_registry",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_registry_creates_new",
-          "fullName": "mesh/__tests__/test_registry.py::TestGlobalRegistry::test_get_registry_creates_new",
-          "state": "passed"
-        },
-        {
-          "name": "test_concurrent_register",
-          "fullName": "mesh/__tests__/test_registry.py::TestRegistryThreadSafety::test_concurrent_register",
-          "state": "passed"
-        },
-        {
-          "name": "test_concurrent_read_write",
-          "fullName": "mesh/__tests__/test_registry.py::TestRegistryThreadSafety::test_concurrent_read_write",
-          "state": "passed"
-        }
-      ]
-    },
-    {
-      "moduleId": "mesh/__tests__/test_router.py",
-      "tests": [
-        {
-          "name": "test_router_accesses_registry",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_router_accesses_registry",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agent_by_preferred_module",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_by_preferred_module",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agent_by_capability",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_by_capability",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agent_prefers_internal",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_prefers_internal",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agent_falls_back_to_external",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_falls_back_to_external",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agent_filters_unhealthy",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_filters_unhealthy",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agent_no_match",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_no_match",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agent_preferred_module_fallback",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_preferred_module_fallback",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agent_round_robin",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agent_round_robin",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agents_for_broadcast_by_module",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_by_module",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agents_for_broadcast_by_capability",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_by_capability",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agents_for_broadcast_exclude_external",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_exclude_external",
-          "state": "passed"
-        },
-        {
-          "name": "test_find_agents_for_broadcast_all",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_find_agents_for_broadcast_all",
-          "state": "passed"
-        },
-        {
-          "name": "test_route_request_success",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_success",
-          "state": "failed",
-          "errors": [
-            {
-              "message": "self = <mesh.__tests__.test_router.TestMeshRouter object at 0x782b264cda50>\nrouter = <mesh.router.MeshRouter object at 0x782b264fd3f0>\npopulated_registry = <mesh.registry.AgentRegistry object at 0x782b264feb00>\n\n    @pytest.mark.asyncio\n    async def test_route_request_success(self, router, populated_registry):\n        \"\"\"Should route request via A2A client.\"\"\"\n        mock_result = MagicMock()\n        mock_result.success = True\n        mock_result.model_dump.return_value = {\"content\": \"Success\"}\n    \n        mock_client = AsyncMock()\n        mock_client.call_agent.return_value = mock_result\n    \n        async def mock_get_client():\n            return mock_client\n    \n        with patch.dict(\"sys.modules\", {\"a2a\": MagicMock(), \"a2a.client\": MagicMock()}):\n            with patch(\"a2a.client.get_a2a_client\", mock_get_client):\n                result = await router.route_request(\n                    task_type=\"planning\",\n                    message=\"Create project plan\",\n                    preferred_module=\"pm\",\n                )\n    \n        assert result[\"agent\"] == \"PMAgent\"\n>       assert result[\"success\"] is True\nE       KeyError: 'success'\n\nmesh/__tests__/test_router.py:263: KeyError"
-            }
-          ]
-        },
-        {
-          "name": "test_route_request_no_agent",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_no_agent",
-          "state": "passed"
-        },
-        {
-          "name": "test_route_request_a2a_error",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_a2a_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_route_request_no_a2a_client",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_route_request_no_a2a_client",
-          "state": "passed"
-        },
-        {
-          "name": "test_broadcast_request_success",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_broadcast_request_success",
-          "state": "passed"
-        },
-        {
-          "name": "test_broadcast_request_no_agents",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_broadcast_request_no_agents",
-          "state": "passed"
-        },
-        {
-          "name": "test_broadcast_request_by_module",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_broadcast_request_by_module",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_routing_info",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_get_routing_info",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_routing_info_no_match",
-          "fullName": "mesh/__tests__/test_router.py::TestMeshRouter::test_get_routing_info_no_match",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_router_singleton",
-          "fullName": "mesh/__tests__/test_router.py::TestGlobalRouter::test_get_router_singleton",
-          "state": "passed"
-        },
-        {
-          "name": "test_reset_router",
-          "fullName": "mesh/__tests__/test_router.py::TestGlobalRouter::test_reset_router",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_router_creates_new",
-          "fullName": "mesh/__tests__/test_router.py::TestGlobalRouter::test_get_router_creates_new",
-          "state": "passed"
-        },
-        {
-          "name": "test_priority_1_preferred_module_with_capability",
-          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_1_preferred_module_with_capability",
-          "state": "passed"
-        },
-        {
-          "name": "test_priority_2_capability_match",
-          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_2_capability_match",
-          "state": "passed"
-        },
-        {
-          "name": "test_priority_3_health_filter",
-          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_3_health_filter",
-          "state": "passed"
-        },
-        {
-          "name": "test_priority_4_internal_over_external",
-          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_4_internal_over_external",
-          "state": "passed"
-        },
-        {
-          "name": "test_priority_5_fallback_to_any_healthy",
-          "fullName": "mesh/__tests__/test_router.py::TestRoutingPriority::test_priority_5_fallback_to_any_healthy",
+          "name": "test_serialize_last_sync",
+          "fullName": "rag/__tests__/test_models.py::TestIndexStats::test_serialize_last_sync",
           "state": "passed"
         }
       ]

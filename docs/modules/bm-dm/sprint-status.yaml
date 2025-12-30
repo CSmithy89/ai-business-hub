@@ -151,13 +151,13 @@ development_status:
   # Phase 6 | 6 stories | 42 points
   # Context Providers, Generative UI, Agent Mesh, MCP
   # ===========================================
-  dm-06: contexted
+  dm-06: complete
   dm-06-1-deep-context-providers: done
   dm-06-2-agent-context-consumption: done
   dm-06-3-generative-ui-composition: done
   dm-06-4-mcp-tool-integration: done
   dm-06-5-universal-agent-mesh: done
-  dm-06-6-rag-context-indexing: backlog
+  dm-06-6-rag-context-indexing: done
   dm-06-retrospective: optional
 
 # ===========================================
