@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-09.3 E2E Test Infrastructure Setup
+  Generated: 2025-12-31
+  Purpose: Provide implementation context for developer working on this story
+-->
+<story-context>
+  <metadata>
+    <story-id>DM-09.3</story-id>
+    <story-file>docs/modules/bm-dm/stories/dm-09-3-e2e-infrastructure.md</story-file>
+    <epic-id>DM-09</epic-id>
+    <epic-name>Observability and Testing Infrastructure</epic-name>
+    <points>8</points>
+    <priority>high</priority>
+    <status>ready-for-dev</status>
+    <dependencies>
+      <dependency>DM-07 (Infrastructure Stabilization) - complete</dependency>
+      <dependency>DM-08 (Quality and Performance) - complete</dependency>
+      <dependency>DM-09.1 (OpenTelemetry) - done</dependency>
+      <dependency>DM-09.2 (Metrics Exposure) - done</dependency>
+    </dependencies>
+  </metadata>
+
+  <existing-infrastructure>
+    <playwright-config>
+      <file>apps/web/playwright.config.ts</file>
+      <summary>
+        Playwright is already configured with:
+        - testDir: ./tests/e2e
+        - fullyParallel: true
+        - CI retries: 2
+        - CI workers: 1
+        - Timeout: 60s (test), 15s (action), 30s (navigation)
+        - Reporters: HTML, JUnit, List
+        - Chromium only (Firefox/WebKit commented out)
+        - Failure artifacts: trace, screenshot, video (retain-on-failure)
+        - No global setup currently defined
+      </summary>
+    </playwright-config>
+
+    <test-directory>
+      <path>apps/web/tests/</path>
+      <structure>
+        <folder name="e2e">21 spec files - existing E2E tests</folder>
+        <folder name="support">
+          <folder name="fixtures">
+            <file>index.ts - Auth, factory fixtures merged</file>
+            <file>agent-mocks.ts - Agent mocking utilities</file>
+            <folder name="factories">
+              <file>user-factory.ts</file>
+              <file>workspace-factory.ts</file>
+              <file>business-factory.ts</file>
+              <file>project-factory.ts</file>
+              <file>suggestion-factory.ts</file>
+            </folder>
+          </folder>
+        </folder>
+      </structure>
+    </test-directory>
+
+    <existing-fixtures file="apps/web/tests/support/fixtures/index.ts">
+      <fixture name="auth" type="AuthFixture">
+        - loginAs(email, password): Login with credentials
+        - loginAsTestUser(): Login with env vars or create user
+        - createAndLoginUser(): Create verified user and login
+        - logout(): Sign out and redirect to /sign-in
+      </fixture>
+      <fixture name="userFactory" type="UserFactory">Auto-cleanup factory for test users</fixture>
+      <fixture name="workspaceFactory" type="WorkspaceFactory">Auto-cleanup factory for workspaces</fixture>
+      <fixture name="businessFactory" type="BusinessFactory">Auto-cleanup factory for businesses</fixture>
+      <fixture name="projectFactory" type="ProjectFactory">Auto-cleanup factory for PM projects</fixture>
+      <fixture name="suggestionFactory" type="SuggestionFactory">Auto-cleanup factory for suggestions</fixture>
+    </existing-fixtures>
+
+    <package-json-scripts file="apps/web/package.json">
+      <script name="test:e2e">playwright test</script>
+      <script name="test:e2e:ui">playwright test --ui</script>
+      <script name="test:e2e:headed">playwright test --headed</script>
+      <note>Missing: test:e2e:report script</note>
+    </package-json-scripts>
+
+    <env-test file="apps/web/.env.test">
+      TEST_USER_EMAIL=e2etest1766974392@example.com
+      TEST_USER_PASSWORD=TestPass123!
+      BASE_URL=http://localhost:3000
+    </env-test>
+  </existing-infrastructure>
+
+  <ci-workflow file=".github/workflows/test.yml">
+    <summary>
+      Comprehensive CI already exists with:
+      - TypeScript type checking
+      - Lint
+      - N+1 query detection
+      - Build
+      - Integration tests (PostgreSQL + Redis services)
+      - E2E tests with 4-shard parallel execution
+      - Burn-in loop (10 iterations) for flaky detection
+      - Artifact upload on failure
+    </summary>
+    <note>E2E workflow is already robust - no new workflow needed</note>
+  </ci-workflow>
+
+  <page-objects-targets>
+    <dashboard>
+      <page-file>apps/web/src/app/(dashboard)/dashboard/page.tsx</page-file>
+      <components>
+        <component>DashboardAgentSection.tsx - AI insights section</component>
+        <component>DashboardContent.tsx - Main content area</component>
+      </components>
+      <existing-tests file="apps/web/tests/e2e/dashboard.spec.ts">
+        <test-group>Dashboard Page Structure</test-group>
+        <test-group>Dashboard Chat Interaction</test-group>
+        <test-ids>
+          - dashboard-agent-section
+          - dashboard-grid
+          - quick-action-project-status
+          - quick-action-at-risk
+          - quick-action-team-activity
+          - quick-action-workspace-overview
+        </test-ids>
+      </existing-tests>
+    </dashboard>
+
+    <approval-queue>
+      <page-file>apps/web/src/app/(dashboard)/approvals/page.tsx</page-file>
+      <content-file>apps/web/src/app/(dashboard)/approvals/ApprovalsContent.tsx</content-file>
+      <components>
+        <component>ApprovalStats</component>
+        <component>ApprovalFilters</component>
+        <component>ApprovalList</component>
+        <component>BulkActionBar</component>
+        <component>BulkConfirmDialog</component>
+      </components>
+      <existing-tests file="apps/web/tests/e2e/approvals.spec.ts">
+        <test-group>Approval Queue (Story 04.2)</test-group>
+        <test-group>Approval Card Actions (Story 04.3)</test-group>
+        <test-ids>
+          - approvals-header
+          - no-approvals (empty state)
+          - approval-list
+          - approval-card-{id}
+          - confidence-indicator
+          - status-filter
+          - module-filter
+          - sort-dropdown
+        </test-ids>
+      </existing-tests>
+    </approval-queue>
+  </page-objects-targets>
+
+  <widget-validation file="apps/web/src/lib/schemas/widget-schemas.ts">
+    <summary>
+      DM-08 implemented Zod validation for widgets. E2E tests should validate:
+      - ProjectStatusDataSchema
+      - TaskListDataSchema
+      - MetricsDataSchema
+      - AlertDataSchema
+      - TeamActivityDataSchema (and more)
+    </summary>
+    <recommendation>
+      E2E tests should verify widget data passes validation at render boundary.
+      Reference DM-08.1 retrospective recommendations.
+    </recommendation>
+  </widget-validation>
+
+  <implementation-notes>
+    <note priority="high">
+      Playwright config already exists and is well-configured.
+      This story should EXTEND not replace the existing configuration.
+    </note>
+
+    <note priority="high">
+      Existing fixtures in tests/support/fixtures/index.ts use mergeTests pattern.
+      New fixtures should follow this pattern and be added to the merge.
+    </note>
+
+    <note priority="medium">
+      The story mentions creating e2e/fixtures/ and e2e/pages/ directories.
+      However, existing fixtures are in tests/support/fixtures/.
+      Decision: Keep existing structure, add page objects to tests/support/pages/.
+    </note>
+
+    <note priority="medium">
+      Global setup is not currently configured in playwright.config.ts.
+      Adding globalSetup: './e2e/global-setup.ts' is optional for this story.
+    </note>
+
+    <note priority="low">
+      CI workflow already handles E2E tests well.
+      No new GitHub Actions workflow is needed (story suggests creating .github/workflows/e2e.yml
+      but test.yml already provides this functionality).
+    </note>
+  </implementation-notes>
+
+  <files-to-create>
+    <file path="apps/web/tests/support/pages/base.page.ts">
+      Base page object class with common navigation and wait methods.
+    </file>
+    <file path="apps/web/tests/support/pages/dashboard.page.ts">
+      Dashboard page object with widget grid, loading, error locators.
+    </file>
+    <file path="apps/web/tests/support/pages/approval.page.ts">
+      Approval queue page object with filter, card, action locators.
+    </file>
+    <file path="apps/web/tests/support/pages/index.ts">
+      Export all page objects.
+    </file>
+    <file path="apps/web/tests/support/fixtures/api-mock.fixture.ts">
+      API and WebSocket mocking utilities.
+    </file>
+    <file path="apps/web/tests/support/fixtures/dashboard.fixture.ts">
+      Dashboard fixture extending auth fixture.
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/tests/support/fixtures/index.ts">
+      Add new fixtures to mergeTests composition.
+    </file>
+    <file path="apps/web/playwright.config.ts">
+      Optional: Add globalSetup if database seeding is needed.
+    </file>
+    <file path="apps/web/package.json">
+      Add test:e2e:report script for viewing results.
+    </file>
+  </files-to-modify>
+
+  <acceptance-criteria>
+    <criterion id="AC1" status="partial">
+      Playwright configured with TypeScript
+      NOTE: Already configured, may need minor extensions
+    </criterion>
+    <criterion id="AC2" status="pending">
+      Auth fixture for logged-in sessions
+      NOTE: Already exists in tests/support/fixtures/index.ts
+    </criterion>
+    <criterion id="AC3" status="complete">
+      CI pipeline runs E2E tests on PR
+      NOTE: Already implemented in .github/workflows/test.yml
+    </criterion>
+    <criterion id="AC4" status="pending">
+      Page object models for Dashboard, Approval Queue
+    </criterion>
+    <criterion id="AC5" status="complete">
+      Test report artifacts saved
+      NOTE: Already implemented in CI workflow
+    </criterion>
+  </acceptance-criteria>
+
+  <testing-recommendations>
+    <recommendation>
+      Create a smoke test in tests/e2e/e2e-infrastructure.spec.ts that validates:
+      1. Auth fixture creates authenticated session
+      2. Dashboard page object locators match actual page
+      3. Approval page object locators match actual page
+    </recommendation>
+    <recommendation>
+      Reference DM-08 retrospective for widget validation patterns to include in page objects.
+    </recommendation>
+  </testing-recommendations>
+</story-context>

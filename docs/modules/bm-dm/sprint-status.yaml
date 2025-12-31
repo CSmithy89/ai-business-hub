@@ -208,7 +208,7 @@ development_status:
   dm-09: contexted
   dm-09-1-opentelemetry-integration: done
   dm-09-2-metrics-exposure: done
-  dm-09-3-e2e-infrastructure: backlog
+  dm-09-3-e2e-infrastructure: done
   dm-09-4-critical-flow-e2e-tests: backlog
   dm-09-5-visual-regression-tests: backlog
   dm-09-6-load-testing-infrastructure: backlog
