@@ -1,22 +1,27 @@
 """
-Rate Limiting Middleware for AgentOS (Story 14-7)
+Rate Limiting Middleware for AgentOS (Story 14-7, DM-08.3)
 
 Uses slowapi with Redis backend when available, otherwise in-memory.
 Keys requests by workspace_id + user_id (from TenantMiddleware) with
 remote address fallback.
+
+DM-08.3: Added get_limiter() for use by routes in separate modules.
 """
 
-from typing import Callable
+from typing import Callable, Optional
 import hashlib
 import logging
 
-from fastapi import Request
+from fastapi import FastAPI, Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
 logger = logging.getLogger(__name__)
+
+# Module-level limiter reference (set by init_rate_limiting)
+_limiter: Optional[Limiter] = None
 
 
 def _hash_key(raw: str) -> str:
@@ -91,10 +96,13 @@ def init_rate_limiting(app, redis_url: str | None, default_rate: str = "10/minut
     - Attaches limiter to app state
     - Registers 429 handler
     - Adds SlowAPI middleware for enforcement
+    - Sets module-level _limiter for use by get_limiter()
     """
+    global _limiter  # noqa: PLW0603
     try:
         limiter = create_limiter(redis_url, default_rate)
         app.state.limiter = limiter
+        _limiter = limiter  # DM-08.3: Store for get_limiter()
         app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
         app.add_middleware(SlowAPIMiddleware)
         return limiter
@@ -102,4 +110,33 @@ def init_rate_limiting(app, redis_url: str | None, default_rate: str = "10/minut
         logger.error("Rate limiting initialization failed, continuing without limits: %s", exc, exc_info=True)
         limiter = NoopLimiter()
         app.state.limiter = limiter
+        _limiter = limiter
         return limiter
+
+
+def get_limiter() -> Limiter | NoopLimiter:
+    """
+    Get the initialized rate limiter for use in route decorators.
+
+    DM-08.3: This allows routes in separate modules to apply rate limiting
+    using the same limiter instance initialized in main.py.
+
+    Returns:
+        The shared Limiter instance, or NoopLimiter if not initialized.
+
+    Example:
+        from middleware.rate_limit import get_limiter
+        from constants.dm_constants import DMConstants
+
+        limiter = get_limiter()
+
+        @router.get("/endpoint")
+        @limiter.limit(DMConstants.RATE_LIMITS.A2A_DISCOVERY)
+        async def my_endpoint(request: Request):
+            ...
+    """
+    global _limiter  # noqa: PLW0602
+    if _limiter is None:
+        logger.warning("get_limiter() called before init_rate_limiting(), returning NoopLimiter")
+        return NoopLimiter()
+    return _limiter

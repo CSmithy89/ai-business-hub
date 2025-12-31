@@ -8,11 +8,16 @@ Implements the A2A discovery endpoints for agent discovery:
 
 These endpoints are unauthenticated as they provide public metadata
 about agent capabilities, not sensitive data.
+
+Rate limiting is applied to prevent abuse (DM-08.3).
 """
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from agentos.config import INTERFACE_CONFIGS, get_agentos_settings
 from constants.dm_constants import DMConstants
@@ -26,6 +31,11 @@ from .agent_card import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["a2a-discovery"])
+
+# Rate limiter for A2A discovery endpoints (DM-08.3)
+# This limiter is used for decoration; enforcement uses app.state.limiter via SlowAPIMiddleware
+_limiter = Limiter(key_func=get_remote_address)
+_DISCOVERY_RATE_LIMIT = DMConstants.RATE_LIMITS.A2A_DISCOVERY
 
 
 def _get_a2a_agents() -> Dict[str, str]:
@@ -47,11 +57,13 @@ def _get_a2a_agents() -> Dict[str, str]:
     summary="A2A Global Discovery",
     description=(
         "Returns all registered agent cards for A2A discovery. "
-        "This endpoint is unauthenticated (public metadata)."
+        "This endpoint is unauthenticated (public metadata). "
+        f"Rate limited to {_DISCOVERY_RATE_LIMIT}."
     ),
     response_description="Discovery response with all agent cards",
 )
-async def global_discovery() -> Dict[str, Any]:
+@_limiter.limit(_DISCOVERY_RATE_LIMIT)
+async def global_discovery(request: Request) -> Dict[str, Any]:
     """
     A2A Global Discovery Endpoint.
 
@@ -60,6 +72,8 @@ async def global_discovery() -> Dict[str, Any]:
 
     This endpoint is unauthenticated as it provides public metadata
     about agent capabilities, not sensitive data.
+
+    Rate limited to prevent abuse (DM-08.3).
     """
     settings = get_agentos_settings()
 
@@ -92,16 +106,20 @@ async def global_discovery() -> Dict[str, Any]:
     "/.well-known/agents",
     summary="A2A Multi-Agent Listing",
     description=(
-        "Returns a simplified listing of all available agents with their A2A endpoints."
+        "Returns a simplified listing of all available agents with their A2A endpoints. "
+        f"Rate limited to {_DISCOVERY_RATE_LIMIT}."
     ),
     response_description="Multi-agent listing response",
 )
-async def multi_agent_listing() -> Dict[str, Any]:
+@_limiter.limit(_DISCOVERY_RATE_LIMIT)
+async def multi_agent_listing(request: Request) -> Dict[str, Any]:
     """
     A2A Multi-Agent Listing Endpoint.
 
     Returns a simplified listing of available agents with their
     endpoints, useful for quick enumeration of available agents.
+
+    Rate limited to prevent abuse (DM-08.3).
     """
     settings = get_agentos_settings()
 
@@ -123,10 +141,11 @@ async def multi_agent_listing() -> Dict[str, Any]:
 @router.get(
     "/a2a/{agent_id}/.well-known/agent.json",
     summary="Individual Agent Discovery",
-    description="Returns the AgentCard for a specific agent by ID.",
+    description=f"Returns the AgentCard for a specific agent by ID. Rate limited to {_DISCOVERY_RATE_LIMIT}.",
     response_description="Single agent AgentCard",
 )
-async def agent_discovery(agent_id: str) -> Dict[str, Any]:
+@_limiter.limit(_DISCOVERY_RATE_LIMIT)
+async def agent_discovery(request: Request, agent_id: str) -> Dict[str, Any]:
     """
     Individual Agent Discovery Endpoint.
 
@@ -134,6 +153,7 @@ async def agent_discovery(agent_id: str) -> Dict[str, Any]:
     agents to discover capabilities of a single HYVVE agent.
 
     Args:
+        request: FastAPI request (required for rate limiting)
         agent_id: The unique agent identifier
 
     Returns:
@@ -141,6 +161,8 @@ async def agent_discovery(agent_id: str) -> Dict[str, Any]:
 
     Raises:
         HTTPException 404: If agent not found or A2A not enabled
+
+    Rate limited to prevent abuse (DM-08.3).
     """
     settings = get_agentos_settings()
 

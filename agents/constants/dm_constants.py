@@ -129,3 +129,25 @@ class DMConstants:
         # Task progress constants (DM-05.4)
         MAX_ACTIVE_TASKS = 10  # Maximum concurrent task tracking
         TASK_RETENTION_MS = 300000  # 5 minutes after completion
+
+    # Rate Limiting (for DM-08.3+)
+    class RATE_LIMITS:
+        """Rate limit configurations for API endpoints."""
+
+        # Default rate limit (requests per minute)
+        DEFAULT = "100/minute"
+
+        # A2A Discovery endpoints (public, lower limit)
+        A2A_DISCOVERY = "30/minute"
+
+        # A2A Query endpoints (authenticated, higher limit)
+        A2A_QUERY = "100/minute"
+
+        # Health check endpoints (high frequency allowed)
+        HEALTH = "300/minute"
+
+        # Agent communication endpoints
+        AGENT_INVOKE = "60/minute"
+
+        # Dashboard data endpoints
+        DASHBOARD = "120/minute"
