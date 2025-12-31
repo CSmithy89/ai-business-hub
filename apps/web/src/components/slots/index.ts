@@ -69,5 +69,4 @@ export type {
   MetricsData,
   AlertData,
   TeamActivityData,
-  PlaceholderWidgetProps,
 } from './types';

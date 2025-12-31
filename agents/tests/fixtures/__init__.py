@@ -18,6 +18,8 @@ from .redis_mocks import (
 from .a2a_mocks import (
     mock_a2a_client,
     mock_a2a_response,
+    create_agent_card,
+    create_a2a_error,
 )
 from .database_mocks import (
     mock_db_session,
@@ -34,6 +36,8 @@ __all__ = [
     # A2A mocks
     "mock_a2a_client",
     "mock_a2a_response",
+    "create_agent_card",
+    "create_a2a_error",
     # Database mocks
     "mock_db_session",
     "mock_db_transaction",

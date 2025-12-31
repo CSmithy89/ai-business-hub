@@ -123,13 +123,15 @@ export function logValidationFailure(
     });
   } else {
     // In production, log structured data for monitoring
+    // Avoid logging keys which may contain sensitive identifiers
     console.warn(
       JSON.stringify({
         event: 'widget_validation_failed',
         widgetType: details.widgetType,
         issues: details.issues,
-        // Don't log full data in production to avoid PII issues
-        dataKeys: data && typeof data === 'object' ? Object.keys(data) : [],
+        // Only log shape info, not keys (could leak PII patterns)
+        dataShape: data ? typeof data : 'undefined',
+        isArray: Array.isArray(data),
       })
     );
   }

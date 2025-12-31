@@ -651,6 +651,28 @@ docs/
 - DM-08 (Quality hardening)
 - DM-09 (Testing infrastructure for validating changes)
 
+## Recommendations from DM-08 Retrospective
+
+The following items from the DM-08 retrospective should be incorporated:
+
+1. **Integrate response parser into A2A client** - When implementing stories that involve A2A communication:
+   - Use `parse_agent_response()` from `agents/pm/schemas/base.py`
+   - Validate responses with `NaviProjectResponse`, `PulseHealthResponse`, `HeraldActivityResponse`
+   - Use `to_widget_data()` methods for frontend-compatible output
+   - Handle validation failures with graceful fallback
+
+2. **Wire up caching to actual dashboard data flows** - When implementing DM-11.1 (Redis State Persistence):
+   - Integrate with existing `agents/services/cache.py` service
+   - Use staleness tracking for cache invalidation
+   - Consider cache warming on agent startup
+   - Add cache metrics to observability
+
+3. **Add rate limiting to production A2A calls** - When implementing DM-11.4/11.5 (Parallel operations):
+   - Use `agents/services/rate_limiter.py` for all A2A endpoints
+   - Configure per-agent thresholds based on load testing results
+   - Add rate limit headers to responses
+   - Monitor rate limit hits in metrics
+
 ## Technical Notes
 
 ### State Sync Architecture

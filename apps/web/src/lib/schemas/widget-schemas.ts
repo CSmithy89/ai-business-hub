@@ -85,7 +85,7 @@ export const MetricsDataSchema = BaseWidgetDataSchema.extend({
  */
 export const AlertDataSchema = BaseWidgetDataSchema.extend({
   severity: z.enum(['info', 'warning', 'error', 'success']),
-  title: z.string(),
+  title: z.string().optional(),
   message: z.string(),
   action: z
     .object({
@@ -110,6 +110,62 @@ export const TeamActivityDataSchema = BaseWidgetDataSchema.extend({
   ),
 });
 
+/**
+ * KanbanBoard widget data schema.
+ * Displays tasks in kanban columns.
+ */
+export const KanbanBoardDataSchema = BaseWidgetDataSchema.extend({
+  columns: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      tasks: z.array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+          assignee: z.string().optional(),
+          priority: z.enum(['low', 'medium', 'high']).optional(),
+        })
+      ),
+    })
+  ),
+});
+
+/**
+ * GanttChart widget data schema.
+ * Displays project timeline with task dependencies.
+ */
+export const GanttChartDataSchema = BaseWidgetDataSchema.extend({
+  startDate: z.string(),
+  endDate: z.string(),
+  tasks: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      startDate: z.string(),
+      endDate: z.string(),
+      progress: z.number().min(0).max(100).optional(),
+      dependencies: z.array(z.string()).optional(),
+    })
+  ),
+});
+
+/**
+ * BurndownChart widget data schema.
+ * Shows sprint burndown progress.
+ */
+export const BurndownChartDataSchema = BaseWidgetDataSchema.extend({
+  sprintName: z.string().optional(),
+  totalPoints: z.number().nonnegative(),
+  dataPoints: z.array(
+    z.object({
+      date: z.string(),
+      remainingPoints: z.number().nonnegative(),
+      idealPoints: z.number().nonnegative().optional(),
+    })
+  ),
+});
+
 // =============================================================================
 // SCHEMA REGISTRY
 // =============================================================================
@@ -124,6 +180,9 @@ export const WIDGET_SCHEMAS: Record<string, z.ZodSchema> = {
   Metrics: MetricsDataSchema,
   Alert: AlertDataSchema,
   TeamActivity: TeamActivityDataSchema,
+  KanbanBoard: KanbanBoardDataSchema,
+  GanttChart: GanttChartDataSchema,
+  BurndownChart: BurndownChartDataSchema,
 };
 
 // =============================================================================
@@ -135,6 +194,9 @@ export type TaskListData = z.infer<typeof TaskListDataSchema>;
 export type MetricsData = z.infer<typeof MetricsDataSchema>;
 export type AlertData = z.infer<typeof AlertDataSchema>;
 export type TeamActivityData = z.infer<typeof TeamActivityDataSchema>;
+export type KanbanBoardData = z.infer<typeof KanbanBoardDataSchema>;
+export type GanttChartData = z.infer<typeof GanttChartDataSchema>;
+export type BurndownChartData = z.infer<typeof BurndownChartDataSchema>;
 
 /**
  * Get the list of widget types that have validation schemas.

@@ -7,7 +7,7 @@ DM-08.7: Created for response parser validation.
 """
 
 import logging
-from typing import Any, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Dict, Optional, TypeVar
 
 from pydantic import BaseModel, Field, ValidationError
 

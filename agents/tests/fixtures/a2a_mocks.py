@@ -34,7 +34,17 @@ def mock_a2a_response():
         task_id: str = "task-123",
         agent_id: str = "test-agent",
     ) -> Dict[str, Any]:
-        response = {
+        # JSON-RPC 2.0 spec: response must have result XOR error, never both
+        if error is not None:
+            return {
+                "jsonrpc": "2.0",
+                "id": task_id,
+                "error": {
+                    "code": -32000,
+                    "message": error,
+                },
+            }
+        return {
             "jsonrpc": "2.0",
             "id": task_id,
             "result": {
@@ -43,12 +53,6 @@ def mock_a2a_response():
                 "data": data or {},
             },
         }
-        if error:
-            response["error"] = {
-                "code": -32000,
-                "message": error,
-            }
-        return response
 
     return _factory
 

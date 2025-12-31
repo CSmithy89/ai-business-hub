@@ -6,7 +6,6 @@ Pydantic schemas for validating Navi (project management) agent responses.
 DM-08.7: Created for response parser validation.
 """
 
-from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +19,16 @@ class ProjectStatus(str, Enum):
     AT_RISK = "at-risk"
     BEHIND = "behind"
     COMPLETED = "completed"
+
+
+# Mapping from ProjectStatus enum to widget-compatible format
+# Avoids fragile string manipulation in to_widget_data()
+STATUS_TO_WIDGET: dict[ProjectStatus, str] = {
+    ProjectStatus.ON_TRACK: "on_track",
+    ProjectStatus.AT_RISK: "at_risk",
+    ProjectStatus.BEHIND: "behind",
+    ProjectStatus.COMPLETED: "completed",
+}
 
 
 class TaskStatus(str, Enum):
@@ -117,7 +126,7 @@ class NaviProjectResponse(BaseModel):
             return {
                 "projectId": self.project_status.project_id,
                 "projectName": self.project_status.name,
-                "status": self.project_status.status.value.replace("-", "_"),
+                "status": STATUS_TO_WIDGET[self.project_status.status],
                 "progress": self.project_status.progress,
                 "tasksCompleted": self.project_status.tasks_completed,
                 "tasksTotal": self.project_status.tasks_total,

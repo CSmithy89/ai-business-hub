@@ -496,6 +496,21 @@ apps/web/src/
 - DM-07 (Tests must pass first)
 - DM-08 (Caching affects test behavior)
 
+## Recommendations from DM-08 Retrospective
+
+The following items from the DM-08 retrospective should be incorporated:
+
+1. **Use async mock fixtures for agent tests** - The fixtures created in DM-08.4 (`agents/tests/fixtures/`) provide reusable patterns for Redis, A2A, and database mocking. All new agent tests in DM-09 should leverage these fixtures.
+
+2. **Add OpenTelemetry spans to caching and rate limiting** - When implementing DM-09.1 (OpenTelemetry Integration), add spans for:
+   - `agents/services/cache.py` - Cache hits/misses, staleness checks
+   - `agents/services/rate_limiter.py` - Rate limit decisions, bucket states
+
+3. **E2E tests should validate widget data flows** - When implementing DM-09.4 (Critical Flow E2E Tests), include test cases that verify:
+   - Widget data passes Zod validation (`apps/web/src/lib/schemas/widget-schemas.ts`)
+   - Pre-computed `activeAlerts` updates correctly
+   - MAX bounds are respected in UI state
+
 ## Technical Notes
 
 ### OpenTelemetry Configuration

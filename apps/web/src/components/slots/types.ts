@@ -57,12 +57,3 @@ export interface WidgetErrorBoundaryProps {
   children: ReactNode;
 }
 
-/**
- * Props passed to placeholder widgets during development
- */
-export interface PlaceholderWidgetProps {
-  /** Widget type identifier */
-  type: string;
-  /** Widget data payload */
-  data: Record<string, unknown>;
-}
