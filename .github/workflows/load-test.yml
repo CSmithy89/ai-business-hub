@@ -1,0 +1,267 @@
+# HYVVE Platform Load Testing Workflow
+#
+# On-demand load testing using k6 for A2A endpoints, dashboard flows, and CCR routing.
+# This workflow is manually triggered and runs against specified environments.
+#
+# Usage:
+#   1. Go to Actions tab
+#   2. Select "Load Tests" workflow
+#   3. Click "Run workflow"
+#   4. Select environment and test type
+#   5. Click "Run workflow" button
+#
+# Results are uploaded as artifacts and retained for 30 days.
+#
+# @see docs/modules/bm-dm/stories/dm-09-6-load-testing-infrastructure.md
+
+name: Load Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      test_type:
+        description: 'Test type to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - a2a
+          - dashboard
+          - ccr
+      base_url:
+        description: 'Base URL for AgentOS (optional, uses default for environment if not set)'
+        required: false
+        type: string
+      vus:
+        description: 'Virtual users override (optional)'
+        required: false
+        type: string
+      duration:
+        description: 'Duration override, e.g., "1m", "5m" (optional)'
+        required: false
+        type: string
+
+# Prevent concurrent load tests
+concurrency:
+  group: load-tests-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  K6_VERSION: "v0.48.0"
+
+jobs:
+  load-test:
+    name: Run Load Tests (${{ github.event.inputs.test_type }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Verify k6 installation
+        run: k6 version
+
+      - name: Determine base URL
+        id: urls
+        run: |
+          # Set default URLs based on environment
+          case "${{ github.event.inputs.environment }}" in
+            development)
+              DEFAULT_BASE_URL="http://localhost:7777"
+              DEFAULT_WEB_URL="http://localhost:3000"
+              DEFAULT_CCR_URL="http://localhost:3456"
+              ;;
+            staging)
+              DEFAULT_BASE_URL="https://staging-agents.hyvve.io"
+              DEFAULT_WEB_URL="https://staging.hyvve.io"
+              DEFAULT_CCR_URL="https://staging-ccr.hyvve.io"
+              ;;
+            production)
+              DEFAULT_BASE_URL="https://agents.hyvve.io"
+              DEFAULT_WEB_URL="https://app.hyvve.io"
+              DEFAULT_CCR_URL="https://ccr.hyvve.io"
+              ;;
+          esac
+
+          # Use input URL if provided, otherwise use default
+          if [[ -n "${{ github.event.inputs.base_url }}" ]]; then
+            BASE_URL="${{ github.event.inputs.base_url }}"
+          else
+            BASE_URL="$DEFAULT_BASE_URL"
+          fi
+
+          echo "base_url=$BASE_URL" >> $GITHUB_OUTPUT
+          echo "web_url=$DEFAULT_WEB_URL" >> $GITHUB_OUTPUT
+          echo "ccr_url=$DEFAULT_CCR_URL" >> $GITHUB_OUTPUT
+
+      - name: Create results directory
+        run: mkdir -p tests/load/results
+
+      - name: Run A2A Endpoints Load Test
+        if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'a2a'
+        env:
+          BASE_URL: ${{ steps.urls.outputs.base_url }}
+          WEB_URL: ${{ steps.urls.outputs.web_url }}
+          CCR_URL: ${{ steps.urls.outputs.ccr_url }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+          WORKSPACE_ID: ci-load-test-${{ github.run_id }}
+          AUTH_TOKEN: ${{ secrets.LOAD_TEST_AUTH_TOKEN }}
+        run: |
+          cd tests/load
+
+          # Build k6 command
+          K6_CMD="k6 run"
+          K6_CMD+=" -e BASE_URL=$BASE_URL"
+          K6_CMD+=" -e WEB_URL=$WEB_URL"
+          K6_CMD+=" -e CCR_URL=$CCR_URL"
+          K6_CMD+=" -e ENVIRONMENT=$ENVIRONMENT"
+          K6_CMD+=" -e WORKSPACE_ID=$WORKSPACE_ID"
+
+          if [[ -n "$AUTH_TOKEN" ]]; then
+            K6_CMD+=" -e AUTH_TOKEN=$AUTH_TOKEN"
+          fi
+
+          if [[ -n "${{ github.event.inputs.vus }}" ]]; then
+            K6_CMD+=" --vus ${{ github.event.inputs.vus }}"
+          fi
+
+          if [[ -n "${{ github.event.inputs.duration }}" ]]; then
+            K6_CMD+=" --duration ${{ github.event.inputs.duration }}"
+          fi
+
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          K6_CMD+=" --out json=results/a2a-endpoints-${TIMESTAMP}.json"
+          K6_CMD+=" k6/a2a-endpoints.js"
+
+          echo "Running: $K6_CMD"
+          eval $K6_CMD
+
+      - name: Run Dashboard Flow Load Test
+        if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'dashboard'
+        env:
+          BASE_URL: ${{ steps.urls.outputs.base_url }}
+          WEB_URL: ${{ steps.urls.outputs.web_url }}
+          CCR_URL: ${{ steps.urls.outputs.ccr_url }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+          WORKSPACE_ID: ci-load-test-${{ github.run_id }}
+          AUTH_TOKEN: ${{ secrets.LOAD_TEST_AUTH_TOKEN }}
+        run: |
+          cd tests/load
+
+          K6_CMD="k6 run"
+          K6_CMD+=" -e BASE_URL=$BASE_URL"
+          K6_CMD+=" -e WEB_URL=$WEB_URL"
+          K6_CMD+=" -e CCR_URL=$CCR_URL"
+          K6_CMD+=" -e ENVIRONMENT=$ENVIRONMENT"
+          K6_CMD+=" -e WORKSPACE_ID=$WORKSPACE_ID"
+
+          if [[ -n "$AUTH_TOKEN" ]]; then
+            K6_CMD+=" -e AUTH_TOKEN=$AUTH_TOKEN"
+          fi
+
+          if [[ -n "${{ github.event.inputs.vus }}" ]]; then
+            K6_CMD+=" --vus ${{ github.event.inputs.vus }}"
+          fi
+
+          if [[ -n "${{ github.event.inputs.duration }}" ]]; then
+            K6_CMD+=" --duration ${{ github.event.inputs.duration }}"
+          fi
+
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          K6_CMD+=" --out json=results/dashboard-flow-${TIMESTAMP}.json"
+          K6_CMD+=" k6/dashboard-flow.js"
+
+          echo "Running: $K6_CMD"
+          eval $K6_CMD
+
+      - name: Run CCR Routing Load Test
+        if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'ccr'
+        env:
+          BASE_URL: ${{ steps.urls.outputs.base_url }}
+          WEB_URL: ${{ steps.urls.outputs.web_url }}
+          CCR_URL: ${{ steps.urls.outputs.ccr_url }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+          WORKSPACE_ID: ci-load-test-${{ github.run_id }}
+          AUTH_TOKEN: ${{ secrets.LOAD_TEST_AUTH_TOKEN }}
+        run: |
+          cd tests/load
+
+          K6_CMD="k6 run"
+          K6_CMD+=" -e BASE_URL=$BASE_URL"
+          K6_CMD+=" -e WEB_URL=$WEB_URL"
+          K6_CMD+=" -e CCR_URL=$CCR_URL"
+          K6_CMD+=" -e ENVIRONMENT=$ENVIRONMENT"
+          K6_CMD+=" -e WORKSPACE_ID=$WORKSPACE_ID"
+
+          if [[ -n "$AUTH_TOKEN" ]]; then
+            K6_CMD+=" -e AUTH_TOKEN=$AUTH_TOKEN"
+          fi
+
+          if [[ -n "${{ github.event.inputs.vus }}" ]]; then
+            K6_CMD+=" --vus ${{ github.event.inputs.vus }}"
+          fi
+
+          if [[ -n "${{ github.event.inputs.duration }}" ]]; then
+            K6_CMD+=" --duration ${{ github.event.inputs.duration }}"
+          fi
+
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          K6_CMD+=" --out json=results/ccr-routing-${TIMESTAMP}.json"
+          K6_CMD+=" k6/ccr-routing.js"
+
+          echo "Running: $K6_CMD"
+          eval $K6_CMD
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-results-${{ github.event.inputs.environment }}-${{ github.run_id }}
+          path: tests/load/results/
+          retention-days: 30
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Load Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ github.event.inputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Type | ${{ github.event.inputs.test_type }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Base URL | ${{ steps.urls.outputs.base_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run ID | ${{ github.run_id }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered By | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Results are available as artifacts attached to this workflow run." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Performance Thresholds" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Threshold |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| http_req_duration p95 | < 500ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| http_req_duration p99 | < 1000ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| http_req_failed | < 1% |" >> $GITHUB_STEP_SUMMARY
+          echo "| a2a_errors | < 1% |" >> $GITHUB_STEP_SUMMARY
+          echo "| a2a_duration p95 | < 500ms |" >> $GITHUB_STEP_SUMMARY

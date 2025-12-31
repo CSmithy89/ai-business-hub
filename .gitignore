@@ -40,6 +40,10 @@ yarn-error.log*
 # Test coverage
 coverage/
 
+# Load test results (keep .gitkeep only)
+tests/load/results/**/*
+!tests/load/results/**/.gitkeep
+
 # Playwright test artifacts
 .playwright-mcp/
 **/playwright-report/
