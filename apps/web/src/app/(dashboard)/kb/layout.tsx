@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useSession } from '@/lib/auth-client'
+import { useSession, getActiveWorkspaceId } from '@/lib/auth-client'
 import { useRouter, usePathname } from 'next/navigation'
 import { useKBPages, useDeleteKBPage, useUpdateKBPage } from '@/hooks/use-kb-pages'
 import { PageTree } from '@/components/kb/sidebar/PageTree'
@@ -29,12 +29,8 @@ export default function KBLayout({ children }: KBLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { data: session } = useSession()
-  // Check both possible session paths for workspaceId
-  const sessionData = session as any
-  const workspaceId =
-    sessionData?.workspaceId ||
-    sessionData?.session?.activeWorkspaceId ||
-    ''
+  // Use type-safe helper to extract workspaceId from session
+  const workspaceId = getActiveWorkspaceId(session) || ''
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [deletePageId, setDeletePageId] = useState<string | null>(null)
 

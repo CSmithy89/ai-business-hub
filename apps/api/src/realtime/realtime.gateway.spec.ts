@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { RealtimeGateway } from './realtime.gateway';
 import { Socket, Server } from 'socket.io';
 import { PrismaService } from '../common/services/prisma.service';
+import { PresenceService } from './presence.service';
 import {
   ApprovalEventPayload,
   AgentStatusPayload,
@@ -27,6 +28,13 @@ describe('RealtimeGateway', () => {
     },
   };
 
+  const mockPresenceService = {
+    trackUserOnline: jest.fn(),
+    trackUserOffline: jest.fn(),
+    getOnlineUsers: jest.fn().mockResolvedValue([]),
+    isUserOnline: jest.fn().mockResolvedValue(false),
+  };
+
   beforeEach(async () => {
     // Mock the Socket.io server
     mockServer = {
@@ -44,6 +52,10 @@ describe('RealtimeGateway', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: PresenceService,
+          useValue: mockPresenceService,
         },
       ],
     }).compile();

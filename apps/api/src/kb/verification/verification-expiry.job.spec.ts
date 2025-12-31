@@ -4,38 +4,56 @@ import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
 import { VerificationExpiryJob } from './verification-expiry.job'
 
+// Define mock types for proper type inference
+type MockPrisma = {
+  knowledgePage: {
+    findMany: jest.Mock
+  }
+  pageActivity: {
+    create: jest.Mock
+  }
+}
+
+type MockEventPublisher = {
+  publish: jest.Mock
+}
+
 describe('VerificationExpiryJob', () => {
   let job: VerificationExpiryJob
-  let prisma: jest.Mocked<PrismaService>
-  let eventPublisher: jest.Mocked<EventPublisherService>
+  let prisma: MockPrisma
+  let eventPublisher: MockEventPublisher
 
   beforeEach(async () => {
+    const mockPrisma: MockPrisma = {
+      knowledgePage: {
+        findMany: jest.fn(),
+      },
+      pageActivity: {
+        create: jest.fn(),
+      },
+    }
+
+    const mockEventPublisher: MockEventPublisher = {
+      publish: jest.fn(),
+    }
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VerificationExpiryJob,
         {
           provide: PrismaService,
-          useValue: {
-            knowledgePage: {
-              findMany: jest.fn(),
-            },
-            pageActivity: {
-              create: jest.fn(),
-            },
-          },
+          useValue: mockPrisma,
         },
         {
           provide: EventPublisherService,
-          useValue: {
-            publish: jest.fn(),
-          },
+          useValue: mockEventPublisher,
         },
       ],
     }).compile()
 
     job = module.get<VerificationExpiryJob>(VerificationExpiryJob)
-    prisma = module.get(PrismaService)
-    eventPublisher = module.get(EventPublisherService)
+    prisma = mockPrisma
+    eventPublisher = mockEventPublisher
   })
 
   afterEach(() => {
@@ -60,7 +78,7 @@ describe('VerificationExpiryJob', () => {
 
       prisma.knowledgePage.findMany.mockResolvedValue([mockExpiredPage])
       prisma.pageActivity.create.mockResolvedValue({} as any)
-      eventPublisher.publish.mockResolvedValue(undefined)
+      eventPublisher.publish.mockResolvedValue('event-id-123')
 
       await job.checkExpirations()
 
@@ -134,7 +152,7 @@ describe('VerificationExpiryJob', () => {
 
       prisma.knowledgePage.findMany.mockResolvedValue([mockExpiredPage])
       prisma.pageActivity.create.mockResolvedValue({} as any)
-      eventPublisher.publish.mockResolvedValue(undefined)
+      eventPublisher.publish.mockResolvedValue('event-id-123')
 
       await job.checkExpirations()
 
@@ -170,7 +188,7 @@ describe('VerificationExpiryJob', () => {
 
       prisma.knowledgePage.findMany.mockResolvedValue([mockExpiredPage])
       prisma.pageActivity.create.mockResolvedValue({} as any)
-      eventPublisher.publish.mockResolvedValue(undefined)
+      eventPublisher.publish.mockResolvedValue('event-id-123')
 
       await job.checkExpirations()
 
@@ -218,7 +236,7 @@ describe('VerificationExpiryJob', () => {
 
       prisma.knowledgePage.findMany.mockResolvedValue(mockExpiredPages)
       prisma.pageActivity.create.mockResolvedValue({} as any)
-      eventPublisher.publish.mockResolvedValue(undefined)
+      eventPublisher.publish.mockResolvedValue('event-id-123')
 
       await job.checkExpirations()
 
@@ -260,7 +278,7 @@ describe('VerificationExpiryJob', () => {
         .mockRejectedValueOnce(new Error('Database error'))
         .mockResolvedValueOnce({} as any)
 
-      eventPublisher.publish.mockResolvedValue(undefined)
+      eventPublisher.publish.mockResolvedValue('event-id-123')
 
       await job.checkExpirations()
 
