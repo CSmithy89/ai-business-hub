@@ -7,13 +7,15 @@
  * dashboard state. Each hook subscribes to a specific slice of state,
  * preventing unnecessary re-renders when unrelated state changes.
  *
- * These hooks use Zustand's subscribeWithSelector middleware internally,
- * which performs shallow equality checks on the selected state.
+ * DM-08.6: Optimized with:
+ * - Pre-computed activeAlerts (no filtering in selector)
+ * - Shallow comparison for array/object selectors
  *
  * @see docs/modules/bm-dm/epics/epic-dm-04-tech-spec.md
  * Epic: DM-04 | Story: DM-04.2
  */
 
+import { useShallow } from 'zustand/react/shallow';
 import {
   useDashboardStateStore,
   type DashboardStateStore,
@@ -93,8 +95,8 @@ export function useTeamActivity(): ActivityState | null {
 /**
  * Select non-dismissed alerts only.
  *
- * Filters out dismissed alerts automatically.
- * Only re-renders when alerts change.
+ * DM-08.6: Uses pre-computed activeAlerts to avoid filtering on every render.
+ * Uses shallow comparison to prevent unnecessary re-renders.
  *
  * @returns Array of non-dismissed AlertEntry objects
  *
@@ -108,18 +110,19 @@ export function useTeamActivity(): ActivityState | null {
  * ```
  */
 export function useAlerts(): AlertEntry[] {
-  return useDashboardStateStore((state) =>
-    state.widgets.alerts.filter((alert) => !alert.dismissed)
-  );
+  // DM-08.6: Use pre-computed activeAlerts with shallow comparison
+  return useDashboardStateStore(useShallow((state) => state.activeAlerts));
 }
 
 /**
  * Select all alerts including dismissed ones.
  *
+ * DM-08.6: Uses shallow comparison to prevent unnecessary re-renders.
+ *
  * @returns Array of all AlertEntry objects
  */
 export function useAllAlerts(): AlertEntry[] {
-  return useDashboardStateStore((state) => state.widgets.alerts);
+  return useDashboardStateStore(useShallow((state) => state.widgets.alerts));
 }
 
 // =============================================================================
@@ -169,10 +172,14 @@ export function useAnyLoading(): boolean {
 /**
  * Select the list of currently loading agents.
  *
+ * DM-08.6: Uses shallow comparison to prevent unnecessary re-renders.
+ *
  * @returns Array of agent IDs that are currently loading
  */
 export function useLoadingAgents(): string[] {
-  return useDashboardStateStore((state) => state.loading.loadingAgents);
+  return useDashboardStateStore(
+    useShallow((state) => state.loading.loadingAgents)
+  );
 }
 
 // =============================================================================
@@ -201,10 +208,12 @@ export function useWidgetError(agentId: string): string | undefined {
 /**
  * Select all errors.
  *
+ * DM-08.6: Uses shallow comparison to prevent unnecessary re-renders.
+ *
  * @returns ErrorState (Record<string, string>) of all agent errors
  */
 export function useErrors(): ErrorState {
-  return useDashboardStateStore((state) => state.errors);
+  return useDashboardStateStore(useShallow((state) => state.errors));
 }
 
 /**

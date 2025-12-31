@@ -1,0 +1,14 @@
+{
+  "description": "Widget types - auto-generated from packages/shared/src/types/widget.ts",
+  "generated": "DM-08.5",
+  "types": [
+    "ProjectStatus",
+    "TaskList",
+    "Metrics",
+    "Alert",
+    "KanbanBoard",
+    "GanttChart",
+    "BurndownChart",
+    "TeamActivity"
+  ]
+}

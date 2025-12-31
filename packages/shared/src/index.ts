@@ -51,6 +51,9 @@ export * from './utils/csv';
 // API scopes for external API authentication
 export * from './types/api-scopes';
 
+// Widget types (DM-08.5: Single source of truth)
+export * from './types/widget';
+
 // NOTE: Encryption utilities are NOT exported from the main entry point
 // because they use node:crypto which breaks client-side bundling.
 // Import from '@hyvve/shared/server' for server-side utilities.

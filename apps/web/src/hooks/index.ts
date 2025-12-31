@@ -81,6 +81,15 @@ export {
   type UseStatePersistenceResult,
 } from './use-state-persistence';
 
+// Dashboard caching hooks (Story DM-08.2)
+export {
+  useDashboardData,
+  useDashboardDataWithParams,
+  useDashboardCache,
+  type UseDashboardDataOptions,
+  type UseDashboardDataResult,
+} from './use-dashboard-data';
+
 // HITL hooks (Story DM-05.2)
 export {
   useHITLAction,

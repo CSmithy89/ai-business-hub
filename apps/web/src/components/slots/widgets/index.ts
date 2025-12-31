@@ -50,3 +50,11 @@ export {
   RealTimeIndicator,
   type RealTimeIndicatorProps,
 } from './RealTimeIndicator';
+
+// Placeholder widgets for future implementation (DM-08.5)
+export {
+  PlaceholderWidget,
+  KanbanBoardWidget,
+  GanttChartWidget,
+  BurndownChartWidget,
+} from './PlaceholderWidget';

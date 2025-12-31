@@ -10,7 +10,9 @@ Tool definitions for the Dashboard Gateway agent. These tools enable:
 All tools are designed to be intercepted by CopilotKit on the frontend,
 where tool calls are rendered as React components.
 """
+import json
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from constants.dm_constants import DMConstants
@@ -20,16 +22,57 @@ logger = logging.getLogger(__name__)
 
 # Widget types that can be rendered
 # These correspond to React components registered in the frontend widget registry
-WIDGET_TYPES = [
-    "ProjectStatus",
-    "TaskList",
-    "Metrics",
-    "Alert",
-    "KanbanBoard",
-    "GanttChart",
-    "BurndownChart",
-    "TeamActivity",
-]
+# DM-08.5: Single source of truth in packages/shared/widget-types.json
+def _find_repo_root() -> Optional[Path]:
+    """Find repository root by looking for marker files."""
+    current = Path(__file__).resolve().parent
+    for _ in range(10):  # Max 10 levels up
+        if (current / "package.json").exists() and (current / "pnpm-workspace.yaml").exists():
+            return current
+        parent = current.parent
+        if parent == current:  # Reached filesystem root
+            break
+        current = parent
+    return None
+
+
+def _load_widget_types() -> List[str]:
+    """Load widget types from shared JSON file."""
+    # Try to find repo root for more robust path resolution
+    repo_root = _find_repo_root()
+    if repo_root:
+        json_path = repo_root / "packages" / "shared" / "widget-types.json"
+    else:
+        # Fallback to relative path from this file
+        json_path = (
+            Path(__file__).parent.parent.parent
+            / "packages"
+            / "shared"
+            / "widget-types.json"
+        )
+
+    if json_path.exists():
+        try:
+            with open(json_path, "r") as f:
+                data = json.load(f)
+                return data.get("types", [])
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Failed to load widget-types.json: {e}")
+
+    # Fallback to hardcoded list (should match JSON)
+    return [
+        "ProjectStatus",
+        "TaskList",
+        "Metrics",
+        "Alert",
+        "KanbanBoard",
+        "GanttChart",
+        "BurndownChart",
+        "TeamActivity",
+    ]
+
+
+WIDGET_TYPES = _load_widget_types()
 
 
 def render_dashboard_widget(

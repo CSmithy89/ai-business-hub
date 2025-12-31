@@ -651,6 +651,45 @@ docs/
 - DM-08 (Quality hardening)
 - DM-09 (Testing infrastructure for validating changes)
 
+## Recommendations from DM-08 Retrospective
+
+The following items from the DM-08 retrospective should be incorporated:
+
+### From "What Went Well" Patterns
+
+1. **Integrate response parser into A2A client** - When implementing stories that involve A2A communication:
+   - Use `parse_agent_response()` from `agents/pm/schemas/base.py`
+   - Validate responses with `NaviProjectResponse`, `PulseHealthResponse`, `HeraldActivityResponse`
+   - Use `to_widget_data()` methods for frontend-compatible output
+   - Handle validation failures with graceful fallback
+
+2. **Wire up caching to actual dashboard data flows** - When implementing DM-11.1 (Redis State Persistence):
+   - Integrate with existing `agents/services/cache.py` service
+   - Use staleness tracking for cache invalidation
+   - Consider cache warming on agent startup
+   - Add cache metrics to observability
+
+3. **Add rate limiting to production A2A calls** - When implementing DM-11.4/11.5 (Parallel operations):
+   - Use `agents/services/rate_limiter.py` for all A2A endpoints
+   - Configure per-agent thresholds based on load testing results
+   - Add rate limit headers to responses
+   - Monitor rate limit hits in metrics
+
+### From "What Could Be Improved"
+
+4. **Cross-Language Type Validation** - Consider implementing code generation from JSON Schema:
+   - Current approach uses JSON intermediate format (`packages/shared/widget-types.json`)
+   - Works but lacks compile-time validation
+   - Consider adding build-time code generation: JSON Schema → TypeScript types + Python Pydantic models
+   - This would catch type mismatches at build time rather than runtime
+   - Recommended approach: Use a tool like `datamodel-code-generator` for Python or `json-schema-to-typescript`
+
+5. **Caching TTL Environment Configuration** - TTL values are currently hardcoded in Python constants:
+   - Move TTL values in `agents/services/cache.py` to environment variables
+   - Allow different TTLs for different deployment tiers (dev/staging/prod)
+   - Example: `CACHE_TTL_DEFAULT=300`, `CACHE_TTL_SHORT=60`, `CACHE_TTL_LONG=3600`
+   - Add validation for TTL ranges to prevent misconfigurations
+
 ## Technical Notes
 
 ### State Sync Architecture

@@ -5,8 +5,8 @@
 The **Dynamic Module System (bm-dm)** is an infrastructure module that implements unified agent-to-user and agent-to-agent communication using industry-standard protocols. It transforms how HYVVE's agents interact with the frontend and each other.
 
 **Module Type:** Infrastructure / Platform Core
-**Status:** All 7 Phases Complete (Phase 7 = Tech Debt Stabilization)
-**Total Scope:** 7 Epics | 43 Stories | 260 Points
+**Status:** All 8 Phases Complete (Phase 8 = Quality & Performance Hardening)
+**Total Scope:** 8 Epics | 50 Stories | 295 Points
 
 ## Purpose
 
@@ -50,6 +50,7 @@ BM-DM enables:
 | DM-05 | Advanced HITL & Streaming | 5 | 5 | 34 | **Complete** |
 | DM-06 | Contextual Intelligence | 6 | 6 | 42 | **Complete** |
 | DM-07 | Infrastructure Stabilization | 7 | 5 | 29 | **Complete** |
+| DM-08 | Quality & Performance Hardening | 8 | 7 | 35 | **Complete** |
 
 ## Phase Overview
 
@@ -201,6 +202,36 @@ Tech debt resolution and CI/CD reliability improvements.
 - TD-05: Keyboard shortcut conflicts
 - TD-06: DM_CONSTANTS usage for shortcuts
 
+### Phase 8: Quality & Performance Hardening (DM-08) ✅ Complete
+
+Quality improvements and performance optimizations identified from tech debt analysis.
+
+**Delivered (7 stories, 35 points):**
+- Zod validation schemas for widget data at frontend boundary
+- Dashboard data caching with staleness tracking and TTL expiration
+- A2A rate limiting with configurable per-agent thresholds
+- Async mock fixtures for pytest with Redis, A2A, and database mocks
+- Widget type deduplication with shared TypeScript/Python definitions
+- Zustand selector optimization with pre-computed state and shallow comparison
+- Pydantic response parser validation for all PM agent responses
+
+**Key Files:**
+- `apps/web/src/lib/schemas/widget-schemas.ts` — Zod widget validation schemas
+- `agents/services/cache.py` — Dashboard caching service
+- `agents/services/rate_limiter.py` — A2A rate limiting
+- `agents/tests/fixtures/` — Pytest async mocks (redis, a2a, database)
+- `packages/shared/src/types/widget.ts` — Canonical widget type definitions
+- `packages/shared/widget-types.json` — JSON for Python sync
+- `apps/web/src/stores/dashboard-state-store.ts` — Pre-computed activeAlerts, MAX bounds
+- `apps/web/src/hooks/use-dashboard-selectors.ts` — useShallow optimizations
+- `agents/pm/schemas/` — Pydantic response validation (navi, pulse, herald)
+
+**Performance Improvements:**
+- Pre-computed `activeAlerts` eliminates filtering on every render
+- MAX bounds prevent unbounded collection growth (50 alerts, 100 activities, 50 metrics, 20 tasks)
+- `useShallow` comparison prevents unnecessary array/object re-renders
+- Staleness-aware caching reduces redundant agent calls
+
 ## Dependencies
 
 ```
@@ -247,11 +278,11 @@ One agent, multiple protocols = maximum interoperability.
 
 - **Sprint Status:** [sprint-status.yaml](./sprint-status.yaml)
 - **Epic Details:** [epics/](./epics/)
-- **Stories:** [stories/](./stories/) (All 43 stories complete)
+- **Stories:** [stories/](./stories/) (All 50 stories complete)
 
 ## Completion Summary
 
-All 7 epics and 43 stories have been implemented:
+All 8 epics and 50 stories have been implemented:
 
 1. ~~Draft stories for DM-01 from epic documentation~~ ✅
 2. ~~Implement DM-01 (8 stories, 44 points)~~ ✅
@@ -266,8 +297,9 @@ All 7 epics and 43 stories have been implemented:
 11. ~~Context DM-06 epic and draft stories~~ ✅
 12. ~~Implement DM-06 (6 stories, 42 points)~~ ✅
 13. ~~Implement DM-07 (5 stories, 29 points)~~ ✅ *Tech Debt Stabilization*
+14. ~~Implement DM-08 (7 stories, 35 points)~~ ✅ *Quality & Performance Hardening*
 
-**Total Delivered:** 260 story points across 43 stories in 7 epics.
+**Total Delivered:** 295 story points across 50 stories in 8 epics.
 
 ## Related Documentation
 
