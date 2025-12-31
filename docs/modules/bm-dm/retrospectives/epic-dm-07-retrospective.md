@@ -97,6 +97,71 @@ Defining `DM_CONSTANTS.CHAT.KEYBOARD_SHORTCUT` is pointless if components don't 
 | Fix remaining TypeScript tests | Medium | DM-08 |
 | Fix remaining Python tests | Medium | DM-08 |
 
+## PR #46 Code Review Response
+
+The following issues from code review were addressed in a follow-up commit:
+
+### Fixed
+
+1. **pathname.includes() Logic Error** (CodeAnt AI)
+   - Changed from substring matching to exact path comparison
+   - `pathname?.includes(slug)` → `pathname === \`/kb/${slug}\``
+   - Prevents false positives (e.g., `/kb/foo-bar` incorrectly matching `/kb/foo`)
+
+2. **TypeScript Mock Type Safety** (Gemini Code Assist)
+   - Replaced `as any` casts with `Partial<T>` pattern
+   - Added imports: `KnowledgePage`, `PageActivity` from `@prisma/client`
+   - Mock data now typed as `Partial<KnowledgePage>` with cast to full type
+
+## Remaining Tech Debt (Not Fixed in DM-07)
+
+The following items were identified during DM-07 development or PR review but not addressed:
+
+### From PR #46 Code Review
+
+1. **Python Import Path Style Inconsistency** (Low Priority)
+   - Adding both project root and agents root to sys.path enables two import patterns
+   - `from agents.module import X` and `from module import X` both work
+   - **Recommendation:** Document preferred import pattern in Python style guide (DM-10)
+
+2. **Mock Pattern Consistency Across Tests** (Medium Priority)
+   - The custom `MockPrisma`/`MockEventPublisher` pattern established in DM-07.3 should be applied to other test files
+   - Several test files still use inconsistent mock setups
+   - **Recommendation:** Create shared mock fixtures in DM-08
+
+3. **Test verifyExpires Type Alignment** (Low Priority)
+   - Test asserts `expect.any(String)` for verifyExpires but service returns `Date`
+   - Works but could hide type conversion issues
+   - **Recommendation:** Align mock types with service return types in DM-08
+
+### Remaining Test Failures
+
+1. **91 TypeScript Test Failures**
+   - Pattern documented but not all tests fixed
+   - Most are due to mock type mismatches
+   - **Tracked in:** DM-08-4 (async-mock-fixtures)
+
+2. **46 Python Test Failures**
+   - Collection errors fixed, but runtime failures remain
+   - Missing packages: anthropic, asyncpg
+   - Library issues: slowapi compatibility
+   - **Tracked in:** DM-08-4, DM-09
+
+### Deferred Improvements
+
+1. **Central Keyboard Shortcut Registry** (DM-10)
+   - Prevents future shortcut conflicts
+   - Single registration point with conflict detection
+
+2. **Jest.Mocked<T> vs Custom Types** (DM-08)
+   - CodeAnt suggested jest.Mocked<T> is more ergonomic
+   - Custom types work but may hide signature changes
+   - Evaluate tradeoffs when fixing remaining tests
+
+3. **sessionData Type Safety** (Low Priority)
+   - `sessionData as any` cast in kb/layout.tsx
+   - Should type session properly from auth provider
+
 ## Conclusion
 
 DM-07 successfully stabilized the infrastructure by addressing the most critical tech debt items from Sprint 1 of the tech-debt-consolidated.md document. The SSR build, Python test collection, and keyboard shortcut conflicts are now resolved. Documentation patterns have been established for the remaining test fixes, which are properly tracked in DM-08.
