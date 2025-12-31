@@ -5,8 +5,8 @@
 The **Dynamic Module System (bm-dm)** is an infrastructure module that implements unified agent-to-user and agent-to-agent communication using industry-standard protocols. It transforms how HYVVE's agents interact with the frontend and each other.
 
 **Module Type:** Infrastructure / Platform Core
-**Status:** All 8 Phases Complete (Phase 8 = Quality & Performance Hardening)
-**Total Scope:** 8 Epics | 50 Stories | 295 Points
+**Status:** All 9 Phases Complete (Phase 9 = Observability & Testing)
+**Total Scope:** 9 Epics | 58 Stories | 345 Points
 
 ## Purpose
 
@@ -51,6 +51,7 @@ BM-DM enables:
 | DM-06 | Contextual Intelligence | 6 | 6 | 42 | **Complete** |
 | DM-07 | Infrastructure Stabilization | 7 | 5 | 29 | **Complete** |
 | DM-08 | Quality & Performance Hardening | 8 | 7 | 35 | **Complete** |
+| DM-09 | Observability & Testing | 9 | 8 | 50 | **Complete** |
 
 ## Phase Overview
 
@@ -232,6 +233,36 @@ Quality improvements and performance optimizations identified from tech debt ana
 - `useShallow` comparison prevents unnecessary array/object re-renders
 - Staleness-aware caching reduces redundant agent calls
 
+### Phase 9: Observability & Testing (DM-09) ✅ Complete
+
+Comprehensive observability infrastructure and end-to-end testing capabilities.
+
+**Delivered (8 stories, 50 points):**
+- OpenTelemetry distributed tracing with OTLP export to Jaeger
+- Prometheus metrics exposition with custom registry and RequestTimer
+- Playwright E2E infrastructure with page object models and fixtures
+- Critical flow E2E tests for dashboard, approval queue, and streaming
+- Percy visual regression tests for widgets and HITL components
+- k6 load testing infrastructure for A2A endpoints and CCR routing
+- CCR operational verification tests (70 integration tests)
+- localStorage quota management with LRU cleanup and graceful degradation
+
+**Key Files:**
+- `agents/observability/` — OpenTelemetry tracing, metrics, decorators
+- `agents/api/routes/metrics.py` — Prometheus /metrics endpoint
+- `apps/web/tests/support/` — Playwright page objects and fixtures
+- `apps/web/tests/e2e/critical-flows/` — Dashboard, approval, streaming tests
+- `apps/web/tests/visual/` — Percy widget and HITL visual tests
+- `tests/load/k6/` — k6 load test scenarios
+- `agents/tests/integration/` — CCR operational tests
+- `apps/web/src/lib/storage/quota-handler.ts` — localStorage quota utilities
+
+**Infrastructure Additions:**
+- Jaeger tracing via Docker Compose (`docker/docker-compose.yml`)
+- Grafana dashboard (`docs/modules/bm-dm/dashboards/agentos-dashboard.json`)
+- Percy CI workflow (`.github/workflows/visual.yml`)
+- Load test CI workflow (`.github/workflows/load-test.yml`)
+
 ## Dependencies
 
 ```
@@ -278,11 +309,11 @@ One agent, multiple protocols = maximum interoperability.
 
 - **Sprint Status:** [sprint-status.yaml](./sprint-status.yaml)
 - **Epic Details:** [epics/](./epics/)
-- **Stories:** [stories/](./stories/) (All 50 stories complete)
+- **Stories:** [stories/](./stories/) (All 58 stories complete)
 
 ## Completion Summary
 
-All 8 epics and 50 stories have been implemented:
+All 9 epics and 58 stories have been implemented:
 
 1. ~~Draft stories for DM-01 from epic documentation~~ ✅
 2. ~~Implement DM-01 (8 stories, 44 points)~~ ✅
@@ -298,8 +329,9 @@ All 8 epics and 50 stories have been implemented:
 12. ~~Implement DM-06 (6 stories, 42 points)~~ ✅
 13. ~~Implement DM-07 (5 stories, 29 points)~~ ✅ *Tech Debt Stabilization*
 14. ~~Implement DM-08 (7 stories, 35 points)~~ ✅ *Quality & Performance Hardening*
+15. ~~Implement DM-09 (8 stories, 50 points)~~ ✅ *Observability & Testing*
 
-**Total Delivered:** 295 story points across 50 stories in 8 epics.
+**Total Delivered:** 345 story points across 58 stories in 9 epics.
 
 ## Related Documentation
 
