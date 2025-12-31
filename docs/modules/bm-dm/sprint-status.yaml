@@ -184,7 +184,7 @@ development_status:
   # Validation, Caching, Rate limiting
   # Source: tech-debt-consolidated.md Sprint 2
   # ===========================================
-  dm-08: backlog
+  dm-08: contexted
   dm-08-1-zod-widget-validation: backlog
   dm-08-2-dashboard-data-caching: backlog
   dm-08-3-a2a-rate-limiting: backlog
