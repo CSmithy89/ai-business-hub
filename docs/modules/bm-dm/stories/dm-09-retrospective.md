@@ -282,9 +282,11 @@ Every story file includes:
 
 ### For DM-11 (Advanced Features)
 
-1. **Address RequestTimer Label Mismatch (TD-DM09-01):** Critical for production metrics
-2. **Add Thread Safety to CCR Tracker (TD-DM09-02):** Required before production scale
-3. **Move Tracing to Startup (TD-DM09-03):** Clean up import-time side effects
+> **✅ UPDATE:** All three items below were addressed in the DM-09 retrospective fix sprint and are now resolved. No additional work needed for DM-11 from this retrospective.
+
+1. ~~**Address RequestTimer Label Mismatch (TD-DM09-01):**~~ ✅ Fixed - Added `_labelnames` introspection
+2. ~~**Add Thread Safety to CCR Tracker (TD-DM09-02):**~~ ✅ Fixed - Added `threading.Lock`
+3. ~~**Move Tracing to Startup (TD-DM09-03):**~~ ✅ Fixed - Moved to FastAPI startup event
 
 ### General Recommendations
 

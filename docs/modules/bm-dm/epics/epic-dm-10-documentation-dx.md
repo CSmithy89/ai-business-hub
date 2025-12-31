@@ -8,7 +8,7 @@ Address documentation gaps, improve developer tooling, and create comprehensive 
 
 **Tech Debt Document:** `docs/modules/bm-dm/tech-debt-consolidated.md`
 **Priority:** Sprint 3+ - Documentation & DX
-**Items Addressed:** REC-08, REC-09, REC-13, REC-14, REC-21, REC-25, REC-26, TD-09, TD-10, Doc Gaps 1-6
+**Items Addressed:** REC-08, REC-09, REC-13, REC-14, REC-21, REC-25, REC-26, TD-09, TD-10, Doc Gaps 1-6, DM-09 Retrospective Recommendations 1-3
 
 ## Scope
 
@@ -474,7 +474,246 @@ rules:
 
 ---
 
-## Total Points: 29
+### Story DM-10.8: OpenTelemetry Usage Guide
+
+**Problem:** No documentation for using the observability infrastructure added in DM-09.
+
+**Gap Addressed:** DM-09 Retrospective Recommendation #2
+
+**Topics to Cover:**
+1. `@traced` decorator usage and parameters
+2. Creating custom spans with `get_tracer()`
+3. Adding span attributes and events
+4. Tracing context propagation across A2A calls
+5. Viewing traces in Jaeger
+6. Sampling configuration for production
+
+**Guide Structure:**
+```markdown
+# OpenTelemetry Tracing Guide
+
+## Overview
+How distributed tracing works in HYVVE AgentOS.
+
+## Quick Start
+Add tracing to any function:
+```python
+from agents.observability.decorators import traced
+
+@traced()
+async def my_function():
+    # Automatically creates a span
+    pass
+```
+
+## Custom Spans
+For more control:
+```python
+from agents.observability.tracing import get_tracer
+
+tracer = get_tracer(__name__)
+
+with tracer.start_as_current_span("my_operation") as span:
+    span.set_attribute("key", "value")
+    # ... operation code
+```
+
+## Configuration
+- OTEL_ENABLED: Enable/disable tracing
+- OTEL_SAMPLING_RATE: Control trace volume (0.0-1.0)
+- OTEL_EXPORTER_ENDPOINT: Jaeger collector URL
+- OTEL_EXPORTER_INSECURE: TLS setting (set False in production)
+
+## Viewing Traces
+1. Start Jaeger: `docker-compose up jaeger`
+2. Open http://localhost:16686
+3. Select "agentos" service
+4. Find traces by operation name
+```
+
+**Files to Create:**
+```
+docs/guides/
+└── opentelemetry-tracing.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: @traced decorator documented with examples
+- [ ] AC2: Custom span creation documented
+- [ ] AC3: Configuration options explained
+- [ ] AC4: Jaeger usage guide included
+- [ ] AC5: Production best practices noted
+
+**Points:** 3
+
+---
+
+### Story DM-10.9: E2E Test Writing Guide
+
+**Problem:** No documentation for the Playwright E2E infrastructure added in DM-09.
+
+**Gap Addressed:** DM-09 Retrospective Recommendation #3
+
+**Topics to Cover:**
+1. Page Object Pattern usage
+2. Available fixtures (auth, apiMock, dashboard)
+3. Writing new page objects
+4. API mocking patterns
+5. Visual regression testing with Percy
+6. Running tests locally and in CI
+
+**Guide Structure:**
+```markdown
+# E2E Testing Guide
+
+## Overview
+How to write and run E2E tests using our Playwright infrastructure.
+
+## Test Structure
+```typescript
+import { test, expect } from '../support/fixtures/dashboard.fixture';
+
+test('dashboard loads widgets', async ({ dashboardPage }) => {
+  await dashboardPage.goto();
+  await dashboardPage.expectStructure();
+  await expect(dashboardPage.widgetGrid).toBeVisible();
+});
+```
+
+## Page Objects
+Located at `apps/web/tests/support/pages/`:
+- BasePage - Common navigation and wait methods
+- DashboardPage - Dashboard-specific interactions
+- ApprovalPage - Approval queue interactions
+
+### Creating a Page Object
+```typescript
+export class MyPage extends BasePage {
+  readonly myElement = this.page.getByTestId('my-element');
+
+  async goto() {
+    await this.page.goto('/my-page');
+    await this.waitForReady();
+  }
+}
+```
+
+## API Mocking
+```typescript
+import { test } from '../support/fixtures/api-mock.fixture';
+
+test('handles error', async ({ page, apiMock }) => {
+  await apiMock.mockApi({
+    url: '/api/data',
+    status: 500,
+    body: { error: 'Server error' },
+  });
+  // ... test error handling
+});
+```
+
+## Visual Testing
+```typescript
+await percySnapshot(page, 'Dashboard - Default State');
+```
+
+## Running Tests
+- Local: `pnpm test:e2e`
+- Headed: `pnpm test:e2e --headed`
+- Specific test: `pnpm test:e2e dashboard`
+```
+
+**Files to Create:**
+```
+docs/guides/
+└── e2e-testing.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: Page object pattern explained
+- [ ] AC2: All fixtures documented
+- [ ] AC3: API mocking patterns shown
+- [ ] AC4: Visual testing guide included
+- [ ] AC5: Local/CI running instructions
+
+**Points:** 3
+
+---
+
+### Story DM-10.10: Observability Stack Runbook
+
+**Problem:** No operational runbook for the Jaeger/Prometheus/Grafana stack.
+
+**Gap Addressed:** DM-09 Retrospective Recommendation #1
+
+**Topics to Cover:**
+1. Starting the observability stack
+2. Accessing dashboards
+3. Common queries and alerts
+4. Troubleshooting connectivity
+5. Production deployment considerations
+
+**Runbook Structure:**
+```markdown
+# Observability Stack Runbook
+
+## Quick Start
+```bash
+docker-compose up -d jaeger prometheus grafana
+```
+
+## Services
+| Service | Port | URL |
+|---------|------|-----|
+| Jaeger UI | 16686 | http://localhost:16686 |
+| Prometheus | 9090 | http://localhost:9090 |
+| Grafana | 3000 | http://localhost:3000 |
+| OTLP gRPC | 4317 | (trace collection) |
+
+## Common Tasks
+
+### View Recent Traces
+1. Open Jaeger UI
+2. Select service: agentos
+3. Set time range
+4. Click "Find Traces"
+
+### Check Metrics
+```promql
+# Request rate
+rate(http_requests_total[5m])
+
+# Error rate
+rate(http_requests_total{status=~"5.."}[5m])
+
+# P95 latency
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+```
+
+## Troubleshooting
+- No traces appearing: Check OTEL_ENABLED and endpoint
+- Prometheus not scraping: Verify /metrics endpoint accessible
+- Grafana no data: Check datasource configuration
+```
+
+**Files to Create:**
+```
+docs/runbooks/
+└── observability-stack.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: Docker compose instructions
+- [ ] AC2: All service URLs documented
+- [ ] AC3: Common PromQL queries included
+- [ ] AC4: Troubleshooting section
+- [ ] AC5: Production notes
+
+**Points:** 3
+
+---
+
+## Total Points: 38
 
 ## Dependencies
 
