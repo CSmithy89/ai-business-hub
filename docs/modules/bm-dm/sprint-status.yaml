@@ -176,6 +176,7 @@ development_status:
   dm-07-3-fix-typescript-test-failures: done
   dm-07-4-reconcile-dm02-status: done
   dm-07-5-unify-keyboard-shortcuts: done
+  dm-07-retrospective: done
 
   # ===========================================
   # DM-08: Quality & Performance Hardening
@@ -191,6 +192,7 @@ development_status:
   dm-08-5-deduplicate-widget-types: backlog
   dm-08-6-optimize-zustand-selectors: backlog
   dm-08-7-response-parser-validation: backlog
+  dm-08-retrospective: backlog
 
   # ===========================================
   # DM-09: Observability & Testing
@@ -207,6 +209,7 @@ development_status:
   dm-09-6-load-testing-infrastructure: backlog
   dm-09-7-ccr-operational-tests: backlog
   dm-09-8-localstorage-quota-tests: backlog
+  dm-09-retrospective: backlog
 
   # ===========================================
   # DM-10: Documentation & Developer Experience
@@ -222,6 +225,7 @@ development_status:
   dm-10-5-http2-deployment-guide: backlog
   dm-10-6-implementation-notes-backfill: backlog
   dm-10-7-semgrep-precommit: backlog
+  dm-10-retrospective: backlog
 
   # ===========================================
   # DM-11: Advanced Features & Optimizations
@@ -242,6 +246,7 @@ development_status:
   dm-11-10-wire-errorwidget-retry: backlog
   dm-11-11-fix-copilotkit-api-drift: backlog
   dm-11-12-address-naming-complexity: backlog
+  dm-11-retrospective: backlog
 
 # ===========================================
 # Summary
