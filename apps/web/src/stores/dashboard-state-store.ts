@@ -17,25 +17,36 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import type {
+  DashboardState,
+  DashboardStateUpdate,
+  ProjectStatusState,
+  MetricsState,
+  ActivityState,
+  AlertEntry,
+  TaskProgress,
+  TaskStep,
+} from '@/lib/schemas/dashboard-state';
 import {
-  type DashboardState,
-  type DashboardStateUpdate,
-  type ProjectStatusState,
-  type MetricsState,
-  type ActivityState,
-  type AlertEntry,
-  type TaskProgress,
-  type TaskStep,
   createInitialDashboardState,
   validateDashboardState,
 } from '@/lib/schemas/dashboard-state';
 
 // =============================================================================
-// CONSTANTS
+// CONSTANTS (DM-08.6: Added bounds for all collections)
 // =============================================================================
 
 /** Maximum number of alerts to keep in state */
 const MAX_ALERTS = 50;
+
+/** Maximum number of activity entries to keep in state */
+const MAX_ACTIVITIES = 100;
+
+/** Maximum number of metrics to keep in state */
+const MAX_METRICS = 50;
+
+/** Maximum number of active tasks to track */
+const MAX_ACTIVE_TASKS = 20;
 
 // =============================================================================
 // STORE INTERFACE
@@ -45,8 +56,12 @@ const MAX_ALERTS = 50;
  * Dashboard State Store Interface
  *
  * Extends the base DashboardState with actions for state manipulation.
+ * DM-08.6: Added pre-computed derived state (activeAlerts) for optimized selectors.
  */
 export interface DashboardStateStore extends DashboardState {
+  // Pre-computed derived state (DM-08.6)
+  /** Pre-computed list of non-dismissed alerts (avoids filtering in selectors) */
+  activeAlerts: AlertEntry[];
   // Full state updates
   /** Set the full state from agent (validates before applying) */
   setFullState: (state: DashboardState) => void;
@@ -113,6 +128,8 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
   subscribeWithSelector((set) => ({
     // Initial state
     ...createInitialDashboardState(),
+    // Pre-computed derived state (DM-08.6)
+    activeAlerts: [],
 
     // =========================================================================
     // FULL STATE UPDATES
@@ -121,30 +138,44 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     setFullState: (state: DashboardState) => {
       const validated = validateDashboardState(state);
       if (validated) {
-        set(validated);
+        // DM-08.6: Pre-compute activeAlerts on full state update
+        const activeAlerts = validated.widgets.alerts.filter((a) => !a.dismissed);
+        set({ ...validated, activeAlerts });
       } else {
         console.warn('[DashboardStateStore] Invalid state rejected');
       }
     },
 
     updateState: (update: DashboardStateUpdate) => {
-      set((current) => ({
-        ...current,
-        ...update,
-        timestamp: Date.now(),
+      set((current) => {
         // Deep merge for nested objects
-        widgets: update.widgets
+        const newWidgets = update.widgets
           ? { ...current.widgets, ...update.widgets }
-          : current.widgets,
-        loading: update.loading
-          ? { ...current.loading, ...update.loading }
-          : current.loading,
-        errors: update.errors
-          ? { ...current.errors, ...update.errors }
-          : current.errors,
-        // Active tasks from agent updates replace existing (DM-05.4)
-        activeTasks: update.activeTasks ?? current.activeTasks,
-      }));
+          : current.widgets;
+
+        // DM-08.6: Pre-compute activeAlerts if alerts changed
+        const newAlerts = newWidgets.alerts;
+        const activeAlerts =
+          newAlerts !== current.widgets.alerts
+            ? newAlerts.filter((a) => !a.dismissed)
+            : current.activeAlerts;
+
+        return {
+          ...current,
+          ...update,
+          timestamp: Date.now(),
+          widgets: newWidgets,
+          loading: update.loading
+            ? { ...current.loading, ...update.loading }
+            : current.loading,
+          errors: update.errors
+            ? { ...current.errors, ...update.errors }
+            : current.errors,
+          // Active tasks from agent updates replace existing (DM-05.4)
+          activeTasks: update.activeTasks ?? current.activeTasks,
+          activeAlerts,
+        };
+      });
     },
 
     // =========================================================================
@@ -174,7 +205,13 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         timestamp: Date.now(),
         widgets: {
           ...state.widgets,
-          metrics,
+          // DM-08.6: Cap metrics at MAX_METRICS
+          metrics: metrics
+            ? {
+                ...metrics,
+                metrics: metrics.metrics.slice(0, MAX_METRICS),
+              }
+            : null,
         },
       }));
     },
@@ -184,32 +221,50 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         timestamp: Date.now(),
         widgets: {
           ...state.widgets,
-          activity,
+          // DM-08.6: Cap activities at MAX_ACTIVITIES
+          activity: activity
+            ? {
+                ...activity,
+                activities: activity.activities.slice(0, MAX_ACTIVITIES),
+              }
+            : null,
         },
       }));
     },
 
     addAlert: (alert: AlertEntry) => {
-      set((state) => ({
-        timestamp: Date.now(),
-        widgets: {
-          ...state.widgets,
-          // Prepend new alert and cap at MAX_ALERTS
-          alerts: [alert, ...state.widgets.alerts].slice(0, MAX_ALERTS),
-        },
-      }));
+      set((state) => {
+        // Prepend new alert and cap at MAX_ALERTS
+        const newAlerts = [alert, ...state.widgets.alerts].slice(0, MAX_ALERTS);
+        // DM-08.6: Pre-compute activeAlerts
+        const activeAlerts = newAlerts.filter((a) => !a.dismissed);
+        return {
+          timestamp: Date.now(),
+          widgets: {
+            ...state.widgets,
+            alerts: newAlerts,
+          },
+          activeAlerts,
+        };
+      });
     },
 
     dismissAlert: (alertId: string) => {
-      set((state) => ({
-        timestamp: Date.now(),
-        widgets: {
-          ...state.widgets,
-          alerts: state.widgets.alerts.map((a) =>
-            a.id === alertId ? { ...a, dismissed: true } : a
-          ),
-        },
-      }));
+      set((state) => {
+        const newAlerts = state.widgets.alerts.map((a) =>
+          a.id === alertId ? { ...a, dismissed: true } : a
+        );
+        // DM-08.6: Pre-compute activeAlerts (just remove the dismissed one)
+        const activeAlerts = state.activeAlerts.filter((a) => a.id !== alertId);
+        return {
+          timestamp: Date.now(),
+          widgets: {
+            ...state.widgets,
+            alerts: newAlerts,
+          },
+          activeAlerts,
+        };
+      });
     },
 
     clearAlerts: () => {
@@ -219,6 +274,8 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
           ...state.widgets,
           alerts: [],
         },
+        // DM-08.6: Clear pre-computed activeAlerts
+        activeAlerts: [],
       }));
     },
 
@@ -267,7 +324,8 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
     addTask: (task: TaskProgress) => {
       set((state) => ({
-        activeTasks: [...state.activeTasks, task],
+        // DM-08.6: Cap active tasks at MAX_ACTIVE_TASKS
+        activeTasks: [...state.activeTasks, task].slice(-MAX_ACTIVE_TASKS),
         timestamp: Date.now(),
       }));
     },
@@ -308,13 +366,14 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     // =========================================================================
 
     reset: () => {
-      set(createInitialDashboardState());
+      // DM-08.6: Also reset pre-computed activeAlerts
+      set({ ...createInitialDashboardState(), activeAlerts: [] });
     },
   }))
 );
 
 // =============================================================================
-// EXPORTS
+// EXPORTS (DM-08.6: Export all MAX constants)
 // =============================================================================
 
-export { MAX_ALERTS };
+export { MAX_ALERTS, MAX_ACTIVITIES, MAX_METRICS, MAX_ACTIVE_TASKS };
