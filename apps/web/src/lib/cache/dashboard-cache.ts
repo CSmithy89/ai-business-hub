@@ -10,10 +10,34 @@
  * - Workspace-scoped cache keys for multi-tenant isolation
  * - Deduplication via React Query's built-in request batching
  *
+ * Environment Variables (optional):
+ * - NEXT_PUBLIC_DASHBOARD_STALE_TIME_MS: Override default stale time
+ * - NEXT_PUBLIC_DASHBOARD_GC_TIME_MS: Override default gc time
+ *
  * @see docs/modules/bm-dm/stories/dm-08-2-dashboard-data-caching.md
  */
 
 import type { UseQueryOptions } from '@tanstack/react-query';
+
+// =============================================================================
+// ENVIRONMENT CONFIGURATION
+// =============================================================================
+
+/**
+ * Parse an optional positive integer from environment variable.
+ * Returns undefined if the value is not set or invalid.
+ */
+function parseEnvInt(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = parseInt(value, 10);
+  return !isNaN(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+/** Default stale time in ms (10 seconds) */
+const DEFAULT_STALE_TIME = 10_000;
+
+/** Default gc time in ms (60 seconds) */
+const DEFAULT_GC_TIME = 60_000;
 
 // =============================================================================
 // CACHE CONFIGURATION
@@ -22,18 +46,21 @@ import type { UseQueryOptions } from '@tanstack/react-query';
 /**
  * Default cache configuration for dashboard queries.
  *
- * - staleTime: 10s - Data is considered fresh for 10 seconds
- * - gcTime: 60s - Keep cached data for 60s after component unmounts
+ * - staleTime: 10s - Data is considered fresh for 10 seconds (env configurable)
+ * - gcTime: 60s - Keep cached data for 60s after component unmounts (env configurable)
  * - refetchOnWindowFocus: false - Don't refetch when tab becomes active
  * - refetchOnMount: false - Use cached data on re-mount if not stale
  * - retry: 1 - Only retry once on failure
  */
 export const DASHBOARD_CACHE_CONFIG = {
-  /** Time in ms before data is considered stale (10 seconds) */
-  staleTime: 10_000,
+  /** Time in ms before data is considered stale */
+  staleTime:
+    parseEnvInt(process.env.NEXT_PUBLIC_DASHBOARD_STALE_TIME_MS) ??
+    DEFAULT_STALE_TIME,
 
-  /** Time in ms to keep data in cache after unmount (60 seconds) */
-  gcTime: 60_000,
+  /** Time in ms to keep data in cache after unmount */
+  gcTime:
+    parseEnvInt(process.env.NEXT_PUBLIC_DASHBOARD_GC_TIME_MS) ?? DEFAULT_GC_TIME,
 
   /** Don't refetch when window regains focus */
   refetchOnWindowFocus: false,

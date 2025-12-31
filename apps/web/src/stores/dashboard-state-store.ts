@@ -40,6 +40,46 @@ import { DM_CONSTANTS } from '@/lib/dm-constants';
 const { MAX_ALERTS, MAX_ACTIVITIES, MAX_METRICS, MAX_ACTIVE_TASKS } =
   DM_CONSTANTS.DASHBOARD;
 
+/** Max age for dismissed alerts before cleanup (1 hour) */
+const DISMISSED_ALERT_MAX_AGE_MS = 60 * 60 * 1000;
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Check if a task is still active (not completed/cancelled/failed).
+ */
+function isActiveTask(task: TaskProgress): boolean {
+  return task.status === 'pending' || task.status === 'running';
+}
+
+/**
+ * Prioritize active tasks when slicing to MAX_ACTIVE_TASKS.
+ * Ensures completed/cancelled tasks don't push out active ones.
+ */
+function prioritizeActiveTasks(tasks: TaskProgress[]): TaskProgress[] {
+  const active = tasks.filter(isActiveTask);
+  const inactive = tasks.filter((t) => !isActiveTask(t));
+
+  // Keep all active tasks (up to limit), then fill remaining slots with inactive
+  const remainingSlots = Math.max(0, MAX_ACTIVE_TASKS - active.length);
+  return [...active, ...inactive.slice(-remainingSlots)].slice(-MAX_ACTIVE_TASKS);
+}
+
+/**
+ * Filter out old dismissed alerts to prevent memory buildup.
+ */
+function cleanupDismissedAlerts(alerts: AlertEntry[]): AlertEntry[] {
+  const now = Date.now();
+  return alerts.filter((alert) => {
+    if (!alert.dismissed) return true;
+    // Keep dismissed alerts for up to 1 hour for undo purposes
+    const alertTime = alert.timestamp ? new Date(alert.timestamp).getTime() : now;
+    return now - alertTime < DISMISSED_ALERT_MAX_AGE_MS;
+  });
+}
+
 // =============================================================================
 // STORE INTERFACE
 // =============================================================================
@@ -226,8 +266,9 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
     addAlert: (alert: AlertEntry) => {
       set((state) => {
-        // Prepend new alert and cap at MAX_ALERTS
-        const newAlerts = [alert, ...state.widgets.alerts].slice(0, MAX_ALERTS);
+        // Cleanup old dismissed alerts, prepend new, and cap at MAX_ALERTS
+        const cleaned = cleanupDismissedAlerts(state.widgets.alerts);
+        const newAlerts = [alert, ...cleaned].slice(0, MAX_ALERTS);
         // DM-08.6: Pre-compute activeAlerts
         const activeAlerts = newAlerts.filter((a) => !a.dismissed);
         return {
@@ -316,8 +357,8 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
     addTask: (task: TaskProgress) => {
       set((state) => ({
-        // DM-08.6: Cap active tasks at MAX_ACTIVE_TASKS
-        activeTasks: [...state.activeTasks, task].slice(-MAX_ACTIVE_TASKS),
+        // DM-08.6: Cap at MAX_ACTIVE_TASKS, prioritizing active (pending/running) tasks
+        activeTasks: prioritizeActiveTasks([...state.activeTasks, task]),
         timestamp: Date.now(),
       }));
     },
