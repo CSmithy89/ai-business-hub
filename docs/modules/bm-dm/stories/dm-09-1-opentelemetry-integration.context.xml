@@ -1,0 +1,275 @@
+<story-context>
+  <story-metadata>
+    <story-id>DM-09-1</story-id>
+    <title>OpenTelemetry Integration</title>
+    <points>8</points>
+    <priority>High</priority>
+    <epic>DM-09 - Observability and Testing Infrastructure</epic>
+    <status>ready-for-dev</status>
+    <dependencies>
+      <dependency>DM-07 (Infrastructure Stabilization) - Complete</dependency>
+      <dependency>DM-08 (Quality and Performance) - Complete</dependency>
+    </dependencies>
+  </story-metadata>
+
+  <project-context>
+    <agents-directory-structure>
+      <description>The agents/ directory contains the Python AgentOS runtime</description>
+      <key-directories>
+        <directory path="agents/">Root directory for Python agent system</directory>
+        <directory path="agents/services/">CCR usage tracking and health checking services</directory>
+        <directory path="agents/middleware/">Rate limiting, tenant isolation, business validation</directory>
+        <directory path="agents/a2a/">A2A discovery and client implementation</directory>
+        <directory path="agents/agentos/">Multi-interface configuration for AG-UI and A2A</directory>
+      </key-directories>
+    </agents-directory-structure>
+
+    <main-py-structure>
+      <description>agents/main.py is the FastAPI entry point (1522 lines)</description>
+      <key-patterns>
+        <pattern>FastAPI app created at line 101-107</pattern>
+        <pattern>Middleware added: CORS (line 121), TenantMiddleware (line 134), Rate limiting (line 137-142)</pattern>
+        <pattern>Startup event at line 658 - initializes services and registers agents</pattern>
+        <pattern>Settings loaded via get_settings() from config.py</pattern>
+        <pattern>Logging configured at line 91-95 using standard logging module</pattern>
+      </key-patterns>
+      <instrumentation-points>
+        <point>After app creation (line 107) - call configure_tracing()</point>
+        <point>After middleware setup (line 142) - call instrument_app(app)</point>
+        <point>In startup_event (line 658) - add logging for OTel status</point>
+      </instrumentation-points>
+    </main-py-structure>
+
+    <config-py-structure>
+      <description>agents/config.py uses Pydantic BaseSettings for configuration</description>
+      <patterns>
+        <pattern>Settings class with env_file = ".env" (line 83-85)</pattern>
+        <pattern>@lru_cache decorator on get_settings() for singleton (line 88-93)</pattern>
+        <pattern>SecretStr for sensitive fields like better_auth_secret</pattern>
+        <pattern>Optional fields with defaults for non-required settings</pattern>
+      </patterns>
+    </config-py-structure>
+
+    <existing-services>
+      <service path="agents/services/ccr_usage.py">
+        <description>CCR usage tracking with metrics and quota alerts</description>
+        <classes>CCRUsageTracker (singleton), UsageMetrics, QuotaStatus</classes>
+        <tracing-integration>Add spans to record_request() for provider/task tracking</tracing-integration>
+      </service>
+      <service path="agents/services/ccr_health.py">
+        <description>CCR health checker with circuit breaker pattern</description>
+        <classes>CCRHealthChecker (singleton), CCRHealthState</classes>
+        <tracing-integration>Add spans to check_health() for health check monitoring</tracing-integration>
+      </service>
+    </existing-services>
+
+    <rate-limiter-middleware>
+      <path>agents/middleware/rate_limit.py</path>
+      <description>SlowAPI-based rate limiting with Redis backend</description>
+      <functions>init_rate_limiting(), get_limiter(), create_limiter()</functions>
+      <tracing-integration>Add spans around rate limit decisions (allowed/denied)</tracing-integration>
+    </rate-limiter-middleware>
+
+    <requirements-txt>
+      <path>agents/requirements.txt</path>
+      <current-packages>
+        <package>fastapi==0.109.0</package>
+        <package>uvicorn[standard]==0.27.0</package>
+        <package>agno[agui,a2a]>=0.3.0</package>
+        <package>httpx>=0.27.0</package>
+        <package>pydantic>=2.0.0</package>
+        <package>pydantic-settings>=2.0.0</package>
+      </current-packages>
+      <packages-to-add>
+        <package>opentelemetry-api>=1.22.0</package>
+        <package>opentelemetry-sdk>=1.22.0</package>
+        <package>opentelemetry-exporter-otlp>=1.22.0</package>
+        <package>opentelemetry-instrumentation-fastapi>=0.43b0</package>
+        <package>opentelemetry-instrumentation-httpx>=0.43b0</package>
+        <package>opentelemetry-instrumentation-redis>=0.43b0</package>
+        <package>opentelemetry-instrumentation-logging>=0.43b0</package>
+      </packages-to-add>
+    </requirements-txt>
+
+    <docker-compose>
+      <path>docker/docker-compose.yml</path>
+      <current-services>postgres, redis, agentos, pgadmin</current-services>
+      <network>hyvve_network</network>
+      <jaeger-addition>
+        <ports>16686 (UI), 4317 (OTLP gRPC), 4318 (OTLP HTTP)</ports>
+        <image>jaegertracing/all-in-one:1.52</image>
+      </jaeger-addition>
+    </docker-compose>
+  </project-context>
+
+  <technical-requirements>
+    <otel-configuration>
+      <description>Create OTelSettings Pydantic model following existing config.py pattern</description>
+      <settings>
+        <setting name="otel_enabled" type="bool" default="True">Enable/disable tracing</setting>
+        <setting name="otel_service_name" type="str" default="hyvve-agentos">Service name for traces</setting>
+        <setting name="otel_exporter_endpoint" type="str" default="http://localhost:4317">OTLP gRPC endpoint</setting>
+        <setting name="otel_sampling_rate" type="float" default="1.0">Sampling rate (1.0 = 100%)</setting>
+        <setting name="otel_log_spans" type="bool" default="False">Debug logging of spans</setting>
+      </settings>
+    </otel-configuration>
+
+    <tracer-configuration>
+      <description>Configure OpenTelemetry with OTLP exporter and W3C Trace Context</description>
+      <components>
+        <component>Resource with SERVICE_NAME and SERVICE_VERSION</component>
+        <component>TraceIdRatioBased sampler for production volume control</component>
+        <component>TracerProvider with BatchSpanProcessor</component>
+        <component>OTLPSpanExporter with gRPC to Jaeger</component>
+      </components>
+    </tracer-configuration>
+
+    <auto-instrumentation>
+      <description>Instrument FastAPI, HTTPX, and Redis automatically</description>
+      <instrumentors>
+        <instrumentor>FastAPIInstrumentor.instrument_app(app)</instrumentor>
+        <instrumentor>HTTPXClientInstrumentor().instrument() - for A2A calls</instrumentor>
+        <instrumentor>RedisInstrumentor().instrument() - for cache operations</instrumentor>
+      </instrumentors>
+    </auto-instrumentation>
+
+    <traced-decorator>
+      <description>Custom @traced decorator for business logic spans</description>
+      <features>
+        <feature>Support both sync and async functions</feature>
+        <feature>Custom span name override</feature>
+        <feature>Custom span attributes</feature>
+        <feature>Automatic exception recording</feature>
+        <feature>Status code setting (OK/ERROR)</feature>
+      </features>
+    </traced-decorator>
+
+    <context-propagation>
+      <description>W3C Trace Context for distributed tracing</description>
+      <notes>
+        <note>HTTPX auto-instrumentation handles header injection automatically</note>
+        <note>Custom A2A spans nest under parent HTTP spans</note>
+        <note>traceparent and tracestate headers propagated</note>
+      </notes>
+    </context-propagation>
+  </technical-requirements>
+
+  <integration-points>
+    <files-to-create>
+      <file path="agents/observability/__init__.py">
+        <description>Package exports for observability module</description>
+        <exports>configure_tracing, instrument_app, get_tracer, traced, OTelSettings</exports>
+      </file>
+
+      <file path="agents/observability/config.py">
+        <description>OTel settings via Pydantic BaseSettings</description>
+        <guidance>Follow pattern from agents/config.py with env_file support</guidance>
+      </file>
+
+      <file path="agents/observability/tracing.py">
+        <description>Tracer configuration and instrumentation functions</description>
+        <functions>
+          <function>configure_tracing() -> trace.Tracer</function>
+          <function>instrument_app(app: FastAPI) -> None</function>
+          <function>get_tracer(name: str) -> trace.Tracer</function>
+        </functions>
+      </file>
+
+      <file path="agents/observability/decorators.py">
+        <description>Custom @traced decorator for spans</description>
+        <signature>traced(span_name: str | None = None, attributes: dict | None = None)</signature>
+      </file>
+    </files-to-create>
+
+    <files-to-modify>
+      <file path="agents/requirements.txt">
+        <action>Add OpenTelemetry packages after MCP section</action>
+      </file>
+
+      <file path="agents/main.py">
+        <action>Import and call configure_tracing() and instrument_app()</action>
+        <location>After FastAPI app creation, before middleware setup</location>
+      </file>
+
+      <file path="docker/docker-compose.yml">
+        <action>Add Jaeger service</action>
+        <location>After pgadmin service, before networks section</location>
+      </file>
+
+      <file path="agents/services/ccr_usage.py">
+        <action>Add tracing spans to record_request() method</action>
+        <span-attributes>provider, task_type, is_fallback, estimated_tokens</span-attributes>
+      </file>
+
+      <file path="agents/services/ccr_health.py">
+        <action>Add tracing spans to check_health() method</action>
+        <span-attributes>ccr_url, status, consecutive_failures, circuit_state</span-attributes>
+      </file>
+
+      <file path="agents/middleware/rate_limit.py">
+        <action>Add tracing spans to rate limit decisions</action>
+        <span-attributes>endpoint, workspace_id, result (allowed/denied)</span-attributes>
+      </file>
+    </files-to-modify>
+  </integration-points>
+
+  <dependencies>
+    <python-packages>
+      <package name="opentelemetry-api" version=">=1.22.0">Core tracing API</package>
+      <package name="opentelemetry-sdk" version=">=1.22.0">SDK implementation</package>
+      <package name="opentelemetry-exporter-otlp" version=">=1.22.0">OTLP gRPC exporter</package>
+      <package name="opentelemetry-instrumentation-fastapi" version=">=0.43b0">FastAPI auto-instrumentation</package>
+      <package name="opentelemetry-instrumentation-httpx" version=">=0.43b0">HTTPX auto-instrumentation</package>
+      <package name="opentelemetry-instrumentation-redis" version=">=0.43b0">Redis auto-instrumentation</package>
+      <package name="opentelemetry-instrumentation-logging" version=">=0.43b0">Logging integration</package>
+    </python-packages>
+
+    <docker-images>
+      <image name="jaegertracing/all-in-one" version="1.52">Jaeger all-in-one for local dev</image>
+    </docker-images>
+  </dependencies>
+
+  <acceptance-criteria>
+    <criterion id="AC1">OpenTelemetry configured in agent system via OTelSettings</criterion>
+    <criterion id="AC2">A2A calls create linked spans via HTTPX instrumentation</criterion>
+    <criterion id="AC3">Trace context propagated in headers (W3C Trace Context)</criterion>
+    <criterion id="AC4">Traces viewable in Jaeger UI at localhost:16686</criterion>
+    <criterion id="AC5">Sampling rate configurable via OTEL_SAMPLING_RATE env var</criterion>
+  </acceptance-criteria>
+
+  <test-requirements>
+    <unit-tests>
+      <test>OTelSettings loads configuration from environment correctly</test>
+      <test>configure_tracing() creates TracerProvider when enabled</test>
+      <test>configure_tracing() returns noop tracer when disabled</test>
+      <test>@traced decorator creates spans for sync functions</test>
+      <test>@traced decorator creates spans for async functions</test>
+      <test>Span attributes set correctly from decorator</test>
+      <test>Exceptions recorded in spans with ERROR status</test>
+    </unit-tests>
+    <integration-tests>
+      <test>FastAPI instrumentation creates spans for HTTP requests</test>
+      <test>HTTPX instrumentation creates child spans for outbound calls</test>
+      <test>Traces exported to Jaeger when running</test>
+    </integration-tests>
+  </test-requirements>
+
+  <implementation-notes>
+    <note priority="high">
+      Do NOT create agents/services/cache.py - story incorrectly references this file.
+      The caching is handled by DM-08.2 via Zustand frontend stores and doesn't have
+      a dedicated Python cache service. Focus spans on ccr_usage.py and rate_limit.py.
+    </note>
+    <note priority="medium">
+      Import order in main.py matters - configure_tracing() must be called before
+      instrument_app() and before any requests are processed.
+    </note>
+    <note priority="medium">
+      Use insecure=True for OTLPSpanExporter in development. Production should use TLS.
+    </note>
+    <note priority="low">
+      No requirements-dev.txt exists in agents/. Testing deps can be added to pyproject.toml
+      or a new requirements-dev.txt if preferred.
+    </note>
+  </implementation-notes>
+</story-context>

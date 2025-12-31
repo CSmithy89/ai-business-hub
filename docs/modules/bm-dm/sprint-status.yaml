@@ -203,17 +203,18 @@ development_status:
   # Phase 7 | 8 stories | 50 points
   # OpenTelemetry, E2E tests, Load testing
   # Source: tech-debt-consolidated.md Sprint 3
+  # Tech Spec: docs/modules/bm-dm/epics/epic-dm-09-tech-spec.md
   # ===========================================
-  dm-09: backlog
-  dm-09-1-opentelemetry-integration: backlog
-  dm-09-2-metrics-exposure: backlog
-  dm-09-3-e2e-infrastructure: backlog
-  dm-09-4-critical-flow-e2e-tests: backlog
-  dm-09-5-visual-regression-tests: backlog
-  dm-09-6-load-testing-infrastructure: backlog
-  dm-09-7-ccr-operational-tests: backlog
-  dm-09-8-localstorage-quota-tests: backlog
-  dm-09-retrospective: backlog
+  dm-09: complete
+  dm-09-1-opentelemetry-integration: done
+  dm-09-2-metrics-exposure: done
+  dm-09-3-e2e-infrastructure: done
+  dm-09-4-critical-flow-e2e-tests: done
+  dm-09-5-visual-regression-tests: done
+  dm-09-6-load-testing-infrastructure: done
+  dm-09-7-ccr-operational-tests: done
+  dm-09-8-localstorage-quota-tests: done
+  dm-09-retrospective: done
 
   # ===========================================
   # DM-10: Documentation & Developer Experience

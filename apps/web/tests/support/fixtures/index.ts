@@ -3,6 +3,7 @@
  *
  * Pattern: Pure function -> Fixture -> mergeTests composition
  * @see .bmad/bmm/testarch/knowledge/fixture-architecture.md
+ * @see docs/modules/bm-dm/stories/dm-09-3-e2e-infrastructure.md
  */
 import { test as base, mergeTests } from '@playwright/test';
 import { UserFactory } from './factories/user-factory';
@@ -10,6 +11,7 @@ import { WorkspaceFactory } from './factories/workspace-factory';
 import { BusinessFactory } from './factories/business-factory';
 import { ProjectFactory } from './factories/project-factory';
 import { SuggestionFactory } from './factories/suggestion-factory';
+import { DashboardPage, ApprovalPage } from '../pages';
 
 // Auth fixture type definition
 type AuthFixture = {
@@ -112,6 +114,49 @@ const suggestionFactoryFixture = base.extend<{ suggestionFactory: SuggestionFact
   },
 });
 
+// Page object fixtures - provides page objects for common pages
+// DM-09.3: E2E Test Infrastructure Setup
+interface PageObjectFixtures {
+  /** DashboardPage object for dashboard interactions */
+  dashboardPage: DashboardPage;
+  /** ApprovalPage object for approval queue interactions */
+  approvalPage: ApprovalPage;
+  /** Navigate to dashboard and return page object */
+  gotoDashboard: () => Promise<DashboardPage>;
+  /** Navigate to approvals and return page object */
+  gotoApprovals: () => Promise<ApprovalPage>;
+}
+
+const pageObjectFixture = base.extend<PageObjectFixtures>({
+  dashboardPage: async ({ page }, use) => {
+    const dashboard = new DashboardPage(page);
+    await use(dashboard);
+  },
+
+  approvalPage: async ({ page }, use) => {
+    const approval = new ApprovalPage(page);
+    await use(approval);
+  },
+
+  gotoDashboard: async ({ page }, use) => {
+    const navigate = async (): Promise<DashboardPage> => {
+      const dashboard = new DashboardPage(page);
+      await dashboard.goto();
+      return dashboard;
+    };
+    await use(navigate);
+  },
+
+  gotoApprovals: async ({ page }, use) => {
+    const navigate = async (): Promise<ApprovalPage> => {
+      const approval = new ApprovalPage(page);
+      await approval.goto();
+      return approval;
+    };
+    await use(navigate);
+  },
+});
+
 // Merged test export - compose all fixtures
 export const test = mergeTests(
   base,
@@ -120,8 +165,37 @@ export const test = mergeTests(
   workspaceFactoryFixture,
   businessFactoryFixture,
   projectFactoryFixture,
-  suggestionFactoryFixture
+  suggestionFactoryFixture,
+  pageObjectFixture
 );
 
 // Re-export expect for convenience
 export { expect } from '@playwright/test';
+
+// Re-export page objects for direct use
+export { DashboardPage, ApprovalPage } from '../pages';
+export { BasePage } from '../pages/base.page';
+
+// Re-export API mock utilities
+export {
+  mockDashboardWidgets,
+  mockApprovals,
+  mockAgentHealth,
+  mockError,
+  mockNetworkFailure,
+  mockSlowNetwork,
+} from './api-mock.fixture';
+
+// Re-export dashboard fixture helpers
+export {
+  waitForDashboardReady,
+  verifyDashboardStructure,
+  waitForWidgets,
+  testQuickAction,
+  waitForApprovalsReady,
+  testApprovalCardExpansion,
+  testApprovalFilter,
+  scenarioDashboardLoads,
+  scenarioDashboardOffline,
+  scenarioApprovalBulkOperations,
+} from './dashboard.fixture';

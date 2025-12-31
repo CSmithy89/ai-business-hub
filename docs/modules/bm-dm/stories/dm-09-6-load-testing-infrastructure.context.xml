@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-09.6 Load Testing Infrastructure
+  Generated: 2025-12-31
+  Purpose: Provide implementation context for load testing with k6
+-->
+<story-context>
+  <!-- ========================================== -->
+  <!-- STORY METADATA -->
+  <!-- ========================================== -->
+  <metadata>
+    <story-id>dm-09-6</story-id>
+    <story-name>Load Testing Infrastructure</story-name>
+    <epic-id>dm-09</epic-id>
+    <epic-name>Observability and Testing Infrastructure</epic-name>
+    <status>ready-for-dev</status>
+    <points>8</points>
+    <priority>high</priority>
+    <module>bm-dm</module>
+    <dependencies>
+      <dependency status="complete">DM-07: Infrastructure Stabilization</dependency>
+      <dependency status="complete">DM-08: Quality and Performance Hardening</dependency>
+      <dependency status="complete">DM-09.1: OpenTelemetry Integration</dependency>
+      <dependency status="complete">DM-09.2: Metrics Exposure</dependency>
+    </dependencies>
+  </metadata>
+
+  <!-- ========================================== -->
+  <!-- SERVICE CONFIGURATION -->
+  <!-- ========================================== -->
+  <service-config>
+    <agentos>
+      <container>hyvve_agentos</container>
+      <port>7777</port>
+      <base-url>http://localhost:7777</base-url>
+      <health-endpoint>/health</health-endpoint>
+      <ready-endpoint>/ready</ready-endpoint>
+    </agentos>
+    <web>
+      <port>3000</port>
+      <base-url>http://localhost:3000</base-url>
+    </web>
+    <jaeger>
+      <ui-port>16686</ui-port>
+      <otlp-grpc>4317</otlp-grpc>
+      <otlp-http>4318</otlp-http>
+    </jaeger>
+    <ccr comment="Claude Code Router - optional external service">
+      <default-port>3456</default-port>
+      <health-endpoint>/health</health-endpoint>
+    </ccr>
+  </service-config>
+
+  <!-- ========================================== -->
+  <!-- A2A ENDPOINTS TO LOAD TEST -->
+  <!-- ========================================== -->
+  <a2a-endpoints>
+    <discovery-endpoints>
+      <!-- Global discovery - all agents -->
+      <endpoint>
+        <method>GET</method>
+        <path>/.well-known/agent.json</path>
+        <rate-limit>60/minute</rate-limit>
+        <auth>none (public metadata)</auth>
+        <description>A2A global discovery - all registered agent cards</description>
+      </endpoint>
+      <!-- Multi-agent listing -->
+      <endpoint>
+        <method>GET</method>
+        <path>/.well-known/agents</path>
+        <rate-limit>60/minute</rate-limit>
+        <auth>none (public metadata)</auth>
+        <description>A2A multi-agent listing with endpoints</description>
+      </endpoint>
+      <!-- Individual agent discovery -->
+      <endpoint>
+        <method>GET</method>
+        <path>/a2a/{agent_id}/.well-known/agent.json</path>
+        <rate-limit>60/minute</rate-limit>
+        <auth>none (public metadata)</auth>
+        <example>/a2a/dashboard_gateway/.well-known/agent.json</example>
+        <example>/a2a/navi/.well-known/agent.json</example>
+      </endpoint>
+    </discovery-endpoints>
+
+    <rpc-endpoints>
+      <!-- Dashboard Gateway A2A RPC -->
+      <endpoint>
+        <method>POST</method>
+        <path>/a2a/dashboard/rpc</path>
+        <rate-limit>20/minute</rate-limit>
+        <auth>JWT required (workspace context)</auth>
+        <description>Dashboard Gateway A2A RPC - widget rendering, orchestration</description>
+        <methods>run, health, capabilities</methods>
+      </endpoint>
+      <!-- Navi PM Agent A2A RPC -->
+      <endpoint>
+        <method>POST</method>
+        <path>/a2a/navi/rpc</path>
+        <rate-limit>20/minute</rate-limit>
+        <auth>JWT required</auth>
+        <description>Navi PM Agent - project management queries</description>
+        <methods>run, health, capabilities</methods>
+      </endpoint>
+      <!-- Pulse (Vitals) Agent A2A RPC -->
+      <endpoint>
+        <method>POST</method>
+        <path>/a2a/pulse/rpc</path>
+        <rate-limit>20/minute</rate-limit>
+        <auth>JWT required</auth>
+        <description>Pulse Agent - health metrics and risk analysis</description>
+      </endpoint>
+      <!-- Herald Agent A2A RPC -->
+      <endpoint>
+        <method>POST</method>
+        <path>/a2a/herald/rpc</path>
+        <rate-limit>20/minute</rate-limit>
+        <auth>JWT required</auth>
+        <description>Herald Agent - notifications and activity</description>
+      </endpoint>
+    </rpc-endpoints>
+  </a2a-endpoints>
+
+  <!-- ========================================== -->
+  <!-- DASHBOARD GATEWAY ENDPOINTS -->
+  <!-- ========================================== -->
+  <dashboard-endpoints>
+    <!-- AG-UI interface -->
+    <endpoint>
+      <method>POST</method>
+      <path>/agui</path>
+      <description>AG-UI streaming interface for frontend</description>
+      <auth>JWT required</auth>
+    </endpoint>
+    <!-- Health check -->
+    <endpoint>
+      <method>GET</method>
+      <path>/agents/dashboard/health</path>
+      <description>Dashboard Gateway health and interface status</description>
+    </endpoint>
+    <!-- PM Agents A2A Status -->
+    <endpoint>
+      <method>GET</method>
+      <path>/agents/pm/a2a/status</path>
+      <description>PM agent A2A adapter status</description>
+    </endpoint>
+  </dashboard-endpoints>
+
+  <!-- ========================================== -->
+  <!-- CCR ROUTING ENDPOINTS -->
+  <!-- ========================================== -->
+  <ccr-endpoints comment="If CCR is enabled and running">
+    <endpoint>
+      <method>GET</method>
+      <path>/ccr/metrics</path>
+      <description>CCR usage metrics and quota status</description>
+    </endpoint>
+    <!-- CCR health is proxied via ccr_health.py -->
+    <endpoint>
+      <external>true</external>
+      <method>GET</method>
+      <path>/health</path>
+      <base-url>CCR_URL (default: http://localhost:3456)</base-url>
+      <description>CCR health check endpoint</description>
+    </endpoint>
+  </ccr-endpoints>
+
+  <!-- ========================================== -->
+  <!-- METRICS ENDPOINTS (DM-09.2) -->
+  <!-- ========================================== -->
+  <metrics-endpoints>
+    <endpoint>
+      <method>GET</method>
+      <path>/metrics</path>
+      <description>Prometheus metrics endpoint</description>
+      <format>Prometheus text format</format>
+    </endpoint>
+  </metrics-endpoints>
+
+  <!-- ========================================== -->
+  <!-- TEAM ENDPOINTS -->
+  <!-- ========================================== -->
+  <team-endpoints comment="Agent team execution - rate limited">
+    <endpoint>
+      <method>POST</method>
+      <path>/agents/validation/runs</path>
+      <rate-limit>10/minute</rate-limit>
+      <description>Validation team execution</description>
+    </endpoint>
+    <endpoint>
+      <method>POST</method>
+      <path>/agents/planning/runs</path>
+      <rate-limit>10/minute</rate-limit>
+      <description>Planning team execution</description>
+    </endpoint>
+    <endpoint>
+      <method>POST</method>
+      <path>/agents/branding/runs</path>
+      <rate-limit>10/minute</rate-limit>
+      <description>Branding team execution</description>
+    </endpoint>
+  </team-endpoints>
+
+  <!-- ========================================== -->
+  <!-- JSON-RPC REQUEST FORMAT (A2A) -->
+  <!-- ========================================== -->
+  <rpc-request-format>
+    <schema>
+      {
+        "jsonrpc": "2.0",
+        "method": "run",
+        "params": {
+          "task": "string - the task to execute",
+          "context": {
+            "caller_id": "optional - agent caller ID"
+          }
+        },
+        "id": "string|number - request ID"
+      }
+    </schema>
+    <methods>
+      <method name="run">Execute a task with the agent</method>
+      <method name="health">Check agent health</method>
+      <method name="capabilities">Get agent capabilities</method>
+    </methods>
+  </rpc-request-format>
+
+  <!-- ========================================== -->
+  <!-- K6 CONFIGURATION PATTERNS -->
+  <!-- ========================================== -->
+  <k6-config>
+    <base-url-env>BASE_URL (default: http://localhost:7777)</base-url-env>
+    <web-url-env>WEB_URL (default: http://localhost:3000)</web-url-env>
+    <auth-token-env>AUTH_TOKEN (load test JWT token)</auth-token-env>
+    <workspace-id>load-test-workspace</workspace-id>
+    <thresholds>
+      <threshold metric="http_req_duration" p95="500ms" p99="1000ms"/>
+      <threshold metric="http_req_failed" rate="less than 1%"/>
+      <threshold metric="a2a_errors" rate="less than 1%" custom="true"/>
+      <threshold metric="a2a_duration" p95="500ms" custom="true"/>
+    </thresholds>
+    <scenarios>
+      <scenario name="a2a-endpoints">
+        <stage duration="30s" target-vus="20" purpose="Ramp up"/>
+        <stage duration="2m" target-vus="50" purpose="Ramp to steady"/>
+        <stage duration="2m" target-vus="50" purpose="Steady state"/>
+        <stage duration="30s" target-vus="100" purpose="Spike"/>
+        <stage duration="30s" target-vus="50" purpose="Recovery"/>
+        <stage duration="30s" target-vus="0" purpose="Ramp down"/>
+      </scenario>
+      <scenario name="dashboard-flow">
+        <stage duration="1m" target-vus="30" purpose="Ramp up"/>
+        <stage duration="3m" target-vus="30" purpose="Steady state"/>
+        <stage duration="1m" target-vus="0" purpose="Ramp down"/>
+      </scenario>
+      <scenario name="ccr-routing">
+        <stage duration="30s" target-vus="20" purpose="Ramp up"/>
+        <stage duration="2m" target-vus="20" purpose="Steady state"/>
+        <stage duration="30s" target-vus="0" purpose="Ramp down"/>
+      </scenario>
+    </scenarios>
+  </k6-config>
+
+  <!-- ========================================== -->
+  <!-- INTERFACE CONFIGS (from agentos/config.py) -->
+  <!-- ========================================== -->
+  <interface-configs>
+    <agent id="dashboard_gateway">
+      <agui-enabled>true</agui-enabled>
+      <agui-path>/agui</agui-path>
+      <a2a-enabled>true</a2a-enabled>
+      <a2a-path>/a2a/dashboard</a2a-path>
+    </agent>
+    <agent id="navi">
+      <agui-enabled>false</agui-enabled>
+      <a2a-enabled>true</a2a-enabled>
+      <a2a-path>/a2a/navi</a2a-path>
+    </agent>
+    <agent id="pulse">
+      <agui-enabled>false</agui-enabled>
+      <a2a-enabled>true</a2a-enabled>
+      <a2a-path>/a2a/pulse</a2a-path>
+    </agent>
+    <agent id="herald">
+      <agui-enabled>false</agui-enabled>
+      <a2a-enabled>true</a2a-enabled>
+      <a2a-path>/a2a/herald</a2a-path>
+    </agent>
+  </interface-configs>
+
+  <!-- ========================================== -->
+  <!-- WIDGET TYPES (for dashboard flow test) -->
+  <!-- ========================================== -->
+  <widget-types source="packages/shared/widget-types.json">
+    <type>ProjectStatus</type>
+    <type>TaskList</type>
+    <type>Metrics</type>
+    <type>Alert</type>
+    <type>KanbanBoard</type>
+    <type>GanttChart</type>
+    <type>BurndownChart</type>
+    <type>TeamActivity</type>
+  </widget-types>
+
+  <!-- ========================================== -->
+  <!-- FILES TO CREATE -->
+  <!-- ========================================== -->
+  <files-to-create>
+    <file path="tests/load/k6/config.js">
+      Shared k6 configuration: URLs, auth, thresholds, headers
+    </file>
+    <file path="tests/load/k6/a2a-endpoints.js">
+      A2A endpoint load test: discovery, dashboard RPC, navi RPC
+    </file>
+    <file path="tests/load/k6/dashboard-flow.js">
+      Dashboard user flow: page load, widgets, metrics, polling
+    </file>
+    <file path="tests/load/k6/ccr-routing.js">
+      CCR routing test: model routing, quota checks, health polling
+    </file>
+    <file path="tests/load/results/.gitkeep">
+      Results directory placeholder
+    </file>
+    <file path="tests/load/README.md">
+      Load testing documentation
+    </file>
+    <file path="tests/scripts/run-load-tests.sh">
+      Load test runner script
+    </file>
+    <file path=".github/workflows/load-test.yml">
+      CI workflow for on-demand load tests
+    </file>
+  </files-to-create>
+
+  <!-- ========================================== -->
+  <!-- FILES TO MODIFY -->
+  <!-- ========================================== -->
+  <files-to-modify>
+    <file path=".gitignore">
+      Add: tests/load/results/*.json (keep .gitkeep)
+    </file>
+  </files-to-modify>
+
+  <!-- ========================================== -->
+  <!-- AUTHENTICATION NOTES -->
+  <!-- ========================================== -->
+  <authentication>
+    <discovery-endpoints>
+      No authentication required (public metadata for A2A discovery)
+    </discovery-endpoints>
+    <rpc-endpoints>
+      JWT required with workspace_id claim. Load tests should use
+      a dedicated test token with appropriate workspace context.
+    </rpc-endpoints>
+    <rate-limiting>
+      DM-08.3 rate limiting is active. Configure higher limits for
+      load test workspace or use test-specific rate limit overrides.
+    </rate-limiting>
+  </authentication>
+
+  <!-- ========================================== -->
+  <!-- REFERENCE FILES -->
+  <!-- ========================================== -->
+  <reference-files>
+    <file purpose="Story requirements">docs/modules/bm-dm/stories/dm-09-6-load-testing-infrastructure.md</file>
+    <file purpose="Tech spec">docs/modules/bm-dm/epics/epic-dm-09-tech-spec.md</file>
+    <file purpose="Main entry point">agents/main.py</file>
+    <file purpose="A2A discovery routes">agents/a2a/discovery.py</file>
+    <file purpose="Interface configs">agents/agentos/config.py</file>
+    <file purpose="CCR health">agents/services/ccr_health.py</file>
+    <file purpose="Dashboard tools">agents/gateway/tools.py</file>
+    <file purpose="Rate limiting constants">agents/constants/dm_constants.py</file>
+    <file purpose="Docker services">docker/docker-compose.yml</file>
+  </reference-files>
+
+  <!-- ========================================== -->
+  <!-- ACCEPTANCE CRITERIA -->
+  <!-- ========================================== -->
+  <acceptance-criteria>
+    <criterion id="AC1">k6/Locust configured for A2A endpoints</criterion>
+    <criterion id="AC2">Baseline performance documented (p50, p95, p99)</criterion>
+    <criterion id="AC3">Load test runs in CI (on demand, not every PR)</criterion>
+    <criterion id="AC4">Performance regression alerts defined</criterion>
+    <criterion id="AC5">Load test results archived</criterion>
+  </acceptance-criteria>
+
+  <!-- ========================================== -->
+  <!-- DEFINITION OF DONE -->
+  <!-- ========================================== -->
+  <definition-of-done>
+    <item>k6 scripts created for all three scenarios</item>
+    <item>Configuration module with shared settings</item>
+    <item>Run script for local and CI execution</item>
+    <item>CI workflow with manual trigger</item>
+    <item>README with usage instructions</item>
+    <item>Initial baseline documented from staging run</item>
+    <item>Results directory with .gitkeep</item>
+    <item>.gitignore updated for results files</item>
+  </definition-of-done>
+</story-context>

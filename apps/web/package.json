@@ -14,7 +14,11 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
+    "test:visual": "percy exec -- playwright test --project=visual",
+    "test:visual:local": "playwright test --project=visual",
+    "percy": "percy"
   },
   "dependencies": {
     "@ag-ui/agno": "^0.0.3",
@@ -112,6 +116,8 @@
     "@faker-js/faker": "^10.1.0",
     "@hyvve/shared": "workspace:*",
     "@hyvve/ui": "workspace:*",
+    "@percy/cli": "^1.28.0",
+    "@percy/playwright": "^1.0.6",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@testcontainers/redis": "^11.9.0",

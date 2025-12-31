@@ -56,6 +56,11 @@ services:
       AGENTOS_PORT: 7777
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev_secret_change_in_production}
       ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY:-}
+      # OpenTelemetry (DM-09.1)
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_SERVICE_NAME: hyvve-agentos
+      OTEL_EXPORTER_ENDPOINT: http://jaeger:4317
+      OTEL_SAMPLING_RATE: ${OTEL_SAMPLING_RATE:-1.0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,6 +88,20 @@ services:
       - postgres
     # Uncomment the following line if using M1/M2 Mac
     # platform: linux/amd64
+
+  # Jaeger - Distributed Tracing (DM-09.1)
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: hyvve_jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - hyvve_network
 
 networks:
   hyvve_network:

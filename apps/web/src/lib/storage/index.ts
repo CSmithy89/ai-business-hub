@@ -191,3 +191,41 @@ export async function deleteBusinessDocument(key: string): Promise<void> {
   const storage = getFileStorage()
   return storage.delete(key, { ignoreNotFound: true })
 }
+
+// =============================================================================
+// LOCALSTORAGE QUOTA MANAGEMENT
+// =============================================================================
+
+/**
+ * Re-export localStorage quota management utilities
+ *
+ * These utilities help manage browser localStorage quota, including:
+ * - Usage calculation and reporting
+ * - Quota detection and warnings
+ * - Graceful degradation on quota exceeded
+ * - LRU cleanup strategy
+ *
+ * @see quota-handler.ts for implementation details
+ */
+export {
+  // Functions
+  isStorageAvailable,
+  getStorageUsage,
+  isNearQuota,
+  isCriticalQuota,
+  safeSetItem,
+  safeGetItem,
+  safeRemoveItem,
+  cleanupOldEntries,
+  getHyvveStorageKeys,
+  clearHyvveStorage,
+  // Constants
+  MAX_STORAGE_SIZE,
+  QUOTA_WARNING_THRESHOLD,
+  QUOTA_CRITICAL_THRESHOLD,
+  HYVVE_PREFIX,
+  DEFAULT_CLEANUP_TARGET,
+  // Types
+  type StorageResult,
+  type StorageUsage,
+} from './quota-handler'

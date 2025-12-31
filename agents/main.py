@@ -66,11 +66,17 @@ from agentos import (
 # Import A2A discovery router
 from a2a.discovery import router as discovery_router
 
+# Import Prometheus metrics router (DM-09.2)
+from api.routes.metrics import router as metrics_router
+
 # Import CCR model provider (DM-02.7)
 from models.ccr_provider import validate_ccr_connection
 
 # Import CCR usage tracker (DM-02.9)
 from services.ccr_usage import get_ccr_usage_tracker
+
+# Import OpenTelemetry observability (DM-09.1)
+from observability import configure_tracing, instrument_app, shutdown_tracing, get_otel_settings
 
 # ============================================================================
 # Configuration (must be at top before usage)
@@ -140,6 +146,13 @@ except Exception as exc:
     logger.error("Rate limiting init failed: %s", exc, exc_info=True)
     limiter = NoopLimiter()
     app.state.limiter = limiter
+
+# ============================================================================
+# OpenTelemetry Tracing (DM-09.1)
+# ============================================================================
+
+# TD-DM09-03: Tracing moved to startup event to avoid import-time side effects.
+# Configuration happens in startup_event() below.
 
 
 # ============================================================================
@@ -662,6 +675,24 @@ async def startup_event():
     logger.info(f"Version: 0.2.0")
     logger.info(f"Protocols: A2A v0.3.0, AG-UI v0.1.0")
 
+    # TD-DM09-03: Initialize OpenTelemetry tracing during startup (not import)
+    otel_settings = get_otel_settings()
+    if otel_settings.otel_enabled:
+        try:
+            configure_tracing()
+            instrument_app(app)
+            logger.info(
+                "OpenTelemetry tracing enabled",
+                extra={
+                    "service_name": otel_settings.otel_service_name,
+                    "sampling_rate": otel_settings.otel_sampling_rate,
+                },
+            )
+        except Exception as exc:
+            logger.warning("OpenTelemetry initialization failed: %s", exc, exc_info=True)
+    else:
+        logger.info("OpenTelemetry tracing disabled")
+
     # Register teams in the A2A registry
     for team_name, config in TEAM_CONFIG.items():
         try:
@@ -691,6 +722,17 @@ async def startup_event():
 
     # Initialize PM Agent A2A interfaces (DM-02.5)
     await startup_pm_agents_a2a()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown."""
+    logger.info("AgentOS shutting down...")
+
+    # Shutdown OpenTelemetry tracing (DM-09.1)
+    shutdown_tracing()
+
+    logger.info("AgentOS shutdown complete")
 
 
 # =============================================================================
@@ -774,6 +816,12 @@ async def startup_dashboard_gateway():
 # Mount A2A discovery endpoints (from DM-02.3)
 app.include_router(discovery_router)
 logger.info("A2A discovery endpoints mounted")
+
+# Mount Prometheus metrics endpoint (DM-09.2)
+# Note: Rate limiting applied via network ACLs in production
+# See agents/api/routes/metrics.py security note
+app.include_router(metrics_router, tags=["metrics"])
+logger.info("Prometheus metrics endpoint mounted at /metrics (apply network ACLs in production)")
 
 
 # =============================================================================

@@ -6,6 +6,8 @@ Keys requests by workspace_id + user_id (from TenantMiddleware) with
 remote address fallback.
 
 DM-08.3: Added get_limiter() for use by routes in separate modules.
+DM-09.1: Added OpenTelemetry tracing for rate limit decisions.
+DM-09.2: Added Prometheus metrics for rate limit monitoring.
 """
 
 from typing import Callable, Optional
@@ -17,8 +19,14 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
+from opentelemetry import trace
+
+from agents.observability.metrics import record_rate_limit_hit
 
 logger = logging.getLogger(__name__)
+
+# Get tracer for rate limiting spans
+_tracer = trace.get_tracer(__name__)
 
 # Module-level limiter reference (set by init_rate_limiting)
 _limiter: Optional[Limiter] = None
@@ -47,19 +55,53 @@ def _rate_limit_key(req: Request | None = None) -> str:
     Returns:
         A hashed key string for rate limiting
     """
-    if req is None:
-        return "ip:unknown"
+    # DM-09.1: Add tracing span for rate limit key derivation
+    with _tracer.start_as_current_span("rate_limit.derive_key") as span:
+        if req is None:
+            span.set_attribute("rate_limit.key_type", "unknown")
+            return "ip:unknown"
 
-    workspace_id = getattr(req.state, "workspace_id", None)
-    user_id = getattr(req.state, "user_id", None)
+        workspace_id = getattr(req.state, "workspace_id", None)
+        user_id = getattr(req.state, "user_id", None)
+        endpoint = str(req.url.path) if req.url else "unknown"
 
-    if workspace_id and user_id:
-        return f"id:{_hash_key(f'{str(workspace_id)}:{str(user_id)}')}"
-    if user_id:
-        return f"user:{_hash_key(str(user_id))}"
+        span.set_attribute("rate_limit.endpoint", endpoint)
 
-    remote = get_remote_address(req)
-    return f"ip:{_hash_key(str(remote))}"
+        # DM-09.2: Record rate limit check (allowed case - denied is in exception handler)
+        # Note: We record "allowed" here since if we reach this point, the request proceeds.
+        # The "denied" case is recorded in _rate_limit_exceeded_handler_with_metrics
+        record_rate_limit_hit(endpoint=endpoint, result="allowed")
+
+        if workspace_id and user_id:
+            span.set_attribute("rate_limit.key_type", "workspace+user")
+            span.set_attribute("rate_limit.has_workspace_id", True)
+            span.set_attribute("rate_limit.has_user_id", True)
+            return f"id:{_hash_key(f'{str(workspace_id)}:{str(user_id)}')}"
+        if user_id:
+            span.set_attribute("rate_limit.key_type", "user")
+            span.set_attribute("rate_limit.has_workspace_id", False)
+            span.set_attribute("rate_limit.has_user_id", True)
+            return f"user:{_hash_key(str(user_id))}"
+
+        remote = get_remote_address(req)
+        span.set_attribute("rate_limit.key_type", "ip")
+        span.set_attribute("rate_limit.has_workspace_id", False)
+        span.set_attribute("rate_limit.has_user_id", False)
+        return f"ip:{_hash_key(str(remote))}"
+
+
+def _rate_limit_exceeded_handler_with_metrics(request: Request, exc: RateLimitExceeded):
+    """
+    Custom rate limit exceeded handler that records metrics.
+
+    DM-09.2: Records denied rate limit events to Prometheus metrics
+    before delegating to the default SlowAPI handler.
+    """
+    endpoint = str(request.url.path) if request.url else "unknown"
+    record_rate_limit_hit(endpoint=endpoint, result="denied")
+
+    # Delegate to the default handler for the actual response
+    return _rate_limit_exceeded_handler(request, exc)
 
 
 class NoopLimiter:
@@ -108,24 +150,38 @@ def init_rate_limiting(app, redis_url: str | None, default_rate: str = "10/minut
     """
     Initialize rate limiting on a FastAPI app.
     - Attaches limiter to app state
-    - Registers 429 handler
+    - Registers 429 handler (with DM-09.2 metrics)
     - Adds SlowAPI middleware for enforcement
     - Sets module-level _limiter for use by get_limiter()
     """
     global _limiter  # noqa: PLW0603
-    try:
-        limiter = create_limiter(redis_url, default_rate)
-        app.state.limiter = limiter
-        _limiter = limiter  # DM-08.3: Store for get_limiter()
-        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-        app.add_middleware(SlowAPIMiddleware)
-        return limiter
-    except Exception as exc:  # noqa: BLE001
-        logger.error("Rate limiting initialization failed, continuing without limits: %s", exc, exc_info=True)
-        limiter = NoopLimiter()
-        app.state.limiter = limiter
-        _limiter = limiter
-        return limiter
+
+    # DM-09.1: Add tracing span for rate limiting initialization
+    with _tracer.start_as_current_span("rate_limit.init") as span:
+        span.set_attribute("rate_limit.default_rate", default_rate)
+        span.set_attribute("rate_limit.has_redis", redis_url is not None)
+
+        try:
+            limiter = create_limiter(redis_url, default_rate)
+            app.state.limiter = limiter
+            _limiter = limiter  # DM-08.3: Store for get_limiter()
+            # DM-09.2: Use custom handler that records metrics
+            app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler_with_metrics)
+            app.add_middleware(SlowAPIMiddleware)
+
+            span.set_attribute("rate_limit.storage_type", "redis" if redis_url else "memory")
+            span.set_attribute("rate_limit.init_success", True)
+
+            return limiter
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Rate limiting initialization failed, continuing without limits: %s", exc, exc_info=True)
+            span.set_attribute("rate_limit.init_success", False)
+            span.set_attribute("rate_limit.error", str(exc))
+
+            limiter = NoopLimiter()
+            app.state.limiter = limiter
+            _limiter = limiter
+            return limiter
 
 
 def get_limiter() -> Limiter | NoopLimiter:

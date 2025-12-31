@@ -1,0 +1,75 @@
+# Percy Visual Testing Configuration
+# Story: DM-09.5 - Visual Regression Testing
+# @see docs/modules/bm-dm/stories/dm-09-5-visual-regression-tests.md
+#
+# This configuration ensures consistent visual snapshots across the platform.
+# Percy is used for cloud-based visual regression testing that integrates with
+# GitHub PRs to report visual diffs.
+
+version: 2
+
+# Snapshot configuration
+snapshot:
+  # Viewport widths matching responsive breakpoints
+  widths:
+    - 1280   # Desktop (lg breakpoint)
+    - 768    # Tablet (md breakpoint)
+    - 375    # Mobile (iPhone SE/small mobile)
+
+  # Minimum height to capture full component content
+  min-height: 1024
+
+  # CSS to inject for consistent snapshots
+  # Disables animations/transitions to prevent timing issues
+  percy-css: |
+    /* Disable all animations for consistent snapshots */
+    *, *::before, *::after {
+      animation-duration: 0s !important;
+      animation-delay: 0s !important;
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+    }
+
+    /* Hide cursors and caret blinking */
+    * {
+      caret-color: transparent !important;
+    }
+
+    /* Stabilize scrollbars */
+    ::-webkit-scrollbar {
+      display: none !important;
+    }
+
+    /* Hide dynamic timestamps and dates if present */
+    [data-testid="timestamp"], [data-testid="relative-time"] {
+      visibility: hidden !important;
+    }
+
+# Discovery settings for asset loading
+discovery:
+  # Only allow assets from localhost during testing
+  allowed-hostnames:
+    - localhost
+    - 127.0.0.1
+
+  # Network idle timeout (ms) before snapshot
+  network-idle-timeout: 200
+
+  # Disable external resource loading
+  disable-cache: true
+
+# Upload configuration
+upload:
+  # Supported file types for asset upload
+  files: '**/*.{png,jpg,jpeg,svg,woff,woff2}'
+
+  # Ignore node_modules and build artifacts
+  strip-extensions:
+    - .map
+
+# Comparison settings
+comparison:
+  # Sensitivity threshold: catch visual changes >= 1% pixel difference
+  # This balances catching meaningful changes while ignoring anti-aliasing
+  # and font rendering variations
+  sensitivity: 0.01

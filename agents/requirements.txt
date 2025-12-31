@@ -52,3 +52,17 @@ cryptography>=41.0.0
 
 # Model Context Protocol (MCP)
 mcp>=0.1.0
+
+# OpenTelemetry Observability (DM-09.1)
+# Core tracing API and SDK
+opentelemetry-api>=1.22.0
+opentelemetry-sdk>=1.22.0
+opentelemetry-exporter-otlp>=1.22.0
+
+# Auto-instrumentation for FastAPI, HTTPX, Redis
+opentelemetry-instrumentation-fastapi>=0.43b0
+opentelemetry-instrumentation-httpx>=0.43b0
+opentelemetry-instrumentation-redis>=0.43b0
+
+# Prometheus Metrics (DM-09.2)
+prometheus-client>=0.19.0

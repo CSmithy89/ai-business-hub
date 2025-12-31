@@ -61,6 +61,21 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    // Visual regression testing project (DM-09.5)
+    // Run with: pnpm test:visual or percy exec -- playwright test --project=visual
+    {
+      name: 'visual',
+      testDir: './tests/visual',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Disable video/screenshot capture for visual tests (Percy handles this)
+        video: 'off',
+        screenshot: 'off',
+        trace: 'off',
+      },
+      // Run visual tests serially for consistent snapshots
+      fullyParallel: false,
+    },
     // Uncomment for cross-browser testing:
     // { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     // { name: 'webkit', use: { ...devices['Desktop Safari'] } },

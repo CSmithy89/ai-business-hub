@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-09.5 - Visual Regression Testing
+  Generated: 2025-12-31
+  Epic: DM-09 - Observability & Testing Infrastructure
+
+  This context file provides all necessary information for implementing
+  visual regression testing with Percy/Playwright integration.
+-->
+
+<story-context>
+  <metadata>
+    <story-id>DM-09.5</story-id>
+    <title>Visual Regression Testing</title>
+    <epic>DM-09 - Observability &amp; Testing Infrastructure</epic>
+    <points>5</points>
+    <priority>Medium</priority>
+    <status>ready-for-dev</status>
+    <dependencies>
+      <dependency>DM-09.3 (E2E Infrastructure) - Provides Playwright configuration and fixtures</dependency>
+      <dependency>DM-09.4 (Critical Flow E2E Tests) - Provides page objects and test patterns</dependency>
+    </dependencies>
+    <source-files>
+      <file>docs/modules/bm-dm/stories/dm-09-5-visual-regression-tests.md</file>
+      <file>docs/modules/bm-dm/epics/epic-dm-09-tech-spec.md</file>
+    </source-files>
+  </metadata>
+
+  <problem-statement>
+    UI changes may introduce visual regressions undetected. Without automated visual testing,
+    subtle styling changes, layout shifts, and component appearance issues can make it to
+    production without being caught during code review. Manual visual verification is
+    time-consuming and error-prone, especially across multiple viewport sizes and component states.
+  </problem-statement>
+
+  <gaps-addressed>
+    <gap>Testing Gap #1: Visual regression tests for widgets</gap>
+    <gap>REC-24: Visual regression tests for HITL cards</gap>
+  </gaps-addressed>
+
+  <existing-infrastructure>
+    <playwright-config>
+      <location>apps/web/playwright.config.ts</location>
+      <test-dir>./tests/e2e</test-dir>
+      <base-url>http://localhost:3000</base-url>
+      <timeout>60000</timeout>
+      <action-timeout>15000</action-timeout>
+      <navigation-timeout>30000</navigation-timeout>
+      <projects>
+        <project name="chromium">Desktop Chrome</project>
+        <!-- Additional projects can be uncommented for cross-browser testing -->
+      </projects>
+      <reporters>
+        <reporter>html</reporter>
+        <reporter>junit</reporter>
+        <reporter>list</reporter>
+      </reporters>
+      <artifacts>
+        <trace>retain-on-failure</trace>
+        <screenshot>only-on-failure</screenshot>
+        <video>retain-on-failure</video>
+      </artifacts>
+    </playwright-config>
+
+    <existing-tests location="apps/web/tests/e2e/">
+      <test>auth.spec.ts</test>
+      <test>smoke.spec.ts</test>
+      <test>workspace.spec.ts</test>
+      <test>onboarding.spec.ts</test>
+      <test>approvals.spec.ts</test>
+      <test>dashboard.spec.ts</test>
+      <test>critical-flows/progress-streaming.spec.ts</test>
+      <test>critical-flows/approval-queue.spec.ts</test>
+      <test>critical-flows/dashboard-widgets.spec.ts</test>
+    </existing-tests>
+
+    <ci-workflow location=".github/workflows/test.yml">
+      <features>
+        <feature>Parallel sharding (4 shards)</feature>
+        <feature>Playwright browser caching</feature>
+        <feature>Burn-in loop for flaky detection</feature>
+        <feature>Integration tests with Postgres/Redis services</feature>
+        <feature>TypeScript + Lint + Build stages</feature>
+      </features>
+    </ci-workflow>
+
+    <test-scripts location="apps/web/package.json">
+      <script name="test:e2e">playwright test</script>
+      <script name="test:e2e:ui">playwright test --ui</script>
+      <script name="test:e2e:headed">playwright test --headed</script>
+      <script name="test:e2e:report">playwright show-report</script>
+    </test-scripts>
+
+    <storybook-status>
+      <installed>false</installed>
+      <note>No Storybook configuration or stories exist. Visual tests may need to use direct page navigation or component test routes instead of Storybook iframe approach.</note>
+      <alternative>Consider using Playwright Component Testing or dedicated test pages with mounted components</alternative>
+    </storybook-status>
+  </existing-infrastructure>
+
+  <components-to-snapshot>
+    <!--
+      WIDGET COMPONENTS (PM Module)
+      Located in apps/web/src/components/pm/
+    -->
+    <component-group name="TaskCard" location="apps/web/src/components/pm/kanban/TaskCard.tsx">
+      <description>Task card for Kanban board with drag-and-drop, status, priority, and AI badges</description>
+      <props>
+        <prop name="task" type="TaskListItem">Task data including title, status, priority, type</prop>
+        <prop name="onClick" type="() => void">Click handler</prop>
+        <prop name="isDragging" type="boolean">Whether card is being dragged</prop>
+        <prop name="isOptimistic" type="boolean">Whether showing optimistic update</prop>
+      </props>
+      <states>
+        <state id="pending" data="{ title: 'Task', status: 'pending', priority: 'LOW', type: 'TASK' }"/>
+        <state id="active" data="{ title: 'Task', status: 'in_progress', priority: 'MEDIUM', type: 'TASK' }"/>
+        <state id="completed" data="{ title: 'Task', status: 'completed', priority: 'HIGH', type: 'TASK' }"/>
+        <state id="blocked" data="{ title: 'Task', status: 'blocked', priority: 'URGENT', type: 'BUG' }"/>
+        <state id="agent-assigned" data="{ title: 'AI Task', assignmentType: 'AGENT' }"/>
+        <state id="dragging" data="{ isDragging: true }"/>
+        <state id="optimistic" data="{ isOptimistic: true }"/>
+        <state id="new-glow" note="Tasks created within 3 seconds show ring effect"/>
+      </states>
+      <visual-features>
+        <feature>Type icon and color coding</feature>
+        <feature>Priority dot indicator</feature>
+        <feature>AI sparkle badge for agent-assigned tasks</feature>
+        <feature>Drag handle opacity change</feature>
+        <feature>New task glow animation (ring effect)</feature>
+        <feature>Scale animation on updates</feature>
+      </visual-features>
+    </component-group>
+
+    <component-group name="RiskCard" location="apps/web/src/components/pm/health/RiskCard.tsx">
+      <description>Risk alert card with severity badges, expandable details, and action buttons</description>
+      <states>
+        <state id="identified-critical" data="{ severity: 'CRITICAL', status: 'IDENTIFIED' }"/>
+        <state id="identified-high" data="{ severity: 'HIGH', status: 'IDENTIFIED' }"/>
+        <state id="identified-medium" data="{ severity: 'MEDIUM', status: 'IDENTIFIED' }"/>
+        <state id="identified-low" data="{ severity: 'LOW', status: 'IDENTIFIED' }"/>
+        <state id="analyzing" data="{ status: 'ANALYZING', acknowledgedBy: 'user@test.com' }"/>
+        <state id="resolved" data="{ status: 'RESOLVED', resolvedAt: '2025-01-01' }"/>
+        <state id="expanded" data="{ expanded: true }"/>
+        <state id="read-only" data="{ readOnly: true }"/>
+      </states>
+    </component-group>
+
+    <component-group name="DashboardStats" location="apps/web/src/components/dashboard/DashboardStats.tsx">
+      <description>Grid of stat cards displaying key metrics with trend indicators</description>
+      <states>
+        <state id="positive-trend" data="{ change: { value: 8, direction: 'up' } }"/>
+        <state id="negative-trend" data="{ change: { value: 12, direction: 'down' } }"/>
+        <state id="no-trend" data="{ change: null }"/>
+        <state id="colors" note="Test primary, success, warning, info color variants"/>
+      </states>
+    </component-group>
+
+    <component-group name="TaskProgressCard" location="apps/web/src/components/progress/TaskProgressCard.tsx">
+      <description>Real-time progress display for long-running agent tasks</description>
+      <states>
+        <state id="pending" data="{ status: 'pending', currentStep: 0, totalSteps: 5, steps: [] }"/>
+        <state id="running" data="{ status: 'running', currentStep: 2, totalSteps: 5, steps: [...] }"/>
+        <state id="running-with-substeps" data="{ status: 'running', steps: [{ progress: 50 }] }"/>
+        <state id="completed" data="{ status: 'completed', currentStep: 5, totalSteps: 5 }"/>
+        <state id="failed" data="{ status: 'failed', error: 'Connection timeout' }"/>
+        <state id="cancelled" data="{ status: 'cancelled' }"/>
+        <state id="with-time-estimate" data="{ estimatedCompletionMs: 30000, startedAt: Date.now() }"/>
+      </states>
+    </component-group>
+
+    <!--
+      HITL COMPONENTS (Approval System)
+      Located in apps/web/src/components/hitl/ and apps/web/src/components/approval/
+    -->
+    <component-group name="HITLApprovalCard" location="apps/web/src/components/hitl/HITLApprovalCard.tsx">
+      <description>Inline HITL approval card for CopilotKit tool confirmations</description>
+      <states>
+        <state id="low-risk-pending" data="{ config: { riskLevel: 'low' }, confidenceScore: 85 }"/>
+        <state id="medium-risk-pending" data="{ config: { riskLevel: 'medium' }, confidenceScore: 65 }"/>
+        <state id="high-risk-pending" data="{ config: { riskLevel: 'high' }, confidenceScore: 45 }"/>
+        <state id="requires-reason" data="{ config: { requiresReason: true }, showRejectReason: true }"/>
+        <state id="approving" data="{ isApproving: true }"/>
+        <state id="rejecting" data="{ isRejecting: true }"/>
+        <state id="executing" data="{ isExecuting: true }"/>
+      </states>
+    </component-group>
+
+    <component-group name="ApprovalCard" location="apps/web/src/components/approval/approval-card.tsx">
+      <description>Approval queue card with compact and expanded variants</description>
+      <states>
+        <state id="compact-pending" data="{ variant: 'compact', status: 'pending' }"/>
+        <state id="compact-selected" data="{ variant: 'compact', selected: true }"/>
+        <state id="compact-dragging" data="{ variant: 'compact', isDragging: true }"/>
+        <state id="compact-approved" data="{ variant: 'compact', status: 'approved' }"/>
+        <state id="compact-rejected" data="{ variant: 'compact', status: 'rejected' }"/>
+        <state id="compact-auto-approved" data="{ variant: 'compact', status: 'auto_approved' }"/>
+        <state id="expanded-pending" data="{ variant: 'expanded', status: 'pending' }"/>
+        <state id="expanded-with-preview" data="{ variant: 'expanded', showPreviewData: true }"/>
+        <state id="high-confidence" data="{ confidenceLevel: 'high', confidenceScore: 92 }"/>
+        <state id="medium-confidence" data="{ confidenceLevel: 'medium', confidenceScore: 72 }"/>
+        <state id="low-confidence" data="{ confidenceLevel: 'low', confidenceScore: 45 }"/>
+        <state id="priority-high" data="{ priority: 3 }"/>
+        <state id="priority-medium" data="{ priority: 2 }"/>
+        <state id="priority-low" data="{ priority: 1 }"/>
+        <state id="with-due-date" data="{ dueAt: 'soon' }"/>
+      </states>
+    </component-group>
+
+    <component-group name="ConfidenceIndicator" location="apps/web/src/components/approval/confidence-indicator.tsx">
+      <description>Visual confidence score with color-coded progress bar</description>
+      <states>
+        <state id="high-sm" data="{ level: 'high', score: 92, size: 'sm' }"/>
+        <state id="high-md" data="{ level: 'high', score: 92, size: 'md' }"/>
+        <state id="high-lg" data="{ level: 'high', score: 92, size: 'lg' }"/>
+        <state id="medium" data="{ level: 'medium', score: 72 }"/>
+        <state id="low" data="{ level: 'low', score: 45 }"/>
+        <state id="with-recommendation" data="{ showRecommendation: true }"/>
+        <state id="without-label" data="{ showLabel: false }"/>
+      </states>
+    </component-group>
+
+    <component-group name="ConfidenceBadge" location="apps/web/src/components/approval/confidence-indicator.tsx">
+      <description>Compact inline confidence badge</description>
+      <states>
+        <state id="high" data="{ level: 'high', score: 92 }"/>
+        <state id="medium" data="{ level: 'medium', score: 72 }"/>
+        <state id="low" data="{ level: 'low', score: 45 }"/>
+      </states>
+    </component-group>
+
+    <!-- Additional HITL Components -->
+    <component-group name="ContractApprovalCard" location="apps/web/src/components/hitl/ContractApprovalCard.tsx">
+      <description>Specialized approval card for contract-related approvals</description>
+    </component-group>
+
+    <component-group name="ApprovalPendingCard" location="apps/web/src/components/hitl/ApprovalPendingCard.tsx">
+      <description>Pending approval notification card</description>
+    </component-group>
+
+    <component-group name="DeleteConfirmCard" location="apps/web/src/components/hitl/DeleteConfirmCard.tsx">
+      <description>Destructive action confirmation card</description>
+    </component-group>
+  </components-to-snapshot>
+
+  <percy-integration>
+    <package-dependencies>
+      <dependency name="@percy/cli" version="^1.27.0"/>
+      <dependency name="@percy/playwright" version="^1.0.4"/>
+    </package-dependencies>
+
+    <config-file location="apps/web/.percy.yml">
+      <content><![CDATA[
+version: 2
+snapshot:
+  widths:
+    - 1280   # Desktop
+    - 768    # Tablet
+    - 375    # Mobile
+  min-height: 1024
+  percy-css: |
+    /* Disable animations for consistent snapshots */
+    *, *::before, *::after {
+      animation-duration: 0s !important;
+      transition-duration: 0s !important;
+    }
+discovery:
+  allowed-hostnames:
+    - localhost
+upload:
+  files: '**/*.{png,jpg}'
+      ]]></content>
+    </config-file>
+
+    <viewport-rationale>
+      <viewport width="1280">Desktop - Primary user viewport</viewport>
+      <viewport width="768">Tablet - Responsive breakpoint (md)</viewport>
+      <viewport width="375">Mobile - iPhone SE/small mobile</viewport>
+    </viewport-rationale>
+
+    <threshold-config>
+      <pixel-change>1%</pixel-change>
+      <rationale>Catches meaningful visual changes while ignoring anti-aliasing and font rendering variations</rationale>
+    </threshold-config>
+  </percy-integration>
+
+  <files-to-create>
+    <file path="apps/web/.percy.yml" description="Percy configuration"/>
+    <file path="apps/web/src/components/__visual_tests__/widgets.visual.ts" description="Widget snapshot tests"/>
+    <file path="apps/web/src/components/__visual_tests__/hitl.visual.ts" description="HITL card snapshot tests"/>
+    <file path=".github/workflows/visual.yml" description="CI workflow for visual testing"/>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/package.json" change="Add Percy dependencies"/>
+    <file path="apps/web/playwright.config.ts" change="Add visual test project configuration"/>
+  </files-to-modify>
+
+  <implementation-patterns>
+    <pattern name="widget-visual-test">
+      <description>Pattern for snapshotting widget components in various states</description>
+      <code-example><![CDATA[
+import { test } from '@playwright/test';
+import percySnapshot from '@percy/playwright';
+
+test.describe('Widget Visual Regression', () => {
+  const widgetStates = [
+    { type: 'task_card', state: 'pending', url: '/test/components/task-card?status=pending' },
+    { type: 'task_card', state: 'active', url: '/test/components/task-card?status=in_progress' },
+    // ... more states
+  ];
+
+  for (const widget of widgetStates) {
+    test(`${widget.type} - ${widget.state}`, async ({ page }) => {
+      await page.goto(widget.url);
+      await page.waitForLoadState('networkidle');
+
+      // Take Percy snapshot
+      await percySnapshot(page, `Widget: ${widget.type} (${widget.state})`);
+    });
+  }
+});
+      ]]></code-example>
+    </pattern>
+
+    <pattern name="component-test-route">
+      <description>Alternative to Storybook - dedicated test routes for component rendering</description>
+      <approach>
+        Since Storybook is not installed, create minimal test pages that render components in isolation.
+        These pages can be excluded from production builds using Next.js route configuration.
+      </approach>
+      <example-routes>
+        <route>/test/components/task-card</route>
+        <route>/test/components/approval-card</route>
+        <route>/test/components/confidence-indicator</route>
+        <route>/test/components/progress-card</route>
+      </example-routes>
+    </pattern>
+  </implementation-patterns>
+
+  <ci-workflow-pattern>
+    <workflow-file>.github/workflows/visual.yml</workflow-file>
+    <triggers>
+      <trigger>pull_request to main</trigger>
+    </triggers>
+    <steps>
+      <step>Checkout code</step>
+      <step>Setup pnpm and Node.js</step>
+      <step>Install dependencies</step>
+      <step>Build application (for test routes)</step>
+      <step>Start Next.js server in background</step>
+      <step>Run Percy with Playwright</step>
+    </steps>
+    <env-vars>
+      <var name="PERCY_TOKEN" source="secrets.PERCY_TOKEN"/>
+    </env-vars>
+  </ci-workflow-pattern>
+
+  <acceptance-criteria>
+    <criterion id="AC1">Percy/Chromatic configured and connected</criterion>
+    <criterion id="AC2">All widget states have baseline snapshots</criterion>
+    <criterion id="AC3">HITL cards have baseline snapshots</criterion>
+    <criterion id="AC4">Visual diffs reported on PRs</criterion>
+    <criterion id="AC5">Threshold set to catch >1% pixel change</criterion>
+  </acceptance-criteria>
+
+  <definition-of-done>
+    <item>Percy installed and configured in apps/web</item>
+    <item>Percy token configured as GitHub secret</item>
+    <item>Widget visual tests created for all states</item>
+    <item>HITL visual tests created for all states</item>
+    <item>CI workflow triggers on PRs</item>
+    <item>Baseline snapshots established</item>
+    <item>Visual diffs appear on PR comments</item>
+    <item>Documentation updated</item>
+  </definition-of-done>
+
+  <risks-and-mitigations>
+    <risk id="1">
+      <title>Visual Baseline Churn</title>
+      <description>Design changes require baseline updates</description>
+      <mitigation>Coordinate with design team, batch updates</mitigation>
+    </risk>
+    <risk id="2">
+      <title>Storybook Dependency</title>
+      <description>Storybook is not currently installed</description>
+      <mitigation>Use component test routes or Playwright Component Testing instead</mitigation>
+    </risk>
+    <risk id="3">
+      <title>Percy Token Security</title>
+      <description>Token must be stored as GitHub secret</description>
+      <mitigation>Use repository secrets, limit token scope</mitigation>
+    </risk>
+    <risk id="4">
+      <title>Network Dependency</title>
+      <description>Percy requires internet connectivity</description>
+      <mitigation>Skip visual tests in offline mode</mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <technical-notes>
+    <note title="Percy vs Chromatic">
+      Percy is specified as the visual testing tool. Percy is cloud-based, integrates with GitHub for PR comments,
+      supports multiple viewport widths, and provides a visual diff UI for review.
+      Chromatic is an alternative if Percy is not available.
+    </note>
+    <note title="Animation Handling">
+      Percy CSS disables animations and transitions to ensure consistent screenshots across runs,
+      preventing mid-animation captures and enabling deterministic visual comparisons.
+    </note>
+    <note title="Component Isolation">
+      Since Storybook is not installed, visual tests should either:
+      1. Create dedicated test route pages (e.g., /test/components/*)
+      2. Use Playwright Component Testing (@playwright/experimental-ct-react)
+      3. Navigate to actual pages and test components in context
+    </note>
+    <note title="Playwright Config Extension">
+      Add a 'visual' project to playwright.config.ts that targets visual test files
+      and can be run separately from E2E tests.
+    </note>
+  </technical-notes>
+</story-context>

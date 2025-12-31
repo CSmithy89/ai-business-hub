@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context for DM-09.2: Metrics Exposure System
+  Generated: 2025-12-31
+  Epic: DM-09 - Observability & Testing Infrastructure
+  Story: DM-09.2 - Metrics Exposure System
+  Points: 5
+  Priority: High
+-->
+<story-context version="1.0">
+
+  <!-- ============================================ -->
+  <!-- STORY METADATA -->
+  <!-- ============================================ -->
+  <metadata>
+    <story-id>dm-09-2-metrics-exposure</story-id>
+    <epic>DM-09</epic>
+    <title>Metrics Exposure System</title>
+    <status>ready-for-dev</status>
+    <points>5</points>
+    <priority>high</priority>
+    <depends-on>
+      <dependency status="done">DM-09.1 (OpenTelemetry Integration)</dependency>
+      <dependency status="done">DM-08 (Quality & Performance Hardening)</dependency>
+      <dependency status="done">DM-07 (Infrastructure Stabilization)</dependency>
+    </depends-on>
+  </metadata>
+
+  <!-- ============================================ -->
+  <!-- PROBLEM STATEMENT -->
+  <!-- ============================================ -->
+  <problem-statement>
+    <summary>
+      Performance metrics (duration_ms) are not exposed to monitoring systems.
+      Metrics are collected but not exported, and there is no Prometheus/StatsD
+      integration for operational visibility and alerting.
+    </summary>
+    <root-cause source="DM-03 Retrospective">
+      <item>Metrics collected but not exported</item>
+      <item>No Prometheus/StatsD integration</item>
+      <item>Lack of operational visibility into A2A performance</item>
+    </root-cause>
+  </problem-statement>
+
+  <!-- ============================================ -->
+  <!-- EXISTING OBSERVABILITY PATTERNS (DM-09.1) -->
+  <!-- ============================================ -->
+  <existing-patterns>
+
+    <!-- Observability Package Structure -->
+    <package path="agents/observability/">
+      <file name="__init__.py">
+        <description>Package exports for observability module</description>
+        <exports>
+          <export>configure_tracing</export>
+          <export>instrument_app</export>
+          <export>get_tracer</export>
+          <export>shutdown_tracing</export>
+          <export>traced</export>
+          <export>OTelSettings</export>
+          <export>get_otel_settings</export>
+        </exports>
+      </file>
+
+      <file name="config.py">
+        <description>Pydantic-based OpenTelemetry configuration</description>
+        <pattern>
+          Uses BaseSettings for environment variable configuration.
+          Cached with lru_cache for singleton behavior.
+          Pattern to follow for MetricsSettings if needed.
+        </pattern>
+        <key-settings>
+          <setting name="otel_enabled" type="bool" default="True"/>
+          <setting name="otel_service_name" type="str" default="hyvve-agentos"/>
+          <setting name="otel_exporter_endpoint" type="str" default="http://localhost:4317"/>
+          <setting name="otel_sampling_rate" type="float" default="1.0"/>
+          <setting name="otel_log_spans" type="bool" default="False"/>
+        </key-settings>
+      </file>
+
+      <file name="tracing.py">
+        <description>OpenTelemetry tracing configuration and instrumentation</description>
+        <pattern>
+          Module-level _provider reference for shutdown.
+          configure_tracing() called once at startup.
+          instrument_app() instruments FastAPI, HTTPX, Redis.
+          get_tracer() returns tracer for custom spans.
+          shutdown_tracing() for graceful shutdown.
+        </pattern>
+        <integration-point>
+          Metrics should complement tracing - both share similar labels.
+          Tracing provides individual request details.
+          Metrics provide aggregate performance visibility.
+        </integration-point>
+      </file>
+
+      <file name="decorators.py">
+        <description>@traced decorator for automatic span creation</description>
+        <pattern>
+          Supports both sync and async functions.
+          Records exceptions with ERROR status.
+          Sets OK status on successful completion.
+          Pattern to potentially follow for @metered decorator.
+        </pattern>
+      </file>
+    </package>
+
+    <!-- Main.py Integration Pattern -->
+    <main-integration path="agents/main.py">
+      <description>How DM-09.1 is integrated in main.py</description>
+      <imports>
+        <import>from observability import configure_tracing, instrument_app, shutdown_tracing, get_otel_settings</import>
+      </imports>
+      <startup-pattern>
+        <code><![CDATA[
+# OpenTelemetry Tracing (DM-09.1)
+otel_settings = get_otel_settings()
+if otel_settings.otel_enabled:
+    try:
+        configure_tracing()
+        instrument_app(app)
+        logger.info(
+            "OpenTelemetry tracing enabled",
+            extra={
+                "service_name": otel_settings.otel_service_name,
+                "sampling_rate": otel_settings.otel_sampling_rate,
+            },
+        )
+    except Exception as exc:
+        logger.warning("OpenTelemetry initialization failed: %s", exc, exc_info=True)
+else:
+    logger.info("OpenTelemetry tracing disabled")
+        ]]></code>
+      </startup-pattern>
+      <shutdown-pattern>
+        <code><![CDATA[
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown."""
+    logger.info("AgentOS shutting down...")
+    shutdown_tracing()
+    logger.info("AgentOS shutdown complete")
+        ]]></code>
+      </shutdown-pattern>
+      <router-pattern>
+        <note>
+          Metrics router should be mounted similar to discovery_router:
+          app.include_router(metrics_router, tags=["metrics"])
+        </note>
+      </router-pattern>
+    </main-integration>
+
+  </existing-patterns>
+
+  <!-- ============================================ -->
+  <!-- INTEGRATION POINTS FOR METRICS -->
+  <!-- ============================================ -->
+  <integration-points>
+
+    <!-- Rate Limiting Metrics -->
+    <integration-point file="agents/middleware/rate_limit.py">
+      <description>Add Prometheus metrics for rate limit enforcement</description>
+      <existing-tracing>
+        <note>Already has OpenTelemetry tracing via _tracer.start_as_current_span()</note>
+        <spans>
+          <span name="rate_limit.derive_key">Key derivation span</span>
+          <span name="rate_limit.init">Initialization span</span>
+        </spans>
+      </existing-tracing>
+      <metrics-to-add>
+        <metric name="RATE_LIMIT_HITS" type="Counter">
+          <labels>endpoint, workspace_id, result (allowed/denied)</labels>
+          <location>Inside _rate_limit_key() function after key derivation</location>
+          <note>Record allowed/denied decisions for operational visibility</note>
+        </metric>
+      </metrics-to-add>
+      <key-functions>
+        <function name="_rate_limit_key">Derives rate limit key - instrument here</function>
+        <function name="init_rate_limiting">Initialization - add metric for setup</function>
+        <function name="create_limiter">Creates limiter - potential metric point</function>
+      </key-functions>
+    </integration-point>
+
+    <!-- CCR Usage Metrics -->
+    <integration-point file="agents/services/ccr_usage.py">
+      <description>Add Prometheus metrics for CCR routing and token usage</description>
+      <existing-tracing>
+        <note>Already has OpenTelemetry tracing via _tracer.start_as_current_span()</note>
+        <spans>
+          <span name="ccr.record_request">Records CCR requests</span>
+          <span name="ccr.get_quota_status">Quota status check</span>
+        </spans>
+      </existing-tracing>
+      <existing-data-model>
+        <class name="CCRUsageTracker">
+          <singleton>True - uses get_instance() pattern</singleton>
+          <method name="record_request">
+            <params>provider, task_type, estimated_tokens, is_fallback</params>
+            <note>Ideal location to record CCR_REQUESTS, CCR_TOKENS metrics</note>
+          </method>
+          <method name="get_quota_status">
+            <note>Can expose quota percentage as gauge</note>
+          </method>
+        </class>
+      </existing-data-model>
+      <metrics-to-add>
+        <metric name="CCR_REQUESTS" type="Counter">
+          <labels>provider, task_type, status</labels>
+          <location>CCRUsageTracker.record_request()</location>
+        </metric>
+        <metric name="CCR_LATENCY" type="Histogram">
+          <labels>provider</labels>
+          <note>If latency tracking added to record_request</note>
+        </metric>
+        <metric name="CCR_TOKENS" type="Counter">
+          <labels>provider, direction (input/output)</labels>
+          <location>CCRUsageTracker.record_request()</location>
+        </metric>
+      </metrics-to-add>
+    </integration-point>
+
+    <!-- Dashboard Gateway A2A Metrics -->
+    <integration-point file="agents/gateway/agent.py">
+      <description>Dashboard Gateway agent - track A2A orchestration metrics</description>
+      <existing-pattern>
+        <agent-factory>create_dashboard_gateway_agent()</agent-factory>
+        <tools>get_all_tools() + get_layout_tools()</tools>
+        <orchestration-agents>navi, pulse, herald</orchestration-agents>
+      </existing-pattern>
+      <metrics-to-add>
+        <metric name="A2A_REQUEST_DURATION" type="Histogram">
+          <labels>agent, operation, status</labels>
+          <note>Track duration of A2A calls to specialist agents</note>
+        </metric>
+        <metric name="A2A_REQUEST_COUNT" type="Counter">
+          <labels>agent, operation, status</labels>
+        </metric>
+        <metric name="A2A_ACTIVE_TASKS" type="Gauge">
+          <labels>agent</labels>
+        </metric>
+      </metrics-to-add>
+    </integration-point>
+
+    <!-- Gateway Tools A2A Calls -->
+    <integration-point file="agents/gateway/tools.py">
+      <description>A2A tools that call specialist agents</description>
+      <tools>
+        <tool name="get_project_status">Calls Navi agent</tool>
+        <tool name="get_health_summary">Calls Pulse agent</tool>
+        <tool name="get_recent_activity">Calls Herald agent</tool>
+        <tool name="gather_dashboard_data">Parallel calls to all agents</tool>
+      </tools>
+      <metrics-note>
+        A2A call timing should be instrumented in these tools or
+        in the underlying A2A client (agents/a2a/client.py if it exists).
+      </metrics-note>
+    </integration-point>
+
+  </integration-points>
+
+  <!-- ============================================ -->
+  <!-- FILES TO CREATE -->
+  <!-- ============================================ -->
+  <files-to-create>
+
+    <file path="agents/observability/metrics.py">
+      <description>Prometheus metric definitions and helpers</description>
+      <contents>
+        <item>Custom CollectorRegistry (avoid default metrics)</item>
+        <item>AGENTOS_INFO - Service info metric</item>
+        <item>A2A_REQUEST_DURATION - Histogram with agent/operation/status labels</item>
+        <item>A2A_REQUEST_COUNT - Counter with agent/operation/status labels</item>
+        <item>A2A_ACTIVE_TASKS - Gauge with agent label</item>
+        <item>A2A_RESPONSE_SIZE - Histogram with agent label</item>
+        <item>CACHE_OPERATIONS - Counter with operation/result labels</item>
+        <item>CACHE_LATENCY - Histogram with operation label</item>
+        <item>RATE_LIMIT_HITS - Counter with endpoint/workspace_id/result labels</item>
+        <item>CCR_REQUESTS - Counter with provider/task_type/status labels</item>
+        <item>CCR_LATENCY - Histogram with provider label</item>
+        <item>CCR_TOKENS - Counter with provider/direction labels</item>
+        <item>get_metrics() - Generate Prometheus output bytes</item>
+        <item>get_content_type() - Return CONTENT_TYPE_LATEST</item>
+        <item>RequestTimer - Context manager for timing with histogram recording</item>
+      </contents>
+      <histogram-buckets>
+        <buckets name="A2A_REQUEST_DURATION">(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0)</buckets>
+        <buckets name="CACHE_LATENCY">(0.001, 0.005, 0.01, 0.025, 0.05, 0.1)</buckets>
+        <buckets name="CCR_LATENCY">(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5)</buckets>
+        <buckets name="A2A_RESPONSE_SIZE">(100, 500, 1000, 5000, 10000, 50000, 100000)</buckets>
+      </histogram-buckets>
+    </file>
+
+    <file path="agents/api/routes/metrics.py">
+      <description>/metrics endpoint for Prometheus scraping</description>
+      <note>Need to create agents/api/routes/ directory structure first</note>
+      <contents>
+        <item>APIRouter with GET /metrics</item>
+        <item>Returns Response with get_metrics() content</item>
+        <item>Media type from get_content_type()</item>
+      </contents>
+    </file>
+
+    <file path="docs/modules/bm-dm/dashboards/agentos-dashboard.json">
+      <description>Grafana dashboard template</description>
+      <panels>
+        <panel>A2A request rate panel</panel>
+        <panel>Request duration percentiles (p50, p95, p99)</panel>
+        <panel>Error rate panel</panel>
+        <panel>Active tasks gauge</panel>
+        <panel>Cache hit/miss ratio</panel>
+        <panel>Rate limit enforcement panel</panel>
+        <panel>CCR provider distribution</panel>
+        <panel>CCR token usage</panel>
+      </panels>
+    </file>
+
+  </files-to-create>
+
+  <!-- ============================================ -->
+  <!-- FILES TO MODIFY -->
+  <!-- ============================================ -->
+  <files-to-modify>
+
+    <file path="agents/requirements.txt">
+      <change>Add prometheus-client>=0.19.0</change>
+      <current-content><![CDATA[
+# OpenTelemetry Observability (DM-09.1)
+# Core tracing API and SDK
+opentelemetry-api>=1.22.0
+opentelemetry-sdk>=1.22.0
+opentelemetry-exporter-otlp>=1.22.0
+
+# Auto-instrumentation for FastAPI, HTTPX, Redis
+opentelemetry-instrumentation-fastapi>=0.43b0
+opentelemetry-instrumentation-httpx>=0.43b0
+opentelemetry-instrumentation-redis>=0.43b0
+      ]]></current-content>
+      <new-content><![CDATA[
+# OpenTelemetry Observability (DM-09.1)
+# Core tracing API and SDK
+opentelemetry-api>=1.22.0
+opentelemetry-sdk>=1.22.0
+opentelemetry-exporter-otlp>=1.22.0
+
+# Auto-instrumentation for FastAPI, HTTPX, Redis
+opentelemetry-instrumentation-fastapi>=0.43b0
+opentelemetry-instrumentation-httpx>=0.43b0
+opentelemetry-instrumentation-redis>=0.43b0
+
+# Prometheus Metrics (DM-09.2)
+prometheus-client>=0.19.0
+      ]]></new-content>
+    </file>
+
+    <file path="agents/main.py">
+      <change>Mount metrics router</change>
+      <location>After discovery_router mounting (line ~811)</location>
+      <pattern><![CDATA[
+# Mount metrics router (DM-09.2)
+from api.routes.metrics import router as metrics_router
+app.include_router(metrics_router, tags=["metrics"])
+logger.info("Prometheus metrics endpoint mounted at /metrics")
+      ]]></pattern>
+    </file>
+
+    <file path="agents/observability/__init__.py">
+      <change>Export metrics and helpers</change>
+      <new-exports>
+        <export>REGISTRY</export>
+        <export>A2A_REQUEST_DURATION</export>
+        <export>A2A_REQUEST_COUNT</export>
+        <export>A2A_ACTIVE_TASKS</export>
+        <export>A2A_RESPONSE_SIZE</export>
+        <export>CACHE_OPERATIONS</export>
+        <export>CACHE_LATENCY</export>
+        <export>RATE_LIMIT_HITS</export>
+        <export>CCR_REQUESTS</export>
+        <export>CCR_LATENCY</export>
+        <export>CCR_TOKENS</export>
+        <export>RequestTimer</export>
+        <export>get_metrics</export>
+        <export>get_content_type</export>
+      </new-exports>
+    </file>
+
+    <file path="agents/middleware/rate_limit.py">
+      <change>Add rate limit metrics recording</change>
+      <location>_rate_limit_key() function - after key derivation</location>
+      <note>Import RATE_LIMIT_HITS from observability.metrics and increment on each decision</note>
+    </file>
+
+    <file path="agents/services/ccr_usage.py">
+      <change>Add CCR metrics recording</change>
+      <location>CCRUsageTracker.record_request() method</location>
+      <note>Import CCR_REQUESTS, CCR_TOKENS and increment on each recorded request</note>
+    </file>
+
+  </files-to-modify>
+
+  <!-- ============================================ -->
+  <!-- DEPENDENCIES -->
+  <!-- ============================================ -->
+  <dependencies>
+    <python-package name="prometheus-client" version=">=0.19.0">
+      <provides>
+        <class>Histogram</class>
+        <class>Counter</class>
+        <class>Gauge</class>
+        <class>Info</class>
+        <class>CollectorRegistry</class>
+        <function>generate_latest</function>
+        <constant>CONTENT_TYPE_LATEST</constant>
+      </provides>
+      <install>pip install prometheus-client>=0.19.0</install>
+    </python-package>
+  </dependencies>
+
+  <!-- ============================================ -->
+  <!-- CONSTANTS REFERENCE -->
+  <!-- ============================================ -->
+  <constants file="agents/constants/dm_constants.py">
+    <class name="DMConstants">
+      <subclass name="A2A">
+        <constant name="PROTOCOL_VERSION">0.3.0</constant>
+        <constant name="TASK_TIMEOUT_SECONDS">300</constant>
+        <constant name="HTTP_CONNECT_TIMEOUT">10.0</constant>
+      </subclass>
+      <subclass name="CCR">
+        <constant name="QUOTA_WARNING_THRESHOLD">0.8</constant>
+        <constant name="QUOTA_CRITICAL_THRESHOLD">0.95</constant>
+      </subclass>
+      <subclass name="DASHBOARD">
+        <constant name="MAX_WIDGETS_PER_REQUEST">12</constant>
+        <constant name="WIDGET_DATA_TTL_SECONDS">60</constant>
+        <constant name="CONCURRENT_AGENT_CALLS">5</constant>
+      </subclass>
+      <subclass name="RATE_LIMITS">
+        <constant name="DEFAULT">100/minute</constant>
+        <constant name="A2A_DISCOVERY">30/minute</constant>
+        <constant name="A2A_QUERY">100/minute</constant>
+      </subclass>
+    </class>
+  </constants>
+
+  <!-- ============================================ -->
+  <!-- ACCEPTANCE CRITERIA -->
+  <!-- ============================================ -->
+  <acceptance-criteria>
+    <criterion id="AC1" status="pending">Prometheus metrics endpoint at /metrics</criterion>
+    <criterion id="AC2" status="pending">Request duration histogram per agent/operation</criterion>
+    <criterion id="AC3" status="pending">Request count with success/failure labels</criterion>
+    <criterion id="AC4" status="pending">Active task gauge updated in real-time</criterion>
+    <criterion id="AC5" status="pending">Grafana dashboard template provided</criterion>
+  </acceptance-criteria>
+
+  <!-- ============================================ -->
+  <!-- TEST REQUIREMENTS -->
+  <!-- ============================================ -->
+  <test-requirements>
+    <unit-tests>
+      <test>Test metric registration and labeling</test>
+      <test>Test RequestTimer context manager</test>
+      <test>Test get_metrics() returns valid Prometheus format</test>
+      <test>Test histogram bucket configuration</test>
+    </unit-tests>
+    <integration-tests>
+      <test>Test /metrics endpoint returns 200</test>
+      <test>Test metrics are incremented on requests</test>
+      <test>Test histogram observations are recorded</test>
+      <test>Test metric labels are correctly applied</test>
+    </integration-tests>
+    <validation>
+      <test>Verify Prometheus can scrape endpoint</test>
+      <test>Verify Grafana can visualize metrics</test>
+    </validation>
+  </test-requirements>
+
+  <!-- ============================================ -->
+  <!-- IMPLEMENTATION NOTES -->
+  <!-- ============================================ -->
+  <implementation-notes>
+    <note priority="high">
+      Use custom CollectorRegistry to avoid exposing Python process metrics.
+      This keeps the /metrics output focused on application metrics only.
+    </note>
+    <note priority="high">
+      Metric naming conventions:
+      - Use lowercase with underscores
+      - Include unit suffix (_seconds, _bytes, _total)
+      - Use consistent label names across metrics
+    </note>
+    <note priority="medium">
+      Histogram buckets chosen based on expected latency patterns:
+      - A2A requests: 10ms to 10s (typical API call range)
+      - Cache operations: 1ms to 100ms (sub-millisecond to slow)
+      - CCR latency: 10ms to 2.5s (LLM API calls)
+    </note>
+    <note priority="medium">
+      Metrics complement DM-09.1 tracing:
+      - Tracing provides individual request details (distributed trace)
+      - Metrics provide aggregate performance visibility (dashboards/alerts)
+      - Both share similar dimensional labels for correlation
+    </note>
+    <note priority="low">
+      agents/api/ directory doesn't exist yet - must create directory structure.
+    </note>
+  </implementation-notes>
+
+  <!-- ============================================ -->
+  <!-- PROMETHEUS CONFIGURATION -->
+  <!-- ============================================ -->
+  <prometheus-config>
+    <scrape-config><![CDATA[
+scrape_configs:
+  - job_name: 'agentos'
+    static_configs:
+      - targets: ['agentos:8000']
+    metrics_path: /metrics
+    scrape_interval: 15s
+    ]]></scrape-config>
+  </prometheus-config>
+
+</story-context>

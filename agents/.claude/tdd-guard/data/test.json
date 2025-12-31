@@ -1,26 +1,371 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/test_dm_02_4_dashboard_gateway.py",
+      "moduleId": "tests/integration/test_ccr_fallback.py",
       "tests": [
         {
-          "name": "test_widget_types_defined",
-          "fullName": "tests/test_dm_02_4_dashboard_gateway.py::TestWidgetTypes::test_widget_types_defined",
+          "name": "test_fallback_on_ccr_unhealthy",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRFallbackOnPrimaryFailure::test_fallback_on_ccr_unhealthy",
           "state": "passed"
         },
         {
-          "name": "test_widget_types_expected",
-          "fullName": "tests/test_dm_02_4_dashboard_gateway.py::TestWidgetTypes::test_widget_types_expected",
+          "name": "test_fallback_on_circuit_breaker_open",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRFallbackOnPrimaryFailure::test_fallback_on_circuit_breaker_open",
           "state": "passed"
         },
         {
-          "name": "test_widget_types_no_duplicates",
-          "fullName": "tests/test_dm_02_4_dashboard_gateway.py::TestWidgetTypes::test_widget_types_no_duplicates",
+          "name": "test_fallback_returns_byoai_model",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRFallbackOnPrimaryFailure::test_fallback_returns_byoai_model",
           "state": "passed"
         },
         {
-          "name": "test_widget_types_extended",
-          "fullName": "tests/test_dm_02_4_dashboard_gateway.py::TestWidgetTypes::test_widget_types_extended",
+          "name": "test_consecutive_failures_open_circuit[asyncio]",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRFallbackChainExhaustion::test_consecutive_failures_open_circuit[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_circuit_half_open_after_timeout[asyncio]",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRFallbackChainExhaustion::test_circuit_half_open_after_timeout[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_successful_check_closes_circuit[asyncio]",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRFallbackChainExhaustion::test_successful_check_closes_circuit[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_timeout_triggers_degraded_status[asyncio]",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRTimeoutHandling::test_timeout_triggers_degraded_status[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_connection_error_handled_gracefully[asyncio]",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRTimeoutHandling::test_connection_error_handled_gracefully[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_http_error_handled_gracefully[asyncio]",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRTimeoutHandling::test_http_error_handled_gracefully[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_recovery_after_transient_failure[asyncio]",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRTimeoutHandling::test_recovery_after_transient_failure[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_type_preserved_in_fallback",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRContextPreservation::test_task_type_preserved_in_fallback",
+          "state": "passed"
+        },
+        {
+          "name": "test_agent_id_preserved_in_fallback",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRContextPreservation::test_agent_id_preserved_in_fallback",
+          "state": "passed"
+        },
+        {
+          "name": "test_user_config_preserved_in_fallback",
+          "fullName": "tests/integration/test_ccr_fallback.py::TestCCRContextPreservation::test_user_config_preserved_in_fallback",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/integration/test_ccr_health.py",
+      "tests": [
+        {
+          "name": "test_validate_connection_when_healthy[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRConnectionValidation::test_validate_connection_when_healthy[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_validate_connection_when_unhealthy[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRConnectionValidation::test_validate_connection_when_unhealthy[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_validate_ccr_connection_skipped_when_disabled[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRConnectionValidation::test_validate_ccr_connection_skipped_when_disabled[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_health_check_returns_status[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRHealthCheckStatus::test_health_check_returns_status[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_health_check_to_dict_serialization[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRHealthCheckStatus::test_health_check_to_dict_serialization[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_detect_degraded_when_some_providers_unavailable[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRDegradedStateDetection::test_detect_degraded_when_some_providers_unavailable[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_recovery_from_degraded_to_healthy[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRDegradedStateDetection::test_recovery_from_degraded_to_healthy[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_per_model_status_available[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRPerModelStatus::test_per_model_status_available[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_per_model_status_mixed[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRPerModelStatus::test_per_model_status_mixed[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_instance_creates_singleton[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRHealthCheckerSingleton::test_get_instance_creates_singleton[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_instance_clears_singleton[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRHealthCheckerSingleton::test_reset_instance_clears_singleton[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_instance_requires_url_first_time[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRHealthCheckerSingleton::test_get_instance_requires_url_first_time[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_start_when_disabled[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRHealthCheckerStartStop::test_start_when_disabled[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_stop_when_not_running[asyncio]",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRHealthCheckerStartStop::test_stop_when_not_running[asyncio]",
+          "state": "passed"
+        },
+        {
+          "name": "test_health_checker_properties",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRHealthCheckStatus::test_health_checker_properties",
+          "state": "passed"
+        },
+        {
+          "name": "test_detect_degraded_via_controller",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRDegradedStateDetection::test_detect_degraded_via_controller",
+          "state": "passed"
+        },
+        {
+          "name": "test_detect_rate_limited_provider",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRDegradedStateDetection::test_detect_rate_limited_provider",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_provider_status",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRPerModelStatus::test_get_provider_status",
+          "state": "passed"
+        },
+        {
+          "name": "test_provider_status_after_controller_change",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRPerModelStatus::test_provider_status_after_controller_change",
+          "state": "passed"
+        },
+        {
+          "name": "test_circuit_states",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRCircuitBreakerIntegration::test_circuit_states",
+          "state": "passed"
+        },
+        {
+          "name": "test_circuit_breaker_in_health_state",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRCircuitBreakerIntegration::test_circuit_breaker_in_health_state",
+          "state": "passed"
+        },
+        {
+          "name": "test_circuit_breaker_serialized_in_to_dict",
+          "fullName": "tests/integration/test_ccr_health.py::TestCCRCircuitBreakerIntegration::test_circuit_breaker_serialized_in_to_dict",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/integration/test_ccr_quota.py",
+      "tests": [
+        {
+          "name": "test_enforce_daily_quota_below_limit",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRDailyQuotaEnforcement::test_enforce_daily_quota_below_limit",
+          "state": "passed"
+        },
+        {
+          "name": "test_enforce_daily_quota_at_limit",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRDailyQuotaEnforcement::test_enforce_daily_quota_at_limit",
+          "state": "passed"
+        },
+        {
+          "name": "test_quota_exceeded_status",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRDailyQuotaEnforcement::test_quota_exceeded_status",
+          "state": "passed"
+        },
+        {
+          "name": "test_quota_status_includes_all_fields",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRQuotaStatusReporting::test_quota_status_includes_all_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_quota_status_to_dict",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRQuotaStatusReporting::test_quota_status_to_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_usage_metrics_by_provider",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRQuotaStatusReporting::test_usage_metrics_by_provider",
+          "state": "passed"
+        },
+        {
+          "name": "test_usage_metrics_by_task_type",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRQuotaStatusReporting::test_usage_metrics_by_task_type",
+          "state": "passed"
+        },
+        {
+          "name": "test_warning_at_80_percent",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRWarningThreshold::test_warning_at_80_percent",
+          "state": "passed"
+        },
+        {
+          "name": "test_no_warning_below_80_percent",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRWarningThreshold::test_no_warning_below_80_percent",
+          "state": "passed"
+        },
+        {
+          "name": "test_critical_at_95_percent",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRWarningThreshold::test_critical_at_95_percent",
+          "state": "passed"
+        },
+        {
+          "name": "test_warning_between_80_and_95_percent",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRWarningThreshold::test_warning_between_80_and_95_percent",
+          "state": "passed"
+        },
+        {
+          "name": "test_separate_trackers_per_workspace",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRWorkspaceIsolation::test_separate_trackers_per_workspace",
+          "state": "passed"
+        },
+        {
+          "name": "test_exhaust_one_workspace_others_unaffected",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRWorkspaceIsolation::test_exhaust_one_workspace_others_unaffected",
+          "state": "passed"
+        },
+        {
+          "name": "test_daily_reset_clears_workspace_usage",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRWorkspaceIsolation::test_daily_reset_clears_workspace_usage",
+          "state": "passed"
+        },
+        {
+          "name": "test_fallback_requests_counted",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRFallbackTracking::test_fallback_requests_counted",
+          "state": "passed"
+        },
+        {
+          "name": "test_fallback_tokens_counted_toward_quota",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRFallbackTracking::test_fallback_tokens_counted_toward_quota",
+          "state": "passed"
+        },
+        {
+          "name": "test_input_output_tokens_tracked",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRQuotaWithInputOutputTokens::test_input_output_tokens_tracked",
+          "state": "passed"
+        },
+        {
+          "name": "test_estimated_tokens_fallback",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRQuotaWithInputOutputTokens::test_estimated_tokens_fallback",
+          "state": "passed"
+        },
+        {
+          "name": "test_explicit_tokens_override_estimated",
+          "fullName": "tests/integration/test_ccr_quota.py::TestCCRQuotaWithInputOutputTokens::test_explicit_tokens_override_estimated",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/integration/test_ccr_routing.py",
+      "tests": [
+        {
+          "name": "test_route_to_primary_for_standard_task",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingPrimary::test_route_to_primary_for_standard_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_returns_ccr_model_type",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingPrimary::test_route_returns_ccr_model_type",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_reasoning_task",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingByTaskType::test_route_reasoning_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_code_generation_task",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingByTaskType::test_route_code_generation_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_long_context_task",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingByTaskType::test_route_long_context_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_route_general_task",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingByTaskType::test_route_general_task",
+          "state": "passed"
+        },
+        {
+          "name": "test_explicit_task_hint_override",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingByTaskType::test_explicit_task_hint_override",
+          "state": "passed"
+        },
+        {
+          "name": "test_respect_user_byoai_preference",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRWorkspacePreferences::test_respect_user_byoai_preference",
+          "state": "passed"
+        },
+        {
+          "name": "test_respect_platform_subscription_default",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRWorkspacePreferences::test_respect_platform_subscription_default",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_disabled_returns_byoai",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRWorkspacePreferences::test_ccr_disabled_returns_byoai",
+          "state": "passed"
+        },
+        {
+          "name": "test_routing_metadata_includes_source",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingMetadata::test_routing_metadata_includes_source",
+          "state": "passed"
+        },
+        {
+          "name": "test_routing_metadata_to_dict",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingMetadata::test_routing_metadata_to_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_byoai_routing_includes_fallback_reason",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRRoutingMetadata::test_byoai_routing_includes_fallback_reason",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_model_includes_task_type_header",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRModelHeaders::test_ccr_model_includes_task_type_header",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_model_includes_agent_id_header",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRModelHeaders::test_ccr_model_includes_agent_id_header",
+          "state": "passed"
+        },
+        {
+          "name": "test_ccr_model_auto_classifies_message",
+          "fullName": "tests/integration/test_ccr_routing.py::TestCCRModelHeaders::test_ccr_model_auto_classifies_message",
           "state": "passed"
         }
       ]
