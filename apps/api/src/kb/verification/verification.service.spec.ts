@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { NotFoundException } from '@nestjs/common'
+import { KnowledgePage, PageActivity } from '@prisma/client'
 import { VerificationService } from './verification.service'
 import { PrismaService } from '../../common/services/prisma.service'
 import { EventPublisherService } from '../../events'
@@ -73,7 +74,7 @@ describe('VerificationService', () => {
       const tenantId = 'tenant-101'
       const dto = { expiresIn: '30d' as const }
 
-      const mockPage = {
+      const mockPage: Partial<KnowledgePage> = {
         id: pageId,
         workspaceId,
         tenantId,
@@ -84,7 +85,7 @@ describe('VerificationService', () => {
       const expectedExpiry = new Date()
       expectedExpiry.setDate(expectedExpiry.getDate() + 30)
 
-      const mockUpdatedPage = {
+      const mockUpdatedPage: Partial<KnowledgePage> = {
         ...mockPage,
         isVerified: true,
         verifiedAt: now,
@@ -92,9 +93,9 @@ describe('VerificationService', () => {
         verifyExpires: expectedExpiry,
       }
 
-      prisma.knowledgePage.findUnique.mockResolvedValue(mockPage as any)
-      prisma.knowledgePage.update.mockResolvedValue(mockUpdatedPage as any)
-      prisma.pageActivity.create.mockResolvedValue({} as any)
+      prisma.knowledgePage.findUnique.mockResolvedValue(mockPage as KnowledgePage)
+      prisma.knowledgePage.update.mockResolvedValue(mockUpdatedPage as KnowledgePage)
+      prisma.pageActivity.create.mockResolvedValue({} as PageActivity)
       eventPublisher.publish.mockResolvedValue('event-id-123')
 
       const result = await service.markVerified(pageId, userId, dto)
@@ -132,20 +133,20 @@ describe('VerificationService', () => {
       const userId = 'user-456'
       const dto = { expiresIn: 'never' as const }
 
-      const mockPage = {
+      const mockPage: Partial<KnowledgePage> = {
         id: pageId,
         workspaceId: 'ws-789',
         tenantId: 'tenant-101',
         deletedAt: null,
       }
 
-      prisma.knowledgePage.findUnique.mockResolvedValue(mockPage as any)
+      prisma.knowledgePage.findUnique.mockResolvedValue(mockPage as KnowledgePage)
       prisma.knowledgePage.update.mockResolvedValue({
         ...mockPage,
         isVerified: true,
         verifyExpires: null,
-      } as any)
-      prisma.pageActivity.create.mockResolvedValue({} as any)
+      } as KnowledgePage)
+      prisma.pageActivity.create.mockResolvedValue({} as PageActivity)
       eventPublisher.publish.mockResolvedValue('event-id-123')
 
       await service.markVerified(pageId, userId, dto)
@@ -178,7 +179,7 @@ describe('VerificationService', () => {
       prisma.knowledgePage.findUnique.mockResolvedValue({
         id: pageId,
         deletedAt: new Date(),
-      } as any)
+      } as KnowledgePage)
 
       await expect(service.markVerified(pageId, userId, dto)).rejects.toThrow(
         NotFoundException,
@@ -193,14 +194,14 @@ describe('VerificationService', () => {
       const workspaceId = 'ws-789'
       const tenantId = 'tenant-101'
 
-      const mockPage = {
+      const mockPage: Partial<KnowledgePage> = {
         id: pageId,
         workspaceId,
         tenantId,
         deletedAt: null,
       }
 
-      const mockUpdatedPage = {
+      const mockUpdatedPage: Partial<KnowledgePage> = {
         ...mockPage,
         isVerified: false,
         verifiedAt: null,
@@ -208,9 +209,9 @@ describe('VerificationService', () => {
         verifyExpires: null,
       }
 
-      prisma.knowledgePage.findUnique.mockResolvedValue(mockPage as any)
-      prisma.knowledgePage.update.mockResolvedValue(mockUpdatedPage as any)
-      prisma.pageActivity.create.mockResolvedValue({} as any)
+      prisma.knowledgePage.findUnique.mockResolvedValue(mockPage as KnowledgePage)
+      prisma.knowledgePage.update.mockResolvedValue(mockUpdatedPage as KnowledgePage)
+      prisma.pageActivity.create.mockResolvedValue({} as PageActivity)
       eventPublisher.publish.mockResolvedValue('event-id-123')
 
       const result = await service.removeVerification(pageId, userId)
@@ -256,7 +257,7 @@ describe('VerificationService', () => {
       const now = new Date()
       const expiredDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
-      const mockPages = [
+      const mockPages: Partial<KnowledgePage>[] = [
         {
           id: 'page-1',
           title: 'Expired Page',
@@ -270,7 +271,7 @@ describe('VerificationService', () => {
         },
       ]
 
-      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as any)
+      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as KnowledgePage[])
 
       const result = await service.getStalPages(workspaceId)
 
@@ -283,7 +284,7 @@ describe('VerificationService', () => {
       const oldDate = new Date()
       oldDate.setDate(oldDate.getDate() - 91)
 
-      const mockPages = [
+      const mockPages: Partial<KnowledgePage>[] = [
         {
           id: 'page-1',
           title: 'Old Page',
@@ -297,7 +298,7 @@ describe('VerificationService', () => {
         },
       ]
 
-      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as any)
+      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as KnowledgePage[])
 
       const result = await service.getStalPages(workspaceId)
 
@@ -308,7 +309,7 @@ describe('VerificationService', () => {
     it('should return pages with viewCount < 5', async () => {
       const workspaceId = 'ws-123'
 
-      const mockPages = [
+      const mockPages: Partial<KnowledgePage>[] = [
         {
           id: 'page-1',
           title: 'Low View Page',
@@ -322,7 +323,7 @@ describe('VerificationService', () => {
         },
       ]
 
-      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as any)
+      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as KnowledgePage[])
 
       const result = await service.getStalPages(workspaceId)
 
@@ -337,7 +338,7 @@ describe('VerificationService', () => {
       const oldDate = new Date()
       oldDate.setDate(oldDate.getDate() - 91)
 
-      const mockPages = [
+      const mockPages: Partial<KnowledgePage>[] = [
         {
           id: 'page-1',
           title: 'Multiple Issues Page',
@@ -351,7 +352,7 @@ describe('VerificationService', () => {
         },
       ]
 
-      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as any)
+      prisma.knowledgePage.findMany.mockResolvedValue(mockPages as KnowledgePage[])
 
       const result = await service.getStalPages(workspaceId)
 

@@ -72,8 +72,9 @@ export default function KBLayout({ children }: KBLayoutProps) {
       await deletePageMutation.mutateAsync(deletePageId)
       setDeletePageId(null)
       // Navigate to KB home if we deleted the current page
+      // Use exact path match to avoid false positives (e.g., /kb/foo-bar matching /kb/foo)
       const deletedPage = pages.find((p) => p.id === deletePageId)
-      if (deletedPage && pathname?.includes(deletedPage.slug)) {
+      if (deletedPage && pathname === `/kb/${deletedPage.slug}`) {
         router.push('/kb' as any)
       }
     } catch (error) {
