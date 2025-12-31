@@ -8,17 +8,20 @@
  * - Cmd+/ (Mac) or Ctrl+/ (Windows) to toggle the chat panel
  * - Escape key is handled by CopilotSidebar's hitEscapeToClose prop
  *
- * Note: This component is intentionally separate from KeyboardShortcuts.tsx to maintain
- * modularity with the CopilotKit integration. The existing Cmd+/ shortcut in
- * KeyboardShortcuts.tsx toggles the legacy ChatPanel - this component will work
- * alongside it until migration is complete.
+ * This is the PRIMARY keyboard shortcut handler for chat functionality.
+ * The legacy KeyboardShortcuts.tsx defers to this component for Cmd+/ handling
+ * to avoid conflicts. See DM-07.5 for the unification.
+ *
+ * Uses DM_CONSTANTS.CHAT.KEYBOARD_SHORTCUT for the shortcut key.
  *
  * @see docs/modules/bm-dm/stories/dm-01-4-copilotkit-chat-integration.md
- * Epic: DM-01 | Story: DM-01.4
+ * @see docs/modules/bm-dm/stories/dm-07-5-unify-keyboard-shortcuts.md
+ * Epic: DM-01 | Story: DM-01.4, DM-07.5
  */
 
 import { useEffect } from 'react';
 import { useCopilotChatState } from './use-copilot-chat-state';
+import { DM_CONSTANTS } from '@/lib/dm-constants';
 
 /**
  * Check if the current focus is in an input-like element
@@ -55,13 +58,19 @@ export function CopilotKeyboardShortcut() {
         return;
       }
 
-      // Cmd+/ (Mac) or Ctrl+/ (Windows) to toggle chat
+      // Toggle chat using configured shortcut from DM_CONSTANTS
+      // Cmd+/ (Mac) or Ctrl+/ (Windows)
       const isMac =
         typeof navigator !== 'undefined' &&
         /Mac|iPhone|iPad|iPod/.test(navigator.platform);
-      const modifier = isMac ? event.metaKey : event.ctrlKey;
 
-      if (modifier && event.key === '/') {
+      // Check modifier key based on platform and DM_CONSTANTS.CHAT.KEYBOARD_MODIFIER
+      const expectedModifier = DM_CONSTANTS.CHAT.KEYBOARD_MODIFIER;
+      const hasModifier = expectedModifier === 'meta'
+        ? (isMac ? event.metaKey : event.ctrlKey) // 'meta' means Cmd on Mac, Ctrl on Windows
+        : event.ctrlKey; // Fallback to Ctrl if not 'meta'
+
+      if (hasModifier && event.key === DM_CONSTANTS.CHAT.KEYBOARD_SHORTCUT) {
         event.preventDefault();
         toggle();
       }
