@@ -66,6 +66,7 @@
 - [ ] TypeScript check passes (`pnpm type-check`)
 - [ ] ESLint passes (`pnpm lint`)
 - [ ] Build succeeds (`pnpm build`)
+- [ ] Story status updated in `docs/bmm-workflow-status.yaml` (if applicable)
 
 ## Multi-Tenant Considerations
 

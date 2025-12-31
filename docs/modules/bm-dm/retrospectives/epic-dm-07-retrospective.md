@@ -80,22 +80,24 @@ Defining `DM_CONSTANTS.CHAT.KEYBOARD_SHORTCUT` is pointless if components don't 
 |--------|-------|
 | Stories Completed | 5 |
 | Points Delivered | 29 |
-| Files Modified | 12 |
+| Files Modified | 17 (12 original + 5 post-review) |
 | Build Errors Fixed | 1 (KB SSR) |
 | Test Collection Errors Fixed | 5 → 0 |
-| TypeScript Tests Fixed | 14 (pattern doc'd for 77 more) |
+| TypeScript Tests Fixed | 25 (14 original + 11 post-review, 80 remaining) |
 | Status Mismatches Fixed | 1 |
 | Shortcut Conflicts Resolved | 1 |
+| PR Checklist Items Added | 1 (story status check) |
+| Documentation Created | 1 (`agents/README.md` import guide) |
 
 ## Action Items for Future Epics
 
-| Action | Priority | Target |
-|--------|----------|--------|
-| Add story status check to PR checklist | High | DM-08 |
-| Create test environment with all packages | Medium | DM-09 |
-| Implement keyboard shortcut registry | Low | DM-10 |
-| Fix remaining TypeScript tests | Medium | DM-08 |
-| Fix remaining Python tests | Medium | DM-08 |
+| Action | Priority | Target | Status |
+|--------|----------|--------|--------|
+| Add story status check to PR checklist | High | DM-08 | **DONE** (added to `.github/PULL_REQUEST_TEMPLATE.md`) |
+| Create test environment with all packages | Medium | DM-09 | Pending |
+| Implement keyboard shortcut registry | Low | DM-10 | Pending |
+| Fix remaining TypeScript tests | Medium | DM-08 | In Progress (91→80 failures) |
+| Fix remaining Python tests | Medium | DM-08 | Pending (46 failures tracked) |
 
 ## PR #46 Code Review Response
 
@@ -119,26 +121,32 @@ The following items were identified during DM-07 development or PR review but no
 
 ### From PR #46 Code Review
 
-1. **Python Import Path Style Inconsistency** (Low Priority)
+1. **Python Import Path Style Inconsistency** ~~(Low Priority)~~ **DONE**
    - Adding both project root and agents root to sys.path enables two import patterns
    - `from agents.module import X` and `from module import X` both work
-   - **Recommendation:** Document preferred import pattern in Python style guide (DM-10)
+   - ~~**Recommendation:** Document preferred import pattern in Python style guide (DM-10)~~
+   - **Completed:** Created `agents/README.md` with Python import style guide documenting `from agents.X import Y` as preferred pattern
 
-2. **Mock Pattern Consistency Across Tests** (Medium Priority)
+2. **Mock Pattern Consistency Across Tests** ~~(Medium Priority)~~ **IN PROGRESS**
    - The custom `MockPrisma`/`MockEventPublisher` pattern established in DM-07.3 should be applied to other test files
-   - Several test files still use inconsistent mock setups
-   - **Recommendation:** Create shared mock fixtures in DM-08
+   - ~~Several test files still use inconsistent mock setups~~
+   - **Progress:** Applied pattern to 4 additional test files, reduced failures from 91→80
+     - `realtime.gateway.spec.ts` - Added PresenceService mock
+     - `realtime.module.spec.ts` - Rewrote with mocked providers
+     - `analytics.controller.spec.ts` - Defined THROTTLER constants locally
+     - `verification-expiry.job.spec.ts` - Applied MockPrisma pattern
+   - **Remaining:** 80 TypeScript tests still failing, tracked in DM-08
 
-3. **Test verifyExpires Type Alignment** (Low Priority)
+3. **Test verifyExpires Type Alignment** ~~(Low Priority)~~ **DONE**
    - Test asserts `expect.any(String)` for verifyExpires but service returns `Date`
-   - Works but could hide type conversion issues
-   - **Recommendation:** Align mock types with service return types in DM-08
+   - ~~Works but could hide type conversion issues~~
+   - **Verified:** Service correctly converts `Date` to ISO string in the `data` object passed to `pageActivity.create`. Test expectation is correct.
 
 ### Remaining Test Failures
 
-1. **91 TypeScript Test Failures**
-   - Pattern documented but not all tests fixed
-   - Most are due to mock type mismatches
+1. **80 TypeScript Test Failures** (reduced from 91)
+   - Pattern documented and applied to 4 test files (11 tests fixed)
+   - Most remaining failures are due to mock type mismatches
    - **Tracked in:** DM-08-4 (async-mock-fixtures)
 
 2. **46 Python Test Failures**
@@ -158,9 +166,9 @@ The following items were identified during DM-07 development or PR review but no
    - Custom types work but may hide signature changes
    - Evaluate tradeoffs when fixing remaining tests
 
-3. **sessionData Type Safety** (Low Priority)
-   - `sessionData as any` cast in kb/layout.tsx
-   - Should type session properly from auth provider
+3. **sessionData Type Safety** ~~(Low Priority)~~ **DONE**
+   - ~~`sessionData as any` cast in kb/layout.tsx~~
+   - **Fixed:** Replaced with `getActiveWorkspaceId(session)` helper from `@/lib/auth-client` that provides type-safe session access
 
 ## Conclusion
 
