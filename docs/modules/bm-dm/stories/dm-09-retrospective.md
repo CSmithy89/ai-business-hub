@@ -331,33 +331,37 @@ Every story file includes:
 
 ## ✅ Retrospective Action Items
 
-### 🔴 Security (Immediate)
+### 🔴 Security (Immediate) - ✅ ALL RESOLVED
 
-| Action | Owner | Target | Debt ID |
-|--------|-------|--------|---------|
-| Make OTLP exporter TLS configurable | Dev | Before production | TD-DM09-S1 |
-| Remove AUTH_TOKEN from command line | Dev | Next sprint | TD-DM09-S2 |
-| Fix shell injection risk in load test script | Dev | Next sprint | TD-DM09-S3 |
-| Document /metrics endpoint access control | SRE | Before production | TD-DM09-S4 |
+| Action | Owner | Target | Debt ID | Status |
+|--------|-------|--------|---------|--------|
+| Make OTLP exporter TLS configurable | Dev | Before production | TD-DM09-S1 | ✅ Fixed |
+| Remove AUTH_TOKEN from command line | Dev | Next sprint | TD-DM09-S2 | ✅ Fixed |
+| Fix shell injection risk in load test script | Dev | Next sprint | TD-DM09-S3 | ✅ Fixed |
+| Document /metrics endpoint access control | SRE | Before production | TD-DM09-S4 | ✅ Fixed |
 
 ### 🟠 High Priority (DM-11)
 
-| Action | Owner | Target | Debt ID |
-|--------|-------|--------|---------|
-| Fix RequestTimer label mismatch | Dev | DM-11 | TD-DM09-01 |
-| Add thread safety to CCR tracker | Dev | DM-11 | TD-DM09-02 |
-| Move tracing init to FastAPI startup | Dev | DM-11 | TD-DM09-03 |
-| Fix double unroute cleanup bug | Dev | DM-11 | TD-DM09-11 |
-| Fix mock route ordering in E2E tests | Dev | DM-11 | TD-DM09-12 |
-| Fix isStorageAvailable logic | Dev | DM-11 | TD-DM09-13 |
+| Action | Owner | Target | Debt ID | Status |
+|--------|-------|--------|---------|--------|
+| Fix RequestTimer label mismatch | Dev | DM-11 | TD-DM09-01 | ✅ Fixed |
+| Add thread safety to CCR tracker | Dev | DM-11 | TD-DM09-02 | ✅ Fixed |
+| Move tracing init to FastAPI startup | Dev | DM-11 | TD-DM09-03 | ✅ Fixed |
+| Fix double unroute cleanup bug | Dev | DM-11 | TD-DM09-11 | ✅ Fixed |
+| Fix mock route ordering in E2E tests | Dev | DM-11 | TD-DM09-12 | ✅ Fixed |
+| Fix isStorageAvailable logic | Dev | DM-11 | TD-DM09-13 | ✅ Fixed |
+| Fix getStorageUsage wrong remaining | Dev | DM-11 | TD-DM09-14 | ✅ Fixed |
+| Add browser variance quota detection | Dev | DM-11 | TD-DM09-05 | ✅ Fixed |
+| Clamp percentUsed to 0-1 range | Dev | DM-11 | TD-DM09-06 | ✅ Fixed |
 
 ### 🟡 Medium Priority (Backlog)
 
-| Action | Owner | Target | Debt ID |
-|--------|-------|--------|---------|
-| Fix tracer module attribution | Dev | Backlog | TD-DM09-15 |
-| Fix conditional assertions in E2E | Dev | Backlog | TD-DM09-18 |
-| Add taskId to SSE test events | Dev | Backlog | TD-DM09-19 |
+| Action | Owner | Target | Debt ID | Status |
+|--------|-------|--------|---------|--------|
+| Fix tracer module attribution | Dev | Backlog | TD-DM09-15 | ✅ Fixed |
+| Fix conditional assertions in E2E | Dev | Backlog | TD-DM09-18 | ✅ Fixed |
+| Add taskId to SSE test events | Dev | Backlog | TD-DM09-19 | ✅ Fixed |
+| Escape regex in filter helper | Dev | Backlog | TD-DM09-22 | ✅ Fixed |
 
 ### 📋 Infrastructure
 

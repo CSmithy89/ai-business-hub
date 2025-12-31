@@ -177,36 +177,36 @@ run_k6_test() {
 
     print_header "Running: $test_name"
 
-    # Build k6 command
-    local k6_cmd="k6 run"
+    # Build k6 command using arrays (safe from injection)
+    local -a k6_args=("run")
 
-    # Environment variables
-    k6_cmd+=" -e BASE_URL=${BASE_URL}"
-    k6_cmd+=" -e WEB_URL=${WEB_URL}"
-    k6_cmd+=" -e CCR_URL=${CCR_URL}"
-    k6_cmd+=" -e ENVIRONMENT=${ENVIRONMENT}"
-    k6_cmd+=" -e WORKSPACE_ID=${WORKSPACE_ID}"
-
-    if [[ -n "$AUTH_TOKEN" ]]; then
-        k6_cmd+=" -e AUTH_TOKEN=${AUTH_TOKEN}"
-    fi
+    # Environment variables (passed as env vars, not command line for sensitive data)
+    k6_args+=("-e" "BASE_URL=${BASE_URL}")
+    k6_args+=("-e" "WEB_URL=${WEB_URL}")
+    k6_args+=("-e" "CCR_URL=${CCR_URL}")
+    k6_args+=("-e" "ENVIRONMENT=${ENVIRONMENT}")
+    k6_args+=("-e" "WORKSPACE_ID=${WORKSPACE_ID}")
 
     # Override options if provided
     if [[ -n "$VUS_OVERRIDE" ]]; then
-        k6_cmd+=" --vus ${VUS_OVERRIDE}"
+        k6_args+=("--vus" "${VUS_OVERRIDE}")
     fi
 
     if [[ -n "$DURATION_OVERRIDE" ]]; then
-        k6_cmd+=" --duration ${DURATION_OVERRIDE}"
+        k6_args+=("--duration" "${DURATION_OVERRIDE}")
     fi
 
     # Output options
-    k6_cmd+=" --out json=${RESULTS_DIR}/${test_name}-${timestamp}.json"
+    k6_args+=("--out" "json=${RESULTS_DIR}/${test_name}-${timestamp}.json")
 
     # Test file
-    k6_cmd+=" ${test_file}"
+    k6_args+=("${test_file}")
 
-    print_info "Command: $k6_cmd"
+    # Print command (mask AUTH_TOKEN for security)
+    print_info "Command: k6 ${k6_args[*]}"
+    if [[ -n "$AUTH_TOKEN" ]]; then
+        print_info "  (AUTH_TOKEN passed via environment variable)"
+    fi
     echo ""
 
     if [[ "$DRY_RUN" == "true" ]]; then
@@ -214,8 +214,9 @@ run_k6_test() {
         return 0
     fi
 
-    # Execute
-    if eval "$k6_cmd"; then
+    # Execute with AUTH_TOKEN as environment variable (not command line)
+    # This prevents token from appearing in process listings
+    if AUTH_TOKEN="${AUTH_TOKEN}" k6 "${k6_args[@]}"; then
         print_success "Test completed: $test_name"
         return 0
     else

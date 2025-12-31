@@ -196,25 +196,26 @@ class RequestTimer:
     Context manager for timing requests and recording metrics.
 
     Automatically records duration to a histogram and sets status based
-    on whether an exception occurred.
+    on whether an exception occurred (only if the histogram has a 'status' label).
 
     Attributes:
         histogram: The Histogram metric to record duration to
-        labels: Label values (excluding status which is auto-set)
+        labels: Label values (excluding status which is auto-set if present)
         start_time: Start time from perf_counter
+        has_status_label: Whether the histogram expects a 'status' label
 
     Example:
-        # Basic usage - status auto-set to success/error
+        # With status label (A2A_REQUEST_DURATION has status in labelnames)
         with RequestTimer(A2A_REQUEST_DURATION, agent="navi", operation="query"):
             result = await do_query()
 
-        # Async usage works the same way
+        # Without status label (CCR_LATENCY only has provider)
         async with RequestTimer(CCR_LATENCY, provider="claude"):
             response = await call_provider()
 
     Note:
-        The 'status' label is automatically added based on whether an
-        exception occurred ('error') or not ('success').
+        The 'status' label is only added if the histogram declares it
+        in its labelnames. This prevents runtime errors from label mismatches.
     """
 
     def __init__(
@@ -227,11 +228,13 @@ class RequestTimer:
 
         Args:
             histogram: Histogram metric to record duration to
-            **labels: Label values for the metric (status excluded)
+            **labels: Label values for the metric (status auto-added if declared)
         """
         self.histogram = histogram
         self.labels = labels
         self.start_time: Optional[float] = None
+        # Check if histogram expects a 'status' label
+        self.has_status_label = "status" in histogram._labelnames
 
     def __enter__(self) -> "RequestTimer":
         """Start timing the request."""
@@ -243,13 +246,18 @@ class RequestTimer:
         Stop timing and record the duration.
 
         Sets status to 'error' if an exception occurred, 'success' otherwise.
+        Only adds status label if the histogram declares it.
         """
         if self.start_time is None:
             return
 
         duration = time.perf_counter() - self.start_time
-        status = "error" if exc_type else "success"
-        self.histogram.labels(**self.labels, status=status).observe(duration)
+
+        if self.has_status_label:
+            status = "error" if exc_type else "success"
+            self.histogram.labels(**self.labels, status=status).observe(duration)
+        else:
+            self.histogram.labels(**self.labels).observe(duration)
 
     async def __aenter__(self) -> "RequestTimer":
         """Async context manager entry - start timing."""
@@ -262,8 +270,12 @@ class RequestTimer:
             return
 
         duration = time.perf_counter() - self.start_time
-        status = "error" if exc_type else "success"
-        self.histogram.labels(**self.labels, status=status).observe(duration)
+
+        if self.has_status_label:
+            status = "error" if exc_type else "success"
+            self.histogram.labels(**self.labels, status=status).observe(duration)
+        else:
+            self.histogram.labels(**self.labels).observe(duration)
 
 
 # ============================================================================

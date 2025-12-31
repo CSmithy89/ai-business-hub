@@ -6,9 +6,11 @@ Provides operational visibility into provider distribution and token usage.
 
 DM-09.1: Added OpenTelemetry tracing for quota monitoring.
 DM-09.2: Added Prometheus metrics for CCR request monitoring.
+TD-DM09-02: Added thread safety for concurrent access.
 """
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -88,11 +90,13 @@ class CCRUsageTracker:
     - Quota threshold monitoring with alerts
     - Daily usage reset
     - Singleton pattern for shared state
+    - Thread-safe access via internal lock (TD-DM09-02)
 
     All thresholds from DMConstants.
     """
 
     _instance: Optional["CCRUsageTracker"] = None
+    _instance_lock: threading.Lock = threading.Lock()
 
     def __init__(self, daily_token_limit: int = 0):
         """
@@ -105,11 +109,13 @@ class CCRUsageTracker:
         self._metrics = UsageMetrics(last_reset=datetime.now(timezone.utc))
         self._warning_threshold = DMConstants.CCR.QUOTA_WARNING_THRESHOLD
         self._critical_threshold = DMConstants.CCR.QUOTA_CRITICAL_THRESHOLD
+        # Thread lock for protecting metrics mutations (TD-DM09-02)
+        self._lock = threading.Lock()
 
     @classmethod
     def get_instance(cls, daily_token_limit: int = 0) -> "CCRUsageTracker":
         """
-        Get singleton instance.
+        Get singleton instance (thread-safe).
 
         Args:
             daily_token_limit: Daily token limit (used on first call)
@@ -117,14 +123,16 @@ class CCRUsageTracker:
         Returns:
             Singleton CCRUsageTracker instance
         """
-        if cls._instance is None:
-            cls._instance = cls(daily_token_limit=daily_token_limit)
-        return cls._instance
+        with cls._instance_lock:
+            if cls._instance is None:
+                cls._instance = cls(daily_token_limit=daily_token_limit)
+            return cls._instance
 
     @classmethod
     def reset_instance(cls) -> None:
         """Reset singleton instance (for testing)."""
-        cls._instance = None
+        with cls._instance_lock:
+            cls._instance = None
 
     @property
     def metrics(self) -> UsageMetrics:
@@ -141,7 +149,7 @@ class CCRUsageTracker:
         output_tokens: int = 0,
     ) -> None:
         """
-        Record a CCR request.
+        Record a CCR request (thread-safe).
 
         Args:
             provider: Provider used (claude, deepseek, gemini, openrouter)
@@ -160,31 +168,33 @@ class CCRUsageTracker:
             span.set_attribute("ccr.input_tokens", input_tokens)
             span.set_attribute("ccr.output_tokens", output_tokens)
 
-            self._metrics.total_requests += 1
+            # TD-DM09-02: Thread-safe metrics mutation
+            with self._lock:
+                self._metrics.total_requests += 1
 
-            # Track by provider
-            if provider not in self._metrics.requests_by_provider:
-                self._metrics.requests_by_provider[provider] = 0
-            self._metrics.requests_by_provider[provider] += 1
+                # Track by provider
+                if provider not in self._metrics.requests_by_provider:
+                    self._metrics.requests_by_provider[provider] = 0
+                self._metrics.requests_by_provider[provider] += 1
 
-            # Track by task type
-            if task_type not in self._metrics.requests_by_task_type:
-                self._metrics.requests_by_task_type[task_type] = 0
-            self._metrics.requests_by_task_type[task_type] += 1
+                # Track by task type
+                if task_type not in self._metrics.requests_by_task_type:
+                    self._metrics.requests_by_task_type[task_type] = 0
+                self._metrics.requests_by_task_type[task_type] += 1
 
-            # Track tokens (use explicit input/output if provided, fallback to estimated)
-            total_tokens = (input_tokens + output_tokens) or estimated_tokens
-            self._metrics.estimated_tokens += total_tokens
+                # Track tokens (use explicit input/output if provided, fallback to estimated)
+                total_tokens = (input_tokens + output_tokens) or estimated_tokens
+                self._metrics.estimated_tokens += total_tokens
 
-            # Track fallbacks
-            if is_fallback:
-                self._metrics.fallback_count += 1
+                # Track fallbacks
+                if is_fallback:
+                    self._metrics.fallback_count += 1
 
-            # Add cumulative metrics to span
-            span.set_attribute("ccr.total_requests", self._metrics.total_requests)
-            span.set_attribute("ccr.total_tokens", self._metrics.estimated_tokens)
+                # Add cumulative metrics to span
+                span.set_attribute("ccr.total_requests", self._metrics.total_requests)
+                span.set_attribute("ccr.total_tokens", self._metrics.estimated_tokens)
 
-            # DM-09.2: Record Prometheus metrics
+            # DM-09.2: Record Prometheus metrics (outside lock - Prometheus is thread-safe)
             record_ccr_request(
                 provider=provider,
                 task_type=task_type,
@@ -210,14 +220,16 @@ class CCRUsageTracker:
 
     def get_quota_status(self) -> QuotaStatus:
         """
-        Get current quota status with alert level.
+        Get current quota status with alert level (thread-safe).
 
         Returns:
             QuotaStatus with usage and alert info
         """
         # DM-09.1: Add tracing span for quota status check
         with _tracer.start_as_current_span("ccr.get_quota_status") as span:
-            used = self._metrics.estimated_tokens
+            # TD-DM09-02: Thread-safe read of metrics
+            with self._lock:
+                used = self._metrics.estimated_tokens
             limit = self.daily_token_limit
 
             span.set_attribute("ccr.quota.used", used)
@@ -300,22 +312,27 @@ class CCRUsageTracker:
             )
 
     def reset_daily(self) -> None:
-        """Reset daily usage counters."""
-        logger.info(
-            "Resetting CCR daily usage",
-            extra={"previous_tokens": self._metrics.estimated_tokens},
-        )
-        self._metrics = UsageMetrics(last_reset=datetime.now(timezone.utc))
+        """Reset daily usage counters (thread-safe)."""
+        # TD-DM09-02: Thread-safe reset
+        with self._lock:
+            logger.info(
+                "Resetting CCR daily usage",
+                extra={"previous_tokens": self._metrics.estimated_tokens},
+            )
+            self._metrics = UsageMetrics(last_reset=datetime.now(timezone.utc))
 
     def get_metrics_summary(self) -> Dict[str, Any]:
         """
-        Get comprehensive metrics summary.
+        Get comprehensive metrics summary (thread-safe).
 
         Returns:
             Dict with metrics, quota status, and health info
         """
+        # TD-DM09-02: Thread-safe read of metrics
+        with self._lock:
+            metrics_dict = self._metrics.to_dict()
         return {
-            "metrics": self._metrics.to_dict(),
+            "metrics": metrics_dict,
             "quota": self.get_quota_status().to_dict(),
             "thresholds": {
                 "warning": self._warning_threshold,

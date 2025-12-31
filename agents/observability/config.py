@@ -18,6 +18,7 @@ class OTelSettings(BaseSettings):
         OTEL_ENABLED: Enable/disable tracing (default: True)
         OTEL_SERVICE_NAME: Service name for traces (default: hyvve-agentos)
         OTEL_EXPORTER_ENDPOINT: OTLP gRPC endpoint (default: http://localhost:4317)
+        OTEL_EXPORTER_INSECURE: Use insecure gRPC connection (default: True for dev)
         OTEL_SAMPLING_RATE: Sampling rate 0.0-1.0 (default: 1.0 for 100%)
         OTEL_LOG_SPANS: Debug logging of spans (default: False)
 
@@ -25,11 +26,13 @@ class OTelSettings(BaseSettings):
         # In .env file:
         OTEL_ENABLED=true
         OTEL_SAMPLING_RATE=0.1  # 10% sampling in production
+        OTEL_EXPORTER_INSECURE=false  # Use TLS in production
     """
 
     otel_enabled: bool = True
     otel_service_name: str = "hyvve-agentos"
     otel_exporter_endpoint: str = "http://localhost:4317"
+    otel_exporter_insecure: bool = True  # Set to False in production for TLS
     otel_sampling_rate: float = 1.0  # 100% in dev, lower in prod
     otel_log_spans: bool = False
 

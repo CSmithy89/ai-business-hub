@@ -79,6 +79,42 @@ interface TimestampedEntry {
 // =============================================================================
 
 /**
+ * Check if a DOMException represents a quota exceeded error.
+ *
+ * Different browsers throw different errors for quota exceeded:
+ * - Chrome/Edge: QuotaExceededError (name)
+ * - Safari: code 22 (legacy)
+ * - Firefox: QuotaExceededError or NS_ERROR_DOM_QUOTA_REACHED
+ *
+ * TD-DM09-05: Added browser variance detection for quota errors.
+ *
+ * @param error - The error to check
+ * @returns true if the error indicates quota exceeded
+ */
+export function isQuotaExceededError(error: unknown): boolean {
+  if (!(error instanceof DOMException)) {
+    return false;
+  }
+
+  // Modern browsers use 'QuotaExceededError' name
+  if (error.name === 'QuotaExceededError') {
+    return true;
+  }
+
+  // Safari and some older browsers use code 22
+  if (error.code === 22) {
+    return true;
+  }
+
+  // Firefox legacy
+  if (error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Check if localStorage is available and accessible.
  *
  * Handles cases like:
@@ -86,7 +122,14 @@ interface TimestampedEntry {
  * - Security policies blocking storage
  * - SSR/Node.js environment
  *
- * @returns true if localStorage is available and writable
+ * Note: Returns true even if storage is full (QuotaExceededError),
+ * because reads and deletes still work. Use getStorageUsage() to
+ * check available space before writing.
+ *
+ * TD-DM09-13: Fixed to return true on QuotaExceededError since
+ * storage is available, just full. Reads/deletes still work.
+ *
+ * @returns true if localStorage is available (even if full)
  *
  * @example
  * ```typescript
@@ -107,7 +150,13 @@ export function isStorageAvailable(): boolean {
     window.localStorage.setItem(testKey, testKey);
     window.localStorage.removeItem(testKey);
     return true;
-  } catch {
+  } catch (e) {
+    // TD-DM09-13: QuotaExceededError means storage is available but full
+    // Reads and deletes still work, so return true
+    if (isQuotaExceededError(e)) {
+      return true;
+    }
+    // Other errors (SecurityError, etc.) mean storage is truly unavailable
     return false;
   }
 }
@@ -117,6 +166,14 @@ export function isStorageAvailable(): boolean {
  *
  * JavaScript strings in localStorage are stored as UTF-16,
  * so each character consumes 2 bytes.
+ *
+ * Note: MAX_STORAGE_SIZE (5MB) is an estimate. Actual browser limits vary:
+ * - Chrome/Edge: ~5MB
+ * - Firefox: ~5MB (configurable)
+ * - Safari: ~5MB (may prompt user)
+ *
+ * TD-DM09-06: percentUsed is clamped to 0-1 range to handle cases where
+ * actual browser limit differs from MAX_STORAGE_SIZE.
  *
  * @returns StorageUsage object with usage details
  *
@@ -150,8 +207,12 @@ export function getStorageUsage(): StorageUsage {
     }
   }
 
+  // TD-DM09-14: bytesRemaining clamped to 0 since actual browser limits may differ
   const bytesRemaining = Math.max(0, MAX_STORAGE_SIZE - bytesUsed);
-  const percentUsed = bytesUsed / MAX_STORAGE_SIZE;
+
+  // TD-DM09-06: Clamp percentUsed to 0-1 range
+  // Can exceed 1.0 if bytesUsed > MAX_STORAGE_SIZE (browser allows more than estimate)
+  const percentUsed = Math.min(1, Math.max(0, bytesUsed / MAX_STORAGE_SIZE));
 
   return {
     bytesUsed,
@@ -240,8 +301,8 @@ export function safeSetItem(key: string, value: string): StorageResult {
 
     return result;
   } catch (e) {
-    // Handle quota exceeded error
-    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+    // Handle quota exceeded error (TD-DM09-05: use browser-agnostic detection)
+    if (isQuotaExceededError(e)) {
       console.error('[StorageQuota] Quota exceeded, attempting cleanup...');
 
       // Calculate how much space we need

@@ -151,23 +151,8 @@ except Exception as exc:
 # OpenTelemetry Tracing (DM-09.1)
 # ============================================================================
 
-# Configure tracing before instrumentation
-otel_settings = get_otel_settings()
-if otel_settings.otel_enabled:
-    try:
-        configure_tracing()
-        instrument_app(app)
-        logger.info(
-            "OpenTelemetry tracing enabled",
-            extra={
-                "service_name": otel_settings.otel_service_name,
-                "sampling_rate": otel_settings.otel_sampling_rate,
-            },
-        )
-    except Exception as exc:
-        logger.warning("OpenTelemetry initialization failed: %s", exc, exc_info=True)
-else:
-    logger.info("OpenTelemetry tracing disabled")
+# TD-DM09-03: Tracing moved to startup event to avoid import-time side effects.
+# Configuration happens in startup_event() below.
 
 
 # ============================================================================
@@ -690,6 +675,24 @@ async def startup_event():
     logger.info(f"Version: 0.2.0")
     logger.info(f"Protocols: A2A v0.3.0, AG-UI v0.1.0")
 
+    # TD-DM09-03: Initialize OpenTelemetry tracing during startup (not import)
+    otel_settings = get_otel_settings()
+    if otel_settings.otel_enabled:
+        try:
+            configure_tracing()
+            instrument_app(app)
+            logger.info(
+                "OpenTelemetry tracing enabled",
+                extra={
+                    "service_name": otel_settings.otel_service_name,
+                    "sampling_rate": otel_settings.otel_sampling_rate,
+                },
+            )
+        except Exception as exc:
+            logger.warning("OpenTelemetry initialization failed: %s", exc, exc_info=True)
+    else:
+        logger.info("OpenTelemetry tracing disabled")
+
     # Register teams in the A2A registry
     for team_name, config in TEAM_CONFIG.items():
         try:
@@ -815,8 +818,10 @@ app.include_router(discovery_router)
 logger.info("A2A discovery endpoints mounted")
 
 # Mount Prometheus metrics endpoint (DM-09.2)
+# Note: Rate limiting applied via network ACLs in production
+# See agents/api/routes/metrics.py security note
 app.include_router(metrics_router, tags=["metrics"])
-logger.info("Prometheus metrics endpoint mounted at /metrics")
+logger.info("Prometheus metrics endpoint mounted at /metrics (apply network ACLs in production)")
 
 
 # =============================================================================

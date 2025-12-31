@@ -59,7 +59,7 @@ def configure_tracing() -> trace.Tracer:
 
     if not settings.otel_enabled:
         logger.info("OpenTelemetry tracing disabled")
-        return trace.get_tracer(__name__)
+        return trace.get_tracer("agentos")
 
     # Create resource with service info
     resource = Resource.create({
@@ -82,7 +82,7 @@ def configure_tracing() -> trace.Tracer:
     try:
         exporter = OTLPSpanExporter(
             endpoint=settings.otel_exporter_endpoint,
-            insecure=True,  # Use TLS in production via OTEL_EXPORTER_OTLP_INSECURE=false
+            insecure=settings.otel_exporter_insecure,  # Set OTEL_EXPORTER_INSECURE=false for TLS
         )
         processor = BatchSpanProcessor(exporter)
         _provider.add_span_processor(processor)
@@ -114,7 +114,7 @@ def configure_tracing() -> trace.Tracer:
         },
     )
 
-    return trace.get_tracer(__name__)
+    return trace.get_tracer("agentos")
 
 
 def instrument_app(app: "FastAPI") -> None:
@@ -160,14 +160,18 @@ def instrument_app(app: "FastAPI") -> None:
     logger.info("OpenTelemetry instrumentation complete")
 
 
-def get_tracer(name: str = __name__) -> trace.Tracer:
+def get_tracer(name: str | None = None) -> trace.Tracer:
     """
     Get a tracer instance for creating custom spans.
 
     Use this to create spans in business logic code.
 
+    TD-DM09-15: Fixed default parameter evaluation. Callers should pass
+    __name__ explicitly for proper module attribution.
+
     Args:
-        name: Tracer name (defaults to module name)
+        name: Tracer name (pass __name__ for module attribution,
+              defaults to "agentos" if not provided)
 
     Returns:
         trace.Tracer: Tracer instance for creating spans
@@ -175,12 +179,16 @@ def get_tracer(name: str = __name__) -> trace.Tracer:
     Example:
         from observability import get_tracer
 
-        tracer = get_tracer(__name__)
+        tracer = get_tracer(__name__)  # Use calling module's name
 
         with tracer.start_as_current_span("my_operation") as span:
             span.set_attribute("key", "value")
             # ... operation code
     """
+    # TD-DM09-15: Default to "agentos" since __name__ as default
+    # evaluates at definition time (would always be this module's name)
+    if name is None:
+        name = "agentos"
     return trace.get_tracer(name)
 
 

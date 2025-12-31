@@ -12,6 +12,18 @@ import { test as base, Page, expect } from '@playwright/test';
 import { DashboardPage, ApprovalPage } from '../pages';
 
 /**
+ * Escape special regex characters in a string.
+ *
+ * TD-DM09-22: Prevents regex injection when using user input in RegExp.
+ *
+ * @param str - String to escape
+ * @returns Escaped string safe for use in RegExp
+ */
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Dashboard fixture types
  */
 interface DashboardFixtures {
@@ -218,19 +230,22 @@ export async function testApprovalFilter(
 ): Promise<void> {
   const approval = new ApprovalPage(page);
 
+  // TD-DM09-22: Escape filterValue to prevent regex injection
+  const escapedValue = escapeRegExp(filterValue);
+
   if (filterType === 'status') {
     const statusFilter = approval.statusFilter;
     if (await statusFilter.isVisible()) {
       await statusFilter.click();
       await page.click(`[data-testid="filter-${filterValue}"]`);
-      await expect(page).toHaveURL(new RegExp(`status=${filterValue}`));
+      await expect(page).toHaveURL(new RegExp(`status=${escapedValue}`));
     }
   } else if (filterType === 'module') {
     const moduleFilter = approval.moduleFilter;
     if (await moduleFilter.isVisible()) {
       await moduleFilter.click();
       await page.click(`[data-testid="filter-${filterValue}"]`);
-      await expect(page).toHaveURL(new RegExp(`module=${filterValue}`));
+      await expect(page).toHaveURL(new RegExp(`module=${escapedValue}`));
     }
   }
 }

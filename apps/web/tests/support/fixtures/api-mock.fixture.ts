@@ -163,7 +163,8 @@ export interface MockWebSocketHandle {
 export const apiMockFixture = base.extend<{ apiMock: ApiMockFixture }>({
   apiMock: async ({ page }, use) => {
     const interceptedRequests: Request[] = [];
-    const activeRoutes: Array<{ pattern: string | RegExp; cleanup: () => Promise<void> }> = [];
+    // TD-DM09-11: Added 'cleaned' flag to prevent double unroute
+    const activeRoutes: Array<{ pattern: string | RegExp; cleanup: () => Promise<void>; cleaned: boolean }> = [];
 
     // Track all requests for later inspection
     page.on('request', (request) => {
@@ -222,11 +223,25 @@ export const apiMockFixture = base.extend<{ apiMock: ApiMockFixture }>({
 
       await page.route(url, handler);
 
+      // TD-DM09-11: Track route entry for removal on cleanup
+      const routeEntry = { pattern: url, cleanup: async () => {}, cleaned: false };
+
       const cleanup = async () => {
+        // TD-DM09-11: Prevent double unroute by checking cleaned flag
+        if (routeEntry.cleaned) {
+          return;
+        }
+        routeEntry.cleaned = true;
         await page.unroute(url, handler);
+        // Remove from activeRoutes to prevent fixture cleanup from double-unrouting
+        const index = activeRoutes.indexOf(routeEntry);
+        if (index > -1) {
+          activeRoutes.splice(index, 1);
+        }
       };
 
-      activeRoutes.push({ pattern: url, cleanup });
+      routeEntry.cleanup = cleanup;
+      activeRoutes.push(routeEntry);
       return cleanup;
     };
 
@@ -369,6 +384,15 @@ export async function mockApprovals(
   const { delay = 0, total } = options;
 
   const handler = async (route: Route) => {
+    const url = route.request().url();
+
+    // TD-DM09-12: Let specific action routes (approve/reject) pass through
+    // to handlers registered for those specific paths
+    if (url.match(/\/api\/approvals\/[^/]+\/(approve|reject)/)) {
+      await route.fallback();
+      return;
+    }
+
     if (delay > 0) {
       await new Promise((resolve) => setTimeout(resolve, delay));
     }

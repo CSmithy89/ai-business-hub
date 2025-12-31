@@ -48,13 +48,13 @@ test.describe('Progress Streaming', () => {
     // Verify initial progress is 0
     await expect(progressBar).toHaveAttribute('aria-valuenow', '0');
 
-    // Simulate SSE progress events by dispatching custom events
+    // TD-DM09-19: Simulate SSE progress events with taskId to match widget data
     await page.evaluate(() => {
       const events = [
-        { progress: 25, status: 'analyzing' },
-        { progress: 50, status: 'processing' },
-        { progress: 75, status: 'finalizing' },
-        { progress: 100, status: 'completed' },
+        { taskId: 'task-1', progress: 25, status: 'analyzing' },
+        { taskId: 'task-1', progress: 50, status: 'processing' },
+        { taskId: 'task-1', progress: 75, status: 'finalizing' },
+        { taskId: 'task-1', progress: 100, status: 'completed' },
       ];
 
       events.forEach((data, i) => {
@@ -108,12 +108,12 @@ test.describe('Progress Streaming', () => {
     // Track progress increments
     const progressValues: number[] = [];
 
-    // Simulate progress increments and capture each value
+    // TD-DM09-19: Simulate progress increments with taskId to match widget data
     for (const progress of [25, 50, 75, 100]) {
       await page.evaluate((p) => {
         window.dispatchEvent(
           new CustomEvent('dashboard:progress', {
-            detail: { progress: p, status: p < 100 ? 'in-progress' : 'completed' },
+            detail: { taskId: 'task-stages', progress: p, status: p < 100 ? 'in-progress' : 'completed' },
           })
         );
       }, progress);
@@ -158,11 +158,11 @@ test.describe('Progress Streaming', () => {
       return;
     }
 
-    // Trigger completion
+    // TD-DM09-19: Trigger completion with taskId to match widget data
     await page.evaluate(() => {
       window.dispatchEvent(
         new CustomEvent('dashboard:progress', {
-          detail: { progress: 100, status: 'completed' },
+          detail: { taskId: 'task-complete', progress: 100, status: 'completed' },
         })
       );
     });
