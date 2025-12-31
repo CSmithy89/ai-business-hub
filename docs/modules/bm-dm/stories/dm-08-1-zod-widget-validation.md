@@ -78,7 +78,7 @@ export function validateWidgetData<T>(
 
 ## Files to Create/Modify
 
-```
+```text
 apps/web/src/
 ├── lib/schemas/
 │   └── widget-schemas.ts       # NEW

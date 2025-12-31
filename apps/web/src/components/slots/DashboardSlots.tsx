@@ -172,7 +172,7 @@ export function DashboardSlots({ mode = 'hybrid' }: DashboardSlotsProps) {
       }
 
       // Validate widget data before rendering (DM-08.1)
-      const validationResult = validateAndLogWidgetData(widgetType, data);
+      const validationResult = validateAndLogWidgetData<WidgetData>(widgetType, data);
       if (!validationResult.success) {
         const errorMessages = validationResult.error.issues
           .map((issue) => `${issue.path.join('.')}: ${issue.message}`)

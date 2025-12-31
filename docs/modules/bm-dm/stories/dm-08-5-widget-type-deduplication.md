@@ -78,7 +78,7 @@ Create `scripts/validate-widget-types.ts` for build-time validation.
 
 ### Type Hierarchy
 
-```
+```text
 BaseWidgetData (shared)
 ├── ProjectStatusData
 ├── TaskListData

@@ -7,7 +7,7 @@ DM-08.7: Created for response parser validation.
 """
 
 import logging
-from typing import Any, Dict, Optional, TypeVar
+from typing import Any, Callable, Dict, Optional, TypeVar
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -46,7 +46,7 @@ def parse_agent_response(
     raw_data: Dict[str, Any],
     schema_class: type[T],
     agent_id: str,
-    default_factory: Optional[callable] = None,
+    default_factory: Optional[Callable[[], Dict[str, Any]]] = None,
 ) -> T | Dict[str, Any]:
     """
     Parse and validate an agent response using a Pydantic schema.

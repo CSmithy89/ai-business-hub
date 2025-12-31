@@ -49,7 +49,7 @@ Each response type includes to_widget_data() for frontend compatibility.
 
 ### Files Created (DM-08.7)
 
-```
+```text
 agents/pm/schemas/
 ├── __init__.py          # Package exports
 ├── base.py              # AgentError, AgentResponse, parse_agent_response

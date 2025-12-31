@@ -11,6 +11,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from constants.dm_constants import DMConstants
+
 
 @pytest.fixture
 def mock_a2a_response():
@@ -129,7 +131,7 @@ def create_agent_card(
         )
     """
     return {
-        "protocolVersion": "0.3.0",
+        "protocolVersion": DMConstants.A2A.PROTOCOL_VERSION,
         "agentId": agent_id,
         "name": name,
         "description": description,

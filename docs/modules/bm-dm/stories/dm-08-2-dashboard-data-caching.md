@@ -62,7 +62,7 @@ export const DASHBOARD_CACHE_CONFIG = {
 
 ## Files to Create/Modify
 
-```
+```text
 apps/web/src/
 ├── lib/cache/
 │   └── dashboard-cache.ts      # NEW

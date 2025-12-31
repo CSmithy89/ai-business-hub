@@ -66,16 +66,19 @@ class ProjectStatusData(BaseModel):
     """
     Project status data from Navi agent.
 
-    Mirrors the frontend ProjectStatusState schema for consistency.
+    Mirrors the frontend ProjectStatusData schema for consistency.
+    Field names use snake_case but are converted to camelCase in to_widget_data().
+
+    @see packages/shared/src/types/widget.ts - ProjectStatusData interface
     """
 
     project_id: str = Field(description="Unique project identifier")
-    name: str = Field(description="Project display name")
+    project_name: str = Field(description="Project display name")
     status: ProjectStatus = Field(description="Current project status")
     progress: int = Field(ge=0, le=100, description="Progress percentage")
+    due_date: Optional[str] = Field(default=None, description="Due date ISO string")
     tasks_completed: int = Field(ge=0, description="Number of completed tasks")
     tasks_total: int = Field(ge=0, description="Total number of tasks")
-    summary: Optional[str] = Field(default=None, description="Text summary")
 
     @field_validator("progress")
     @classmethod
@@ -121,16 +124,20 @@ class NaviProjectResponse(BaseModel):
         Convert to widget-friendly format.
 
         Returns data suitable for rendering in ProjectStatus widget.
+        Field names are converted from snake_case to camelCase.
         """
         if self.project_status:
-            return {
+            data: Dict[str, Any] = {
                 "projectId": self.project_status.project_id,
-                "projectName": self.project_status.name,
+                "projectName": self.project_status.project_name,
                 "status": STATUS_TO_WIDGET[self.project_status.status],
                 "progress": self.project_status.progress,
                 "tasksCompleted": self.project_status.tasks_completed,
                 "tasksTotal": self.project_status.tasks_total,
             }
+            if self.project_status.due_date:
+                data["dueDate"] = self.project_status.due_date
+            return data
         return {
             "projectId": self.project_id,
             "content": self.content,

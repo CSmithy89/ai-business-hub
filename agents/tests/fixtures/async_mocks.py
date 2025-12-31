@@ -8,7 +8,6 @@ DM-08.4: Standardized async mock patterns for consistent testing.
 
 from typing import Any, Callable, Optional
 from unittest.mock import AsyncMock, MagicMock
-from contextlib import asynccontextmanager
 
 import pytest
 
@@ -70,14 +69,12 @@ def async_context_manager():
     ):
         mock = MagicMock()
 
-        @asynccontextmanager
-        async def _context():
-            yield enter_value
-            if exit_exception:
-                raise exit_exception
-
+        # Configure async context manager methods
         mock.__aenter__ = AsyncMock(return_value=enter_value)
-        mock.__aexit__ = AsyncMock(return_value=exit_value)
+        if exit_exception:
+            mock.__aexit__ = AsyncMock(side_effect=exit_exception)
+        else:
+            mock.__aexit__ = AsyncMock(return_value=exit_value)
 
         # Make it work as async context manager
         mock.__class__ = type(
