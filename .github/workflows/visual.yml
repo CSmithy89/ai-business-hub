@@ -1,0 +1,138 @@
+# GitHub Actions CI/CD Pipeline for Visual Regression Tests
+# Story: DM-09.5 - Visual Regression Testing
+# Uses Percy for cloud-based visual diff detection
+#
+# This workflow captures visual snapshots of UI components and pages,
+# comparing them against baselines to detect unintended visual changes.
+
+name: Visual Regression
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      # Only run on UI-related changes to save Percy snapshots
+      - "apps/web/src/**/*.tsx"
+      - "apps/web/src/**/*.css"
+      - "apps/web/tests/visual/**"
+      - "packages/ui/**"
+      - ".github/workflows/visual.yml"
+  workflow_dispatch:
+    inputs:
+      force_baseline:
+        description: "Force new baseline (skip comparisons)"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: visual-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Percy configuration
+  PERCY_PARALLEL_NONCE: ${{ github.run_id }}
+  PERCY_PARALLEL_TOTAL: 1
+
+jobs:
+  visual-tests:
+    name: Percy Visual Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @hyvve/db exec prisma generate
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @hyvve/web exec playwright install --with-deps chromium
+
+      - name: Build web app
+        run: pnpm --filter @hyvve/web build
+        env:
+          # Skip strict mode for faster builds in CI
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Start web server
+        run: |
+          cd apps/web
+          pnpm start &
+          # Wait for server to be ready
+          npx wait-on http://localhost:3000 --timeout 60000
+        env:
+          NODE_ENV: production
+
+      - name: Run Percy visual tests
+        run: |
+          cd apps/web
+          pnpm percy exec -- pnpm playwright test --project=visual
+        env:
+          PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+          CI: true
+          # Pass force baseline flag if requested
+          PERCY_FORCE_BASELINE: ${{ github.event.inputs.force_baseline || 'false' }}
+
+      - name: Upload visual test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-test-results
+          path: |
+            apps/web/test-results/
+            apps/web/playwright-report/
+          retention-days: 7
+
+  # Post results summary to PR
+  report:
+    name: Visual Test Report
+    runs-on: ubuntu-latest
+    needs: visual-tests
+    if: always() && github.event_name == 'pull_request'
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Visual Regression Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.visual-tests.result }}" == "success" ]; then
+            echo "Visual tests passed! Check [Percy Dashboard](https://percy.io) for detailed diff results." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.visual-tests.result }}" == "failure" ]; then
+            echo "Visual tests failed! Review the artifacts and [Percy Dashboard](https://percy.io) for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Visual tests were skipped or cancelled." >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Tested Components" >> $GITHUB_STEP_SUMMARY
+          echo "- Dashboard Widgets (TaskCard, MetricsWidget, AlertWidget, ProjectStatus)" >> $GITHUB_STEP_SUMMARY
+          echo "- HITL Components (ApprovalCard, ConfidenceIndicator, Approval Queue)" >> $GITHUB_STEP_SUMMARY
+          echo "- Loading and Error States" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Viewports Tested" >> $GITHUB_STEP_SUMMARY
+          echo "- Desktop (1280px)" >> $GITHUB_STEP_SUMMARY
+          echo "- Tablet (768px)" >> $GITHUB_STEP_SUMMARY
+          echo "- Mobile (375px)" >> $GITHUB_STEP_SUMMARY
