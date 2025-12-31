@@ -234,9 +234,9 @@ development_status:
 
   # ===========================================
   # DM-11: Advanced Features & Optimizations
-  # Phase 7 | 12 stories | 57 points
+  # Phase 7 | 15 stories | 64 points
   # Redis persistence, WebSocket sync, Parallel ops
-  # Source: tech-debt-consolidated.md Deferred
+  # Source: tech-debt-consolidated.md Deferred + DM-09 Code Review
   # ===========================================
   dm-11: backlog
   dm-11-1-redis-state-persistence: backlog
@@ -251,6 +251,9 @@ development_status:
   dm-11-10-wire-errorwidget-retry: backlog
   dm-11-11-fix-copilotkit-api-drift: backlog
   dm-11-12-address-naming-complexity: backlog
+  dm-11-13-metrics-endpoint-auth: backlog
+  dm-11-14-accurate-token-estimation: backlog
+  dm-11-15-visual-workflow-health-check: backlog
   dm-11-retrospective: backlog
 
 # ===========================================
