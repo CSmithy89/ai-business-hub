@@ -74,7 +74,33 @@ Every story file includes:
 
 ## 🔧 Technical Debt Identified
 
-### High Priority (Address in DM-10 or DM-11)
+### 🔴 Critical Priority (Security - Address Immediately)
+
+#### TD-DM09-S1: Insecure OTLP Exporter Configuration
+**Location:** `agents/observability/tracing.py:85`
+**Issue:** Hardcoded `insecure=True` sends traces over unencrypted gRPC in production.
+**Recommendation:** Make configurable via `OTEL_EXPORTER_INSECURE` env var, default to `False` in production.
+**Story Reference:** Gemini Code Assist, CodeAnt AI review
+
+#### TD-DM09-S2: AUTH_TOKEN Exposed in Process Arguments
+**Location:** `tests/scripts/run-load-tests.sh:190-205`
+**Issue:** `AUTH_TOKEN` embedded in k6 command line visible in process listings and logs.
+**Recommendation:** Use environment file or k6's `--env-var` file option instead of command line.
+**Story Reference:** CodeAnt AI review
+
+#### TD-DM09-S3: Shell Command Injection Risk
+**Location:** `tests/scripts/run-load-tests.sh:181-224`
+**Issue:** Script uses `eval` with concatenated variables. Unquoted values can break quoting or inject commands.
+**Recommendation:** Use arrays and proper quoting, avoid `eval`.
+**Story Reference:** CodeAnt AI review
+
+#### TD-DM09-S4: Metrics Endpoint Without Access Control
+**Location:** `agents/api/routes/metrics.py`
+**Issue:** `/metrics` endpoint exposed without authentication, rate limiting, or network restrictions.
+**Recommendation:** Add auth middleware or document network ACL requirements for production.
+**Story Reference:** CodeAnt AI review
+
+### 🟠 High Priority (Bugs - Address in DM-11)
 
 #### TD-DM09-01: RequestTimer Label Mismatch
 **Location:** `agents/observability/metrics.py:194-267`
@@ -94,13 +120,37 @@ Every story file includes:
 **Recommendation:** Move tracing initialization to FastAPI startup event handler.
 **Story Reference:** DM-09.1 review, CodeAnt AI review
 
-### Medium Priority
+#### TD-DM09-11: Double Unroute Cleanup Bug
+**Location:** `apps/web/tests/support/fixtures/api-mock.fixture.ts:225-226`
+**Issue:** Per-mock cleanup and fixture cleanup both call `page.unroute()` for same handler, causing duplicate unroute calls.
+**Recommendation:** Remove route from `activeRoutes` array when per-mock cleanup is called.
+**Story Reference:** CodeAnt AI review (Critical severity)
+
+#### TD-DM09-12: Mock Route Ordering Bug
+**Location:** `apps/web/tests/e2e/critical-flows/approval-queue.spec.ts:64-89, 119-158`
+**Issue:** Generic approvals mock registered before specific `/approve` and `/reject` routes. Specific routes never matched.
+**Recommendation:** Register more specific routes first, or use route.continue() for non-matching paths.
+**Story Reference:** CodeAnt AI review
+
+#### TD-DM09-13: isStorageAvailable Logic Bug
+**Location:** `apps/web/src/lib/storage/quota-handler.ts` (isStorageAvailable function)
+**Issue:** Returns `false` when storage is full (QuotaExceededError), but reads/deletes still work.
+**Recommendation:** Return `true` for QuotaExceededError since storage is available, just full.
+**Story Reference:** CodeAnt AI review
+
+#### TD-DM09-14: getStorageUsage Reports Wrong Remaining
+**Location:** `apps/web/src/lib/storage/quota-handler.ts` (getStorageUsage function)
+**Issue:** When storage unavailable, reports `bytesRemaining: MAX_STORAGE_SIZE` instead of 0.
+**Recommendation:** Return `bytesRemaining: 0` when storage is unavailable.
+**Story Reference:** CodeAnt AI review
+
+### 🟡 Medium Priority
 
 #### TD-DM09-04: Hardcoded Service Version
 **Location:** `agents/observability/tracing.py:67`
 **Issue:** `SERVICE_VERSION: "0.2.0"` is hardcoded.
 **Recommendation:** Read from a constants file or pyproject.toml.
-**Story Reference:** DM-09.1 review
+**Story Reference:** DM-09.1 review, Gemini Code Assist
 
 #### TD-DM09-05: Quota Error Detection Browser Variance
 **Location:** `apps/web/src/lib/storage/quota-handler.ts:240-272`
@@ -111,7 +161,7 @@ Every story file includes:
 #### TD-DM09-06: Storage Size Calculation Approximation
 **Location:** `apps/web/src/lib/storage/quota-handler.ts:139-155`
 **Issue:** Uses `(key.length + value.length) * 2` which approximates UTF-16. May under/over-estimate.
-**Recommendation:** Consider using TextEncoder or Blob for accurate byte count.
+**Recommendation:** Consider using TextEncoder or Blob for accurate byte count, clamp percentUsed to 0-1.
 **Story Reference:** CodeAnt AI review
 
 #### TD-DM09-07: k6 Summary Threshold Check Bug
@@ -120,7 +170,37 @@ Every story file includes:
 **Recommendation:** Check `ok` flags on threshold results explicitly.
 **Story Reference:** DM-09.6 review, CodeAnt AI review
 
-### Low Priority
+#### TD-DM09-15: Tracer Uses Decorator Module Name
+**Location:** `agents/observability/decorators.py`
+**Issue:** `trace.get_tracer(__name__)` always resolves to `agents.observability.decorators`, not the decorated function's module.
+**Recommendation:** Use `trace.get_tracer(func.__module__)` for correct attribution.
+**Story Reference:** Gemini Code Assist
+
+#### TD-DM09-16: Import Fragility in Main Module
+**Location:** `agents/main.py:69-79`
+**Issue:** Top-level imports of `api.routes.metrics` and `observability` fail if modules missing, breaking entire app.
+**Recommendation:** Guard optional imports with try/except or lazy loading.
+**Story Reference:** CodeAnt AI review
+
+#### TD-DM09-17: k6 Threshold Key Mismatch
+**Location:** `tests/load/k6/dashboard-flow.js:38-47`
+**Issue:** Threshold keys (e.g., `http_req_duration{endpoint:page}`) may not match actual metric names in k6 output.
+**Recommendation:** Normalize or resolve metric keys when comparing thresholds.
+**Story Reference:** CodeAnt AI review
+
+#### TD-DM09-18: E2E Tests Use Conditional Assertions
+**Location:** Multiple files: `approval-queue.spec.ts`, `dashboard-widgets.spec.ts`
+**Issue:** Tests use `if (visible) { expect(...) }` pattern - silently pass when elements missing.
+**Recommendation:** Use `await expect(element).toBeVisible()` to fail properly when elements don't render.
+**Story Reference:** CodeAnt AI review
+
+#### TD-DM09-19: SSE Events Missing taskId
+**Location:** `apps/web/tests/e2e/critical-flows/progress-streaming.spec.ts:53-57`
+**Issue:** Simulated progress events omit `taskId`, but widget data includes it. Handler may ignore events.
+**Recommendation:** Include `taskId` in all simulated progress events.
+**Story Reference:** CodeAnt AI review
+
+### 🟢 Low Priority
 
 #### TD-DM09-08: Playwright Request Listener Memory Leak
 **Location:** `apps/web/tests/support/fixtures/api-mock.fixture.ts:169-171`
@@ -139,6 +219,24 @@ Every story file includes:
 **Issue:** Some tests use `waitForTimeout(500-1000)` instead of explicit waits.
 **Recommendation:** Replace with `expect.poll()` or `waitFor()` if flakiness observed.
 **Story Reference:** DM-09.4 review
+
+#### TD-DM09-20: Circular Import Risk
+**Location:** `agents/api/routes/__init__.py:7`
+**Issue:** Package-level import of metrics router may cause circular imports if metrics.py imports from parent.
+**Recommendation:** Move import inside function or use lazy loading.
+**Story Reference:** CodeAnt AI review
+
+#### TD-DM09-21: CCR Tests Mock Metrics Endpoint Instead of Real Endpoints
+**Location:** `agents/tests/integration/test_ccr_*.py`
+**Issue:** Some tests call `/ccr/metrics` endpoint instead of actual routing/quota endpoints.
+**Recommendation:** Verify tests exercise intended endpoints with correct HTTP methods.
+**Story Reference:** CodeAnt AI review
+
+#### TD-DM09-22: Regex Injection in Filter Helper
+**Location:** `apps/web/tests/support/fixtures/dashboard.fixture.ts:220-232`
+**Issue:** `filterValue` used in regex without escaping. Metacharacters can break regex.
+**Recommendation:** Escape special characters: `filterValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')`
+**Story Reference:** CodeAnt AI review
 
 ---
 
@@ -233,13 +331,41 @@ Every story file includes:
 
 ## ✅ Retrospective Action Items
 
+### 🔴 Security (Immediate)
+
+| Action | Owner | Target | Debt ID |
+|--------|-------|--------|---------|
+| Make OTLP exporter TLS configurable | Dev | Before production | TD-DM09-S1 |
+| Remove AUTH_TOKEN from command line | Dev | Next sprint | TD-DM09-S2 |
+| Fix shell injection risk in load test script | Dev | Next sprint | TD-DM09-S3 |
+| Document /metrics endpoint access control | SRE | Before production | TD-DM09-S4 |
+
+### 🟠 High Priority (DM-11)
+
+| Action | Owner | Target | Debt ID |
+|--------|-------|--------|---------|
+| Fix RequestTimer label mismatch | Dev | DM-11 | TD-DM09-01 |
+| Add thread safety to CCR tracker | Dev | DM-11 | TD-DM09-02 |
+| Move tracing init to FastAPI startup | Dev | DM-11 | TD-DM09-03 |
+| Fix double unroute cleanup bug | Dev | DM-11 | TD-DM09-11 |
+| Fix mock route ordering in E2E tests | Dev | DM-11 | TD-DM09-12 |
+| Fix isStorageAvailable logic | Dev | DM-11 | TD-DM09-13 |
+
+### 🟡 Medium Priority (Backlog)
+
+| Action | Owner | Target | Debt ID |
+|--------|-------|--------|---------|
+| Fix tracer module attribution | Dev | Backlog | TD-DM09-15 |
+| Fix conditional assertions in E2E | Dev | Backlog | TD-DM09-18 |
+| Add taskId to SSE test events | Dev | Backlog | TD-DM09-19 |
+
+### 📋 Infrastructure
+
 | Action | Owner | Target |
 |--------|-------|--------|
 | Add PERCY_TOKEN to GitHub secrets | DevOps | Immediate |
 | Establish visual regression baselines | QA | After PERCY_TOKEN |
 | Run load tests on staging | SRE | Before production |
-| Address TD-DM09-01 (RequestTimer) | Dev | DM-11 |
-| Address TD-DM09-02 (Thread Safety) | Dev | DM-11 |
 | Document observability stack | Tech Writer | DM-10 |
 
 ---
