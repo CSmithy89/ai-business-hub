@@ -212,7 +212,7 @@ development_status:
   dm-09-4-critical-flow-e2e-tests: done
   dm-09-5-visual-regression-tests: done
   dm-09-6-load-testing-infrastructure: done
-  dm-09-7-ccr-operational-tests: backlog
+  dm-09-7-ccr-operational-tests: done
   dm-09-8-localstorage-quota-tests: backlog
   dm-09-retrospective: backlog
 
