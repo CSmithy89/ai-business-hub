@@ -66,6 +66,9 @@ from agentos import (
 # Import A2A discovery router
 from a2a.discovery import router as discovery_router
 
+# Import Prometheus metrics router (DM-09.2)
+from api.routes.metrics import router as metrics_router
+
 # Import CCR model provider (DM-02.7)
 from models.ccr_provider import validate_ccr_connection
 
@@ -810,6 +813,10 @@ async def startup_dashboard_gateway():
 # Mount A2A discovery endpoints (from DM-02.3)
 app.include_router(discovery_router)
 logger.info("A2A discovery endpoints mounted")
+
+# Mount Prometheus metrics endpoint (DM-09.2)
+app.include_router(metrics_router, tags=["metrics"])
+logger.info("Prometheus metrics endpoint mounted at /metrics")
 
 
 # =============================================================================

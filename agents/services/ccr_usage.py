@@ -5,6 +5,7 @@ Tracks CCR usage metrics and generates quota alerts.
 Provides operational visibility into provider distribution and token usage.
 
 DM-09.1: Added OpenTelemetry tracing for quota monitoring.
+DM-09.2: Added Prometheus metrics for CCR request monitoring.
 """
 
 import logging
@@ -16,6 +17,7 @@ from typing import Any, Dict, Optional
 from opentelemetry import trace
 
 from agents.constants.dm_constants import DMConstants
+from agents.observability.metrics import record_ccr_request
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +137,8 @@ class CCRUsageTracker:
         task_type: str,
         estimated_tokens: int = 0,
         is_fallback: bool = False,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
     ) -> None:
         """
         Record a CCR request.
@@ -142,8 +146,10 @@ class CCRUsageTracker:
         Args:
             provider: Provider used (claude, deepseek, gemini, openrouter)
             task_type: Task type routed to
-            estimated_tokens: Estimated token usage
+            estimated_tokens: Estimated token usage (deprecated, use input/output)
             is_fallback: Whether this was a fallback request
+            input_tokens: Number of input tokens (DM-09.2)
+            output_tokens: Number of output tokens (DM-09.2)
         """
         # DM-09.1: Add tracing span for CCR request recording
         with _tracer.start_as_current_span("ccr.record_request") as span:
@@ -151,6 +157,8 @@ class CCRUsageTracker:
             span.set_attribute("ccr.task_type", task_type)
             span.set_attribute("ccr.estimated_tokens", estimated_tokens)
             span.set_attribute("ccr.is_fallback", is_fallback)
+            span.set_attribute("ccr.input_tokens", input_tokens)
+            span.set_attribute("ccr.output_tokens", output_tokens)
 
             self._metrics.total_requests += 1
 
@@ -164,8 +172,9 @@ class CCRUsageTracker:
                 self._metrics.requests_by_task_type[task_type] = 0
             self._metrics.requests_by_task_type[task_type] += 1
 
-            # Track tokens
-            self._metrics.estimated_tokens += estimated_tokens
+            # Track tokens (use explicit input/output if provided, fallback to estimated)
+            total_tokens = (input_tokens + output_tokens) or estimated_tokens
+            self._metrics.estimated_tokens += total_tokens
 
             # Track fallbacks
             if is_fallback:
@@ -175,6 +184,15 @@ class CCRUsageTracker:
             span.set_attribute("ccr.total_requests", self._metrics.total_requests)
             span.set_attribute("ccr.total_tokens", self._metrics.estimated_tokens)
 
+            # DM-09.2: Record Prometheus metrics
+            record_ccr_request(
+                provider=provider,
+                task_type=task_type,
+                status="fallback" if is_fallback else "success",
+                input_tokens=input_tokens or (estimated_tokens // 2),
+                output_tokens=output_tokens or (estimated_tokens // 2),
+            )
+
             logger.debug(
                 "CCR request recorded",
                 extra={
@@ -182,6 +200,8 @@ class CCRUsageTracker:
                     "task_type": task_type,
                     "estimated_tokens": estimated_tokens,
                     "is_fallback": is_fallback,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
                 },
             )
 
