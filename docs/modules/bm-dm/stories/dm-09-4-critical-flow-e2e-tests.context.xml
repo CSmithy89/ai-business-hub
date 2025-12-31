@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-09.4 - Critical Flow E2E Tests
+  Generated: 2025-12-31
+  Epic: DM-09 - Observability & Testing Infrastructure
+  Status: ready-for-dev
+-->
+<story-context>
+  <metadata>
+    <story-id>dm-09-4-critical-flow-e2e-tests</story-id>
+    <epic-id>dm-09</epic-id>
+    <title>Critical Flow E2E Tests</title>
+    <points>8</points>
+    <priority>high</priority>
+    <dependencies>
+      <dependency status="complete">DM-09.3 (E2E Infrastructure)</dependency>
+      <dependency status="complete">DM-07 (Infrastructure Stabilization)</dependency>
+      <dependency status="complete">DM-08 (Quality &amp; Performance)</dependency>
+    </dependencies>
+  </metadata>
+
+  <objective>
+    Write E2E tests for critical user flows: progress streaming, approval queue, and dashboard widgets.
+    Tests should use page objects from DM-09.3 and validate Zod schemas per DM-08.1.
+  </objective>
+
+  <files-to-create>
+    <file path="apps/web/tests/e2e/progress-streaming.spec.ts">
+      Progress streaming flow tests - task progress updates, real-time SSE events, completion detection
+    </file>
+    <file path="apps/web/tests/e2e/approval-queue.spec.ts">
+      Approval queue flow tests - pending approvals, approve/reject actions, real-time WebSocket updates
+    </file>
+    <file path="apps/web/tests/e2e/dashboard-widgets.spec.ts">
+      Dashboard widget lifecycle tests - widget rendering, Zod validation, MAX bounds, refresh
+    </file>
+  </files-to-create>
+
+  <page-objects>
+    <page-object name="DashboardPage" path="apps/web/tests/support/pages/dashboard.page.ts">
+      <description>Dashboard page object with widget grid, progress tracking, and task methods</description>
+      <locators>
+        <locator name="heading" type="role">Dashboard heading</locator>
+        <locator name="aiInsightsHeading" type="role">AI Insights section</locator>
+        <locator name="agentSection" type="testid">dashboard-agent-section</locator>
+        <locator name="widgetGrid" type="testid">dashboard-grid</locator>
+        <locator name="assistantCard" type="role">Dashboard Assistant</locator>
+        <locator name="loadingSkeleton" type="testid">loading-skeleton</locator>
+        <locator name="loadingSpinner" type="testid">loading-spinner</locator>
+        <locator name="widgetPlaceholder" type="text">No widgets yet</locator>
+        <locator name="errorBanner" type="testid">error-banner</locator>
+        <locator name="errorWidget" type="testid">error-widget-*</locator>
+        <locator name="openChatButton" type="testid">dashboard-open-chat</locator>
+        <locator name="progressBar" type="testid">progress-bar</locator>
+        <locator name="taskStatus" type="testid">task-status</locator>
+        <locator name="refreshButton" type="testid">refresh-button</locator>
+      </locators>
+      <methods>
+        <method name="goto(options?)">Navigate to dashboard and wait for ready</method>
+        <method name="waitForReady()">Wait for dashboard to be in ready state</method>
+        <method name="waitForWidgetsLoad(timeout?)">Wait for widgets to load</method>
+        <method name="getWidgetCount()">Get number of widgets displayed</method>
+        <method name="getWidget(testId)">Get specific widget by test ID</method>
+        <method name="getWidgetsByType(type)">Get all widgets of a type</method>
+        <method name="hasWidgetType(type)">Check if widget type exists</method>
+        <method name="hasNoWidgets()">Check if placeholder is visible</method>
+        <method name="getQuickAction(action)">Get quick action button</method>
+        <method name="clickQuickAction(action)">Click quick action</method>
+        <method name="openAssistant()">Open AI Assistant panel</method>
+        <method name="getProgressValue()">Get progress bar value (0-100)</method>
+        <method name="waitForTaskCompletion(timeout?)">Wait for task to complete</method>
+        <method name="waitForProgress(targetValue, timeout?)">Wait for progress value</method>
+        <method name="refresh()">Refresh the dashboard</method>
+        <method name="hasError()">Check if error banner displayed</method>
+        <method name="getErrorMessage()">Get error message text</method>
+        <method name="hasErrorWidgets()">Check if error widgets exist</method>
+        <method name="expectStructure()">Verify dashboard structure</method>
+        <method name="expectAccessible()">Verify accessibility attributes</method>
+      </methods>
+      <types>
+        <type name="QuickAction">'project-status' | 'at-risk' | 'team-activity' | 'workspace-overview'</type>
+        <type name="WidgetType">'project-status' | 'task-list' | 'metrics' | 'alert' | 'team-activity' | 'timeline' | 'chart' | 'text' | 'error'</type>
+      </types>
+    </page-object>
+
+    <page-object name="ApprovalPage" path="apps/web/tests/support/pages/approval.page.ts">
+      <description>Approval queue page object with filters, cards, bulk operations</description>
+      <locators>
+        <locator name="pageHeader" type="testid">approvals-header</locator>
+        <locator name="approvalList" type="testid">approval-list</locator>
+        <locator name="emptyState" type="testid">no-approvals</locator>
+        <locator name="approvalStats" type="testid">approval-stats</locator>
+        <locator name="statusFilter" type="testid">status-filter</locator>
+        <locator name="moduleFilter" type="testid">module-filter</locator>
+        <locator name="sortDropdown" type="testid">sort-dropdown</locator>
+        <locator name="searchInput" type="testid">approval-search</locator>
+        <locator name="bulkModeToggle" type="testid">bulk-mode-toggle</locator>
+        <locator name="bulkApproveButton" type="testid">bulk-approve-button</locator>
+        <locator name="bulkRejectButton" type="testid">bulk-reject-button</locator>
+        <locator name="approvalDetails" type="testid">approval-details</locator>
+        <locator name="aiReasoning" type="testid">ai-reasoning</locator>
+        <locator name="approveButton" type="testid">approve-button</locator>
+        <locator name="rejectButton" type="testid">reject-button</locator>
+        <locator name="confirmApprove" type="testid">confirm-approve</locator>
+        <locator name="confirmReject" type="testid">confirm-reject</locator>
+        <locator name="approvalNotes" type="testid">approval-notes</locator>
+        <locator name="rejectionReason" type="testid">rejection-reason</locator>
+      </locators>
+      <methods>
+        <method name="goto(options?)">Navigate to approval queue</method>
+        <method name="gotoWithStatus(status)">Navigate with status filter</method>
+        <method name="waitForReady()">Wait for queue to be ready</method>
+        <method name="getApprovalCard(id)">Get approval card by ID</method>
+        <method name="getAllApprovalCards()">Get all approval cards</method>
+        <method name="getApprovalCount()">Get count of approval cards</method>
+        <method name="clickApprovalCard(id?)">Click approval card</method>
+        <method name="isEmpty()">Check if queue is empty</method>
+        <method name="waitForNewApproval(timeout?)">Wait for new approval</method>
+        <method name="filterByStatus(status)">Filter by status</method>
+        <method name="filterByModule(module)">Filter by module</method>
+        <method name="sortBy(option)">Sort by option</method>
+        <method name="search(query)">Search for approvals</method>
+        <method name="approveItem(id?, notes?)">Approve with optional notes</method>
+        <method name="rejectItem(id, reason)">Reject with required reason</method>
+        <method name="enableBulkMode()">Enable bulk selection mode</method>
+        <method name="getApprovalCheckbox(id)">Get checkbox for card</method>
+        <method name="selectApprovals(ids)">Select multiple by ID</method>
+        <method name="selectApprovalsByIndex(indices)">Select by index</method>
+        <method name="getSelectedCount()">Get selected count</method>
+        <method name="bulkApprove()">Bulk approve selected</method>
+        <method name="bulkReject(reason)">Bulk reject with reason</method>
+        <method name="getConfidenceIndicator(id)">Get confidence indicator</method>
+        <method name="getConfidenceScore(id)">Get confidence score</method>
+        <method name="getConfidenceLevel(id)">Get confidence level</method>
+        <method name="getConfidenceScoreValue(id)">Get numeric confidence</method>
+        <method name="hasAutoApprovedBadge(id)">Check auto-approved badge</method>
+        <method name="expectConfidenceColorCoded(id)">Verify confidence color</method>
+        <method name="hasAiReasoning()">Check AI reasoning visible</method>
+        <method name="getAiReasoningText()">Get AI reasoning text</method>
+      </methods>
+      <types>
+        <type name="ApprovalStatus">'pending' | 'approved' | 'rejected' | 'all'</type>
+        <type name="ModuleFilter">'crm' | 'pm' | 'kb' | 'branding' | 'all'</type>
+        <type name="SortOption">'urgency' | 'confidence' | 'created' | 'updated'</type>
+        <type name="ConfidenceLevel">'high' | 'medium' | 'low'</type>
+      </types>
+    </page-object>
+
+    <page-object name="BasePage" path="apps/web/tests/support/pages/base.page.ts">
+      <description>Base page object with common navigation and wait methods</description>
+      <locators>
+        <locator name="header" type="element">Main header</locator>
+        <locator name="sidebar" type="element">Sidebar navigation</locator>
+        <locator name="userMenu" type="testid">user-menu</locator>
+        <locator name="mainContent" type="element">Main content area</locator>
+        <locator name="globalLoader" type="testid">global-loader</locator>
+        <locator name="toastContainer" type="element">Toast notifications</locator>
+      </locators>
+      <methods>
+        <method name="goto(options?)">Navigate to page path</method>
+        <method name="navigateTo(path, options?)">Navigate to specific path</method>
+        <method name="reload(options?)">Reload current page</method>
+        <method name="waitForReady()">Wait for page ready state</method>
+        <method name="waitForVisible(locator, timeout?)">Wait for element visible</method>
+        <method name="waitForHidden(locator, timeout?)">Wait for element hidden</method>
+        <method name="waitForText(text, timeout?)">Wait for text on page</method>
+        <method name="waitForUrl(urlPattern, timeout?)">Wait for URL match</method>
+        <method name="expectAtPath()">Assert at expected path</method>
+        <method name="waitForToast(text, timeout?)">Wait for toast notification</method>
+        <method name="dismissToasts()">Dismiss all toasts</method>
+        <method name="pressKey(key)">Press keyboard shortcut</method>
+        <method name="tabToNext()">Tab to next element</method>
+        <method name="pressEnter()">Press Enter</method>
+        <method name="pressEscape()">Press Escape</method>
+      </methods>
+    </page-object>
+  </page-objects>
+
+  <fixtures>
+    <fixture name="test" path="apps/web/tests/support/fixtures/index.ts">
+      <description>Merged test fixture with all capabilities</description>
+      <provides>
+        <fixture-item name="auth">Authentication fixture with loginAsTestUser(), logout()</fixture-item>
+        <fixture-item name="dashboardPage">DashboardPage instance</fixture-item>
+        <fixture-item name="approvalPage">ApprovalPage instance</fixture-item>
+        <fixture-item name="gotoDashboard()">Navigate to dashboard</fixture-item>
+        <fixture-item name="gotoApprovals()">Navigate to approvals</fixture-item>
+        <fixture-item name="userFactory">UserFactory for creating test users</fixture-item>
+        <fixture-item name="workspaceFactory">WorkspaceFactory for workspaces</fixture-item>
+        <fixture-item name="businessFactory">BusinessFactory for businesses</fixture-item>
+        <fixture-item name="projectFactory">ProjectFactory for PM projects</fixture-item>
+        <fixture-item name="suggestionFactory">SuggestionFactory for agent suggestions</fixture-item>
+      </provides>
+    </fixture>
+
+    <fixture name="mockDashboardWidgets" path="apps/web/tests/support/fixtures/api-mock.fixture.ts">
+      <description>Mock dashboard widgets endpoint</description>
+      <signature>mockDashboardWidgets(page, widgets[], options?: { delay?: number })</signature>
+      <returns>Cleanup function () =&gt; Promise&lt;void&gt;</returns>
+      <usage>
+        await mockDashboardWidgets(page, [
+          { id: 'task-1', type: 'task_card', data: { title: 'Task 1', status: 'pending' } },
+          { id: 'metrics-1', type: 'metrics', data: { value: 42, label: 'Active Users' } },
+        ]);
+      </usage>
+    </fixture>
+
+    <fixture name="mockApprovals" path="apps/web/tests/support/fixtures/api-mock.fixture.ts">
+      <description>Mock approvals endpoint</description>
+      <signature>mockApprovals(page, approvals[], options?: { delay?: number; total?: number })</signature>
+      <returns>Cleanup function () =&gt; Promise&lt;void&gt;</returns>
+      <usage>
+        await mockApprovals(page, [
+          { id: 'approval-1', type: 'content_publish', title: 'Blog Post', status: 'pending', confidence: 0.75 },
+        ]);
+      </usage>
+    </fixture>
+
+    <fixture name="mockError" path="apps/web/tests/support/fixtures/api-mock.fixture.ts">
+      <description>Mock error response</description>
+      <signature>mockError(page, urlPattern, statusCode?, message?)</signature>
+      <returns>Cleanup function</returns>
+    </fixture>
+
+    <fixture name="mockNetworkFailure" path="apps/web/tests/support/fixtures/api-mock.fixture.ts">
+      <description>Simulate network failure</description>
+      <signature>mockNetworkFailure(page, urlPattern)</signature>
+      <returns>Cleanup function</returns>
+    </fixture>
+
+    <fixture name="mockSlowNetwork" path="apps/web/tests/support/fixtures/api-mock.fixture.ts">
+      <description>Simulate slow network</description>
+      <signature>mockSlowNetwork(page, urlPattern, delayMs?)</signature>
+      <returns>Cleanup function</returns>
+    </fixture>
+  </fixtures>
+
+  <api-endpoints>
+    <endpoint pattern="**/api/dashboard/widgets**" method="GET">
+      <description>Dashboard widgets data</description>
+      <response>{ widgets: Widget[] }</response>
+    </endpoint>
+    <endpoint pattern="**/api/dashboard/alerts" method="GET">
+      <description>Dashboard alerts (MAX_ALERTS=50)</description>
+      <response>{ alerts: Alert[] }</response>
+    </endpoint>
+    <endpoint pattern="**/api/approvals**" method="GET">
+      <description>Approval queue list</description>
+      <response>{ approvals: Approval[], total: number }</response>
+    </endpoint>
+    <endpoint pattern="**/api/approvals/:id/approve" method="POST">
+      <description>Approve an item</description>
+      <request>{ notes?: string }</request>
+    </endpoint>
+    <endpoint pattern="**/api/approvals/:id/reject" method="POST">
+      <description>Reject an item</description>
+      <request>{ reason: string }</request>
+    </endpoint>
+    <endpoint pattern="**/health**" method="GET">
+      <description>Agent health check</description>
+    </endpoint>
+  </api-endpoints>
+
+  <test-patterns>
+    <pattern name="Authentication Setup">
+      <description>Login before each test using auth fixture</description>
+      <example>
+        test.beforeEach(async ({ auth }) => {
+          await auth.loginAsTestUser();
+        });
+      </example>
+    </pattern>
+
+    <pattern name="Network Mocking">
+      <description>Mock API responses for deterministic tests</description>
+      <example>
+        await mockDashboardWidgets(page, [
+          { id: 'widget-1', type: 'metrics', data: { value: 42 } },
+        ]);
+      </example>
+    </pattern>
+
+    <pattern name="Explicit Waits">
+      <description>Use waitFor(), expect.poll() instead of arbitrary timeouts</description>
+      <example>
+        await expect.poll(
+          async () => await dashboardPage.getWidgetCount(),
+          { timeout: 5000 }
+        ).toBe(3);
+      </example>
+    </pattern>
+
+    <pattern name="Data-TestId Selectors">
+      <description>Prefer data-testid for reliable selectors</description>
+      <example>
+        const card = page.locator('[data-testid="approval-card-approval-1"]');
+        await expect(card).toHaveAttribute('data-status', 'approved');
+      </example>
+    </pattern>
+
+    <pattern name="SSE/WebSocket Simulation">
+      <description>Use page.evaluate() for custom events</description>
+      <example>
+        await page.evaluate(() => {
+          window.dispatchEvent(
+            new CustomEvent('dashboard:progress', { detail: { progress: 50 } })
+          );
+        });
+      </example>
+    </pattern>
+
+    <pattern name="Error Handling">
+      <description>Graceful fallback for missing elements</description>
+      <example>
+        const isVisible = await element.isVisible().catch(() => false);
+        if (!isVisible) {
+          test.skip(true, 'Element not available');
+          return;
+        }
+      </example>
+    </pattern>
+  </test-patterns>
+
+  <dm08-validation-requirements>
+    <requirement id="DM-08.1">
+      <description>Widget data must pass Zod validation</description>
+      <schema-location>apps/web/src/lib/schemas/widget-schemas.ts</schema-location>
+      <test-approach>Mock invalid widget data, verify error widget renders instead of crash</test-approach>
+    </requirement>
+
+    <requirement id="DM-08.6">
+      <description>MAX bounds must be respected in UI state</description>
+      <constants>
+        <constant name="MAX_ALERTS">50</constant>
+        <constant name="MAX_WIDGETS">Variable per dashboard</constant>
+      </constants>
+      <test-approach>Send 100 alerts, verify only 50 render</test-approach>
+    </requirement>
+
+    <requirement id="pre-computed-alerts">
+      <description>Pre-computed activeAlerts should update correctly in store</description>
+      <test-approach>Verify store selector returns filtered alerts</test-approach>
+    </requirement>
+  </dm08-validation-requirements>
+
+  <acceptance-criteria>
+    <criterion id="AC1">Progress streaming E2E test passes</criterion>
+    <criterion id="AC2">Approval queue E2E test passes</criterion>
+    <criterion id="AC3">Widget lifecycle E2E test passes</criterion>
+    <criterion id="AC4">Tests run in &lt;2 minutes total</criterion>
+    <criterion id="AC5">Tests stable (no flakes in 10 consecutive runs)</criterion>
+  </acceptance-criteria>
+
+  <test-stability-guidelines>
+    <guideline priority="1">Use explicit waits (waitFor, expect.poll) not arbitrary sleep()</guideline>
+    <guideline priority="2">Mock all network requests for deterministic behavior</guideline>
+    <guideline priority="3">Each test should have isolated test data - no shared state</guideline>
+    <guideline priority="4">Use data-testid selectors consistently, avoid CSS classes</guideline>
+    <guideline priority="5">CI retries configured (2 retries for flake tolerance)</guideline>
+    <guideline priority="6">Trace/screenshot on failure for debugging</guideline>
+    <guideline priority="7">Use parallel tests where possible for speed</guideline>
+    <guideline priority="8">Set reasonable timeout values (5-10 seconds for most assertions)</guideline>
+  </test-stability-guidelines>
+
+  <existing-tests-reference>
+    <test-file path="apps/web/tests/e2e/approvals.spec.ts">
+      <description>Existing approval system tests - patterns for approval queue testing</description>
+      <key-patterns>
+        - beforeEach login with auth.loginAsTestUser()
+        - Check element visibility with .catch(() => false)
+        - Use .isVisible() for conditional tests
+        - Filter testing with URL assertions
+        - Confidence indicator color checking
+      </key-patterns>
+    </test-file>
+    <test-file path="apps/web/tests/e2e/dashboard.spec.ts">
+      <description>Existing dashboard tests - patterns for dashboard testing</description>
+      <key-patterns>
+        - waitForLoadState('networkidle')
+        - getByRole and getByTestId selectors
+        - Offline state testing with page.context().setOffline()
+        - Agent health endpoint testing with request.get()
+        - Skip tests when services unavailable
+      </key-patterns>
+    </test-file>
+  </existing-tests-reference>
+
+  <performance-targets>
+    <target metric="total-test-duration">Less than 2 minutes for all DM-09.4 tests</target>
+    <target metric="individual-test">Most tests should complete in 10-30 seconds</target>
+    <target metric="stability">10 consecutive CI runs without flakes</target>
+  </performance-targets>
+
+  <implementation-order>
+    <step number="1">Create progress-streaming.spec.ts with SSE simulation</step>
+    <step number="2">Create approval-queue.spec.ts with approval actions</step>
+    <step number="3">Create dashboard-widgets.spec.ts with Zod validation</step>
+    <step number="4">Run tests locally to verify stability</step>
+    <step number="5">Run 10 consecutive times to check for flakes</step>
+    <step number="6">Measure total execution time</step>
+  </implementation-order>
+</story-context>
