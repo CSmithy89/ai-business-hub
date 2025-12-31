@@ -44,7 +44,8 @@ import {
   StateAlertsWidget,
 } from './widgets/StateWidget';
 import { getWidgetComponent, getRegisteredWidgetTypes } from './widget-registry';
-import type { RenderWidgetArgs } from './types';
+import { validateAndLogWidgetData } from '@/lib/utils/validate-widget';
+import type { RenderWidgetArgs, WidgetData } from './types';
 
 // =============================================================================
 // TYPES
@@ -170,12 +171,29 @@ export function DashboardSlots({ mode = 'hybrid' }: DashboardSlotsProps) {
         );
       }
 
+      // Validate widget data before rendering (DM-08.1)
+      const validationResult = validateAndLogWidgetData(widgetType, data);
+      if (!validationResult.success) {
+        const errorMessages = validationResult.error.issues
+          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+          .join('; ');
+        return (
+          <div className="animate-in fade-in-50 duration-300">
+            <ErrorWidget
+              message={`Invalid widget data: ${errorMessages}`}
+              widgetType={widgetType}
+            />
+          </div>
+        );
+      }
+
       // Render the widget with error boundary protection
-      // Pass data prop directly - widgets handle their own prop types
+      // Pass validated data - type is now confirmed correct
+      // Cast to WidgetData since validation ensures correct structure
       return (
         <div className="widget-from-tool animate-in fade-in-50 duration-300">
           <WidgetErrorBoundary widgetType={widgetType}>
-            <WidgetComponent data={data} />
+            <WidgetComponent data={validationResult.data as WidgetData} />
           </WidgetErrorBoundary>
         </div>
       );
