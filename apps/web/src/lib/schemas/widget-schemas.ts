@@ -112,19 +112,21 @@ export const TeamActivityDataSchema = BaseWidgetDataSchema.extend({
 
 /**
  * KanbanBoard widget data schema.
- * Displays tasks in kanban columns.
+ * Displays cards in kanban columns.
+ *
+ * @see packages/shared/src/types/widget.ts - KanbanBoardData interface
  */
 export const KanbanBoardDataSchema = BaseWidgetDataSchema.extend({
   columns: z.array(
     z.object({
       id: z.string(),
       title: z.string(),
-      tasks: z.array(
+      cards: z.array(
         z.object({
           id: z.string(),
           title: z.string(),
+          description: z.string().optional(),
           assignee: z.string().optional(),
-          priority: z.enum(['low', 'medium', 'high']).optional(),
         })
       ),
     })
@@ -134,16 +136,16 @@ export const KanbanBoardDataSchema = BaseWidgetDataSchema.extend({
 /**
  * GanttChart widget data schema.
  * Displays project timeline with task dependencies.
+ *
+ * @see packages/shared/src/types/widget.ts - GanttChartData interface
  */
 export const GanttChartDataSchema = BaseWidgetDataSchema.extend({
-  startDate: z.string(),
-  endDate: z.string(),
   tasks: z.array(
     z.object({
       id: z.string(),
       title: z.string(),
-      startDate: z.string(),
-      endDate: z.string(),
+      start: z.string(),
+      end: z.string(),
       progress: z.number().min(0).max(100).optional(),
       dependencies: z.array(z.string()).optional(),
     })
@@ -153,15 +155,18 @@ export const GanttChartDataSchema = BaseWidgetDataSchema.extend({
 /**
  * BurndownChart widget data schema.
  * Shows sprint burndown progress.
+ *
+ * @see packages/shared/src/types/widget.ts - BurndownChartData interface
  */
 export const BurndownChartDataSchema = BaseWidgetDataSchema.extend({
   sprintName: z.string().optional(),
-  totalPoints: z.number().nonnegative(),
-  dataPoints: z.array(
+  startDate: z.string(),
+  endDate: z.string(),
+  points: z.array(
     z.object({
       date: z.string(),
-      remainingPoints: z.number().nonnegative(),
-      idealPoints: z.number().nonnegative().optional(),
+      ideal: z.number().nonnegative(),
+      actual: z.number().nonnegative(),
     })
   ),
 });

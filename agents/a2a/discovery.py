@@ -16,11 +16,9 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request
 
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
 from agentos.config import INTERFACE_CONFIGS, get_agentos_settings
 from constants.dm_constants import DMConstants
+from middleware.rate_limit import get_limiter
 
 from .agent_card import (
     build_agent_card,
@@ -33,8 +31,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["a2a-discovery"])
 
 # Rate limiter for A2A discovery endpoints (DM-08.3)
-# This limiter is used for decoration; enforcement uses app.state.limiter via SlowAPIMiddleware
-_limiter = Limiter(key_func=get_remote_address)
+# Uses the shared limiter from middleware for consistent enforcement
+_limiter = get_limiter()
 _DISCOVERY_RATE_LIMIT = DMConstants.RATE_LIMITS.A2A_DISCOVERY
 
 
