@@ -110,8 +110,7 @@ sys.modules["agno.models.openai"] = agno_models_mock.openai
 sys.modules["agno.models.anthropic"] = agno_models_mock.anthropic
 sys.modules["agno.models.base"] = agno_models_mock.base
 
-# Enable anyio for async tests
-pytest_plugins = ["anyio"]
+# Note: anyio is auto-discovered via pytest-anyio plugin
 
 
 def pytest_configure(config):
