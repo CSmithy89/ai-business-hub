@@ -82,6 +82,18 @@ export const DM_CONSTANTS = {
     /** Widget overlay (e.g., expanded view) */
     WIDGET_OVERLAY: 55,
   },
+
+  // Dashboard State Boundaries (DM-08.6)
+  DASHBOARD: {
+    /** Maximum alerts to keep in state */
+    MAX_ALERTS: 50,
+    /** Maximum activities to keep in state */
+    MAX_ACTIVITIES: 100,
+    /** Maximum metrics to keep in state */
+    MAX_METRICS: 50,
+    /** Maximum active tasks to track */
+    MAX_ACTIVE_TASKS: 20,
+  },
 } as const;
 
 export type DMConstantsType = typeof DM_CONSTANTS;

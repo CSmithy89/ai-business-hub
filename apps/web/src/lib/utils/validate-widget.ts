@@ -4,7 +4,19 @@
  * Validates widget data payloads using Zod schemas before rendering.
  * Provides type-safe validation with detailed error information.
  *
+ * @module validate-widget
  * @see docs/modules/bm-dm/stories/dm-08-1-zod-widget-validation.md
+ *
+ * @example
+ * ```typescript
+ * // Basic validation
+ * const result = validateWidgetData<ProjectStatusData>('ProjectStatus', data);
+ *
+ * // With error tracking
+ * const result = validateAndLogWidgetData('ProjectStatus', data, {
+ *   onError: (details) => errorTracker.capture(details),
+ * });
+ * ```
  */
 
 import { z } from 'zod';
@@ -16,22 +28,43 @@ import { WIDGET_SCHEMAS } from '@/lib/schemas/widget-schemas';
 
 /**
  * Result of widget data validation.
+ *
+ * @template T - The expected type of validated data
  */
 export type WidgetValidationResult<T = unknown> =
   | { success: true; data: T }
   | { success: false; error: z.ZodError };
 
 /**
- * Validation error details for logging.
+ * Validation error details for logging and error tracking.
  */
 export interface ValidationErrorDetails {
+  /** The widget type that failed validation */
   widgetType: string;
+  /** Detailed validation issues from Zod */
   issues: Array<{
+    /** Dot-notation path to the invalid field */
     path: string;
+    /** Human-readable error message */
     message: string;
+    /** Zod error code (e.g., 'invalid_type') */
     code: string;
   }>;
+  /** The original data that failed validation (may be sanitized) */
   receivedData: unknown;
+}
+
+/**
+ * Options for validation with error tracking.
+ */
+export interface ValidationOptions {
+  /**
+   * Callback invoked when validation fails.
+   * Use this to integrate with error tracking services (Sentry, etc.).
+   *
+   * @param details - Structured error details for tracking
+   */
+  onError?: (details: ValidationErrorDetails) => void;
 }
 
 // =============================================================================
@@ -143,16 +176,39 @@ export function logValidationFailure(
  *
  * @param type - The widget type
  * @param data - The data payload to validate
+ * @param options - Optional configuration for error tracking
  * @returns Validation result
+ *
+ * @example
+ * ```typescript
+ * // Basic usage
+ * const result = validateAndLogWidgetData('ProjectStatus', data);
+ *
+ * // With error tracking
+ * const result = validateAndLogWidgetData('ProjectStatus', data, {
+ *   onError: (details) => {
+ *     Sentry.captureMessage('Widget validation failed', {
+ *       extra: details,
+ *     });
+ *   },
+ * });
+ * ```
  */
 export function validateAndLogWidgetData<T = unknown>(
   type: string,
-  data: unknown
+  data: unknown,
+  options?: ValidationOptions
 ): WidgetValidationResult<T> {
   const result = validateWidgetData<T>(type, data);
 
   if (!result.success) {
     logValidationFailure(type, result.error, data);
+
+    // Call optional error tracking callback
+    if (options?.onError) {
+      const details = formatValidationError(type, result.error, data);
+      options.onError(details);
+    }
   }
 
   return result;

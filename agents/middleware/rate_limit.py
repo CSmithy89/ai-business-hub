@@ -29,13 +29,27 @@ def _hash_key(raw: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _rate_limit_key(req: Request) -> str:
+def _rate_limit_key(req: Request | None = None) -> str:
     """
-    Derive a key for rate limiting:
+    Derive a key for rate limiting.
+
+    SlowAPI calls this function with request to generate rate limit keys.
+    The optional None parameter supports certain SlowAPI call patterns.
+
+    Key derivation priority:
     - Prefer workspace_id + user_id (set by TenantMiddleware)
     - Fallback to user_id only
     - Fallback to remote address
+
+    Args:
+        req: The FastAPI Request object (optional for SlowAPI compatibility)
+
+    Returns:
+        A hashed key string for rate limiting
     """
+    if req is None:
+        return "ip:unknown"
+
     workspace_id = getattr(req.state, "workspace_id", None)
     user_id = getattr(req.state, "user_id", None)
 

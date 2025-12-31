@@ -31,22 +31,14 @@ import {
   createInitialDashboardState,
   validateDashboardState,
 } from '@/lib/schemas/dashboard-state';
+import { DM_CONSTANTS } from '@/lib/dm-constants';
 
 // =============================================================================
-// CONSTANTS (DM-08.6: Added bounds for all collections)
+// CONSTANTS (DM-08.6: Imported from centralized dm-constants)
 // =============================================================================
 
-/** Maximum number of alerts to keep in state */
-const MAX_ALERTS = 50;
-
-/** Maximum number of activity entries to keep in state */
-const MAX_ACTIVITIES = 100;
-
-/** Maximum number of metrics to keep in state */
-const MAX_METRICS = 50;
-
-/** Maximum number of active tasks to track */
-const MAX_ACTIVE_TASKS = 20;
+const { MAX_ALERTS, MAX_ACTIVITIES, MAX_METRICS, MAX_ACTIVE_TASKS } =
+  DM_CONSTANTS.DASHBOARD;
 
 // =============================================================================
 // STORE INTERFACE
@@ -373,7 +365,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 );
 
 // =============================================================================
-// EXPORTS (DM-08.6: Export all MAX constants)
+// EXPORTS (DM-08.6: Re-export MAX constants from centralized dm-constants)
 // =============================================================================
 
 export { MAX_ALERTS, MAX_ACTIVITIES, MAX_METRICS, MAX_ACTIVE_TASKS };

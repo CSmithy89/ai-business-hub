@@ -142,16 +142,24 @@ export function getDashboardQueryKeyWithParams<T extends Record<string, unknown>
 
 /**
  * Supported dashboard data types for cache key generation.
+ * Defined as const array for type safety and runtime iteration.
  */
-export type DashboardDataType =
-  | 'project-status'
-  | 'metrics'
-  | 'activities'
-  | 'alerts'
-  | 'tasks'
-  | 'team'
-  | 'overview'
-  | 'summary';
+export const DASHBOARD_DATA_TYPES = [
+  'project-status',
+  'metrics',
+  'activities',
+  'alerts',
+  'tasks',
+  'team',
+  'overview',
+  'summary',
+] as const;
+
+/**
+ * Type derived from DASHBOARD_DATA_TYPES const array.
+ * Ensures cache keys are constrained to valid data types.
+ */
+export type DashboardDataType = (typeof DASHBOARD_DATA_TYPES)[number];
 
 // =============================================================================
 // CACHE INVALIDATION HELPERS
