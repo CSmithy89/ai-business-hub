@@ -214,7 +214,7 @@ development_status:
   dm-09-6-load-testing-infrastructure: done
   dm-09-7-ccr-operational-tests: done
   dm-09-8-localstorage-quota-tests: done
-  dm-09-retrospective: backlog
+  dm-09-retrospective: done
 
   # ===========================================
   # DM-10: Documentation & Developer Experience
