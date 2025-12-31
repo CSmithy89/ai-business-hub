@@ -8,7 +8,7 @@ Implement deferred features, advanced optimizations, and remaining improvements 
 
 **Tech Debt Document:** `docs/modules/bm-dm/tech-debt-consolidated.md`
 **Priority:** Sprint 3+ - Advanced & Deferred
-**Items Addressed:** TD-04, TD-08, TD-15, TD-16, TD-18, TD-19, TD-20, REC-07, REC-10, REC-11, REC-12, REC-15, REC-17, REC-18, REC-19, REC-20, REC-27
+**Items Addressed:** TD-04, TD-08, TD-15, TD-16, TD-18, TD-19, TD-20, REC-07, REC-10, REC-11, REC-12, REC-15, REC-17, REC-18, REC-19, REC-20, REC-27, DM-09 Code Review Items (metrics auth, token estimation, visual workflow)
 
 ## Scope
 
@@ -643,7 +643,158 @@ docs/
 
 ---
 
-## Total Points: 57
+### Story DM-11.13: Metrics Endpoint Authentication Option
+
+**Problem:** The `/metrics` endpoint is unauthenticated, relying on network ACLs for security.
+
+**Gap Addressed:** DM-09 Code Review - Metrics endpoint security
+
+**Implementation:**
+- Add `METRICS_REQUIRE_AUTH` environment variable
+- When enabled, require API key or bearer token
+- Document deployment options (auth vs network ACLs)
+- Add to deployment guide
+
+**Configuration:**
+```python
+# agents/observability/config.py
+class OtelSettings(BaseSettings):
+    metrics_require_auth: bool = False  # Default: rely on network ACLs
+    metrics_api_key: Optional[str] = None  # Required if metrics_require_auth=True
+```
+
+**Files to Modify:**
+```
+agents/
+├── observability/config.py (add settings)
+├── api/routes/metrics.py (add auth check)
+└── api/middleware/metrics_auth.py (new)
+
+docs/
+└── guides/metrics-security.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: METRICS_REQUIRE_AUTH env var works
+- [ ] AC2: Auth enforced when enabled
+- [ ] AC3: Network ACL approach documented
+- [ ] AC4: Deployment guide updated
+- [ ] AC5: Both approaches tested
+
+**Points:** 3
+
+---
+
+### Story DM-11.14: Accurate Token Estimation
+
+**Problem:** Token count uses char/4 estimate, which can be inaccurate for non-ASCII text.
+
+**Gap Addressed:** DM-09 Code Review - Token estimation accuracy
+
+**Current State:**
+```python
+# Estimate - can be off by 20-50%
+token_count = len(text) // 4
+```
+
+**Implementation:**
+- Add tiktoken library for accurate Claude/OpenAI token counting
+- Fall back to estimate if tiktoken unavailable
+- Document estimation limitations
+- Add token count to usage metrics
+
+**Accurate Counting:**
+```python
+import tiktoken
+
+def count_tokens(text: str, model: str = "cl100k_base") -> int:
+    try:
+        encoder = tiktoken.get_encoding(model)
+        return len(encoder.encode(text))
+    except Exception:
+        # Fallback to estimate
+        return len(text) // 4
+```
+
+**Files to Modify:**
+```
+agents/
+├── requirements.txt (add tiktoken)
+├── services/token_counter.py (new)
+└── main.py (use accurate counting)
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: tiktoken integrated
+- [ ] AC2: Graceful fallback to estimate
+- [ ] AC3: Token counts in usage metrics
+- [ ] AC4: Estimation documented as approximate
+- [ ] AC5: Tests for accuracy
+
+**Points:** 2
+
+---
+
+### Story DM-11.15: Visual Workflow Health Check
+
+**Problem:** Visual regression workflow starts server without health check validation.
+
+**Gap Addressed:** DM-09 Code Review - Visual workflow error handling
+
+**Current State:**
+```yaml
+# Server starts but no health check
+- run: pnpm dev &
+- run: sleep 10  # Hope it's ready
+- run: pnpm test:visual
+```
+
+**Implementation:**
+- Add health check endpoint poll before tests
+- Fail fast if server doesn't start
+- Add timeout and retry logic
+- Improve error messages
+
+**Improved Workflow:**
+```yaml
+- name: Start server
+  run: pnpm dev &
+
+- name: Wait for server
+  run: |
+    for i in {1..30}; do
+      if curl -s http://localhost:3000/api/health > /dev/null; then
+        echo "Server ready"
+        exit 0
+      fi
+      echo "Waiting for server... ($i/30)"
+      sleep 2
+    done
+    echo "Server failed to start"
+    exit 1
+
+- name: Run visual tests
+  run: pnpm test:visual
+```
+
+**Files to Modify:**
+```
+.github/workflows/
+└── visual.yml (add health check)
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: Health check validates server startup
+- [ ] AC2: Fail fast on startup failure
+- [ ] AC3: Clear error messages
+- [ ] AC4: Timeout configurable
+- [ ] AC5: Works in CI environment
+
+**Points:** 2
+
+---
+
+## Total Points: 64
 
 ## Dependencies
 
