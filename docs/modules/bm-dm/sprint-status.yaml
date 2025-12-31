@@ -240,7 +240,7 @@ development_status:
   # Tech Spec: docs/modules/bm-dm/epics/epic-dm-11-tech-spec.md
   # ===========================================
   dm-11: contexted
-  dm-11-1-redis-state-persistence: drafted
+  dm-11-1-redis-state-persistence: ready-for-dev
   dm-11-2-websocket-state-sync: backlog
   dm-11-3-approval-cancellation-api: backlog
   dm-11-4-parallel-mcp-connections: backlog
