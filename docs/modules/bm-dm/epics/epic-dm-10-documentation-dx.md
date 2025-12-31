@@ -485,6 +485,8 @@ rules:
 
 The following items from the DM-08 retrospective should be incorporated:
 
+### From "What Went Well" Patterns
+
 1. **Document widget type sync pattern** - When implementing DM-10.2 (CopilotKit Patterns Guide) or creating a dedicated guide, document:
    - `packages/shared/widget-types.json` as single source of truth
    - TypeScript exports from `packages/shared/src/types/widget.ts`
@@ -493,7 +495,7 @@ The following items from the DM-08 retrospective should be incorporated:
 
 2. **Add caching configuration guide** - Create a guide covering:
    - `agents/services/cache.py` - Cache service architecture
-   - TTL configuration (currently hardcoded, recommend environment variables)
+   - TTL configuration (currently hardcoded, recommend environment variables - see DM-11)
    - Staleness tracking and cache invalidation strategies
    - Integration with React Query on frontend
 
@@ -502,6 +504,14 @@ The following items from the DM-08 retrospective should be incorporated:
    - MAX bounds for collections (50 alerts, 100 activities, 50 metrics, 20 tasks)
    - `useShallow` for array/object selectors
    - Before/after examples showing re-render prevention
+
+### From "What Could Be Improved"
+
+4. **Document cross-language type validation approach** - When documenting the widget type sync pattern:
+   - Explain the current JSON intermediate format approach
+   - Note the limitation: lacks compile-time validation
+   - Reference DM-11 for potential code generation implementation
+   - Provide troubleshooting guide for type mismatch errors between TS and Python
 
 ## Technical Notes
 
