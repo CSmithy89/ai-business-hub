@@ -94,6 +94,24 @@ export const DM_CONSTANTS = {
     /** Maximum active tasks to track */
     MAX_ACTIVE_TASKS: 20,
   },
+
+  // State Sync Configuration (DM-11.1)
+  STATE_SYNC: {
+    /** Debounce delay before syncing to server (ms) */
+    SYNC_DEBOUNCE_MS: 2000,
+    /** Whether to restore state from server on authentication */
+    RESTORE_ON_AUTH: true,
+    /** State paths that trigger a sync when changed */
+    SIGNIFICANT_CHANGE_PATHS: [
+      'widgets',
+      'activeProject',
+      'activeTasks',
+    ] as const,
+    /** Maximum retry attempts for sync operations */
+    MAX_SYNC_RETRIES: 3,
+    /** Delay between retry attempts (ms) */
+    RETRY_DELAY_MS: 1000,
+  },
 } as const;
 
 export type DMConstantsType = typeof DM_CONSTANTS;

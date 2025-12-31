@@ -239,8 +239,8 @@ development_status:
   # Source: tech-debt-consolidated.md Deferred + DM-09 Code Review
   # Tech Spec: docs/modules/bm-dm/epics/epic-dm-11-tech-spec.md
   # ===========================================
-  dm-11: contexted
-  dm-11-1-redis-state-persistence: ready-for-dev
+  dm-11: in-progress
+  dm-11-1-redis-state-persistence: done
   dm-11-2-websocket-state-sync: backlog
   dm-11-3-approval-cancellation-api: backlog
   dm-11-4-parallel-mcp-connections: backlog

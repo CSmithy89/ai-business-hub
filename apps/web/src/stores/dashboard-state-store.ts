@@ -32,6 +32,10 @@ import {
   validateDashboardState,
 } from '@/lib/schemas/dashboard-state';
 import { DM_CONSTANTS } from '@/lib/dm-constants';
+import {
+  saveDashboardState,
+  getDashboardState,
+} from '@/lib/api/dashboard-state';
 
 // =============================================================================
 // CONSTANTS (DM-08.6: Imported from centralized dm-constants)
@@ -143,6 +147,22 @@ export interface DashboardStateStore extends DashboardState {
   // Reset
   /** Reset store to initial state */
   reset: () => void;
+
+  // Sync state (DM-11.1)
+  /** Whether sync is in progress */
+  isSyncing: boolean;
+  /** Timestamp of last successful sync */
+  lastSyncedAt: number | null;
+  /** Error from last sync attempt */
+  syncError: string | null;
+
+  // Sync actions (DM-11.1)
+  /** Sync current state to server */
+  syncToServer: () => Promise<void>;
+  /** Restore state from server (e.g., on login) */
+  restoreFromServer: () => Promise<boolean>;
+  /** Clear sync error */
+  clearSyncError: () => void;
 }
 
 // =============================================================================
@@ -157,11 +177,15 @@ export interface DashboardStateStore extends DashboardState {
  * when those slices change.
  */
 export const useDashboardStateStore = create<DashboardStateStore>()(
-  subscribeWithSelector((set) => ({
+  subscribeWithSelector((set, get) => ({
     // Initial state
     ...createInitialDashboardState(),
     // Pre-computed derived state (DM-08.6)
     activeAlerts: [],
+    // Sync state (DM-11.1)
+    isSyncing: false,
+    lastSyncedAt: null,
+    syncError: null,
 
     // =========================================================================
     // FULL STATE UPDATES
@@ -400,7 +424,132 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
     reset: () => {
       // DM-08.6: Also reset pre-computed activeAlerts
-      set({ ...createInitialDashboardState(), activeAlerts: [] });
+      // DM-11.1: Also reset sync state
+      set({
+        ...createInitialDashboardState(),
+        activeAlerts: [],
+        isSyncing: false,
+        lastSyncedAt: null,
+        syncError: null,
+      });
+    },
+
+    // =========================================================================
+    // SYNC ACTIONS (DM-11.1)
+    // =========================================================================
+
+    syncToServer: async () => {
+      const state = get();
+
+      // Don't sync if already syncing
+      if (state.isSyncing) {
+        return;
+      }
+
+      set({ isSyncing: true, syncError: null });
+
+      try {
+        // Extract the dashboard state (without store-specific fields)
+        const dashboardState: DashboardState = {
+          version: state.version,
+          timestamp: state.timestamp,
+          activeProject: state.activeProject,
+          workspaceId: state.workspaceId,
+          userId: state.userId,
+          widgets: state.widgets,
+          loading: state.loading,
+          errors: state.errors,
+          activeTasks: state.activeTasks,
+        };
+
+        const response = await saveDashboardState(dashboardState, state.version);
+
+        if (response?.success) {
+          set({ lastSyncedAt: Date.now(), isSyncing: false });
+        } else if (response?.conflictResolution === 'server') {
+          // Server has newer version - restore from server
+          console.warn('[DashboardStateStore] Conflict detected, restoring from server');
+          set({ isSyncing: false });
+          // Trigger restore from server
+          await get().restoreFromServer();
+        } else {
+          // Save failed
+          set({
+            isSyncing: false,
+            syncError: 'Failed to sync state to server',
+          });
+        }
+      } catch (error) {
+        console.error('[DashboardStateStore] Sync error:', error);
+        set({
+          isSyncing: false,
+          syncError: error instanceof Error ? error.message : 'Sync failed',
+        });
+      }
+    },
+
+    restoreFromServer: async (): Promise<boolean> => {
+      const state = get();
+
+      // Don't restore if already syncing
+      if (state.isSyncing) {
+        return false;
+      }
+
+      set({ isSyncing: true, syncError: null });
+
+      try {
+        const serverState = await getDashboardState();
+
+        if (!serverState) {
+          // No state on server - this is fine for new users
+          set({ isSyncing: false, lastSyncedAt: Date.now() });
+          return true;
+        }
+
+        // Apply server state with conflict resolution
+        const currentVersion = state.version;
+        const serverVersion = serverState.version;
+
+        if (serverVersion >= currentVersion) {
+          // Server is equal or newer - apply server state
+          const validated = validateDashboardState(serverState.state);
+          if (validated) {
+            const activeAlerts = validated.widgets.alerts.filter((a) => !a.dismissed);
+            set({
+              ...validated,
+              activeAlerts,
+              isSyncing: false,
+              lastSyncedAt: Date.now(),
+              syncError: null,
+            });
+            return true;
+          } else {
+            console.warn('[DashboardStateStore] Server state validation failed');
+            set({
+              isSyncing: false,
+              syncError: 'Invalid state received from server',
+            });
+            return false;
+          }
+        } else {
+          // Local is newer - push to server
+          set({ isSyncing: false });
+          await get().syncToServer();
+          return true;
+        }
+      } catch (error) {
+        console.error('[DashboardStateStore] Restore error:', error);
+        set({
+          isSyncing: false,
+          syncError: error instanceof Error ? error.message : 'Restore failed',
+        });
+        return false;
+      }
+    },
+
+    clearSyncError: () => {
+      set({ syncError: null });
     },
   }))
 );

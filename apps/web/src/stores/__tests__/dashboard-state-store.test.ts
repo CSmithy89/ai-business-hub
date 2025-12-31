@@ -511,4 +511,56 @@ describe('DashboardStateStore', () => {
       expect(setActiveProject1).toBe(setActiveProject2);
     });
   });
+
+  // ===========================================================================
+  // SYNC STATE TESTS (DM-11.1)
+  // ===========================================================================
+
+  describe('sync state', () => {
+    it('initializes with sync state defaults', () => {
+      const state = useDashboardStateStore.getState();
+
+      expect(state.isSyncing).toBe(false);
+      expect(state.lastSyncedAt).toBeNull();
+      expect(state.syncError).toBeNull();
+    });
+
+    it('reset clears sync state', () => {
+      act(() => {
+        // Set some sync state
+        useDashboardStateStore.setState({
+          isSyncing: true,
+          lastSyncedAt: Date.now(),
+          syncError: 'Some error',
+        });
+        useDashboardStateStore.getState().reset();
+      });
+
+      const state = useDashboardStateStore.getState();
+      expect(state.isSyncing).toBe(false);
+      expect(state.lastSyncedAt).toBeNull();
+      expect(state.syncError).toBeNull();
+    });
+
+    it('clearSyncError clears the sync error', () => {
+      act(() => {
+        useDashboardStateStore.setState({ syncError: 'Test error' });
+        useDashboardStateStore.getState().clearSyncError();
+      });
+
+      expect(useDashboardStateStore.getState().syncError).toBeNull();
+    });
+
+    it('syncToServer is callable', async () => {
+      // Just test that the function exists and can be called
+      const state = useDashboardStateStore.getState();
+      expect(typeof state.syncToServer).toBe('function');
+    });
+
+    it('restoreFromServer is callable', async () => {
+      // Just test that the function exists and can be called
+      const state = useDashboardStateStore.getState();
+      expect(typeof state.restoreFromServer).toBe('function');
+    });
+  });
 });
