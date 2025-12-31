@@ -205,7 +205,7 @@ development_status:
   # Source: tech-debt-consolidated.md Sprint 3
   # Tech Spec: docs/modules/bm-dm/epics/epic-dm-09-tech-spec.md
   # ===========================================
-  dm-09: contexted
+  dm-09: complete
   dm-09-1-opentelemetry-integration: done
   dm-09-2-metrics-exposure: done
   dm-09-3-e2e-infrastructure: done
