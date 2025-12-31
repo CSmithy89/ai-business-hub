@@ -3,6 +3,8 @@ CCR Usage Monitoring and Alerts
 
 Tracks CCR usage metrics and generates quota alerts.
 Provides operational visibility into provider distribution and token usage.
+
+DM-09.1: Added OpenTelemetry tracing for quota monitoring.
 """
 
 import logging
@@ -11,9 +13,14 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Optional
 
+from opentelemetry import trace
+
 from agents.constants.dm_constants import DMConstants
 
 logger = logging.getLogger(__name__)
+
+# Get tracer for CCR usage tracking
+_tracer = trace.get_tracer(__name__)
 
 
 class AlertLevel(str, Enum):
@@ -138,37 +145,48 @@ class CCRUsageTracker:
             estimated_tokens: Estimated token usage
             is_fallback: Whether this was a fallback request
         """
-        self._metrics.total_requests += 1
+        # DM-09.1: Add tracing span for CCR request recording
+        with _tracer.start_as_current_span("ccr.record_request") as span:
+            span.set_attribute("ccr.provider", provider)
+            span.set_attribute("ccr.task_type", task_type)
+            span.set_attribute("ccr.estimated_tokens", estimated_tokens)
+            span.set_attribute("ccr.is_fallback", is_fallback)
 
-        # Track by provider
-        if provider not in self._metrics.requests_by_provider:
-            self._metrics.requests_by_provider[provider] = 0
-        self._metrics.requests_by_provider[provider] += 1
+            self._metrics.total_requests += 1
 
-        # Track by task type
-        if task_type not in self._metrics.requests_by_task_type:
-            self._metrics.requests_by_task_type[task_type] = 0
-        self._metrics.requests_by_task_type[task_type] += 1
+            # Track by provider
+            if provider not in self._metrics.requests_by_provider:
+                self._metrics.requests_by_provider[provider] = 0
+            self._metrics.requests_by_provider[provider] += 1
 
-        # Track tokens
-        self._metrics.estimated_tokens += estimated_tokens
+            # Track by task type
+            if task_type not in self._metrics.requests_by_task_type:
+                self._metrics.requests_by_task_type[task_type] = 0
+            self._metrics.requests_by_task_type[task_type] += 1
 
-        # Track fallbacks
-        if is_fallback:
-            self._metrics.fallback_count += 1
+            # Track tokens
+            self._metrics.estimated_tokens += estimated_tokens
 
-        logger.debug(
-            "CCR request recorded",
-            extra={
-                "provider": provider,
-                "task_type": task_type,
-                "estimated_tokens": estimated_tokens,
-                "is_fallback": is_fallback,
-            },
-        )
+            # Track fallbacks
+            if is_fallback:
+                self._metrics.fallback_count += 1
 
-        # Check quota and emit alert if needed
-        self._check_quota_alerts()
+            # Add cumulative metrics to span
+            span.set_attribute("ccr.total_requests", self._metrics.total_requests)
+            span.set_attribute("ccr.total_tokens", self._metrics.estimated_tokens)
+
+            logger.debug(
+                "CCR request recorded",
+                extra={
+                    "provider": provider,
+                    "task_type": task_type,
+                    "estimated_tokens": estimated_tokens,
+                    "is_fallback": is_fallback,
+                },
+            )
+
+            # Check quota and emit alert if needed
+            self._check_quota_alerts()
 
     def get_quota_status(self) -> QuotaStatus:
         """
@@ -177,33 +195,43 @@ class CCRUsageTracker:
         Returns:
             QuotaStatus with usage and alert info
         """
-        used = self._metrics.estimated_tokens
-        limit = self.daily_token_limit
+        # DM-09.1: Add tracing span for quota status check
+        with _tracer.start_as_current_span("ccr.get_quota_status") as span:
+            used = self._metrics.estimated_tokens
+            limit = self.daily_token_limit
 
-        # Handle unlimited quota
-        if limit == 0:
+            span.set_attribute("ccr.quota.used", used)
+            span.set_attribute("ccr.quota.limit", limit)
+
+            # Handle unlimited quota
+            if limit == 0:
+                span.set_attribute("ccr.quota.unlimited", True)
+                return QuotaStatus(
+                    used=used,
+                    limit=0,
+                    remaining=0,
+                    percentage=0.0,
+                    alert_level=AlertLevel.INFO,
+                    alert_message=None,
+                )
+
+            remaining = max(0, limit - used)
+            percentage = used / limit if limit > 0 else 0.0
+
+            alert_level, alert_message = self._determine_alert(percentage)
+
+            span.set_attribute("ccr.quota.remaining", remaining)
+            span.set_attribute("ccr.quota.percentage", percentage)
+            span.set_attribute("ccr.quota.alert_level", alert_level.value)
+
             return QuotaStatus(
                 used=used,
-                limit=0,
-                remaining=0,
-                percentage=0.0,
-                alert_level=AlertLevel.INFO,
-                alert_message=None,
+                limit=limit,
+                remaining=remaining,
+                percentage=percentage,
+                alert_level=alert_level,
+                alert_message=alert_message,
             )
-
-        remaining = max(0, limit - used)
-        percentage = used / limit if limit > 0 else 0.0
-
-        alert_level, alert_message = self._determine_alert(percentage)
-
-        return QuotaStatus(
-            used=used,
-            limit=limit,
-            remaining=remaining,
-            percentage=percentage,
-            alert_level=alert_level,
-            alert_message=alert_message,
-        )
 
     def _determine_alert(self, percentage: float) -> tuple[AlertLevel, Optional[str]]:
         """

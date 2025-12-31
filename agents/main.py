@@ -72,6 +72,9 @@ from models.ccr_provider import validate_ccr_connection
 # Import CCR usage tracker (DM-02.9)
 from services.ccr_usage import get_ccr_usage_tracker
 
+# Import OpenTelemetry observability (DM-09.1)
+from observability import configure_tracing, instrument_app, shutdown_tracing, get_otel_settings
+
 # ============================================================================
 # Configuration (must be at top before usage)
 # ============================================================================
@@ -140,6 +143,28 @@ except Exception as exc:
     logger.error("Rate limiting init failed: %s", exc, exc_info=True)
     limiter = NoopLimiter()
     app.state.limiter = limiter
+
+# ============================================================================
+# OpenTelemetry Tracing (DM-09.1)
+# ============================================================================
+
+# Configure tracing before instrumentation
+otel_settings = get_otel_settings()
+if otel_settings.otel_enabled:
+    try:
+        configure_tracing()
+        instrument_app(app)
+        logger.info(
+            "OpenTelemetry tracing enabled",
+            extra={
+                "service_name": otel_settings.otel_service_name,
+                "sampling_rate": otel_settings.otel_sampling_rate,
+            },
+        )
+    except Exception as exc:
+        logger.warning("OpenTelemetry initialization failed: %s", exc, exc_info=True)
+else:
+    logger.info("OpenTelemetry tracing disabled")
 
 
 # ============================================================================
@@ -691,6 +716,17 @@ async def startup_event():
 
     # Initialize PM Agent A2A interfaces (DM-02.5)
     await startup_pm_agents_a2a()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown."""
+    logger.info("AgentOS shutting down...")
+
+    # Shutdown OpenTelemetry tracing (DM-09.1)
+    shutdown_tracing()
+
+    logger.info("AgentOS shutdown complete")
 
 
 # =============================================================================
