@@ -20,6 +20,9 @@ import {
   MetricsWidget,
   AlertWidget,
   TeamActivityWidget,
+  KanbanBoardWidget,
+  GanttChartWidget,
+  BurndownChartWidget,
 } from './widgets';
 
 /**
@@ -71,6 +74,10 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetComponent> = {
   Metrics: MetricsWidget as WidgetComponent,
   Alert: AlertWidget as WidgetComponent,
   TeamActivity: TeamActivityWidget as WidgetComponent,
+  // Placeholder widgets for future implementation (DM-08.5)
+  KanbanBoard: KanbanBoardWidget as WidgetComponent,
+  GanttChart: GanttChartWidget as WidgetComponent,
+  BurndownChart: BurndownChartWidget as WidgetComponent,
 };
 
 /**

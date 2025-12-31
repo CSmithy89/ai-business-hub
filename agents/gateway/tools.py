@@ -10,7 +10,9 @@ Tool definitions for the Dashboard Gateway agent. These tools enable:
 All tools are designed to be intercepted by CopilotKit on the frontend,
 where tool calls are rendered as React components.
 """
+import json
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from constants.dm_constants import DMConstants
@@ -20,16 +22,37 @@ logger = logging.getLogger(__name__)
 
 # Widget types that can be rendered
 # These correspond to React components registered in the frontend widget registry
-WIDGET_TYPES = [
-    "ProjectStatus",
-    "TaskList",
-    "Metrics",
-    "Alert",
-    "KanbanBoard",
-    "GanttChart",
-    "BurndownChart",
-    "TeamActivity",
-]
+# DM-08.5: Single source of truth in packages/shared/widget-types.json
+def _load_widget_types() -> List[str]:
+    """Load widget types from shared JSON file."""
+    json_path = (
+        Path(__file__).parent.parent.parent
+        / "packages"
+        / "shared"
+        / "widget-types.json"
+    )
+    if json_path.exists():
+        try:
+            with open(json_path, "r") as f:
+                data = json.load(f)
+                return data.get("types", [])
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Failed to load widget-types.json: {e}")
+
+    # Fallback to hardcoded list (should match JSON)
+    return [
+        "ProjectStatus",
+        "TaskList",
+        "Metrics",
+        "Alert",
+        "KanbanBoard",
+        "GanttChart",
+        "BurndownChart",
+        "TeamActivity",
+    ]
+
+
+WIDGET_TYPES = _load_widget_types()
 
 
 def render_dashboard_widget(
