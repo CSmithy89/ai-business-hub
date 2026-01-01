@@ -1,0 +1,936 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-11.7 - Remaining Widget Types
+  Generated: 2026-01-01
+  Purpose: Provide comprehensive context for implementing Storybook stories
+           and verifying A2A data integration for dashboard widgets.
+-->
+<story-context>
+  <metadata>
+    <story-id>DM-11.7</story-id>
+    <story-title>Remaining Widget Types</story-title>
+    <epic>DM-11 - Advanced Features and Optimizations</epic>
+    <status>backlog</status>
+    <points>8</points>
+    <generated>2026-01-01</generated>
+  </metadata>
+
+  <summary>
+    <description>
+      All 4 core widget types (ProjectStatus, TaskList, Metrics, Alert) are fully
+      implemented with React components, TypeScript types, unit tests, and registry
+      registration. This story focuses on adding Storybook stories for documentation
+      and visual testing, plus verifying A2A data integration.
+    </description>
+    <key-insight>
+      Storybook is NOT currently installed in the project. Visual testing is handled
+      via Percy with Playwright (see DM-09.5). The implementation approach should
+      consider whether to install Storybook or extend the existing Percy-based visual
+      testing infrastructure.
+    </key-insight>
+  </summary>
+
+  <implementation-status>
+    <widget name="ProjectStatusWidget" status="complete">
+      <file>apps/web/src/components/slots/widgets/ProjectStatusWidget.tsx</file>
+      <test>apps/web/src/components/slots/widgets/__tests__/ProjectStatusWidget.test.tsx</test>
+      <registry>registered in widget-registry.tsx</registry>
+    </widget>
+    <widget name="TaskListWidget" status="complete">
+      <file>apps/web/src/components/slots/widgets/TaskListWidget.tsx</file>
+      <test>apps/web/src/components/slots/widgets/__tests__/TaskListWidget.test.tsx</test>
+      <registry>registered in widget-registry.tsx</registry>
+    </widget>
+    <widget name="MetricsWidget" status="complete">
+      <file>apps/web/src/components/slots/widgets/MetricsWidget.tsx</file>
+      <test>apps/web/src/components/slots/widgets/__tests__/MetricsWidget.test.tsx</test>
+      <registry>registered in widget-registry.tsx</registry>
+    </widget>
+    <widget name="AlertWidget" status="complete">
+      <file>apps/web/src/components/slots/widgets/AlertWidget.tsx</file>
+      <test>apps/web/src/components/slots/widgets/__tests__/AlertWidget.test.tsx</test>
+      <registry>registered in widget-registry.tsx</registry>
+    </widget>
+    <widget name="TeamActivityWidget" status="complete">
+      <file>apps/web/src/components/slots/widgets/TeamActivityWidget.tsx</file>
+      <test>apps/web/src/components/slots/widgets/__tests__/TeamActivityWidget.test.tsx</test>
+      <registry>registered in widget-registry.tsx</registry>
+    </widget>
+    <widget name="PlaceholderWidgets" status="placeholder">
+      <file>apps/web/src/components/slots/widgets/PlaceholderWidget.tsx</file>
+      <note>KanbanBoard, GanttChart, BurndownChart show "coming soon" UI</note>
+    </widget>
+  </implementation-status>
+
+  <existing-code>
+    <section name="Widget Types - Single Source of Truth">
+      <file>packages/shared/src/types/widget.ts</file>
+      <code><![CDATA[
+/**
+ * Widget Type Definitions
+ *
+ * Single source of truth for widget types used across the platform.
+ * These types are shared between:
+ * - Frontend (Next.js/React via widget-registry.tsx)
+ * - Backend (NestJS API)
+ * - Agents (Python AgentOS via gateway/tools.py)
+ */
+
+export const WIDGET_TYPES = {
+  PROJECT_STATUS: 'ProjectStatus',
+  TASK_LIST: 'TaskList',
+  METRICS: 'Metrics',
+  ALERT: 'Alert',
+  KANBAN_BOARD: 'KanbanBoard',
+  GANTT_CHART: 'GanttChart',
+  BURNDOWN_CHART: 'BurndownChart',
+  TEAM_ACTIVITY: 'TeamActivity',
+} as const;
+
+export type WidgetType = (typeof WIDGET_TYPES)[keyof typeof WIDGET_TYPES];
+
+// Widget-specific data types
+export interface ProjectStatusData extends BaseWidgetData {
+  projectId: string;
+  projectName: string;
+  status: 'on_track' | 'at_risk' | 'behind';
+  progress: number;
+  dueDate?: string;
+  tasksCompleted: number;
+  tasksTotal: number;
+}
+
+export interface TaskListData extends BaseWidgetData {
+  tasks: Array<{
+    id: string;
+    title: string;
+    status: 'todo' | 'in_progress' | 'done';
+    priority: 'low' | 'medium' | 'high';
+    assignee?: string;
+  }>;
+  limit?: number;
+}
+
+export interface MetricsData extends BaseWidgetData {
+  metrics: Array<{
+    label: string;
+    value: number | string;
+    change?: { value: number; direction: 'up' | 'down' };
+    icon?: string;
+  }>;
+}
+
+export interface AlertData extends BaseWidgetData {
+  severity: 'info' | 'warning' | 'error' | 'success';
+  message: string;
+  action?: { label: string; href: string };
+}
+
+export interface TeamActivityData extends BaseWidgetData {
+  activities: Array<{
+    user: string;
+    action: string;
+    target?: string;
+    time: string;
+  }>;
+}
+]]></code>
+    </section>
+
+    <section name="ProjectStatusWidget Component">
+      <file>apps/web/src/components/slots/widgets/ProjectStatusWidget.tsx</file>
+      <code><![CDATA[
+'use client';
+
+import {
+  CalendarIcon,
+  CheckCircle2Icon,
+  AlertTriangleIcon,
+  XCircleIcon,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { WidgetSkeleton } from './WidgetSkeleton';
+import { WidgetEmpty } from './WidgetEmpty';
+import type { ProjectStatusData } from '../types';
+
+export interface ProjectStatusWidgetProps {
+  data: ProjectStatusData;
+  isLoading?: boolean;
+}
+
+const STATUS_CONFIG = {
+  on_track: {
+    label: 'On Track',
+    icon: CheckCircle2Icon,
+    className: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
+  },
+  at_risk: {
+    label: 'At Risk',
+    icon: AlertTriangleIcon,
+    className: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20',
+  },
+  behind: {
+    label: 'Behind',
+    icon: XCircleIcon,
+    className: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
+  },
+} as const;
+
+export function ProjectStatusWidget({ data, isLoading }: ProjectStatusWidgetProps) {
+  if (isLoading) {
+    return <WidgetSkeleton variant="default" />;
+  }
+
+  if (!data || !data.projectName) {
+    return <WidgetEmpty message="No project data available" />;
+  }
+
+  const statusConfig = STATUS_CONFIG[data.status] || STATUS_CONFIG.on_track;
+  const StatusIcon = statusConfig.icon;
+  const progress = Math.min(100, Math.max(0, data.progress));
+
+  return (
+    <Card data-testid="project-status-widget">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base font-medium line-clamp-1">
+            {data.projectName}
+          </CardTitle>
+          <Badge variant="outline" className={statusConfig.className}>
+            <StatusIcon className="h-3 w-3" aria-hidden="true" />
+            <span>{statusConfig.label}</span>
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Progress</span>
+            <span className="font-medium">{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <div>
+            <span className="text-muted-foreground">Tasks: </span>
+            <span className="font-medium">{data.tasksCompleted}/{data.tasksTotal}</span>
+          </div>
+          {data.dueDate && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <CalendarIcon className="h-3.5 w-3.5" />
+              <span>{new Date(data.dueDate).toLocaleDateString()}</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+]]></code>
+    </section>
+
+    <section name="TaskListWidget Component">
+      <file>apps/web/src/components/slots/widgets/TaskListWidget.tsx</file>
+      <code><![CDATA[
+'use client';
+
+import { CheckCircle2Icon, CircleIcon, CircleDotIcon } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { WidgetSkeleton } from './WidgetSkeleton';
+import { WidgetEmpty } from './WidgetEmpty';
+import type { TaskListData } from '../types';
+
+export interface TaskListWidgetProps {
+  data: TaskListData;
+  isLoading?: boolean;
+}
+
+const STATUS_ICONS = {
+  todo: CircleIcon,
+  in_progress: CircleDotIcon,
+  done: CheckCircle2Icon,
+} as const;
+
+const PRIORITY_CONFIG = {
+  high: { label: 'High', className: 'bg-red-500/10 text-red-600 border-red-500/20' },
+  medium: { label: 'Medium', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
+  low: { label: 'Low', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+} as const;
+
+export function TaskListWidget({ data, isLoading }: TaskListWidgetProps) {
+  if (isLoading) return <WidgetSkeleton variant="default" />;
+  if (!data?.tasks?.length) return <WidgetEmpty message="No tasks to display" />;
+
+  const displayedTasks = data.limit ? data.tasks.slice(0, data.limit) : data.tasks;
+  const hasMore = data.limit && data.tasks.length > data.limit;
+
+  return (
+    <Card data-testid="task-list-widget">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-medium">{data.title || 'Tasks'}</CardTitle>
+          <span className="text-sm text-muted-foreground">{data.tasks.length} total</span>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ScrollArea className="max-h-64">
+          <ul className="divide-y divide-border" role="list">
+            {displayedTasks.map((task) => (
+              <li key={task.id} className="flex items-center gap-3 px-4 py-3">
+                {/* Status icon, title, priority badge */}
+              </li>
+            ))}
+          </ul>
+          {hasMore && <div className="px-4 py-2 text-center text-xs">+{data.tasks.length - data.limit!} more</div>}
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+}
+]]></code>
+    </section>
+
+    <section name="MetricsWidget Component">
+      <file>apps/web/src/components/slots/widgets/MetricsWidget.tsx</file>
+      <code><![CDATA[
+'use client';
+
+import { TrendingUpIcon, TrendingDownIcon, ActivityIcon, TargetIcon, UsersIcon, ClockIcon, CheckSquareIcon, BarChart3Icon } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { WidgetSkeleton } from './WidgetSkeleton';
+import { WidgetEmpty } from './WidgetEmpty';
+import type { MetricsData } from '../types';
+
+export interface MetricsWidgetProps {
+  data: MetricsData;
+  isLoading?: boolean;
+}
+
+const ICON_MAP = {
+  activity: ActivityIcon,
+  target: TargetIcon,
+  users: UsersIcon,
+  clock: ClockIcon,
+  tasks: CheckSquareIcon,
+  chart: BarChart3Icon,
+};
+
+export function MetricsWidget({ data, isLoading }: MetricsWidgetProps) {
+  if (isLoading) return <WidgetSkeleton variant="metrics" />;
+  if (!data?.metrics?.length) return <WidgetEmpty message="No metrics available" />;
+
+  return (
+    <Card data-testid="metrics-widget">
+      {data.title && (
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium">{data.title}</CardTitle>
+        </CardHeader>
+      )}
+      <CardContent>
+        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(data.metrics.length, 4)}, 1fr)` }}>
+          {data.metrics.map((metric, index) => (
+            <div key={`${metric.label}-${index}`} className="space-y-1" data-testid={`metric-item-${index}`}>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {metric.icon && ICON_MAP[metric.icon] && <Icon className="h-3.5 w-3.5" />}
+                <span>{metric.label}</span>
+              </div>
+              <div className="text-2xl font-bold">{metric.value}</div>
+              {metric.change && (
+                <div className={metric.change.direction === 'up' ? 'text-green-600' : 'text-red-600'}>
+                  {metric.change.direction === 'up' ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                  {metric.change.direction === 'up' ? '+' : '-'}{Math.abs(metric.change.value)}%
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+]]></code>
+    </section>
+
+    <section name="AlertWidget Component">
+      <file>apps/web/src/components/slots/widgets/AlertWidget.tsx</file>
+      <code><![CDATA[
+'use client';
+
+import Link from 'next/link';
+import { InfoIcon, AlertTriangleIcon, XCircleIcon, CheckCircle2Icon } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { WidgetSkeleton } from './WidgetSkeleton';
+import type { AlertData } from '../types';
+
+export interface AlertWidgetProps {
+  data: AlertData;
+  isLoading?: boolean;
+}
+
+const SEVERITY_CONFIG = {
+  info: { icon: InfoIcon, className: 'border-blue-500/50 bg-blue-500/10 text-blue-900 [&>svg]:text-blue-500' },
+  warning: { icon: AlertTriangleIcon, className: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-900 [&>svg]:text-yellow-500' },
+  error: { icon: XCircleIcon, className: 'border-red-500/50 bg-red-500/10 text-red-900 [&>svg]:text-red-500' },
+  success: { icon: CheckCircle2Icon, className: 'border-green-500/50 bg-green-500/10 text-green-900 [&>svg]:text-green-500' },
+} as const;
+
+export function AlertWidget({ data, isLoading }: AlertWidgetProps) {
+  if (isLoading) return <WidgetSkeleton variant="alert" />;
+  if (!data?.title || !data?.message) return null;
+
+  const severityConfig = SEVERITY_CONFIG[data.severity] || SEVERITY_CONFIG.info;
+  const SeverityIcon = severityConfig.icon;
+
+  return (
+    <Alert data-testid="alert-widget" className={severityConfig.className} role="alert">
+      <SeverityIcon className="h-4 w-4" />
+      <AlertTitle>{data.title}</AlertTitle>
+      <AlertDescription>
+        <p>{data.message}</p>
+        {data.action && (
+          <Button variant="outline" size="sm" className="mt-3" asChild>
+            <Link href={data.action.href}>{data.action.label}</Link>
+          </Button>
+        )}
+      </AlertDescription>
+    </Alert>
+  );
+}
+]]></code>
+    </section>
+
+    <section name="Widget Registry">
+      <file>apps/web/src/components/slots/widget-registry.tsx</file>
+      <code><![CDATA[
+import type { ComponentType } from 'react';
+import type { WidgetType, WidgetData } from './types';
+import {
+  ProjectStatusWidget,
+  TaskListWidget,
+  MetricsWidget,
+  AlertWidget,
+  TeamActivityWidget,
+  KanbanBoardWidget,
+  GanttChartWidget,
+  BurndownChartWidget,
+} from './widgets';
+
+export interface WidgetProps {
+  data: WidgetData;
+  isLoading?: boolean;
+}
+
+type WidgetComponent = ComponentType<{ data: WidgetData; isLoading?: boolean }>;
+
+export const WIDGET_REGISTRY: Record<WidgetType, WidgetComponent> = {
+  ProjectStatus: ProjectStatusWidget as WidgetComponent,
+  TaskList: TaskListWidget as WidgetComponent,
+  Metrics: MetricsWidget as WidgetComponent,
+  Alert: AlertWidget as WidgetComponent,
+  TeamActivity: TeamActivityWidget as WidgetComponent,
+  KanbanBoard: KanbanBoardWidget as WidgetComponent,
+  GanttChart: GanttChartWidget as WidgetComponent,
+  BurndownChart: BurndownChartWidget as WidgetComponent,
+};
+
+export function isValidWidgetType(type: string): type is WidgetType {
+  return Object.prototype.hasOwnProperty.call(WIDGET_REGISTRY, type);
+}
+
+export function getWidgetComponent(type: string): ComponentType<WidgetProps> | undefined {
+  if (isValidWidgetType(type)) {
+    return WIDGET_REGISTRY[type];
+  }
+  return undefined;
+}
+]]></code>
+    </section>
+
+    <section name="WidgetSkeleton - Loading State">
+      <file>apps/web/src/components/slots/widgets/WidgetSkeleton.tsx</file>
+      <code><![CDATA[
+'use client';
+
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+
+export interface WidgetSkeletonProps {
+  variant?: 'default' | 'compact' | 'metrics' | 'alert';
+}
+
+export function WidgetSkeleton({ variant = 'default' }: WidgetSkeletonProps) {
+  switch (variant) {
+    case 'compact':
+      return (
+        <div className="space-y-2 p-4" data-testid="widget-skeleton-compact">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+      );
+    case 'metrics':
+      return (
+        <Card data-testid="widget-skeleton-metrics">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    case 'alert':
+      return (
+        <div className="flex gap-3 rounded-lg border p-4" data-testid="widget-skeleton-alert">
+          <Skeleton className="h-5 w-5 rounded-full flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+        </div>
+      );
+    default:
+      return (
+        <Card data-testid="widget-skeleton-default">
+          <CardHeader className="pb-2">
+            <Skeleton className="h-5 w-1/3" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-3/5" />
+          </CardContent>
+        </Card>
+      );
+  }
+}
+]]></code>
+    </section>
+
+    <section name="WidgetEmpty - Empty State">
+      <file>apps/web/src/components/slots/widgets/WidgetEmpty.tsx</file>
+      <code><![CDATA[
+'use client';
+
+import type { ReactNode } from 'react';
+import { InboxIcon } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+
+export interface WidgetEmptyProps {
+  message?: string;
+  icon?: ReactNode;
+  asCard?: boolean;
+  action?: {
+    label: string;
+    onClick?: () => void;
+    href?: string;
+  };
+}
+
+export function WidgetEmpty({
+  message = 'No data available',
+  icon,
+  asCard = true,
+  action,
+}: WidgetEmptyProps) {
+  const content = (
+    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground" data-testid="widget-empty">
+      <div className="mb-3" aria-hidden="true">
+        {icon || <InboxIcon className="h-10 w-10 opacity-50" />}
+      </div>
+      <p className="text-sm">{message}</p>
+      {action && (
+        <Button variant="outline" size="sm" className="mt-4" onClick={action.onClick}>
+          {action.label}
+        </Button>
+      )}
+    </div>
+  );
+
+  if (!asCard) return content;
+  return <Card><CardContent className="pt-6">{content}</CardContent></Card>;
+}
+]]></code>
+    </section>
+  </existing-code>
+
+  <test-patterns>
+    <section name="ProjectStatusWidget Test Example">
+      <file>apps/web/src/components/slots/widgets/__tests__/ProjectStatusWidget.test.tsx</file>
+      <code><![CDATA[
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { ProjectStatusWidget } from '../ProjectStatusWidget';
+import type { ProjectStatusData } from '../../types';
+
+const mockData: ProjectStatusData = {
+  projectId: 'proj_123',
+  projectName: 'Test Project',
+  status: 'on_track',
+  progress: 75,
+  tasksCompleted: 15,
+  tasksTotal: 20,
+  dueDate: '2025-01-15',
+};
+
+describe('ProjectStatusWidget', () => {
+  it('renders project name', () => {
+    render(<ProjectStatusWidget data={mockData} />);
+    expect(screen.getByText('Test Project')).toBeInTheDocument();
+  });
+
+  it('renders progress percentage', () => {
+    render(<ProjectStatusWidget data={mockData} />);
+    expect(screen.getByText('75%')).toBeInTheDocument();
+  });
+
+  it('renders On Track status badge', () => {
+    render(<ProjectStatusWidget data={mockData} />);
+    expect(screen.getByText('On Track')).toBeInTheDocument();
+  });
+
+  it('renders loading skeleton when isLoading is true', () => {
+    render(<ProjectStatusWidget data={mockData} isLoading />);
+    expect(screen.queryByText('Test Project')).not.toBeInTheDocument();
+    expect(screen.getByTestId('widget-skeleton-default')).toBeInTheDocument();
+  });
+
+  it('renders empty state when data is empty', () => {
+    render(<ProjectStatusWidget data={{} as ProjectStatusData} />);
+    expect(screen.getByText('No project data available')).toBeInTheDocument();
+  });
+
+  it('clamps progress to 100 when exceeding', () => {
+    render(<ProjectStatusWidget data={{ ...mockData, progress: 150 }} />);
+    expect(screen.getByText('100%')).toBeInTheDocument();
+  });
+});
+]]></code>
+    </section>
+
+    <section name="Common Test Patterns">
+      <patterns>
+        <pattern name="rendering">
+          Test that widget renders expected content from data props.
+        </pattern>
+        <pattern name="loading-state">
+          Test isLoading=true shows WidgetSkeleton with correct variant.
+        </pattern>
+        <pattern name="empty-state">
+          Test empty/null/undefined data shows WidgetEmpty with message.
+        </pattern>
+        <pattern name="status-variants">
+          Test all enum values render correct styling (on_track, at_risk, behind).
+        </pattern>
+        <pattern name="accessibility">
+          Test aria-labels, roles, and semantic HTML.
+        </pattern>
+        <pattern name="edge-cases">
+          Test boundary values (progress 0/100/150, empty arrays, null fields).
+        </pattern>
+      </patterns>
+    </section>
+  </test-patterns>
+
+  <visual-testing>
+    <section name="Percy Visual Testing Infrastructure">
+      <description>
+        Visual regression testing is handled via Percy with Playwright, NOT Storybook.
+        See DM-09.5 for the existing infrastructure.
+      </description>
+      <file>apps/web/.percy.yml</file>
+      <file>apps/web/tests/visual/widgets.visual.spec.ts</file>
+      <coverage>
+        - TaskCard: pending, in-progress, completed, blocked
+        - MetricsWidget: positive trend, negative trend, stable
+        - AlertWidget: info, warning, error
+        - ProjectStatus: healthy, warning, critical
+        - ProgressIndicator: 0%, 50%, 100%, error
+        - Dashboard: full, empty, loading, error
+      </coverage>
+    </section>
+
+    <section name="Existing Percy Test Pattern">
+      <file>apps/web/tests/visual/widgets.visual.spec.ts</file>
+      <code><![CDATA[
+import { test, expect } from '@playwright/test';
+import percySnapshot from '@percy/playwright';
+import { mockDashboardWidgets, mockAgentHealth } from '../support/fixtures/api-mock.fixture';
+
+interface WidgetStateConfig {
+  name: string;
+  description: string;
+  widgets: unknown[];
+}
+
+const projectStatusStates: WidgetStateConfig[] = [
+  {
+    name: 'project-healthy',
+    description: 'ProjectStatus showing healthy state',
+    widgets: [{
+      id: 'project-healthy',
+      type: 'project-status',
+      data: { health: 'healthy', score: 95, projectName: 'Website Redesign', tasksCompleted: 48, totalTasks: 50 },
+    }],
+  },
+  // ... more states
+];
+
+test.describe('Widget Visual Regression', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAgentHealth(page, true);
+    if (!process.env.PERCY_TOKEN && !process.env.CI) {
+      test.skip(true, 'PERCY_TOKEN not set - skipping visual tests');
+    }
+  });
+
+  test.describe('ProjectStatus States', () => {
+    for (const state of projectStatusStates) {
+      test(`${state.name}: ${state.description}`, async ({ page }) => {
+        await mockDashboardWidgets(page, state.widgets);
+        await page.goto('/dashboard');
+        await page.waitForLoadState('networkidle');
+        const widgetGrid = page.getByTestId('dashboard-grid');
+        await expect(widgetGrid).toBeVisible({ timeout: 15000 });
+        await percySnapshot(page, `Widget: ${state.name}`);
+      });
+    }
+  });
+});
+]]></code>
+    </section>
+  </visual-testing>
+
+  <storybook-decision>
+    <current-state>
+      Storybook is NOT installed in the project. No .storybook directory exists.
+      No *.stories.tsx files exist anywhere in the codebase.
+    </current-state>
+    <options>
+      <option name="Install Storybook">
+        <pros>
+          - Industry standard for component documentation
+          - Interactive prop controls for development
+          - Better component isolation
+          - Can integrate with Chromatic for visual testing
+        </pros>
+        <cons>
+          - Additional maintenance burden
+          - Build complexity increases
+          - Duplicate visual testing (already have Percy)
+          - Learning curve for team
+        </cons>
+        <install-command>pnpm dlx storybook@latest init --builder=webpack5</install-command>
+      </option>
+      <option name="Extend Percy Visual Tests">
+        <pros>
+          - No new tooling needed
+          - Consistent with existing infrastructure
+          - Less maintenance overhead
+          - Already established in CI
+        </pros>
+        <cons>
+          - Less interactive documentation
+          - No live prop controls
+          - Must navigate to real pages for testing
+        </cons>
+        <approach>
+          Add more widget state configurations to widgets.visual.spec.ts
+          to cover additional edge cases not currently tested.
+        </approach>
+      </option>
+    </options>
+    <recommendation>
+      Given the story specifies Storybook, but existing infrastructure uses Percy,
+      the developer should discuss with the team lead about which approach to take.
+      If Storybook is required, install it. If Percy is sufficient, extend existing tests.
+    </recommendation>
+  </storybook-decision>
+
+  <a2a-integration>
+    <section name="A2A Data Flow">
+      <description>
+        Widgets receive data from AI agents via CopilotKit's render_dashboard_widget tool.
+        The data flows: Agent -> A2A Protocol -> CopilotKit -> Widget Registry -> React Component
+      </description>
+      <agent-mapping>
+        <mapping widget="ProjectStatus" agent="Navi" schema="NaviProjectResponse" />
+        <mapping widget="TaskList" agent="Navi" schema="NaviTaskListResponse" />
+        <mapping widget="Metrics" agent="Pulse" schema="PulseHealthResponse" />
+        <mapping widget="Alert" agent="Herald" schema="HeraldActivityResponse" />
+        <mapping widget="TeamActivity" agent="Herald" schema="HeraldActivityResponse" />
+      </agent-mapping>
+    </section>
+
+    <section name="Integration Test Pattern">
+      <code><![CDATA[
+// Example A2A integration test
+describe('Widget A2A Integration', () => {
+  it('receives and renders Navi project data correctly', async () => {
+    // Mock A2A response from Navi agent
+    const naviResponse = {
+      type: 'ProjectStatus',
+      data: {
+        projectId: 'proj_123',
+        projectName: 'Test Project',
+        status: 'on_track',
+        progress: 50,
+        tasksCompleted: 5,
+        tasksTotal: 10,
+      },
+    };
+
+    // Render dashboard with mocked widget data
+    render(<DashboardSlots widgets={[naviResponse]} />);
+
+    // Verify widget renders with A2A data
+    expect(screen.getByText('Test Project')).toBeInTheDocument();
+    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(screen.getByText('5/10')).toBeInTheDocument();
+  });
+});
+]]></code>
+    </section>
+  </a2a-integration>
+
+  <implementation-guidance>
+    <acceptance-criteria>
+      <criterion id="AC1">
+        All 4 widget types have Storybook stories covering primary use cases.
+        Alternative: All widget states covered by Percy visual tests.
+      </criterion>
+      <criterion id="AC2">
+        Widgets receive data correctly from A2A agents (verified via integration tests).
+      </criterion>
+      <criterion id="AC3">
+        Widgets handle loading states with skeleton loaders.
+        Status: Already implemented and tested.
+      </criterion>
+      <criterion id="AC4">
+        Widgets handle error/empty states gracefully.
+        Status: Already implemented and tested.
+      </criterion>
+      <criterion id="AC5">
+        All widgets registered in widget registry.
+        Status: VERIFIED - all widgets registered.
+      </criterion>
+      <criterion id="AC6">
+        Storybook stories include interactive controls for all props.
+        Alternative: Percy tests cover all prop variants.
+      </criterion>
+    </acceptance-criteria>
+
+    <recommended-approach>
+      <step order="1">
+        Decide on Storybook vs extending Percy based on team preference.
+        If Storybook: Install and configure for Next.js 15.
+        If Percy: Skip to step 3.
+      </step>
+      <step order="2" if="storybook">
+        Create stories for each widget following the patterns in the story file:
+        - ProjectStatusWidget.stories.tsx: OnTrack, AtRisk, Behind, Loading, Empty
+        - TaskListWidget.stories.tsx: Default, HighPriority, EmptyList, LimitedView, Loading
+        - MetricsWidget.stories.tsx: Default, SingleMetric, AllUp, AllDown, NoTrends, Loading
+        - AlertWidget.stories.tsx: Info, Warning, Error, Success, WithAction, Loading
+      </step>
+      <step order="3">
+        Verify A2A integration by reviewing:
+        - How DashboardSlots component receives and routes widget data
+        - How widgets are rendered via the registry
+        - Create integration test if needed
+      </step>
+      <step order="4">
+        Update visual regression tests to cover any missing widget states.
+      </step>
+      <step order="5">
+        Document the component API in Storybook/README.
+      </step>
+    </recommended-approach>
+
+    <files-to-create if="storybook">
+      <file>.storybook/main.ts</file>
+      <file>.storybook/preview.ts</file>
+      <file>apps/web/src/components/slots/widgets/ProjectStatusWidget.stories.tsx</file>
+      <file>apps/web/src/components/slots/widgets/TaskListWidget.stories.tsx</file>
+      <file>apps/web/src/components/slots/widgets/MetricsWidget.stories.tsx</file>
+      <file>apps/web/src/components/slots/widgets/AlertWidget.stories.tsx</file>
+    </files-to-create>
+
+    <files-to-modify if="storybook">
+      <file>apps/web/package.json - Add Storybook dependencies</file>
+    </files-to-modify>
+
+    <files-to-modify if="percy">
+      <file>apps/web/tests/visual/widgets.visual.spec.ts - Add missing states</file>
+    </files-to-modify>
+  </implementation-guidance>
+
+  <related-files>
+    <file purpose="Widget implementations">
+      apps/web/src/components/slots/widgets/ProjectStatusWidget.tsx
+    </file>
+    <file purpose="Widget implementations">
+      apps/web/src/components/slots/widgets/TaskListWidget.tsx
+    </file>
+    <file purpose="Widget implementations">
+      apps/web/src/components/slots/widgets/MetricsWidget.tsx
+    </file>
+    <file purpose="Widget implementations">
+      apps/web/src/components/slots/widgets/AlertWidget.tsx
+    </file>
+    <file purpose="Widget implementations">
+      apps/web/src/components/slots/widgets/TeamActivityWidget.tsx
+    </file>
+    <file purpose="Widget registry">
+      apps/web/src/components/slots/widget-registry.tsx
+    </file>
+    <file purpose="Widget types">
+      packages/shared/src/types/widget.ts
+    </file>
+    <file purpose="Type re-exports">
+      apps/web/src/components/slots/types.ts
+    </file>
+    <file purpose="Widget index">
+      apps/web/src/components/slots/widgets/index.ts
+    </file>
+    <file purpose="Loading state">
+      apps/web/src/components/slots/widgets/WidgetSkeleton.tsx
+    </file>
+    <file purpose="Empty state">
+      apps/web/src/components/slots/widgets/WidgetEmpty.tsx
+    </file>
+    <file purpose="Visual tests">
+      apps/web/tests/visual/widgets.visual.spec.ts
+    </file>
+    <file purpose="Unit tests">
+      apps/web/src/components/slots/widgets/__tests__/ProjectStatusWidget.test.tsx
+    </file>
+    <file purpose="Unit tests">
+      apps/web/src/components/slots/widgets/__tests__/TaskListWidget.test.tsx
+    </file>
+    <file purpose="Unit tests">
+      apps/web/src/components/slots/widgets/__tests__/MetricsWidget.test.tsx
+    </file>
+    <file purpose="Unit tests">
+      apps/web/src/components/slots/widgets/__tests__/AlertWidget.test.tsx
+    </file>
+  </related-files>
+
+  <dependencies>
+    <dependency story="DM-03">Dashboard Integration - Widget rendering pipeline</dependency>
+    <dependency story="DM-04">Shared State - Widget state management</dependency>
+    <dependency story="DM-08">Quality Hardening - Zod validation for widget data</dependency>
+    <dependency story="DM-09.5">Visual Regression Tests - Percy infrastructure</dependency>
+  </dependencies>
+</story-context>
