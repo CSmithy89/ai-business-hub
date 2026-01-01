@@ -30,6 +30,7 @@ import type {
 import {
   createInitialDashboardState,
   validateDashboardState,
+  STATE_VERSION,
 } from '@/lib/schemas/dashboard-state';
 import { DM_CONSTANTS } from '@/lib/dm-constants';
 import {
@@ -40,6 +41,11 @@ import {
   applyChange,
   type StateChange,
 } from '@/lib/realtime/state-diff';
+import {
+  migrateState,
+  needsMigration,
+  getDefaultState,
+} from '@/lib/storage/state-migrations';
 
 // =============================================================================
 // CONSTANTS (DM-08.6: Imported from centralized dm-constants)
@@ -541,7 +547,49 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
         if (serverVersion >= currentVersion) {
           // Server is equal or newer - apply server state
-          const validated = validateDashboardState(serverState.state);
+          let stateToApply = serverState.state;
+
+          // DM-11.8: Check for schema version mismatch and migrate if needed
+          const schemaVersion =
+            typeof stateToApply === 'object' &&
+            stateToApply !== null &&
+            'version' in stateToApply
+              ? (stateToApply as { version: number }).version
+              : 1;
+
+          if (needsMigration(schemaVersion)) {
+            console.log(
+              `[DashboardStateStore] State schema migration needed: v${schemaVersion} -> v${STATE_VERSION}`
+            );
+
+            const migrationResult = migrateState(stateToApply, schemaVersion);
+
+            if (migrationResult.success) {
+              console.log(
+                `[DashboardStateStore] State migrated successfully from v${migrationResult.fromVersion} to v${migrationResult.toVersion}`,
+                `(${migrationResult.migrationsApplied.length} migrations applied)`
+              );
+              stateToApply = migrationResult.migratedState as DashboardState;
+            } else {
+              console.error(
+                '[DashboardStateStore] State migration failed, falling back to defaults:',
+                migrationResult.error
+              );
+              // Fall back to default state on migration failure
+              const defaultState = getDefaultState() as DashboardState;
+              const activeAlerts: AlertEntry[] = [];
+              set({
+                ...defaultState,
+                activeAlerts,
+                isSyncing: false,
+                lastSyncedAt: Date.now(),
+                syncError: `Migration failed: ${migrationResult.error}`,
+              });
+              return false;
+            }
+          }
+
+          const validated = validateDashboardState(stateToApply);
           if (validated) {
             const activeAlerts = validated.widgets.alerts.filter((a) => !a.dismissed);
             set({
@@ -651,27 +699,54 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         return;
       }
 
+      // DM-11.8: Check for schema version mismatch and migrate if needed
+      let stateToMerge = remoteState;
+      const schemaVersion =
+        typeof remoteState.version === 'number' ? remoteState.version : 1;
+
+      if (needsMigration(schemaVersion)) {
+        console.log(
+          `[DashboardStateStore] WebSocket state migration needed: v${schemaVersion} -> v${STATE_VERSION}`
+        );
+
+        const migrationResult = migrateState(remoteState, schemaVersion);
+
+        if (migrationResult.success) {
+          console.log(
+            `[DashboardStateStore] WebSocket state migrated successfully from v${migrationResult.fromVersion} to v${migrationResult.toVersion}`
+          );
+          stateToMerge = migrationResult.migratedState as Record<string, unknown>;
+        } else {
+          console.error(
+            '[DashboardStateStore] WebSocket state migration failed:',
+            migrationResult.error
+          );
+          // On migration failure, reject the full state update
+          return;
+        }
+      }
+
       // Merge remote state into current state
       // Remote state may be partial, so we merge carefully
       const mergedState: DashboardState = {
         version: state.version,
         timestamp: Date.now(),
         activeProject:
-          (remoteState.activeProject as string | null) ?? state.activeProject,
+          (stateToMerge.activeProject as string | null) ?? state.activeProject,
         workspaceId:
-          (remoteState.workspaceId as string | null) ?? state.workspaceId,
-        userId: (remoteState.userId as string | null) ?? state.userId,
-        widgets: remoteState.widgets
-          ? { ...state.widgets, ...(remoteState.widgets as typeof state.widgets) }
+          (stateToMerge.workspaceId as string | null) ?? state.workspaceId,
+        userId: (stateToMerge.userId as string | null) ?? state.userId,
+        widgets: stateToMerge.widgets
+          ? { ...state.widgets, ...(stateToMerge.widgets as typeof state.widgets) }
           : state.widgets,
-        loading: remoteState.loading
-          ? { ...state.loading, ...(remoteState.loading as typeof state.loading) }
+        loading: stateToMerge.loading
+          ? { ...state.loading, ...(stateToMerge.loading as typeof state.loading) }
           : state.loading,
-        errors: remoteState.errors
-          ? { ...state.errors, ...(remoteState.errors as typeof state.errors) }
+        errors: stateToMerge.errors
+          ? { ...state.errors, ...(stateToMerge.errors as typeof state.errors) }
           : state.errors,
-        activeTasks: remoteState.activeTasks
-          ? (remoteState.activeTasks as typeof state.activeTasks)
+        activeTasks: stateToMerge.activeTasks
+          ? (stateToMerge.activeTasks as typeof state.activeTasks)
           : state.activeTasks,
       };
 
