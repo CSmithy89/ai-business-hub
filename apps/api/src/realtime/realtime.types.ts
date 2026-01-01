@@ -7,6 +7,73 @@
  * @see Story 16-15: Implement WebSocket Real-Time Updates
  */
 
+import { z } from 'zod';
+
+// ============================================
+// Dashboard State Sync Payloads (DM-11.2)
+// Must be defined before ServerToClientEvents
+// ============================================
+
+/**
+ * Zod schema for dashboard state update payload (client -> server)
+ */
+export const DashboardStateUpdatePayloadSchema = z.object({
+  /** JSONPath to the updated property (e.g., 'widgets.w1', 'activeProject') */
+  path: z.string().min(1).max(200),
+  /** The new value for the path */
+  value: z.unknown(),
+  /** Version number for conflict detection */
+  version: z.number().int().min(0),
+  /** ISO timestamp of the update */
+  timestamp: z.string().datetime(),
+  /** Tab ID to exclude sender from receiving echo */
+  sourceTabId: z.string().min(1).max(50),
+});
+
+export type DashboardStateUpdatePayload = z.infer<typeof DashboardStateUpdatePayloadSchema>;
+
+/**
+ * Zod schema for dashboard state sync payload (server -> other clients)
+ */
+export const DashboardStateSyncPayloadSchema = z.object({
+  /** JSONPath to the updated property */
+  path: z.string(),
+  /** The new value for the path */
+  value: z.unknown(),
+  /** Version number for conflict detection */
+  version: z.number().int().min(0),
+  /** Tab ID of the sender (clients filter out if matches their tabId) */
+  sourceTabId: z.string(),
+});
+
+export type DashboardStateSyncPayload = z.infer<typeof DashboardStateSyncPayloadSchema>;
+
+/**
+ * Zod schema for full dashboard state payload (server -> client on reconnection)
+ */
+export const DashboardStateFullPayloadSchema = z.object({
+  /** Full dashboard state */
+  state: z.record(z.unknown()),
+  /** Current version number */
+  version: z.number().int().min(0),
+});
+
+export type DashboardStateFullPayload = z.infer<typeof DashboardStateFullPayloadSchema>;
+
+/**
+ * Zod schema for state request payload (client -> server on reconnection)
+ */
+export const DashboardStateRequestPayloadSchema = z.object({
+  /** Last known version number */
+  lastKnownVersion: z.number().int().min(0),
+});
+
+export type DashboardStateRequestPayload = z.infer<typeof DashboardStateRequestPayloadSchema>;
+
+// ============================================
+// Server/Client Event Interfaces
+// ============================================
+
 /**
  * Server-to-Client Events
  * Events emitted from the server to connected clients
@@ -82,6 +149,10 @@ export interface ServerToClientEvents {
 
   // PM Health Live Update events (PM-12.6)
   'pm.health.updated': (data: PMHealthUpdatePayload) => void;
+
+  // Dashboard State Sync events (DM-11.2)
+  'dashboard.state.sync': (data: DashboardStateSyncPayload) => void;
+  'dashboard.state.full': (data: DashboardStateFullPayload) => void;
 }
 
 /**
@@ -109,6 +180,10 @@ export interface ClientToServerEvents {
     taskId?: string;
     page: 'overview' | 'tasks' | 'settings' | 'docs';
   }) => void;
+
+  // Dashboard State Sync events (DM-11.2)
+  'dashboard.state.update': (data: DashboardStateUpdatePayload) => void;
+  'dashboard.state.request': (data: DashboardStateRequestPayload) => void;
 }
 
 /**
@@ -687,6 +762,12 @@ export const WS_EVENTS = {
 
   // PM Health Live Update events (PM-12.6)
   PM_HEALTH_UPDATED: 'pm.health.updated',
+
+  // Dashboard State Sync events (DM-11.2)
+  DASHBOARD_STATE_UPDATE: 'dashboard.state.update',
+  DASHBOARD_STATE_SYNC: 'dashboard.state.sync',
+  DASHBOARD_STATE_FULL: 'dashboard.state.full',
+  DASHBOARD_STATE_REQUEST: 'dashboard.state.request',
 } as const;
 
 export type WsEventName = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];
@@ -721,4 +802,12 @@ export function getProjectRoom(projectId: string): string {
  */
 export function getTaskRoom(taskId: string): string {
   return `task:${taskId}`;
+}
+
+/**
+ * Generate room name for dashboard state sync (DM-11.2)
+ * All tabs/devices for a user share this room
+ */
+export function getDashboardStateRoom(userId: string): string {
+  return `dashboard:state:${userId}`;
 }

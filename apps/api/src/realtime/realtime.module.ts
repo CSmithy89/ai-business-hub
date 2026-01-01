@@ -5,6 +5,7 @@ import { RealtimeEventHandler } from './realtime-event.handler';
 import { PresenceService } from './presence.service';
 import { EventsModule } from '../events/events.module';
 import { CommonModule } from '../common/common.module';
+import { DashboardModule } from '../modules/dashboard/dashboard.module';
 
 /**
  * RealtimeModule - WebSocket Real-Time Updates
@@ -34,6 +35,7 @@ import { CommonModule } from '../common/common.module';
     ConfigModule,
     EventsModule, // Required for Event Bus integration
     CommonModule, // Required for PrismaService (JWT validation)
+    DashboardModule, // DM-11.2: Required for DashboardStateService (WebSocket state sync)
   ],
   providers: [RealtimeGateway, RealtimeEventHandler, PresenceService],
   exports: [RealtimeGateway, PresenceService],

@@ -9,6 +9,58 @@
 
 import { PresencePayload } from '@hyvve/shared';
 
+// ============================================
+// Dashboard State Sync Payloads (DM-11.2)
+// ============================================
+
+/**
+ * Dashboard state update payload (client -> server)
+ */
+export interface DashboardStateUpdatePayload {
+  /** JSONPath to the updated property (e.g., 'widgets.w1', 'activeProject') */
+  path: string;
+  /** The new value for the path */
+  value: unknown;
+  /** Version number for conflict detection */
+  version: number;
+  /** ISO timestamp of the update */
+  timestamp: string;
+  /** Tab ID to exclude sender from receiving echo */
+  sourceTabId: string;
+}
+
+/**
+ * Dashboard state sync payload (server -> other clients)
+ */
+export interface DashboardStateSyncPayload {
+  /** JSONPath to the updated property */
+  path: string;
+  /** The new value for the path */
+  value: unknown;
+  /** Version number for conflict detection */
+  version: number;
+  /** Tab ID of the sender (clients filter out if matches their tabId) */
+  sourceTabId: string;
+}
+
+/**
+ * Full dashboard state payload (server -> client on reconnection)
+ */
+export interface DashboardStateFullPayload {
+  /** Full dashboard state */
+  state: Record<string, unknown>;
+  /** Current version number */
+  version: number;
+}
+
+/**
+ * State request payload (client -> server on reconnection)
+ */
+export interface DashboardStateRequestPayload {
+  /** Last known version number */
+  lastKnownVersion: number;
+}
+
 /**
  * Server-to-Client Events
  */
@@ -64,6 +116,10 @@ export interface ServerToClientEvents {
   'pm.health.updated': (data: PMHealthUpdatePayload) => void;
   'pm.health.critical': (data: PMHealthEventPayload) => void;
   'pm.health.warning': (data: PMHealthEventPayload) => void;
+
+  // Dashboard State Sync events (DM-11.2)
+  'dashboard.state.sync': (data: DashboardStateSyncPayload) => void;
+  'dashboard.state.full': (data: DashboardStateFullPayload) => void;
 }
 
 /**
@@ -90,6 +146,10 @@ export interface ClientToServerEvents {
     taskId?: string;
     page: 'overview' | 'tasks' | 'settings' | 'docs';
   }) => void;
+
+  // Dashboard State Sync events (DM-11.2)
+  'dashboard.state.update': (data: DashboardStateUpdatePayload) => void;
+  'dashboard.state.request': (data: DashboardStateRequestPayload) => void;
 }
 
 // ============================================
@@ -429,6 +489,12 @@ export const WS_EVENTS = {
   PM_HEALTH_UPDATED: 'pm.health.updated',
   PM_HEALTH_CRITICAL: 'pm.health.critical',
   PM_HEALTH_WARNING: 'pm.health.warning',
+
+  // Dashboard State Sync events (DM-11.2)
+  DASHBOARD_STATE_UPDATE: 'dashboard.state.update',
+  DASHBOARD_STATE_SYNC: 'dashboard.state.sync',
+  DASHBOARD_STATE_FULL: 'dashboard.state.full',
+  DASHBOARD_STATE_REQUEST: 'dashboard.state.request',
 } as const;
 
 export type WsEventName = (typeof WS_EVENTS)[keyof typeof WS_EVENTS];

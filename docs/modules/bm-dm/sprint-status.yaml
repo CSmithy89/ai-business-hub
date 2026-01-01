@@ -241,7 +241,7 @@ development_status:
   # ===========================================
   dm-11: in-progress
   dm-11-1-redis-state-persistence: done
-  dm-11-2-websocket-state-sync: backlog
+  dm-11-2-websocket-state-sync: done
   dm-11-3-approval-cancellation-api: backlog
   dm-11-4-parallel-mcp-connections: backlog
   dm-11-5-parallel-health-checks: backlog

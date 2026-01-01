@@ -46,12 +46,19 @@ import {
   PMSuggestionEventPayload,
   PMSuggestionActionPayload,
   PMHealthUpdatePayload,
+  // DM-11.2: Dashboard State Sync
+  DashboardStateUpdatePayloadSchema,
+  DashboardStateSyncPayload,
+  DashboardStateFullPayload,
+  DashboardStateRequestPayloadSchema,
+  getDashboardStateRoom,
   WS_EVENTS,
   getWorkspaceRoom,
   getUserRoom,
   getProjectRoom,
 } from './realtime.types';
 import { PresenceService } from './presence.service';
+import { DashboardStateService } from '../modules/dashboard/dashboard-state.service';
 
 // ============================================
 // Input Validation Schemas (Zod)
@@ -205,10 +212,17 @@ export class RealtimeGateway
   private readonly connectedClients = new Map<string, Set<string>>(); // workspaceId -> Set<socketId>
   private readonly userConnections = new Map<string, Set<string>>(); // userId -> Set<socketId>
 
+  // DM-11.2: Rate limiting for dashboard state updates (100 per minute per user)
+  private readonly dashboardStateRateLimits = new Map<string, { count: number; resetAt: number }>(); // userId -> rate limit state
+  private readonly DASHBOARD_STATE_RATE_LIMIT = 100;
+  private readonly DASHBOARD_STATE_RATE_WINDOW_MS = 60_000; // 1 minute
+  private readonly MAX_STATE_PAYLOAD_SIZE = 64 * 1024; // 64KB
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly presenceService: PresenceService,
+    private readonly dashboardStateService: DashboardStateService,
   ) {}
 
   /**
@@ -315,6 +329,10 @@ export class RealtimeGateway
       const userRoom = getUserRoom(userId);
       await client.join(userRoom);
 
+      // DM-11.2: Join dashboard state room for cross-device sync
+      const dashboardStateRoom = getDashboardStateRoom(userId);
+      await client.join(dashboardStateRoom);
+
       // Track connection for rate limiting
       this.trackConnection(workspaceId, client.id, userId);
 
@@ -323,7 +341,7 @@ export class RealtimeGateway
         socketId: client.id,
         userId,
         workspaceId,
-        rooms: [workspaceRoom, userRoom],
+        rooms: [workspaceRoom, userRoom, dashboardStateRoom],
       });
 
       // Send connection confirmation
@@ -699,6 +717,211 @@ export class RealtimeGateway
         socketId: client.id,
         userId,
         projectId: data.projectId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  // ============================================
+  // DM-11.2: Dashboard State Sync Handlers
+  // ============================================
+
+  /**
+   * Check if user is within rate limit for dashboard state updates
+   */
+  private checkDashboardStateRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const userLimit = this.dashboardStateRateLimits.get(userId);
+
+    if (!userLimit || now > userLimit.resetAt) {
+      // Start new window
+      this.dashboardStateRateLimits.set(userId, {
+        count: 1,
+        resetAt: now + this.DASHBOARD_STATE_RATE_WINDOW_MS,
+      });
+      return true;
+    }
+
+    if (userLimit.count >= this.DASHBOARD_STATE_RATE_LIMIT) {
+      return false;
+    }
+
+    userLimit.count++;
+    return true;
+  }
+
+  /**
+   * Handle dashboard state updates from clients
+   * Validates, rate limits, and broadcasts to other tabs/devices
+   * SECURITY: Validates input with Zod schema, rate limits per user
+   */
+  @SubscribeMessage(WS_EVENTS.DASHBOARD_STATE_UPDATE)
+  async handleDashboardStateUpdate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    const { userId, workspaceId } = client.data || {};
+
+    if (!userId || !workspaceId) {
+      this.logger.warn({
+        message: 'Dashboard state update from unauthenticated client',
+        socketId: client.id,
+      });
+      return;
+    }
+
+    // SECURITY: Validate payload size
+    const payloadSize = JSON.stringify(rawData).length;
+    if (payloadSize > this.MAX_STATE_PAYLOAD_SIZE) {
+      this.logger.warn({
+        message: 'Dashboard state update payload too large',
+        socketId: client.id,
+        userId,
+        payloadSize,
+        maxSize: this.MAX_STATE_PAYLOAD_SIZE,
+      });
+      return;
+    }
+
+    // SECURITY: Validate input with Zod
+    const parseResult = DashboardStateUpdatePayloadSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid dashboard.state.update payload',
+        socketId: client.id,
+        userId,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const data = parseResult.data;
+
+    // Rate limit check
+    if (!this.checkDashboardStateRateLimit(userId)) {
+      this.logger.warn({
+        message: 'Dashboard state update rate limit exceeded',
+        socketId: client.id,
+        userId,
+      });
+      return;
+    }
+
+    // Broadcast to all other clients in the user's dashboard state room
+    const dashboardStateRoom = getDashboardStateRoom(userId);
+    const syncPayload: DashboardStateSyncPayload = {
+      path: data.path,
+      value: data.value,
+      version: data.version,
+      sourceTabId: data.sourceTabId,
+    };
+
+    // Emit to all clients in the room (including sender - sender filters by tabId)
+    (this.server.to(dashboardStateRoom) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.DASHBOARD_STATE_SYNC,
+      syncPayload,
+    );
+
+    // Also persist to Redis for durability
+    try {
+      await this.dashboardStateService.saveState(userId, workspaceId, {
+        version: data.version,
+        state: { [data.path]: data.value },
+      });
+    } catch (error) {
+      // Log but don't fail the broadcast - Redis persistence is optional
+      this.logger.warn({
+        message: 'Failed to persist dashboard state update to Redis',
+        userId,
+        path: data.path,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    this.logger.debug({
+      message: 'Dashboard state update broadcast',
+      userId,
+      path: data.path,
+      version: data.version,
+      sourceTabId: data.sourceTabId,
+    });
+  }
+
+  /**
+   * Handle dashboard state request on reconnection
+   * Returns full state from Redis to the requesting client
+   * SECURITY: Validates input with Zod schema
+   */
+  @SubscribeMessage(WS_EVENTS.DASHBOARD_STATE_REQUEST)
+  async handleDashboardStateRequest(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    const { userId, workspaceId } = client.data || {};
+
+    if (!userId || !workspaceId) {
+      this.logger.warn({
+        message: 'Dashboard state request from unauthenticated client',
+        socketId: client.id,
+      });
+      return;
+    }
+
+    // SECURITY: Validate input with Zod
+    const parseResult = DashboardStateRequestPayloadSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid dashboard.state.request payload',
+        socketId: client.id,
+        userId,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const data = parseResult.data;
+
+    try {
+      // Fetch full state from Redis
+      const storedState = await this.dashboardStateService.getState(userId, workspaceId);
+
+      if (!storedState) {
+        // No state stored - send empty state
+        const fullPayload: DashboardStateFullPayload = {
+          state: {},
+          version: 0,
+        };
+        client.emit(WS_EVENTS.DASHBOARD_STATE_FULL, fullPayload);
+        return;
+      }
+
+      // Only send if server version is newer than client's known version
+      if (storedState.version > data.lastKnownVersion) {
+        const fullPayload: DashboardStateFullPayload = {
+          state: storedState.state as Record<string, unknown>,
+          version: storedState.version,
+        };
+        client.emit(WS_EVENTS.DASHBOARD_STATE_FULL, fullPayload);
+
+        this.logger.debug({
+          message: 'Dashboard state recovery sent',
+          userId,
+          clientVersion: data.lastKnownVersion,
+          serverVersion: storedState.version,
+        });
+      } else {
+        this.logger.debug({
+          message: 'Dashboard state request - client already up to date',
+          userId,
+          clientVersion: data.lastKnownVersion,
+          serverVersion: storedState.version,
+        });
+      }
+    } catch (error) {
+      this.logger.error({
+        message: 'Failed to fetch dashboard state from Redis',
+        socketId: client.id,
+        userId,
         error: error instanceof Error ? error.message : String(error),
       });
     }

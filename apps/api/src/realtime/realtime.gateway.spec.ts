@@ -3,11 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { RealtimeGateway } from './realtime.gateway';
 import { Socket, Server } from 'socket.io';
 import { PrismaService } from '../common/services/prisma.service';
+import { DashboardStateService } from '../modules/dashboard/dashboard-state.service';
+import { PresenceService } from './presence.service';
 import {
   ApprovalEventPayload,
   AgentStatusPayload,
   getWorkspaceRoom,
   getUserRoom,
+  getDashboardStateRoom,
+  WS_EVENTS,
 } from './realtime.types';
 
 describe('RealtimeGateway', () => {
@@ -27,6 +31,17 @@ describe('RealtimeGateway', () => {
     },
   };
 
+  const mockDashboardStateService = {
+    saveState: jest.fn(),
+    getState: jest.fn(),
+  };
+
+  const mockPresenceService = {
+    updatePresence: jest.fn(),
+    getPresence: jest.fn(),
+    removeUserFromWorkspace: jest.fn(),
+  };
+
   beforeEach(async () => {
     // Mock the Socket.io server
     mockServer = {
@@ -44,6 +59,14 @@ describe('RealtimeGateway', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: DashboardStateService,
+          useValue: mockDashboardStateService,
+        },
+        {
+          provide: PresenceService,
+          useValue: mockPresenceService,
         },
       ],
     }).compile();
@@ -340,5 +363,284 @@ describe('Room Helper Functions', () => {
 
   it('should generate correct user room name', () => {
     expect(getUserRoom('user-456')).toBe('user:user-456');
+  });
+
+  it('should generate correct dashboard state room name', () => {
+    expect(getDashboardStateRoom('user-789')).toBe('dashboard:state:user-789');
+  });
+});
+
+describe('RealtimeGateway - Dashboard State Sync (DM-11.2)', () => {
+  let gateway: RealtimeGateway;
+  let mockServer: Partial<Server>;
+
+  const mockConfigService = {
+    get: jest.fn((key: string, defaultValue: string) => {
+      if (key === 'FRONTEND_URL') return 'http://localhost:3000';
+      return defaultValue;
+    }),
+  };
+
+  const mockPrismaService = {
+    session: {
+      findUnique: jest.fn(),
+    },
+    approvalItem: {
+      count: jest.fn().mockResolvedValue(0),
+    },
+    notification: {
+      count: jest.fn().mockResolvedValue(0),
+    },
+  };
+
+  const mockDashboardStateService = {
+    saveState: jest.fn().mockResolvedValue({ success: true }),
+    getState: jest.fn(),
+  };
+
+  const mockPresenceService = {
+    updatePresence: jest.fn(),
+    getPresence: jest.fn(),
+    removeUserFromWorkspace: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    mockServer = {
+      to: jest.fn().mockReturnValue({
+        emit: jest.fn(),
+      }),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        RealtimeGateway,
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+        {
+          provide: DashboardStateService,
+          useValue: mockDashboardStateService,
+        },
+        {
+          provide: PresenceService,
+          useValue: mockPresenceService,
+        },
+      ],
+    }).compile();
+
+    gateway = module.get<RealtimeGateway>(RealtimeGateway);
+    (gateway as { server: typeof mockServer }).server = mockServer as Server;
+
+    jest.clearAllMocks();
+  });
+
+  describe('handleDashboardStateUpdate', () => {
+    it('should reject update from unauthenticated client', async () => {
+      const mockClient = {
+        id: 'test-socket-id',
+        data: {},
+      } as unknown as Socket;
+
+      await gateway.handleDashboardStateUpdate(mockClient, {
+        path: 'widgets.test',
+        value: { status: 'active' },
+        version: 1,
+        timestamp: new Date().toISOString(),
+        sourceTabId: 'tab-1',
+      });
+
+      // Should not emit or save
+      expect(mockServer.to).not.toHaveBeenCalled();
+      expect(mockDashboardStateService.saveState).not.toHaveBeenCalled();
+    });
+
+    it('should reject invalid payload', async () => {
+      const mockClient = {
+        id: 'test-socket-id',
+        data: { userId: 'user-1', workspaceId: 'ws-1' },
+      } as unknown as Socket;
+
+      await gateway.handleDashboardStateUpdate(mockClient, {
+        // Missing required fields
+        path: '',
+        value: null,
+      });
+
+      expect(mockServer.to).not.toHaveBeenCalled();
+      expect(mockDashboardStateService.saveState).not.toHaveBeenCalled();
+    });
+
+    it('should broadcast valid update to dashboard state room', async () => {
+      const mockClient = {
+        id: 'test-socket-id',
+        data: { userId: 'user-1', workspaceId: 'ws-1' },
+      } as unknown as Socket;
+
+      const payload = {
+        path: 'widgets.projectStatus',
+        value: { status: 'active' },
+        version: 1,
+        timestamp: new Date().toISOString(),
+        sourceTabId: 'tab-1',
+      };
+
+      await gateway.handleDashboardStateUpdate(mockClient, payload);
+
+      // Should broadcast to dashboard state room
+      expect(mockServer.to).toHaveBeenCalledWith('dashboard:state:user-1');
+      const toResult = mockServer.to!('dashboard:state:user-1') as unknown as { emit: jest.Mock };
+      expect(toResult.emit).toHaveBeenCalledWith(
+        WS_EVENTS.DASHBOARD_STATE_SYNC,
+        {
+          path: payload.path,
+          value: payload.value,
+          version: payload.version,
+          sourceTabId: payload.sourceTabId,
+        }
+      );
+
+      // Should persist to Redis
+      expect(mockDashboardStateService.saveState).toHaveBeenCalledWith(
+        'user-1',
+        'ws-1',
+        expect.objectContaining({
+          version: payload.version,
+          state: { [payload.path]: payload.value },
+        })
+      );
+    });
+
+    it('should reject payload exceeding size limit', async () => {
+      const mockClient = {
+        id: 'test-socket-id',
+        data: { userId: 'user-1', workspaceId: 'ws-1' },
+      } as unknown as Socket;
+
+      // Create a payload that exceeds 64KB
+      const largeValue = 'x'.repeat(70000);
+
+      await gateway.handleDashboardStateUpdate(mockClient, {
+        path: 'widgets.large',
+        value: largeValue,
+        version: 1,
+        timestamp: new Date().toISOString(),
+        sourceTabId: 'tab-1',
+      });
+
+      expect(mockServer.to).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleDashboardStateRequest', () => {
+    it('should reject request from unauthenticated client', async () => {
+      const mockClient = {
+        id: 'test-socket-id',
+        data: {},
+        emit: jest.fn(),
+      } as unknown as Socket;
+
+      await gateway.handleDashboardStateRequest(mockClient, {
+        lastKnownVersion: 0,
+      });
+
+      expect(mockClient.emit).not.toHaveBeenCalled();
+      expect(mockDashboardStateService.getState).not.toHaveBeenCalled();
+    });
+
+    it('should return full state when server version is newer', async () => {
+      const mockClient = {
+        id: 'test-socket-id',
+        data: { userId: 'user-1', workspaceId: 'ws-1' },
+        emit: jest.fn(),
+      } as unknown as Socket;
+
+      const serverState = {
+        version: 5,
+        state: { widgets: { test: 'value' } },
+        lastModified: new Date().toISOString(),
+      };
+      mockDashboardStateService.getState.mockResolvedValue(serverState);
+
+      await gateway.handleDashboardStateRequest(mockClient, {
+        lastKnownVersion: 2,
+      });
+
+      expect(mockDashboardStateService.getState).toHaveBeenCalledWith('user-1', 'ws-1');
+      expect(mockClient.emit).toHaveBeenCalledWith(
+        WS_EVENTS.DASHBOARD_STATE_FULL,
+        {
+          state: serverState.state,
+          version: serverState.version,
+        }
+      );
+    });
+
+    it('should not return state when client is up to date', async () => {
+      const mockClient = {
+        id: 'test-socket-id',
+        data: { userId: 'user-1', workspaceId: 'ws-1' },
+        emit: jest.fn(),
+      } as unknown as Socket;
+
+      mockDashboardStateService.getState.mockResolvedValue({
+        version: 5,
+        state: { widgets: {} },
+        lastModified: new Date().toISOString(),
+      });
+
+      await gateway.handleDashboardStateRequest(mockClient, {
+        lastKnownVersion: 5,
+      });
+
+      expect(mockClient.emit).not.toHaveBeenCalled();
+    });
+
+    it('should return empty state when no state exists', async () => {
+      const mockClient = {
+        id: 'test-socket-id',
+        data: { userId: 'user-1', workspaceId: 'ws-1' },
+        emit: jest.fn(),
+      } as unknown as Socket;
+
+      mockDashboardStateService.getState.mockResolvedValue(null);
+
+      await gateway.handleDashboardStateRequest(mockClient, {
+        lastKnownVersion: 0,
+      });
+
+      expect(mockClient.emit).toHaveBeenCalledWith(
+        WS_EVENTS.DASHBOARD_STATE_FULL,
+        {
+          state: {},
+          version: 0,
+        }
+      );
+    });
+  });
+
+  describe('rate limiting', () => {
+    it('should allow updates within rate limit', async () => {
+      const mockClient = {
+        id: 'test-socket-id',
+        data: { userId: 'rate-test-user', workspaceId: 'ws-1' },
+      } as unknown as Socket;
+
+      const payload = {
+        path: 'widgets.test',
+        value: 'value',
+        version: 1,
+        timestamp: new Date().toISOString(),
+        sourceTabId: 'tab-1',
+      };
+
+      // First update should succeed
+      await gateway.handleDashboardStateUpdate(mockClient, payload);
+      expect(mockServer.to).toHaveBeenCalled();
+    });
   });
 });

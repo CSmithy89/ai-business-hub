@@ -1,0 +1,860 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-11.2 - WebSocket State Synchronization
+  Generated for: Epic DM-11 Advanced Features & Optimizations
+
+  This context file provides relevant code snippets and patterns
+  for implementing real-time WebSocket state synchronization.
+-->
+<context>
+  <story>
+    <id>DM-11.2</id>
+    <title>WebSocket State Synchronization</title>
+    <epic>DM-11</epic>
+    <status>backlog</status>
+    <points>8</points>
+    <dependency>DM-11.1 (Redis State Persistence) - COMPLETE</dependency>
+  </story>
+
+  <overview>
+    This story implements real-time WebSocket state synchronization for dashboard
+    state across multiple devices and browser tabs. Building on DM-11.1's Redis
+    persistence, this adds live propagation of state changes via Socket.io.
+  </overview>
+
+  <!-- =================================================================== -->
+  <!-- BACKEND: EXISTING WEBSOCKET INFRASTRUCTURE                          -->
+  <!-- =================================================================== -->
+
+  <section name="backend-websocket-infrastructure">
+    <description>
+      The existing WebSocket infrastructure provides Socket.io-based real-time
+      updates with JWT authentication, room-based isolation, and type-safe events.
+    </description>
+
+    <file path="apps/api/src/realtime/realtime.gateway.ts">
+      <summary>
+        Main WebSocket gateway handling connections, authentication, and broadcasting.
+        Key patterns to follow:
+        - JWT validation via sessions table
+        - Room-based isolation (user:userId, workspace:workspaceId, project:projectId)
+        - Type-safe event emission with ServerToClientEvents/ClientToServerEvents
+        - Rate limiting for connections
+        - Zod validation for incoming payloads
+      </summary>
+      <key-patterns>
+        <pattern name="room-naming">
+          <code><![CDATA[
+// Generate room name for user-specific events
+export function getUserRoom(userId: string): string {
+  return `user:${userId}`;
+}
+
+// For state sync, use user-scoped rooms:
+// user:{userId}:state - All tabs/devices for a user share this room
+          ]]></code>
+        </pattern>
+        <pattern name="broadcast-to-user">
+          <code><![CDATA[
+/**
+ * Emit an event to a specific user
+ */
+emitToUser<K extends keyof ServerToClientEvents>(
+  userId: string,
+  event: K,
+  data: Parameters<ServerToClientEvents[K]>[0],
+): void {
+  const room = getUserRoom(userId);
+  (this.server.to(room) as { emit: (event: string, data: unknown) => void }).emit(
+    event as string,
+    data,
+  );
+}
+          ]]></code>
+        </pattern>
+        <pattern name="client-message-handler">
+          <code><![CDATA[
+// Zod validation schema pattern
+const PMPresenceUpdateSchema = z.object({
+  projectId: z.string().min(1).max(100),
+  taskId: z.string().min(1).max(100).optional(),
+  page: z.enum(['overview', 'tasks', 'settings', 'docs']),
+});
+
+/**
+ * Handle client messages with validation
+ */
+@SubscribeMessage('pm.presence.update')
+async handlePMPresenceUpdate(
+  @ConnectedSocket() client: Socket,
+  @MessageBody() rawData: unknown,
+) {
+  // SECURITY: Validate input
+  const parseResult = PMPresenceUpdateSchema.safeParse(rawData);
+  if (!parseResult.success) {
+    this.logger.warn({
+      message: 'Invalid pm.presence.update payload',
+      socketId: client.id,
+      errors: parseResult.error.errors,
+    });
+    return;
+  }
+
+  const data = parseResult.data;
+  const { userId, workspaceId } = client.data || {};
+  // ... handle validated data
+}
+          ]]></code>
+        </pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/realtime/realtime.types.ts">
+      <summary>
+        Type definitions for WebSocket events. Add new state sync events here.
+      </summary>
+      <existing-events>
+        <code><![CDATA[
+/**
+ * Server-to-Client Events
+ */
+export interface ServerToClientEvents {
+  // ... existing events ...
+  'sync.state': (data: SyncStatePayload) => void;
+}
+
+/**
+ * Client-to-Server Events
+ */
+export interface ClientToServerEvents {
+  // ... existing events ...
+  'sync.request': (data: { lastEventId?: string; since?: string }) => void;
+}
+
+/**
+ * WebSocket event names for type-safe event emission
+ */
+export const WS_EVENTS = {
+  // ... existing events ...
+  SYNC_STATE: 'sync.state',
+} as const;
+        ]]></code>
+      </existing-events>
+      <new-events-to-add>
+        <code><![CDATA[
+// Add to ServerToClientEvents:
+'dashboard.state.sync': (data: DashboardStateSyncPayload) => void;
+'dashboard.state.full': (data: DashboardStateFullPayload) => void;
+
+// Add to ClientToServerEvents:
+'dashboard.state.update': (data: DashboardStateUpdatePayload) => void;
+'dashboard.state.request': (data: { lastKnownVersion: number }) => void;
+
+// Add to WS_EVENTS:
+DASHBOARD_STATE_UPDATE: 'dashboard.state.update',
+DASHBOARD_STATE_SYNC: 'dashboard.state.sync',
+DASHBOARD_STATE_FULL: 'dashboard.state.full',
+DASHBOARD_STATE_REQUEST: 'dashboard.state.request',
+
+// New payload interfaces:
+export interface DashboardStateUpdatePayload {
+  path: string;           // e.g., 'widgets.w1', 'activeProject'
+  value: unknown;
+  version: number;
+  timestamp: string;
+  sourceTabId: string;    // Exclude sender from receiving
+}
+
+export interface DashboardStateSyncPayload {
+  path: string;
+  value: unknown;
+  version: number;
+  sourceTabId: string;
+}
+
+export interface DashboardStateFullPayload {
+  state: Record<string, unknown>;
+  version: number;
+}
+        ]]></code>
+      </new-events-to-add>
+    </file>
+
+    <file path="apps/api/src/realtime/realtime.module.ts">
+      <summary>
+        Module registration for realtime components. Register StateSyncGateway here.
+      </summary>
+      <code><![CDATA[
+@Module({
+  imports: [
+    ConfigModule,
+    EventsModule,
+    CommonModule,
+  ],
+  providers: [
+    RealtimeGateway,
+    RealtimeEventHandler,
+    PresenceService,
+    // Add: StateSyncGateway (or integrate into RealtimeGateway)
+  ],
+  exports: [RealtimeGateway, PresenceService],
+})
+export class RealtimeModule {}
+      ]]></code>
+    </file>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- BACKEND: DASHBOARD STATE SERVICE (DM-11.1)                          -->
+  <!-- =================================================================== -->
+
+  <section name="dashboard-state-service">
+    <description>
+      The DashboardStateService provides Redis persistence from DM-11.1.
+      The state sync gateway should use this for conflict resolution and state retrieval.
+    </description>
+
+    <file path="apps/api/src/modules/dashboard/dashboard-state.service.ts">
+      <summary>
+        Redis-based state persistence with conflict resolution.
+      </summary>
+      <key-methods>
+        <code><![CDATA[
+/** Redis key prefix for dashboard state */
+const KEY_PREFIX = 'hyvve:dashboard:state:';
+
+/**
+ * Generate Redis key for dashboard state
+ * Pattern: hyvve:dashboard:state:{userId}:{workspaceId}
+ */
+private getStateKey(userId: string, workspaceId: string): string {
+  return `${KEY_PREFIX}${userId}:${workspaceId}`;
+}
+
+/**
+ * Get dashboard state from Redis
+ */
+async getState(
+  userId: string,
+  workspaceId: string,
+): Promise<GetStateResponseDto | null>
+
+/**
+ * Save dashboard state to Redis
+ * Implements conflict resolution
+ */
+async saveState(
+  userId: string,
+  workspaceId: string,
+  dto: SaveDashboardStateDto,
+): Promise<SaveStateResponseDto>
+        ]]></code>
+      </key-methods>
+      <integration-pattern>
+        <description>
+          StateSyncGateway should inject DashboardStateService for:
+          1. Persisting updates to Redis when receiving client state updates
+          2. Retrieving full state when handling reconnection requests
+        </description>
+      </integration-pattern>
+    </file>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- FRONTEND: REALTIME PROVIDER                                         -->
+  <!-- =================================================================== -->
+
+  <section name="frontend-realtime-provider">
+    <description>
+      The RealtimeProvider manages Socket.io connection with authentication,
+      reconnection handling, and event subscription API.
+    </description>
+
+    <file path="apps/web/src/lib/realtime/realtime-provider.tsx">
+      <summary>
+        React context provider for WebSocket connection. Provides subscribe/emit APIs.
+      </summary>
+      <key-patterns>
+        <pattern name="context-api">
+          <code><![CDATA[
+interface RealtimeContextValue {
+  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
+  connectionState: RealtimeConnectionState;
+  isConnected: boolean;
+  isReconnecting: boolean;
+  connectionError: string | null;
+  reconnect: () => void;
+  subscribe: <K extends keyof ServerToClientEvents>(
+    event: K,
+    handler: ServerToClientEvents[K]
+  ) => () => void;
+  emit: <K extends keyof ClientToServerEvents>(
+    event: K,
+    data: Parameters<ClientToServerEvents[K]>[0]
+  ) => void;
+}
+          ]]></code>
+        </pattern>
+        <pattern name="subscribe-usage">
+          <code><![CDATA[
+// From useRealtime hook
+const { socket, isConnected, subscribe, emit } = useRealtime();
+
+// Subscribe to events with cleanup
+useEffect(() => {
+  if (!socket || !isConnected) return;
+
+  const unsubscribe = subscribe('pm.task.created', handleTaskCreated);
+
+  return () => {
+    unsubscribe();
+  };
+}, [socket, isConnected, subscribe]);
+          ]]></code>
+        </pattern>
+        <pattern name="emit-with-rate-limiting">
+          <code><![CDATA[
+// Rate limits are configured in realtime-provider.tsx
+const RATE_LIMITS: Record<string, { maxEmits: number; windowMs: number }> = {
+  'typing.start': { maxEmits: 5, windowMs: 5000 },
+  'presence.update': { maxEmits: 3, windowMs: 10000 },
+  'sync.request': { maxEmits: 3, windowMs: 30000 },
+  // Add: 'dashboard.state.update': { maxEmits: 10, windowMs: 1000 }
+};
+          ]]></code>
+        </pattern>
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/lib/realtime/types.ts">
+      <summary>
+        Frontend type definitions (mirror of backend types).
+        Add state sync event types here.
+      </summary>
+      <types-to-add>
+        <code><![CDATA[
+// Add to ServerToClientEvents:
+'dashboard.state.sync': (data: DashboardStateSyncPayload) => void;
+'dashboard.state.full': (data: DashboardStateFullPayload) => void;
+
+// Add to ClientToServerEvents:
+'dashboard.state.update': (data: DashboardStateUpdatePayload) => void;
+'dashboard.state.request': (data: { lastKnownVersion: number }) => void;
+
+// Add to WS_EVENTS:
+DASHBOARD_STATE_SYNC: 'dashboard.state.sync',
+DASHBOARD_STATE_FULL: 'dashboard.state.full',
+DASHBOARD_STATE_UPDATE: 'dashboard.state.update',
+DASHBOARD_STATE_REQUEST: 'dashboard.state.request',
+
+// Add new interfaces:
+export interface DashboardStateUpdatePayload {
+  path: string;
+  value: unknown;
+  version: number;
+  timestamp: string;
+  sourceTabId: string;
+}
+
+export interface DashboardStateSyncPayload {
+  path: string;
+  value: unknown;
+  version: number;
+  sourceTabId: string;
+}
+
+export interface DashboardStateFullPayload {
+  state: Record<string, unknown>;
+  version: number;
+}
+        ]]></code>
+      </types-to-add>
+    </file>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- FRONTEND: DASHBOARD STATE STORE (DM-11.1)                           -->
+  <!-- =================================================================== -->
+
+  <section name="dashboard-state-store">
+    <description>
+      Zustand store for dashboard state with sync actions from DM-11.1.
+      Add WebSocket sync integration here.
+    </description>
+
+    <file path="apps/web/src/stores/dashboard-state-store.ts">
+      <summary>
+        Dashboard state store with Redis sync actions. Add WebSocket sync here.
+      </summary>
+      <existing-sync-state>
+        <code><![CDATA[
+// Sync state (DM-11.1)
+isSyncing: boolean;
+lastSyncedAt: number | null;
+syncError: string | null;
+
+// Sync actions (DM-11.1)
+syncToServer: () => Promise<void>;
+restoreFromServer: () => Promise<boolean>;
+clearSyncError: () => void;
+        ]]></code>
+      </existing-sync-state>
+      <websocket-integration-pattern>
+        <code><![CDATA[
+// Add to store interface:
+/** Tab ID for this browser tab */
+tabId: string;
+/** Current state version for conflict resolution */
+stateVersion: number;
+
+// Add WebSocket sync methods:
+/** Subscribe to WebSocket state updates */
+initWebSocketSync: (socket: Socket) => () => void;
+/** Emit state update via WebSocket */
+emitStateUpdate: (path: string, value: unknown) => void;
+/** Apply incoming state sync from another device/tab */
+applyRemoteSync: (payload: DashboardStateSyncPayload) => void;
+        ]]></code>
+      </websocket-integration-pattern>
+    </file>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- FRONTEND: USE-DASHBOARD-SYNC HOOK (DM-11.1)                         -->
+  <!-- =================================================================== -->
+
+  <section name="use-dashboard-sync-hook">
+    <description>
+      The useDashboardSync hook manages Redis sync lifecycle.
+      Extend this to include WebSocket sync.
+    </description>
+
+    <file path="apps/web/src/hooks/use-dashboard-sync.ts">
+      <summary>
+        Hook for dashboard state synchronization. Add WebSocket sync here.
+      </summary>
+      <existing-code>
+        <code><![CDATA[
+import { useEffect, useRef, useCallback } from 'react';
+import { useSession } from '@/lib/auth-client';
+import { useDashboardStateStore } from '@/stores/dashboard-state-store';
+import { DM_CONSTANTS } from '@/lib/dm-constants';
+
+const { SYNC_DEBOUNCE_MS, RESTORE_ON_AUTH, SIGNIFICANT_CHANGE_PATHS } =
+  DM_CONSTANTS.STATE_SYNC;
+
+export function useDashboardSync(): UseDashboardSyncReturn {
+  const { data: session, isPending } = useSession();
+  const isAuthenticated = !isPending && !!session;
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ... existing Redis sync logic ...
+}
+        ]]></code>
+      </existing-code>
+      <websocket-extension-pattern>
+        <code><![CDATA[
+// Add WebSocket sync alongside Redis sync:
+import { useRealtime } from '@/lib/realtime/realtime-provider';
+
+export function useDashboardSync(): UseDashboardSyncReturn {
+  const { socket, isConnected, subscribe, emit } = useRealtime();
+
+  // WebSocket sync effect
+  useEffect(() => {
+    if (!socket || !isConnected || !isAuthenticated) return;
+
+    // Subscribe to state sync events
+    const unsubSync = subscribe('dashboard.state.sync', (payload) => {
+      // Apply remote update if not from this tab
+      if (payload.sourceTabId !== getTabId()) {
+        applyRemoteSync(payload);
+      }
+    });
+
+    const unsubFull = subscribe('dashboard.state.full', (payload) => {
+      // Apply full state from server on reconnection
+      restoreFromServerPayload(payload);
+    });
+
+    // Request full state on connection
+    emit('dashboard.state.request', { lastKnownVersion: stateVersion });
+
+    return () => {
+      unsubSync();
+      unsubFull();
+    };
+  }, [socket, isConnected, isAuthenticated]);
+}
+        ]]></code>
+      </websocket-extension-pattern>
+    </file>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- CONSTANTS                                                           -->
+  <!-- =================================================================== -->
+
+  <section name="constants">
+    <file path="apps/web/src/lib/dm-constants.ts">
+      <summary>
+        Centralized constants for DM module. Add WebSocket sync constants.
+      </summary>
+      <existing-state-sync>
+        <code><![CDATA[
+STATE_SYNC: {
+  /** Debounce delay before syncing to server (ms) */
+  SYNC_DEBOUNCE_MS: 2000,
+  /** Whether to restore state from server on authentication */
+  RESTORE_ON_AUTH: true,
+  /** State paths that trigger a sync when changed */
+  SIGNIFICANT_CHANGE_PATHS: [
+    'widgets',
+    'activeProject',
+    'activeTasks',
+  ] as const,
+  /** Maximum retry attempts for sync operations */
+  MAX_SYNC_RETRIES: 3,
+  /** Delay between retry attempts (ms) */
+  RETRY_DELAY_MS: 1000,
+},
+        ]]></code>
+      </existing-state-sync>
+      <add-websocket-constants>
+        <code><![CDATA[
+// Add to STATE_SYNC or create WEBSOCKET_SYNC section:
+WEBSOCKET_SYNC: {
+  /** Debounce delay for WebSocket emissions (faster than Redis) */
+  WS_DEBOUNCE_MS: 100,
+  /** Maximum payload size in bytes */
+  MAX_PAYLOAD_SIZE: 64 * 1024, // 64KB
+  /** Tab ID storage key */
+  TAB_ID_KEY: 'hyvve:tabId',
+},
+        ]]></code>
+      </add-websocket-constants>
+    </file>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- IMPLEMENTATION GUIDANCE                                             -->
+  <!-- =================================================================== -->
+
+  <section name="implementation-guidance">
+    <files-to-create>
+      <file>
+        <path>apps/api/src/modules/realtime/state-sync.gateway.ts</path>
+        <description>
+          NestJS gateway for state sync WebSocket handling. Can be:
+          A) Separate gateway file in modules/realtime/ folder, or
+          B) Add handlers directly to RealtimeGateway
+
+          Option B is simpler since RealtimeGateway already handles user rooms.
+          Add @SubscribeMessage handlers for:
+          - 'dashboard.state.update': Receive update, save to Redis, broadcast to room
+          - 'dashboard.state.request': Handle reconnection, send full state
+        </description>
+      </file>
+      <file>
+        <path>apps/web/src/lib/realtime/state-sync-client.ts</path>
+        <description>
+          Frontend state sync client module. Provides:
+          - getTabId(): Generate/retrieve unique tab ID from sessionStorage
+          - createStateSyncSubscriptions(): Subscribe to sync events
+          - emitStateUpdate(): Debounced state update emission
+          - handleReconnection(): Request full state on reconnect
+        </description>
+      </file>
+      <file>
+        <path>apps/web/src/lib/realtime/state-diff.ts</path>
+        <description>
+          Diff generation and application utilities:
+          - generateDiff(oldState, newState): Produce minimal diff
+          - applyDiff(state, diff): Apply diff to state
+          - getValueAtPath(obj, path): Get nested value by path
+          - setValueAtPath(obj, path, value): Set nested value by path
+        </description>
+      </file>
+    </files-to-create>
+
+    <gateway-implementation-approach>
+      <recommendation>
+        Extend RealtimeGateway rather than creating separate gateway file.
+        The RealtimeGateway already:
+        - Has Redis access via PrismaService
+        - Manages user rooms (user:userId)
+        - Has connection/disconnection handling
+        - Uses validated socket.data for userId/workspaceId
+      </recommendation>
+      <code-to-add><![CDATA[
+// Add to RealtimeGateway class:
+
+/**
+ * Handle dashboard state updates from clients
+ * Validates payload, persists to Redis, broadcasts to other tabs/devices
+ */
+@SubscribeMessage('dashboard.state.update')
+async handleDashboardStateUpdate(
+  @ConnectedSocket() client: Socket,
+  @MessageBody() rawData: unknown,
+) {
+  // 1. Validate input with Zod
+  const parseResult = DashboardStateUpdateSchema.safeParse(rawData);
+  if (!parseResult.success) {
+    this.logger.warn({ message: 'Invalid dashboard.state.update payload' });
+    return;
+  }
+
+  const data = parseResult.data;
+  const { userId, workspaceId } = client.data || {};
+  if (!userId) return;
+
+  // 2. Save to Redis (via DashboardStateService)
+  // (Inject DashboardStateService in constructor)
+
+  // 3. Broadcast to user room (excluding sender)
+  const userStateRoom = `user:${userId}:state`;
+  client.to(userStateRoom).emit('dashboard.state.sync', {
+    path: data.path,
+    value: data.value,
+    version: data.version,
+    sourceTabId: data.sourceTabId,
+  });
+}
+
+/**
+ * Handle state request on reconnection
+ */
+@SubscribeMessage('dashboard.state.request')
+async handleDashboardStateRequest(
+  @ConnectedSocket() client: Socket,
+  @MessageBody() rawData: unknown,
+) {
+  const { userId, workspaceId } = client.data || {};
+  if (!userId || !workspaceId) return;
+
+  // Get state from Redis
+  const state = await this.dashboardStateService.getState(userId, workspaceId);
+
+  if (state) {
+    client.emit('dashboard.state.full', {
+      state: state.state,
+      version: state.version,
+    });
+  }
+
+  // Join user state room
+  const userStateRoom = `user:${userId}:state`;
+  await client.join(userStateRoom);
+}
+      ]]></code-to-add>
+    </gateway-implementation-approach>
+
+    <frontend-integration-approach>
+      <tab-id-generation><![CDATA[
+// In state-sync-client.ts:
+export function getTabId(): string {
+  if (typeof window === 'undefined') return '';
+
+  let tabId = sessionStorage.getItem('hyvve:tabId');
+  if (!tabId) {
+    tabId = `tab-${crypto.randomUUID().slice(0, 8)}`;
+    sessionStorage.setItem('hyvve:tabId', tabId);
+  }
+  return tabId;
+}
+      ]]></tab-id-generation>
+
+      <store-integration><![CDATA[
+// In dashboard-state-store.ts, add to store:
+
+// WebSocket sync state
+tabId: getTabId(),
+wsConnected: false,
+
+// WebSocket sync method
+emitStateUpdate: (path: string, value: unknown) => {
+  const { tabId, version, timestamp } = get();
+
+  // Check if path is significant (worth syncing)
+  const isSignificant = SIGNIFICANT_CHANGE_PATHS.some(
+    (p) => path === p || path.startsWith(`${p}.`)
+  );
+
+  if (!isSignificant) return;
+
+  // Emit via RealtimeProvider's emit function
+  // (This needs to be called from the hook, not directly in store)
+  // The hook will handle debouncing and emission
+},
+
+// Apply remote sync
+applyRemoteSync: (payload: DashboardStateSyncPayload) => {
+  const { version } = get();
+
+  // Version-based conflict resolution
+  if (payload.version < version) {
+    console.warn('[StateSync] Ignoring stale update');
+    return;
+  }
+
+  // Apply the update at the specified path
+  set((state) => {
+    const newState = { ...state };
+    setValueAtPath(newState, payload.path, payload.value);
+    return {
+      ...newState,
+      version: payload.version,
+      timestamp: Date.now(),
+    };
+  });
+},
+      ]]></store-integration>
+    </frontend-integration-approach>
+
+    <test-patterns>
+      <backend-tests><![CDATA[
+// state-sync.gateway.spec.ts patterns:
+describe('handleDashboardStateUpdate', () => {
+  it('should broadcast to user room excluding sender', async () => {
+    // Setup mock client with userId
+    // Call handler with valid payload
+    // Assert client.to(userRoom).emit was called
+    // Assert sender is excluded
+  });
+
+  it('should validate payload and reject invalid data', async () => {
+    // Call with invalid payload
+    // Assert no emit/save occurred
+    // Assert warning logged
+  });
+});
+
+describe('handleDashboardStateRequest', () => {
+  it('should return full state from Redis', async () => {
+    // Mock dashboardStateService.getState
+    // Call handler
+    // Assert client.emit('dashboard.state.full') was called
+  });
+
+  it('should join user state room', async () => {
+    // Call handler
+    // Assert client.join was called with user:userId:state
+  });
+});
+      ]]></backend-tests>
+
+      <frontend-tests><![CDATA[
+// state-sync-client.test.ts patterns:
+describe('getTabId', () => {
+  it('should generate consistent ID for same tab', () => {
+    const id1 = getTabId();
+    const id2 = getTabId();
+    expect(id1).toBe(id2);
+  });
+
+  it('should return empty string on server side', () => {
+    // Mock window as undefined
+    expect(getTabId()).toBe('');
+  });
+});
+
+// state-diff.test.ts patterns:
+describe('applyDiff', () => {
+  it('should apply nested path updates', () => {
+    const state = { widgets: { a: 1 } };
+    const result = setValueAtPath(state, 'widgets.b', 2);
+    expect(result.widgets.b).toBe(2);
+  });
+});
+      ]]></frontend-tests>
+    </test-patterns>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- ACCEPTANCE CRITERIA CHECKLIST                                       -->
+  <!-- =================================================================== -->
+
+  <section name="acceptance-criteria">
+    <criteria id="AC1">
+      <description>State changes broadcast via WebSocket to all user devices</description>
+      <implementation>
+        - Add @SubscribeMessage('dashboard.state.update') handler to RealtimeGateway
+        - Broadcast to user:userId:state room (excluding sender via sourceTabId)
+        - Integrate with DashboardStateService for Redis persistence
+      </implementation>
+    </criteria>
+    <criteria id="AC2">
+      <description>Multi-tab sync works (changes in one tab appear in others)</description>
+      <implementation>
+        - Generate unique tabId per browser tab (sessionStorage)
+        - Include sourceTabId in payloads to exclude sender
+        - Subscribe to 'dashboard.state.sync' in useDashboardSync hook
+        - Apply remote updates to Zustand store
+      </implementation>
+    </criteria>
+    <criteria id="AC3">
+      <description>Multi-device sync works (changes on desktop appear on mobile)</description>
+      <implementation>
+        - Use user:userId:state room (device-agnostic)
+        - Debounce emissions (100ms per story spec)
+        - Handle network latency gracefully
+      </implementation>
+    </criteria>
+    <criteria id="AC4">
+      <description>Reconnection restores state from server</description>
+      <implementation>
+        - Subscribe to 'dashboard.state.full' event
+        - On connect, emit 'dashboard.state.request' with lastKnownVersion
+        - Server responds with full state from Redis
+        - Apply full state with version-based conflict resolution
+      </implementation>
+    </criteria>
+    <criteria id="AC5">
+      <description>Diff-based updates minimize bandwidth (only changed paths sent)</description>
+      <implementation>
+        - Create state-diff.ts utility for path-based updates
+        - Send path + value instead of full state
+        - Use SIGNIFICANT_CHANGE_PATHS to filter what gets synced
+      </implementation>
+    </criteria>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- SECURITY CONSIDERATIONS                                             -->
+  <!-- =================================================================== -->
+
+  <section name="security">
+    <item>
+      All WebSocket handlers must validate payloads with Zod schemas.
+      Do not trust client-provided userId/workspaceId - always use socket.data.
+    </item>
+    <item>
+      Maximum payload size: 64KB. Reject larger updates to prevent DoS.
+    </item>
+    <item>
+      User can only sync state for their own userId (enforced by room structure).
+    </item>
+    <item>
+      Add rate limiting for dashboard.state.update events (10 per second).
+    </item>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- REFERENCES                                                          -->
+  <!-- =================================================================== -->
+
+  <references>
+    <ref>apps/api/src/realtime/realtime.gateway.ts - Main WebSocket gateway</ref>
+    <ref>apps/api/src/realtime/realtime.types.ts - Type definitions</ref>
+    <ref>apps/api/src/realtime/realtime.module.ts - Module registration</ref>
+    <ref>apps/api/src/realtime/realtime.gateway.spec.ts - Test patterns</ref>
+    <ref>apps/api/src/modules/dashboard/dashboard-state.service.ts - Redis persistence</ref>
+    <ref>apps/web/src/lib/realtime/realtime-provider.tsx - Socket.io client</ref>
+    <ref>apps/web/src/lib/realtime/types.ts - Frontend type definitions</ref>
+    <ref>apps/web/src/hooks/use-realtime-kanban.ts - Example realtime hook</ref>
+    <ref>apps/web/src/stores/dashboard-state-store.ts - Zustand store</ref>
+    <ref>apps/web/src/hooks/use-dashboard-sync.ts - Redis sync hook</ref>
+    <ref>apps/web/src/lib/dm-constants.ts - DM module constants</ref>
+  </references>
+</context>

@@ -36,6 +36,10 @@ import {
   saveDashboardState,
   getDashboardState,
 } from '@/lib/api/dashboard-state';
+import {
+  applyChange,
+  type StateChange,
+} from '@/lib/realtime/state-diff';
 
 // =============================================================================
 // CONSTANTS (DM-08.6: Imported from centralized dm-constants)
@@ -163,6 +167,24 @@ export interface DashboardStateStore extends DashboardState {
   restoreFromServer: () => Promise<boolean>;
   /** Clear sync error */
   clearSyncError: () => void;
+
+  // WebSocket sync state (DM-11.2)
+  /** Whether WebSocket is connected for state sync */
+  wsConnected: boolean;
+  /** Current state version for conflict detection */
+  stateVersion: number;
+
+  // WebSocket sync actions (DM-11.2)
+  /** Apply a remote state update from WebSocket */
+  applyRemoteUpdate: (path: string, value: unknown, version: number) => void;
+  /** Apply full state from server (reconnection recovery) */
+  applyFullState: (state: Record<string, unknown>, version: number) => void;
+  /** Set WebSocket connection status */
+  setWsConnected: (connected: boolean) => void;
+  /** Increment state version (called on local changes) */
+  incrementVersion: () => number;
+  /** Get current state as plain object for sync */
+  getStateForSync: () => Record<string, unknown>;
 }
 
 // =============================================================================
@@ -186,6 +208,9 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     isSyncing: false,
     lastSyncedAt: null,
     syncError: null,
+    // WebSocket sync state (DM-11.2)
+    wsConnected: false,
+    stateVersion: 0,
 
     // =========================================================================
     // FULL STATE UPDATES
@@ -425,12 +450,15 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     reset: () => {
       // DM-08.6: Also reset pre-computed activeAlerts
       // DM-11.1: Also reset sync state
+      // DM-11.2: Also reset WebSocket sync state
       set({
         ...createInitialDashboardState(),
         activeAlerts: [],
         isSyncing: false,
         lastSyncedAt: null,
         syncError: null,
+        wsConnected: false,
+        stateVersion: 0,
       });
     },
 
@@ -550,6 +578,145 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
     clearSyncError: () => {
       set({ syncError: null });
+    },
+
+    // =========================================================================
+    // WEBSOCKET SYNC ACTIONS (DM-11.2)
+    // =========================================================================
+
+    applyRemoteUpdate: (path: string, value: unknown, version: number) => {
+      const state = get();
+
+      // Version-based conflict resolution: only apply if remote is newer or equal
+      if (version < state.stateVersion) {
+        console.debug(
+          '[DashboardStateStore] Ignoring stale remote update:',
+          path,
+          'remote version:',
+          version,
+          'local version:',
+          state.stateVersion
+        );
+        return;
+      }
+
+      // Apply the change using path-based update
+      const currentState = {
+        version: state.version,
+        timestamp: state.timestamp,
+        activeProject: state.activeProject,
+        workspaceId: state.workspaceId,
+        userId: state.userId,
+        widgets: state.widgets,
+        loading: state.loading,
+        errors: state.errors,
+        activeTasks: state.activeTasks,
+      };
+
+      const change: StateChange = { path, value };
+      const updatedState = applyChange(currentState, change);
+
+      // Validate the updated state
+      const validated = validateDashboardState(updatedState as DashboardState);
+      if (!validated) {
+        console.warn('[DashboardStateStore] Invalid remote update rejected:', path);
+        return;
+      }
+
+      // DM-08.6: Pre-compute activeAlerts if alerts changed
+      const activeAlerts = validated.widgets.alerts.filter((a) => !a.dismissed);
+
+      set({
+        ...validated,
+        activeAlerts,
+        stateVersion: Math.max(state.stateVersion, version),
+        timestamp: Date.now(),
+      });
+
+      console.debug('[DashboardStateStore] Applied remote update:', path);
+    },
+
+    applyFullState: (remoteState: Record<string, unknown>, version: number) => {
+      const state = get();
+
+      // Only apply if version is newer
+      if (version <= state.stateVersion) {
+        console.debug(
+          '[DashboardStateStore] Ignoring stale full state:',
+          'remote version:',
+          version,
+          'local version:',
+          state.stateVersion
+        );
+        return;
+      }
+
+      // Merge remote state into current state
+      // Remote state may be partial, so we merge carefully
+      const mergedState: DashboardState = {
+        version: state.version,
+        timestamp: Date.now(),
+        activeProject:
+          (remoteState.activeProject as string | null) ?? state.activeProject,
+        workspaceId:
+          (remoteState.workspaceId as string | null) ?? state.workspaceId,
+        userId: (remoteState.userId as string | null) ?? state.userId,
+        widgets: remoteState.widgets
+          ? { ...state.widgets, ...(remoteState.widgets as typeof state.widgets) }
+          : state.widgets,
+        loading: remoteState.loading
+          ? { ...state.loading, ...(remoteState.loading as typeof state.loading) }
+          : state.loading,
+        errors: remoteState.errors
+          ? { ...state.errors, ...(remoteState.errors as typeof state.errors) }
+          : state.errors,
+        activeTasks: remoteState.activeTasks
+          ? (remoteState.activeTasks as typeof state.activeTasks)
+          : state.activeTasks,
+      };
+
+      // Validate the merged state
+      const validated = validateDashboardState(mergedState);
+      if (!validated) {
+        console.warn('[DashboardStateStore] Invalid full state rejected');
+        return;
+      }
+
+      // DM-08.6: Pre-compute activeAlerts
+      const activeAlerts = validated.widgets.alerts.filter((a) => !a.dismissed);
+
+      set({
+        ...validated,
+        activeAlerts,
+        stateVersion: version,
+      });
+
+      console.debug('[DashboardStateStore] Applied full state, version:', version);
+    },
+
+    setWsConnected: (connected: boolean) => {
+      set({ wsConnected: connected });
+    },
+
+    incrementVersion: () => {
+      const newVersion = get().stateVersion + 1;
+      set({ stateVersion: newVersion });
+      return newVersion;
+    },
+
+    getStateForSync: () => {
+      const state = get();
+      return {
+        version: state.version,
+        timestamp: state.timestamp,
+        activeProject: state.activeProject,
+        workspaceId: state.workspaceId,
+        userId: state.userId,
+        widgets: state.widgets,
+        loading: state.loading,
+        errors: state.errors,
+        activeTasks: state.activeTasks,
+      };
     },
   }))
 );

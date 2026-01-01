@@ -2,14 +2,18 @@
  * Dashboard Sync Hook
  *
  * Manages dashboard state synchronization with the server.
- * Handles auth-based restore and debounced sync on significant changes.
+ * Handles auth-based restore, debounced sync on significant changes,
+ * and WebSocket-based real-time synchronization across tabs/devices.
  *
  * Features:
  * - Restore state from server on authentication
  * - Debounced sync on significant state changes
+ * - WebSocket state sync between browser tabs (DM-11.2)
+ * - Reconnection recovery with full state request
  * - Graceful error handling
  *
  * Story: DM-11.1 - Redis State Persistence
+ * Story: DM-11.2 - WebSocket State Synchronization
  */
 
 'use client';
@@ -18,6 +22,15 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useSession } from '@/lib/auth-client';
 import { useDashboardStateStore } from '@/stores/dashboard-state-store';
 import { DM_CONSTANTS } from '@/lib/dm-constants';
+import { useRealtime } from '@/lib/realtime/realtime-provider';
+import {
+  getStateSyncClient,
+  type StateSyncCallback,
+  type StateFullCallback,
+} from '@/lib/realtime/state-sync-client';
+import { createChange } from '@/lib/realtime/state-diff';
+import type { Socket } from 'socket.io-client';
+import type { ServerToClientEvents, ClientToServerEvents } from '@/lib/realtime/types';
 
 const { SYNC_DEBOUNCE_MS, RESTORE_ON_AUTH, SIGNIFICANT_CHANGE_PATHS } =
   DM_CONSTANTS.STATE_SYNC;
@@ -38,6 +51,10 @@ export interface UseDashboardSyncReturn {
   restoreNow: () => Promise<boolean>;
   /** Clear sync error */
   clearError: () => void;
+  /** Whether WebSocket is connected (DM-11.2) */
+  wsConnected: boolean;
+  /** Current state version (DM-11.2) */
+  stateVersion: number;
 }
 
 /**
@@ -47,6 +64,7 @@ export interface UseDashboardSyncReturn {
  * - Restores from server on authentication
  * - Subscribes to significant state changes
  * - Debounces sync operations
+ * - WebSocket state sync between tabs/devices (DM-11.2)
  *
  * @returns Sync state and manual control functions
  */
@@ -56,6 +74,10 @@ export function useDashboardSync(): UseDashboardSyncReturn {
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousTimestampRef = useRef<number>(0);
   const hasRestoredRef = useRef<boolean>(false);
+  const wsInitializedRef = useRef<boolean>(false);
+
+  // Realtime context for WebSocket (DM-11.2)
+  const { socket, isConnected } = useRealtime();
 
   // Store selectors
   const isSyncing = useDashboardStateStore((state) => state.isSyncing);
@@ -66,6 +88,17 @@ export function useDashboardSync(): UseDashboardSyncReturn {
     (state) => state.restoreFromServer
   );
   const clearSyncError = useDashboardStateStore((state) => state.clearSyncError);
+
+  // WebSocket sync selectors (DM-11.2)
+  const wsConnected = useDashboardStateStore((state) => state.wsConnected);
+  const stateVersion = useDashboardStateStore((state) => state.stateVersion);
+  const setWsConnected = useDashboardStateStore((state) => state.setWsConnected);
+  const applyRemoteUpdate = useDashboardStateStore(
+    (state) => state.applyRemoteUpdate
+  );
+  const applyFullState = useDashboardStateStore((state) => state.applyFullState);
+  // Note: incrementVersion is available for future use when local state changes need versioning
+  // Currently, version changes are implicit in store updates
 
   // Manual sync function
   const syncNow = useCallback(async () => {
@@ -168,6 +201,97 @@ export function useDashboardSync(): UseDashboardSyncReturn {
     };
   }, []);
 
+  // =========================================================================
+  // WebSocket State Sync (DM-11.2)
+  // =========================================================================
+
+  // Connect to WebSocket state sync client
+  useEffect(() => {
+    if (!isAuthenticated || !socket) {
+      return;
+    }
+
+    const stateSyncClient = getStateSyncClient();
+
+    // Connect to the socket
+    stateSyncClient.connect(
+      socket as unknown as Socket<ServerToClientEvents, ClientToServerEvents>
+    );
+
+    // Set initial version
+    stateSyncClient.setLastKnownVersion(stateVersion);
+
+    // Subscribe to sync events
+    const handleSync: StateSyncCallback = (data) => {
+      applyRemoteUpdate(data.path, data.value, data.version);
+    };
+
+    const handleFull: StateFullCallback = (data) => {
+      applyFullState(data.state, data.version);
+    };
+
+    const unsubscribeSync = stateSyncClient.onSync(handleSync);
+    const unsubscribeFull = stateSyncClient.onFull(handleFull);
+
+    wsInitializedRef.current = true;
+
+    return () => {
+      unsubscribeSync();
+      unsubscribeFull();
+      stateSyncClient.disconnect();
+      wsInitializedRef.current = false;
+    };
+  }, [isAuthenticated, socket, stateVersion, applyRemoteUpdate, applyFullState]);
+
+  // Track WebSocket connection status
+  useEffect(() => {
+    setWsConnected(isConnected);
+  }, [isConnected, setWsConnected]);
+
+  // Emit local state changes via WebSocket
+  useEffect(() => {
+    if (!isAuthenticated || !wsInitializedRef.current) {
+      return;
+    }
+
+    const stateSyncClient = getStateSyncClient();
+
+    // Subscribe to local state changes and emit them
+    const unsubscribe = useDashboardStateStore.subscribe(
+      (state) => ({
+        widgets: state.widgets,
+        activeProject: state.activeProject,
+        activeTasks: state.activeTasks,
+        stateVersion: state.stateVersion,
+      }),
+      (current, previous) => {
+        // Don't emit if version hasn't changed (means it's a remote update)
+        if (current.stateVersion === previous.stateVersion) {
+          return;
+        }
+
+        // Determine what changed
+        if (current.widgets !== previous.widgets) {
+          const change = createChange('widgets', current.widgets);
+          stateSyncClient.emitChange(change, current.stateVersion);
+        }
+        if (current.activeProject !== previous.activeProject) {
+          const change = createChange('activeProject', current.activeProject);
+          stateSyncClient.emitChange(change, current.stateVersion);
+        }
+        if (current.activeTasks !== previous.activeTasks) {
+          const change = createChange('activeTasks', current.activeTasks);
+          stateSyncClient.emitChange(change, current.stateVersion);
+        }
+      },
+      { equalityFn: Object.is }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isAuthenticated]);
+
   return {
     isSyncing,
     lastSyncedAt,
@@ -175,6 +299,8 @@ export function useDashboardSync(): UseDashboardSyncReturn {
     syncNow,
     restoreNow,
     clearError: clearSyncError,
+    wsConnected,
+    stateVersion,
   };
 }
 
