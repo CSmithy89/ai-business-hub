@@ -41,6 +41,7 @@ from .config import (
 
 # Client
 from .client import (
+    ConnectionResult,
     MCPClient,
     MCPConnection,
     MCPConnectionError,
@@ -61,6 +62,7 @@ __all__ = [
     "DEFAULT_MCP_SERVERS",
     "get_default_mcp_config",
     # Client
+    "ConnectionResult",
     "MCPConnection",
     "MCPClient",
     "MCPConnectionError",

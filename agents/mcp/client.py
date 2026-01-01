@@ -7,6 +7,9 @@ Manages subprocess-based server connections and JSON-RPC 2.0 communication.
 @see docs/modules/bm-dm/epics/epic-dm-06-tech-spec.md
 Epic: DM-06 | Story: DM-06.4
 
+DM-11.4: Added parallel connection support with connect_all(), health status methods,
+and retry logic with exponential backoff.
+
 References:
 - MCP Protocol: https://modelcontextprotocol.io
 - JSON-RPC 2.0: https://www.jsonrpc.org/specification
@@ -15,11 +18,50 @@ import asyncio
 import json
 import logging
 import os
+import time
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from .config import MCPConfig, MCPServerConfig
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# DM-11.4: Parallel Connection Support
+# ============================================================================
+
+
+@dataclass
+class ConnectionResult:
+    """
+    Result of a single MCP server connection attempt.
+
+    Provides structured information about connection success/failure,
+    timing, and error details for logging and health reporting.
+
+    Attributes:
+        server_name: Name of the MCP server
+        success: Whether connection was successful
+        tools_count: Number of tools discovered (0 if failed)
+        error: Error message if connection failed
+        retry_scheduled: Whether retry is scheduled for this server
+        connect_time_ms: Time taken to connect in milliseconds
+
+    Example:
+        >>> result = ConnectionResult(
+        ...     server_name="github",
+        ...     success=True,
+        ...     tools_count=15,
+        ...     connect_time_ms=234.5,
+        ... )
+    """
+    server_name: str
+    success: bool
+    tools_count: int = 0
+    error: Optional[str] = None
+    retry_scheduled: bool = False
+    connect_time_ms: float = 0.0
 
 
 class MCPConnectionError(Exception):
@@ -443,6 +485,269 @@ class MCPClient:
 
         logger.debug(f"Calling MCP tool '{tool_name}' on server '{server_name}'")
         return await connection.call_tool(tool_name, arguments)
+
+    # =========================================================================
+    # DM-11.4: Parallel Connection Support
+    # =========================================================================
+
+    async def connect_all(
+        self,
+        server_names: Optional[List[str]] = None,
+        timeout: float = 30.0,
+    ) -> Dict[str, ConnectionResult]:
+        """
+        Connect to multiple MCP servers in parallel.
+
+        Uses asyncio.gather to connect to all servers concurrently,
+        significantly reducing startup time compared to sequential connections.
+
+        Args:
+            server_names: List of server names to connect. If None, connects
+                         all enabled servers from the configuration.
+            timeout: Per-server connection timeout in seconds. Default 30s.
+
+        Returns:
+            Dictionary mapping server names to their ConnectionResult.
+
+        Example:
+            >>> client = MCPClient(config)
+            >>> results = await client.connect_all()
+            >>> for name, result in results.items():
+            ...     if result.success:
+            ...         print(f"{name}: {result.tools_count} tools")
+            ...     else:
+            ...         print(f"{name}: FAILED - {result.error}")
+        """
+        # Determine which servers to connect
+        if server_names is None:
+            server_names = [
+                name for name, config in self.config.servers.items()
+                if config.enabled
+            ]
+
+        if not server_names:
+            logger.info("No servers to connect (all disabled or empty list)")
+            return {}
+
+        logger.info(f"Starting parallel MCP connections for {len(server_names)} servers...")
+        overall_start = time.time()
+
+        # Create connection task with timeout wrapper
+        async def connect_with_timeout(name: str) -> ConnectionResult:
+            """Connect to a single server with timeout and error handling."""
+            start_time = time.time()
+            try:
+                success = await asyncio.wait_for(
+                    self.connect(name),
+                    timeout=timeout
+                )
+                elapsed_ms = (time.time() - start_time) * 1000
+                tools_count = len(self._tools_cache.get(name, []))
+
+                if success:
+                    logger.info(
+                        f"MCP server '{name}' connected: {tools_count} tools "
+                        f"({elapsed_ms:.1f}ms)"
+                    )
+                else:
+                    logger.warning(
+                        f"MCP server '{name}' connection returned False "
+                        f"({elapsed_ms:.1f}ms)"
+                    )
+
+                return ConnectionResult(
+                    server_name=name,
+                    success=success,
+                    tools_count=tools_count if success else 0,
+                    connect_time_ms=elapsed_ms,
+                )
+            except asyncio.TimeoutError:
+                elapsed_ms = (time.time() - start_time) * 1000
+                error_msg = f"Connection timed out after {timeout}s"
+                logger.error(f"MCP server '{name}': {error_msg}")
+                return ConnectionResult(
+                    server_name=name,
+                    success=False,
+                    error=error_msg,
+                    retry_scheduled=True,
+                    connect_time_ms=elapsed_ms,
+                )
+            except Exception as e:
+                elapsed_ms = (time.time() - start_time) * 1000
+                error_msg = str(e)
+                logger.error(f"MCP server '{name}' failed: {error_msg}")
+                return ConnectionResult(
+                    server_name=name,
+                    success=False,
+                    error=error_msg,
+                    retry_scheduled=True,
+                    connect_time_ms=elapsed_ms,
+                )
+
+        # Execute all connections in parallel
+        tasks = [connect_with_timeout(name) for name in server_names]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        connection_status: Dict[str, ConnectionResult] = {}
+        for name, result in zip(server_names, results):
+            if isinstance(result, Exception):
+                # Should not happen due to try/except in connect_with_timeout,
+                # but handle defensively
+                logger.error(f"Unexpected exception for MCP server '{name}': {result}")
+                connection_status[name] = ConnectionResult(
+                    server_name=name,
+                    success=False,
+                    error=str(result),
+                    retry_scheduled=True,
+                )
+            else:
+                connection_status[name] = result
+
+        # Log summary
+        successful = sum(1 for r in connection_status.values() if r.success)
+        total = len(connection_status)
+        overall_elapsed = (time.time() - overall_start) * 1000
+        logger.info(
+            f"Parallel MCP connection complete: {successful}/{total} servers "
+            f"connected ({overall_elapsed:.1f}ms total)"
+        )
+
+        return connection_status
+
+    def get_connection_health(self) -> Dict[str, bool]:
+        """
+        Get health status of all configured servers.
+
+        Returns:
+            Dictionary mapping server names to connection status (True = connected).
+
+        Example:
+            >>> health = client.get_connection_health()
+            >>> # {'github': True, 'semgrep': True, 'filesystem': False}
+        """
+        return {
+            name: name in self._connections
+            for name in self.config.servers.keys()
+        }
+
+    def get_healthy_server_count(self) -> tuple[int, int]:
+        """
+        Get count of healthy vs total servers.
+
+        Returns:
+            Tuple of (connected_count, total_count).
+
+        Example:
+            >>> connected, total = client.get_healthy_server_count()
+            >>> print(f"{connected}/{total} MCP servers connected")
+        """
+        total = len(self.config.servers)
+        connected = len(self._connections)
+        return (connected, total)
+
+    async def retry_failed_connections(
+        self,
+        failed_servers: List[str],
+        max_retries: int = 3,
+        backoff_base: float = 2.0,
+        timeout: float = 30.0,
+    ) -> Dict[str, ConnectionResult]:
+        """
+        Retry connecting to failed servers with exponential backoff.
+
+        Attempts to reconnect to servers that failed during initial connection.
+        Uses exponential backoff between retries to avoid overwhelming resources.
+
+        Args:
+            failed_servers: List of server names that failed initial connection.
+            max_retries: Maximum retry attempts per server. Default 3.
+            backoff_base: Base for exponential backoff calculation. Default 2.0.
+                         Delay = backoff_base ^ attempt (e.g., 1s, 2s, 4s).
+            timeout: Per-connection timeout in seconds. Default 30s.
+
+        Returns:
+            Dictionary mapping server names to final ConnectionResult.
+
+        Example:
+            >>> # After connect_all(), retry failed ones
+            >>> failed = [name for name, r in results.items() if not r.success]
+            >>> retry_results = await client.retry_failed_connections(failed)
+        """
+        if not failed_servers:
+            return {}
+
+        logger.info(f"Starting retry for {len(failed_servers)} failed MCP servers")
+        results: Dict[str, ConnectionResult] = {}
+
+        for name in failed_servers:
+            final_result: Optional[ConnectionResult] = None
+
+            for attempt in range(max_retries):
+                delay = backoff_base ** attempt
+                logger.info(
+                    f"Retrying MCP server '{name}' connection "
+                    f"(attempt {attempt + 1}/{max_retries}) in {delay:.1f}s"
+                )
+                await asyncio.sleep(delay)
+
+                start_time = time.time()
+                try:
+                    success = await asyncio.wait_for(
+                        self.connect(name),
+                        timeout=timeout
+                    )
+                    elapsed_ms = (time.time() - start_time) * 1000
+
+                    if success:
+                        tools_count = len(self._tools_cache.get(name, []))
+                        logger.info(
+                            f"Retry succeeded for MCP server '{name}': "
+                            f"{tools_count} tools ({elapsed_ms:.1f}ms)"
+                        )
+                        final_result = ConnectionResult(
+                            server_name=name,
+                            success=True,
+                            tools_count=tools_count,
+                            connect_time_ms=elapsed_ms,
+                        )
+                        break
+                    else:
+                        logger.warning(
+                            f"Retry {attempt + 1} for MCP server '{name}' "
+                            f"returned False"
+                        )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        f"Retry {attempt + 1} for MCP server '{name}' timed out"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Retry {attempt + 1} for MCP server '{name}' failed: {e}"
+                    )
+
+            # If no successful result, create final failure result
+            if final_result is None:
+                final_result = ConnectionResult(
+                    server_name=name,
+                    success=False,
+                    error="Max retries exceeded",
+                    retry_scheduled=False,  # No more retries scheduled
+                )
+                logger.error(
+                    f"MCP server '{name}' remains disconnected after "
+                    f"{max_retries} retries"
+                )
+
+            results[name] = final_result
+
+        # Log summary
+        successful = sum(1 for r in results.values() if r.success)
+        logger.info(
+            f"Retry complete: {successful}/{len(results)} servers recovered"
+        )
+
+        return results
 
     async def __aenter__(self) -> "MCPClient":
         """Async context manager entry."""

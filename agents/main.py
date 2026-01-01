@@ -78,6 +78,9 @@ from services.ccr_usage import get_ccr_usage_tracker
 # Import OpenTelemetry observability (DM-09.1)
 from observability import configure_tracing, instrument_app, shutdown_tracing, get_otel_settings
 
+# Import MCP client for parallel connections (DM-11.4)
+from mcp import MCPClient, ConnectionResult, get_default_mcp_config
+
 # ============================================================================
 # Configuration (must be at top before usage)
 # ============================================================================
@@ -723,11 +726,22 @@ async def startup_event():
     # Initialize PM Agent A2A interfaces (DM-02.5)
     await startup_pm_agents_a2a()
 
+    # Initialize MCP connections in parallel (DM-11.4)
+    await startup_mcp_connections()
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown."""
     logger.info("AgentOS shutting down...")
+
+    # Disconnect MCP servers (DM-11.4)
+    global _mcp_client
+    if _mcp_client is not None:
+        logger.info("Disconnecting MCP servers...")
+        await _mcp_client.disconnect_all()
+        _mcp_client = None
+        logger.info("MCP servers disconnected")
 
     # Shutdown OpenTelemetry tracing (DM-09.1)
     shutdown_tracing()
@@ -811,6 +825,87 @@ async def startup_dashboard_gateway():
             logger.info(f"A2A interface mounted at {config.a2a_path}")
         except Exception as e:
             logger.error(f"Failed to mount A2A interface: {e}")
+
+
+# =============================================================================
+# MCP Client Setup (DM-11.4)
+# =============================================================================
+
+# Global reference to MCP client (created on startup)
+_mcp_client: Optional[MCPClient] = None
+
+
+def get_mcp_client() -> Optional[MCPClient]:
+    """
+    Get the global MCP client instance.
+
+    Returns:
+        MCPClient instance if initialized, None otherwise.
+    """
+    return _mcp_client
+
+
+async def startup_mcp_connections():
+    """
+    Initialize all MCP server connections in parallel.
+
+    This function is called during startup to connect to all enabled
+    MCP servers concurrently, reducing startup time compared to
+    sequential connections.
+
+    Failed connections are scheduled for background retry.
+    """
+    global _mcp_client
+
+    config = get_default_mcp_config()
+
+    # Skip if no servers configured
+    if not config.servers:
+        logger.info("No MCP servers configured, skipping MCP initialization")
+        return
+
+    _mcp_client = MCPClient(config)
+
+    logger.info("Starting parallel MCP server connections...")
+    start_time = time.time()
+
+    # Connect all enabled servers in parallel
+    results = await _mcp_client.connect_all()
+
+    elapsed = time.time() - start_time
+    logger.info(f"MCP connection phase completed in {elapsed:.2f}s")
+
+    # Identify failed connections for background retry
+    failed = [name for name, result in results.items() if not result.success]
+
+    if failed:
+        logger.warning(f"Failed to connect to MCP servers: {failed}")
+        # Schedule background retries (non-blocking)
+        asyncio.create_task(retry_failed_mcp_connections(failed))
+
+
+async def retry_failed_mcp_connections(failed_servers: List[str]) -> None:
+    """
+    Background task to retry failed MCP connections.
+
+    Args:
+        failed_servers: List of server names that failed initial connection.
+    """
+    global _mcp_client
+
+    if _mcp_client is None:
+        logger.error("MCP client not initialized, cannot retry connections")
+        return
+
+    results = await _mcp_client.retry_failed_connections(failed_servers)
+
+    for name, result in results.items():
+        if result.success:
+            logger.info(f"Background retry succeeded for MCP server '{name}'")
+        else:
+            logger.error(
+                f"MCP server '{name}' remains disconnected after retries"
+            )
 
 
 # Mount A2A discovery endpoints (from DM-02.3)
@@ -1048,6 +1143,17 @@ async def root():
 @app.get("/health")
 async def health(request: Request):
     """Health check endpoint."""
+    # Get MCP connection status (DM-11.4)
+    mcp_status: Dict[str, Any] = {}
+    if _mcp_client is not None:
+        health_info = _mcp_client.get_connection_health()
+        connected, total = _mcp_client.get_healthy_server_count()
+        mcp_status = {
+            "connected": connected,
+            "total": total,
+            "servers": health_info,
+        }
+
     return {
         "status": "ok",
         "version": "0.2.0",
@@ -1056,6 +1162,7 @@ async def health(request: Request):
             "database_configured": bool(settings.database_url),
             "redis_configured": bool(settings.redis_url),
         },
+        "mcp": mcp_status,  # DM-11.4: MCP connection status
         "tenant_context": {
             "user_id": getattr(request.state, "user_id", None),
             "workspace_id": getattr(request.state, "workspace_id", None)
