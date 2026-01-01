@@ -166,6 +166,52 @@ async function rejectApproval(id: string, data: ApprovalActionRequest = {}): Pro
 }
 
 /**
+ * Request body for cancel approval action
+ */
+export interface CancelApprovalRequest {
+  reason?: string
+}
+
+/**
+ * Response type for cancel approval endpoint
+ */
+export interface CancelApprovalResponse {
+  success: boolean
+  cancelledAt: string
+}
+
+/**
+ * Cancel a pending approval item
+ */
+async function cancelApproval(
+  id: string,
+  data: CancelApprovalRequest = {}
+): Promise<CancelApprovalResponse> {
+  const response = await fetch(`${NESTJS_API_URL}/api/approvals/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  })
+
+  const body = await safeJson<unknown>(response)
+  if (!response.ok) {
+    const message =
+      body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : undefined
+    throw new Error(message || 'Failed to cancel approval')
+  }
+
+  if (!body || typeof body !== 'object' || !('success' in body)) {
+    throw new Error('Failed to cancel approval')
+  }
+  return body as CancelApprovalResponse
+}
+
+/**
  * Hook to fetch approvals list with filters
  *
  * Story 16-15: Now includes real-time updates via WebSocket.
@@ -392,13 +438,67 @@ export function useApprovalMutations() {
     },
   })
 
+  // Optimistic cancel mutation
+  const cancelMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      cancelApproval(id, { reason }),
+
+    // OPTIMISTIC UPDATE: Remove from pending queue before server responds
+    onMutate: async ({ id }) => {
+      // Cancel all in-flight approval queries
+      await queryClient.cancelQueries({ queryKey: ['approvals'] })
+
+      // Store previous state of all cached queries for rollback
+      const previousCaches = getAllApprovalCaches()
+
+      // Also store individual approval cache
+      const previousApproval = queryClient.getQueryData<ApprovalResponse>(['approval', id])
+
+      // Optimistically update all cached queries to cancelled status
+      updateApprovalInAllCaches(id, 'cancelled' as ApprovalStatus)
+
+      // Optimistically update individual approval cache
+      if (previousApproval) {
+        queryClient.setQueryData<ApprovalResponse>(['approval', id], {
+          ...previousApproval,
+          data: { ...previousApproval.data, status: 'cancelled' as ApprovalStatus, reviewedAt: new Date().toISOString() },
+        })
+      }
+
+      return { previousCaches, previousApproval }
+    },
+
+    // ROLLBACK: Restore all previous states on error
+    onError: (_error, { id }, context) => {
+      if (context?.previousCaches) {
+        context.previousCaches.forEach(({ queryKey, data }) => {
+          if (data) {
+            queryClient.setQueryData(queryKey, data)
+          }
+        })
+      }
+      if (context?.previousApproval) {
+        queryClient.setQueryData(['approval', id], context.previousApproval)
+      }
+      toast.error('Failed to cancel. Please try again.')
+    },
+
+    onSuccess: () => {
+      toast.success('Approval cancelled')
+      queryClient.invalidateQueries({ queryKey: ['approvals'] })
+    },
+  })
+
   return {
     approve: approveMutation.mutate,
     reject: rejectMutation.mutate,
+    cancel: cancelMutation.mutate,
     isApproving: approveMutation.isPending,
     isRejecting: rejectMutation.isPending,
+    isCancelling: cancelMutation.isPending,
     approveError: approveMutation.error,
     rejectError: rejectMutation.error,
+    cancelError: cancelMutation.error,
   }
 }
 

@@ -29,6 +29,32 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# CUSTOM EXCEPTIONS
+# =============================================================================
+
+
+class ApprovalCancelledException(Exception):
+    """
+    Raised when an approval is cancelled by the user.
+
+    This exception allows agents to gracefully handle cancellation
+    and clean up any pending resources.
+
+    Attributes:
+        approval_id: ID of the cancelled approval
+        reason: Optional reason provided by the user
+    """
+
+    def __init__(self, approval_id: str, reason: str = None):
+        self.approval_id = approval_id
+        self.reason = reason
+        message = f"Approval {approval_id} was cancelled"
+        if reason:
+            message += f": {reason}"
+        super().__init__(message)
+
+
+# =============================================================================
 # PRIORITY CONSTANTS
 # =============================================================================
 
@@ -533,7 +559,7 @@ class ApprovalQueueBridge:
         """
         Wait for an approval to be resolved (polling implementation).
 
-        Polls the approval status until it is resolved (approved/rejected)
+        Polls the approval status until it is resolved (approved/rejected/cancelled)
         or the timeout is reached.
 
         Args:
@@ -543,10 +569,14 @@ class ApprovalQueueBridge:
             poll_interval_seconds: Time between polls (default 5 seconds)
 
         Returns:
-            Resolved approval item
+            Resolved approval item with status:
+            - 'approved': Action should proceed
+            - 'rejected': Action should not proceed
+            - 'auto_approved': Action should proceed (high confidence)
 
         Raises:
             TimeoutError: If not resolved within timeout
+            ApprovalCancelledException: If approval was cancelled by user
             httpx.HTTPStatusError: If the API request fails
         """
         start_time = datetime.utcnow()
@@ -556,9 +586,20 @@ class ApprovalQueueBridge:
             approval = await self.get_approval_status(workspace_id, approval_id)
             status = approval.get("status", "pending")
 
+            # Handle resolved states
             if status in ("approved", "rejected", "auto_approved"):
                 logger.info(f"Approval {approval_id} resolved with status: {status}")
                 return approval
+
+            # Handle cancellation
+            if status == "cancelled":
+                resolution = approval.get("resolution", {})
+                reason = resolution.get("reason") if isinstance(resolution, dict) else None
+                logger.info(f"Approval {approval_id} was cancelled by user")
+                raise ApprovalCancelledException(
+                    approval_id=approval_id,
+                    reason=reason,
+                )
 
             # Check timeout
             elapsed = datetime.utcnow() - start_time

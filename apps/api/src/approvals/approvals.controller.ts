@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -19,6 +20,7 @@ import { ApprovalQueryDto } from './dto/approval-query.dto';
 import { ApproveItemDto } from './dto/approve-item.dto';
 import { RejectItemDto } from './dto/reject-item.dto';
 import { BulkApprovalDto } from './dto/bulk-approval.dto';
+import { CancelApprovalDto } from './dto/cancel-approval.dto';
 import { UpdateEscalationConfigDto } from './dto/escalation-config.dto';
 
 /**
@@ -179,5 +181,30 @@ export class ApprovalsController {
     @CurrentUser() user: any,
   ) {
     return this.approvalsService.bulkAction(workspaceId, user.id, dto);
+  }
+
+  /**
+   * DELETE /api/approvals/:id
+   *
+   * Cancel a pending approval item.
+   * Only the user who created the approval or admins/owners can cancel.
+   *
+   * @param workspaceId - Workspace ID from TenantGuard
+   * @param id - Approval item ID
+   * @param dto - Optional cancellation reason
+   * @param user - Current user from AuthGuard
+   * @returns Success response with cancellation timestamp
+   */
+  @Delete(':id')
+  @Roles('owner', 'admin', 'member')
+  async cancelApproval(
+    @CurrentWorkspace() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: CancelApprovalDto,
+    @CurrentUser() user: any,
+  ) {
+    // Check if user has admin/owner role for permission bypass
+    const isAdmin = user.role === 'admin' || user.role === 'owner';
+    return this.approvalsService.cancel(workspaceId, id, user.id, dto, isAdmin);
   }
 }

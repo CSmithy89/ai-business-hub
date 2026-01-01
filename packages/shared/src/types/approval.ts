@@ -6,7 +6,7 @@
 /**
  * Approval status enum
  */
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'auto_approved';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'auto_approved' | 'cancelled';
 
 /**
  * Confidence level for AI decision routing
@@ -16,7 +16,7 @@ export type ConfidenceLevel = 'high' | 'medium' | 'low';
 /**
  * Approval action type
  */
-export type ApprovalAction = 'approve' | 'reject' | 'request_changes';
+export type ApprovalAction = 'approve' | 'reject' | 'request_changes' | 'cancel';
 
 /**
  * Approval item in the queue
@@ -192,13 +192,13 @@ export function isPendingApproval(item: ApprovalItem | ApprovalStatus): boolean 
 }
 
 /**
- * Check if an approval item has been reviewed (approved or rejected)
+ * Check if an approval item has been reviewed (approved, rejected, or cancelled)
  * @param item - Approval item or status to check
  * @returns True if the item has been reviewed
  */
 export function isReviewedApproval(item: ApprovalItem | ApprovalStatus): boolean {
   const status = typeof item === 'string' ? item : item.status;
-  return status === 'approved' || status === 'rejected' || status === 'auto_approved';
+  return status === 'approved' || status === 'rejected' || status === 'auto_approved' || status === 'cancelled';
 }
 
 /**

@@ -84,6 +84,7 @@ export const EventTypes = {
   APPROVAL_ESCALATED: 'approval.item.escalated',
   APPROVAL_EXPIRED: 'approval.item.expired',
   APPROVAL_AUTO_APPROVED: 'approval.item.auto_approved',
+  APPROVAL_CANCELLED: 'approval.item.cancelled',
 
   // Agent events (Epic 04 - AgentOS)
   AGENT_RUN_STARTED: 'agent.run.started',
@@ -211,6 +212,14 @@ export interface ApprovalExpiredPayload {
   title: string;
   dueAt: string;
   assignedToId?: string;
+}
+
+export interface ApprovalCancelledPayload {
+  approvalId: string;
+  type: string;
+  title: string;
+  cancelledById: string;
+  reason?: string;
 }
 
 /**
@@ -393,6 +402,7 @@ export type EventPayloadMap = {
   [EventTypes.APPROVAL_AUTO_APPROVED]: ApprovalDecisionPayload;
   [EventTypes.APPROVAL_ESCALATED]: ApprovalEscalatedPayload;
   [EventTypes.APPROVAL_EXPIRED]: ApprovalExpiredPayload;
+  [EventTypes.APPROVAL_CANCELLED]: ApprovalCancelledPayload;
 
   // Agent events
   [EventTypes.AGENT_RUN_STARTED]: AgentRunStartedPayload;

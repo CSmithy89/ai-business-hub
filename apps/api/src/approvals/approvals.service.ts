@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { EventPublisherService } from '../events';
@@ -11,11 +12,13 @@ import { ApprovalQueryDto } from './dto/approval-query.dto';
 import { ApproveItemDto } from './dto/approve-item.dto';
 import { RejectItemDto } from './dto/reject-item.dto';
 import { BulkApprovalDto } from './dto/bulk-approval.dto';
+import { CancelApprovalDto } from './dto/cancel-approval.dto';
 import { PaginatedResponse, BulkActionResult } from './dto/approval-response.dto';
 import { UpdateEscalationConfigDto } from './dto/escalation-config.dto';
 import {
   EventTypes,
   ApprovalDecisionPayload,
+  ApprovalCancelledPayload,
 } from '@hyvve/shared';
 
 /**
@@ -494,6 +497,111 @@ export class ApprovalsService {
       successes,
       failures,
       totalProcessed: dto.ids.length,
+    };
+  }
+
+  /**
+   * Cancel a pending approval item
+   *
+   * Permission rules:
+   * - The user who created/requested the approval can cancel it
+   * - Workspace admins/owners can cancel any approval
+   *
+   * @param workspaceId - Workspace ID for tenant isolation
+   * @param id - Approval item ID
+   * @param userId - User ID requesting cancellation
+   * @param dto - Cancellation details (optional reason)
+   * @param isAdmin - Whether the user is an admin/owner
+   * @returns Success response with cancellation timestamp
+   * @throws NotFoundException if not found
+   * @throws BadRequestException if already processed
+   * @throws ForbiddenException if user lacks permission
+   */
+  async cancel(
+    workspaceId: string,
+    id: string,
+    userId: string,
+    dto: CancelApprovalDto,
+    isAdmin: boolean = false,
+  ): Promise<{ success: boolean; cancelledAt: string }> {
+    // Fetch and validate approval
+    const approval = await this.prisma.approvalItem.findUnique({
+      where: { id },
+    });
+
+    if (!approval || approval.workspaceId !== workspaceId) {
+      throw new NotFoundException(
+        'Approval item not found in this workspace',
+      );
+    }
+
+    if (approval.status !== 'pending') {
+      throw new BadRequestException(
+        `Approval cannot be cancelled - status is '${approval.status}'`,
+      );
+    }
+
+    // Check permission: creator or admin can cancel
+    const isCreator = approval.requestedBy === userId;
+    if (!isCreator && !isAdmin) {
+      throw new ForbiddenException(
+        'You do not have permission to cancel this approval',
+      );
+    }
+
+    // Update status to cancelled
+    const now = new Date();
+    await this.prisma.approvalItem.update({
+      where: { id },
+      data: {
+        status: 'cancelled',
+        resolvedById: userId,
+        resolvedAt: now,
+        resolution: {
+          action: 'cancelled',
+          reason: dto.reason,
+          cancelledAt: now.toISOString(),
+        },
+      },
+    });
+
+    // Emit cancellation event
+    const cancelPayload: ApprovalCancelledPayload = {
+      approvalId: id,
+      type: approval.type,
+      title: approval.title,
+      cancelledById: userId,
+      reason: dto.reason,
+    };
+    await this.eventPublisher.publish(
+      EventTypes.APPROVAL_CANCELLED,
+      cancelPayload,
+      {
+        tenantId: workspaceId,
+        userId,
+        source: 'approvals',
+      },
+    );
+
+    // Log to audit trail
+    await this.auditLogger.logApprovalCancellation({
+      workspaceId,
+      userId,
+      approvalId: id,
+      reason: dto.reason,
+    });
+
+    this.logger.log({
+      message: 'Approval cancelled',
+      workspaceId,
+      approvalId: id,
+      userId,
+      reason: dto.reason,
+    });
+
+    return {
+      success: true,
+      cancelledAt: now.toISOString(),
     };
   }
 
