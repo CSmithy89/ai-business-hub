@@ -252,7 +252,7 @@ development_status:
   dm-11-10-wire-errorwidget-retry: done
   dm-11-11-fix-copilotkit-api-drift: done
   dm-11-12-address-naming-complexity: done
-  dm-11-13-metrics-endpoint-auth: backlog
+  dm-11-13-metrics-endpoint-auth: done
   dm-11-14-accurate-token-estimation: backlog
   dm-11-15-visual-workflow-health-check: backlog
   dm-11-retrospective: backlog
