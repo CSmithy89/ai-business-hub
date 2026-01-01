@@ -2,17 +2,23 @@
  * useHITLAction Hook
  *
  * React hook for registering Human-in-the-Loop (HITL) action handlers
- * with CopilotKit. Wraps CopilotKit's useCopilotAction with HITL-specific
- * behavior using the renderAndWaitForResponse pattern.
+ * with CopilotKit. Uses CopilotKit's dedicated useHumanInTheLoop hook
+ * for HITL-specific behavior.
+ *
+ * DM-11.11 Update:
+ * - Migrated from useCopilotAction with renderAndWaitForResponse (legacy)
+ *   to useHumanInTheLoop (current API) for better semantics and cleaner code
  *
  * @see https://docs.copilotkit.ai/concepts/human-in-the-loop
+ * @see https://docs.copilotkit.ai/reference/hooks/useHumanInTheLoop
  * @see docs/modules/bm-dm/stories/dm-05-2-frontend-hitl-handlers.md
- * Epic: DM-05 | Story: DM-05.2
+ * @see docs/modules/bm-dm/stories/dm-11-11-fix-copilotkit-api-drift.md
+ * Epic: DM-05 | Story: DM-05.2 | Updated: DM-11.11
  */
 'use client';
 
 import { type ReactElement, useCallback, useRef } from 'react';
-import { useCopilotAction } from '@copilotkit/react-core';
+import { useHumanInTheLoop } from '@copilotkit/react-core';
 import { useHITLStore } from '@/stores/hitl-store';
 import type {
   HITLActionArgs,
@@ -144,10 +150,10 @@ export function useHITLAction({
     [updateRequestStatus, removePendingRequest, onReject]
   );
 
-  // Register the action with CopilotKit
-  // When using renderAndWaitForResponse, we cannot use handler (it's typed as never)
-  // The response handling happens through the respond callback wrapper
-  useCopilotAction({
+  // Register the HITL action with CopilotKit using the dedicated useHumanInTheLoop hook
+  // This hook is specifically designed for HITL flows and uses the `render` prop
+  // instead of the legacy `renderAndWaitForResponse` pattern
+  useHumanInTheLoop({
     name: `hitl_${name}`,
     description: description || `Human-in-the-loop approval for ${name}`,
     parameters: [
@@ -188,9 +194,9 @@ export function useHITLAction({
         required: false,
       },
     ],
-    // Use renderAndWaitForResponse to show approval UI and block until user responds
+    // Use the `render` prop (useHumanInTheLoop API) to show approval UI and block until user responds
     // The response is passed back to the AI agent automatically
-    renderAndWaitForResponse: ({ args, respond, status }) => {
+    render: ({ args, respond, status }) => {
       // Parse args from CopilotKit format to our typed format
       const requestId = (args.requestId as string) || crypto.randomUUID();
       const hitlArgs: HITLActionArgs = {

@@ -4,10 +4,13 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { CopilotKitProvider } from '../CopilotKitProvider';
 
 // Mock CopilotKit to avoid actual network calls and provider initialization
+// Includes useHumanInTheLoop which is used by HITLActionRegistration (DM-11.11)
 vi.mock('@copilotkit/react-core', () => ({
   CopilotKit: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="copilotkit-provider">{children}</div>
   ),
+  // Mock useHumanInTheLoop for HITL action registration (DM-11.11 migration)
+  useHumanInTheLoop: vi.fn(),
 }));
 
 describe('CopilotKitProvider', () => {
