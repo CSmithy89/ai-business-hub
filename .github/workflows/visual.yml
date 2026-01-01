@@ -1,9 +1,15 @@
 # GitHub Actions CI/CD Pipeline for Visual Regression Tests
 # Story: DM-09.5 - Visual Regression Testing
+# Updated: DM-11.15 - Improved health checks and cleanup
 # Uses Percy for cloud-based visual diff detection
 #
 # This workflow captures visual snapshots of UI components and pages,
 # comparing them against baselines to detect unintended visual changes.
+#
+# DM-11.15 improvements:
+# - PID tracking for reliable server cleanup
+# - Health check with retry loop and diagnostics
+# - Better error messages when server fails to start
 
 name: Visual Regression
 
@@ -80,10 +86,53 @@ jobs:
         run: |
           cd apps/web
           pnpm start &
-          # Wait for server to be ready
-          npx wait-on http://localhost:3000 --timeout 60000
+          echo $! > /tmp/server.pid
+          echo "Started server with PID $(cat /tmp/server.pid)"
         env:
           NODE_ENV: production
+
+      - name: Wait for server health check
+        run: |
+          max_attempts=30
+          attempt=0
+
+          echo "Waiting for server to be ready..."
+
+          while [ $attempt -lt $max_attempts ]; do
+            # Check if server process is still running
+            if [ -f /tmp/server.pid ]; then
+              pid=$(cat /tmp/server.pid)
+              if ! ps -p $pid > /dev/null 2>&1; then
+                echo "ERROR: Server process $pid died unexpectedly"
+                exit 1
+              fi
+            fi
+
+            # Try health check
+            if curl -s http://localhost:3000 > /dev/null 2>&1; then
+              echo "Server is ready after $((attempt * 2)) seconds"
+              exit 0
+            fi
+
+            echo "Attempt $((attempt + 1))/$max_attempts: Waiting for server..."
+            sleep 2
+            attempt=$((attempt + 1))
+          done
+
+          echo "ERROR: Server failed to start within $((max_attempts * 2)) seconds"
+
+          # Capture diagnostics for debugging
+          if [ -f /tmp/server.pid ]; then
+            pid=$(cat /tmp/server.pid)
+            echo "Server process status:"
+            ps aux | grep -E "^.* $pid " || echo "Process $pid not found"
+          fi
+
+          # Check for port binding
+          echo "Port 3000 status:"
+          netstat -tlnp 2>/dev/null | grep :3000 || echo "Port 3000 not bound"
+
+          exit 1
 
       - name: Run Percy visual tests
         run: |
@@ -104,6 +153,16 @@ jobs:
             apps/web/test-results/
             apps/web/playwright-report/
           retention-days: 7
+
+      - name: Cleanup server
+        if: always()
+        run: |
+          if [ -f /tmp/server.pid ]; then
+            pid=$(cat /tmp/server.pid)
+            echo "Stopping server process $pid"
+            kill $pid 2>/dev/null || true
+            rm /tmp/server.pid
+          fi
 
   # Post results summary to PR
   report:
