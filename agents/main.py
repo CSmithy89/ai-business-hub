@@ -81,6 +81,12 @@ from observability import configure_tracing, instrument_app, shutdown_tracing, g
 # Import MCP client for parallel connections (DM-11.4)
 from mcp import MCPClient, ConnectionResult, get_default_mcp_config
 
+# Import Approval Event Gateway for event-driven notifications (DM-11.6)
+from gateway.approval_events import (
+    get_approval_event_gateway,
+    close_approval_event_gateway,
+)
+
 # ============================================================================
 # Configuration (must be at top before usage)
 # ============================================================================
@@ -729,11 +735,18 @@ async def startup_event():
     # Initialize MCP connections in parallel (DM-11.4)
     await startup_mcp_connections()
 
+    # Initialize Approval Event Gateway (DM-11.6)
+    await startup_approval_event_gateway()
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown."""
     logger.info("AgentOS shutting down...")
+
+    # Close Approval Event Gateway (DM-11.6)
+    await close_approval_event_gateway()
+    logger.info("Approval event gateway closed")
 
     # Disconnect MCP servers (DM-11.4)
     global _mcp_client
@@ -906,6 +919,41 @@ async def retry_failed_mcp_connections(failed_servers: List[str]) -> None:
             logger.error(
                 f"MCP server '{name}' remains disconnected after retries"
             )
+
+
+# =============================================================================
+# Approval Event Gateway Setup (DM-11.6)
+# =============================================================================
+
+
+async def startup_approval_event_gateway():
+    """
+    Initialize the Approval Event Gateway on startup.
+
+    Connects to the Foundation Socket.io event bus for real-time
+    approval resolution notifications. This enables event-driven
+    waiting instead of polling, reducing CPU usage and latency.
+
+    If connection fails, the system gracefully falls back to polling.
+    """
+    try:
+        gateway = await get_approval_event_gateway()
+        if gateway.is_connected:
+            logger.info(
+                "Approval event gateway initialized",
+                extra={
+                    "event_bus_url": gateway.event_bus_url,
+                    "connected": True,
+                },
+            )
+        else:
+            logger.warning(
+                "Approval event gateway not connected - using polling fallback"
+            )
+    except Exception as e:
+        logger.warning(
+            f"Failed to initialize approval event gateway, using polling fallback: {e}"
+        )
 
 
 # Mount A2A discovery endpoints (from DM-02.3)

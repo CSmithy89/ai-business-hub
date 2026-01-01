@@ -1,0 +1,595 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-11.6 Event-Driven Approval Notifications
+  Epic: DM-11 - Advanced Features & Optimizations
+
+  This context file provides implementation guidance for converting the
+  approval wait mechanism from polling to event-driven notifications.
+
+  Generated: 2026-01-01
+-->
+<story-context>
+  <metadata>
+    <story-id>DM-11.6</story-id>
+    <epic>DM-11</epic>
+    <title>Event-Driven Approval Notifications</title>
+    <points>5</points>
+    <priority>High</priority>
+    <status>backlog</status>
+  </metadata>
+
+  <problem-statement>
+    <summary>
+      The wait_for_approval() method in ApprovalQueueBridge uses polling to check
+      approval status, wasting CPU cycles and adding latency. This story implements
+      event-driven notification using asyncio.Event and Socket.io integration.
+    </summary>
+    <current-issues>
+      <issue>Polls every 5 seconds, wasting CPU</issue>
+      <issue>Up to 5 seconds latency on approval response</issue>
+      <issue>Scales poorly with concurrent approval waits</issue>
+      <issue>Unnecessary API load on approval service</issue>
+    </current-issues>
+    <gap-reference>TD-20, REC-27</gap-reference>
+  </problem-statement>
+
+  <existing-code>
+    <!-- Current polling implementation that needs to be replaced -->
+    <file path="agents/hitl/approval_bridge.py">
+      <description>
+        ApprovalQueueBridge provides the bridge between HITL system and Foundation
+        approval queue. The wait_for_approval() method currently uses polling.
+      </description>
+      <relevant-code><![CDATA[
+class ApprovalCancelledException(Exception):
+    """
+    Raised when an approval is cancelled by the user.
+
+    This exception allows agents to gracefully handle cancellation
+    and clean up any pending resources.
+
+    Attributes:
+        approval_id: ID of the cancelled approval
+        reason: Optional reason provided by the user
+    """
+
+    def __init__(self, approval_id: str, reason: str = None):
+        self.approval_id = approval_id
+        self.reason = reason
+        message = f"Approval {approval_id} was cancelled"
+        if reason:
+            message += f": {reason}"
+        super().__init__(message)
+
+# ... (class ApprovalQueueBridge at line 127)
+
+    async def wait_for_approval(
+        self,
+        workspace_id: str,
+        approval_id: str,
+        timeout_seconds: int = 3600,
+        poll_interval_seconds: int = 5,
+    ) -> Dict[str, Any]:
+        """
+        Wait for an approval to be resolved (polling implementation).
+
+        Polls the approval status until it is resolved (approved/rejected/cancelled)
+        or the timeout is reached.
+        """
+        start_time = datetime.utcnow()
+        timeout_delta = timedelta(seconds=timeout_seconds)
+
+        while True:
+            approval = await self.get_approval_status(workspace_id, approval_id)
+            status = approval.get("status", "pending")
+
+            # Handle resolved states
+            if status in ("approved", "rejected", "auto_approved"):
+                logger.info(f"Approval {approval_id} resolved with status: {status}")
+                return approval
+
+            # Handle cancellation
+            if status == "cancelled":
+                resolution = approval.get("resolution", {})
+                reason = resolution.get("reason") if isinstance(resolution, dict) else None
+                logger.info(f"Approval {approval_id} was cancelled by user")
+                raise ApprovalCancelledException(
+                    approval_id=approval_id,
+                    reason=reason,
+                )
+
+            # Check timeout
+            elapsed = datetime.utcnow() - start_time
+            if elapsed > timeout_delta:
+                raise TimeoutError(
+                    f"Approval {approval_id} not resolved within {timeout_seconds} seconds"
+                )
+
+            # Wait before next poll
+            await asyncio.sleep(poll_interval_seconds)
+]]></relevant-code>
+      <singleton-pattern><![CDATA[
+# Singleton pattern used for bridge
+_bridge: Optional[ApprovalQueueBridge] = None
+
+def get_approval_bridge() -> ApprovalQueueBridge:
+    """Get the singleton ApprovalQueueBridge instance."""
+    global _bridge
+    if _bridge is None:
+        from agents.config import get_settings
+        settings = get_settings()
+        _bridge = ApprovalQueueBridge(
+            api_base_url=settings.api_base_url,
+            api_key=None,  # Use cookie-based auth via proxy
+        )
+    return _bridge
+
+async def close_approval_bridge() -> None:
+    """Close the singleton bridge and cleanup resources."""
+    global _bridge
+    if _bridge is not None:
+        await _bridge.close()
+        _bridge = None
+]]></singleton-pattern>
+    </file>
+
+    <!-- asyncio.Event pattern from TaskManager -->
+    <file path="agents/hitl/task_manager.py">
+      <description>
+        TaskManager shows patterns for async event handling and cooperative
+        cancellation that can be adapted for approval events.
+      </description>
+      <relevant-patterns><![CDATA[
+# Event-based waiting pattern (using asyncio.wait_for)
+async def wait_for_task(
+    self,
+    task_id: str,
+    timeout: Optional[int] = None,
+) -> TaskResult:
+    """Wait for a task to complete using asyncio primitives."""
+    task = self._tasks.get(task_id)
+    if not task:
+        raise ValueError(f"Task not found: {task_id}")
+
+    if task.asyncio_task is None:
+        return self._create_result(task)
+
+    try:
+        if timeout:
+            await asyncio.wait_for(
+                asyncio.shield(task.asyncio_task),
+                timeout=timeout,
+            )
+        else:
+            await task.asyncio_task
+    except asyncio.CancelledError:
+        pass
+    except asyncio.TimeoutError:
+        raise
+
+    return self._create_result(task)
+
+# Cooperative cancellation pattern
+async def cancel_task(self, task_id: str) -> bool:
+    """Request cancellation of a running task."""
+    async with self._lock:
+        task = self._tasks.get(task_id)
+
+    if not task:
+        return False
+
+    if task.state not in (TaskState.PENDING, TaskState.RUNNING):
+        return False
+
+    # Set cooperative cancellation flag
+    task.cancel_requested = True
+
+    # Cancel the asyncio task directly for immediate effect
+    if task.asyncio_task and not task.asyncio_task.done():
+        task.asyncio_task.cancel()
+
+    return True
+]]></relevant-patterns>
+    </file>
+
+    <!-- Backend WebSocket Gateway -->
+    <file path="apps/api/src/realtime/realtime.gateway.ts">
+      <description>
+        RealtimeGateway is the Socket.io server that broadcasts events to connected
+        clients. It already has approval event broadcasting methods.
+      </description>
+      <relevant-code><![CDATA[
+// Approval broadcast methods (lines 987-1003)
+/**
+ * Broadcast approval created event
+ */
+broadcastApprovalCreated(workspaceId: string, approval: ApprovalEventPayload): void {
+  this.emitToWorkspace(workspaceId, WS_EVENTS.APPROVAL_CREATED, approval);
+}
+
+/**
+ * Broadcast approval updated event
+ */
+broadcastApprovalUpdated(workspaceId: string, update: ApprovalUpdatePayload): void {
+  this.emitToWorkspace(workspaceId, WS_EVENTS.APPROVAL_UPDATED, update);
+}
+
+/**
+ * Broadcast approval deleted event
+ */
+broadcastApprovalDeleted(workspaceId: string, id: string): void {
+  this.emitToWorkspace(workspaceId, WS_EVENTS.APPROVAL_DELETED, { id });
+}
+]]></relevant-code>
+      <room-pattern><![CDATA[
+// Room naming conventions
+export function getWorkspaceRoom(workspaceId: string): string {
+  return `workspace:${workspaceId}`;
+}
+
+export function getUserRoom(userId: string): string {
+  return `user:${userId}`;
+}
+]]></room-pattern>
+    </file>
+
+    <!-- WebSocket Types -->
+    <file path="apps/api/src/realtime/realtime.types.ts">
+      <description>
+        Type definitions for Socket.io events. Approval update payload shows
+        the structure of approval resolution events.
+      </description>
+      <relevant-types><![CDATA[
+// WebSocket event names (lines 694-698)
+export const WS_EVENTS = {
+  // Approval events
+  APPROVAL_CREATED: 'approval.created',
+  APPROVAL_UPDATED: 'approval.updated',
+  APPROVAL_DELETED: 'approval.deleted',
+  // ... other events
+} as const;
+
+// Approval update payload (lines 232-245)
+export interface ApprovalUpdatePayload {
+  id: string;
+  status?: string;
+  confidenceScore?: number;
+  recommendation?: 'approve' | 'review' | 'full_review';
+  assignedToId?: string;
+  decision?: 'approved' | 'rejected';
+  decidedById?: string;
+  decisionNotes?: string;
+  decidedAt?: string;
+  correlationId?: string;
+}
+]]></relevant-types>
+    </file>
+
+    <!-- Approval Event Handler -->
+    <file path="apps/api/src/approvals/handlers/approval-event.handler.ts">
+      <description>
+        Backend event handlers for approval lifecycle events. These handlers
+        are triggered when approvals are approved/rejected/etc.
+      </description>
+      <relevant-code><![CDATA[
+@Injectable()
+export class ApprovalEventHandler {
+  private readonly logger = new Logger(ApprovalEventHandler.name);
+
+  @EventSubscriber(EventTypes.APPROVAL_APPROVED)
+  async handleApproved(event: BaseEvent): Promise<void> {
+    // Handler logic for approved events
+    const data = event.data as unknown as ApprovalDecisionPayload;
+    this.logger.log({
+      message: 'Approval approved - triggering execution',
+      approvalId: data.approvalId,
+      // ...
+    });
+    // Future: Trigger downstream action execution
+  }
+
+  @EventSubscriber(EventTypes.APPROVAL_REJECTED)
+  async handleRejected(event: BaseEvent): Promise<void> {
+    // Handler logic for rejected events
+  }
+
+  // Similar handlers for: auto_approved, escalated, expired, created, requested
+}
+]]></relevant-code>
+    </file>
+
+    <!-- AgentOS main.py startup pattern -->
+    <file path="agents/main.py">
+      <description>
+        Shows the startup/shutdown pattern for initializing services and
+        how to integrate event gateways.
+      </description>
+      <startup-pattern><![CDATA[
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services and register agents on startup."""
+    logger.info("AgentOS starting up...")
+
+    # ... existing initialization ...
+
+    # Initialize MCP connections in parallel (DM-11.4)
+    await startup_mcp_connections()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown."""
+    logger.info("AgentOS shutting down...")
+
+    # Disconnect MCP servers (DM-11.4)
+    global _mcp_client
+    if _mcp_client is not None:
+        await _mcp_client.disconnect_all()
+        _mcp_client = None
+
+    # ... other cleanup ...
+]]></startup-pattern>
+    </file>
+
+    <!-- Agent Configuration -->
+    <file path="agents/config.py">
+      <description>
+        Settings class needs event_bus_url for Socket.io connection.
+        Note: api_base_url already exists for Foundation API.
+      </description>
+      <current-settings><![CDATA[
+class Settings(BaseSettings):
+    """AgentOS configuration settings loaded from environment variables"""
+
+    # Database
+    database_url: str
+
+    # Redis
+    redis_url: Optional[str] = None
+
+    # NestJS API (for BYOAI integration)
+    api_base_url: str = "http://localhost:3001"
+
+    # ... other settings ...
+
+    # NOTE: event_bus_url needs to be added for Socket.io connection
+    # Should default to ws://localhost:3001/realtime (same as api_base_url but WS)
+]]></current-settings>
+    </file>
+
+    <!-- HITL module exports -->
+    <file path="agents/hitl/__init__.py">
+      <description>
+        Current exports from the HITL module. New ApprovalEventManager
+        classes should be added here.
+      </description>
+      <current-exports><![CDATA[
+from .decorators import (
+    hitl_tool,
+    ApprovalLevel,
+    HITLConfig,
+    HITLToolResult,
+    # ... other exports
+)
+
+from .approval_bridge import (
+    ApprovalQueueBridge,
+    get_approval_bridge,
+    close_approval_bridge,
+    PRIORITY_HOURS,
+    RISK_TO_PRIORITY,
+)
+
+from .task_manager import (
+    TaskManager,
+    TaskState,
+    TaskStep,
+    TaskResult,
+    # ... other exports
+)
+
+__all__ = [
+    # ... current exports
+    # New exports needed:
+    # "ApprovalEventManager",
+    # "ApprovalResult",
+    # "get_approval_event_manager",
+]
+]]></current-exports>
+    </file>
+  </existing-code>
+
+  <implementation-guidance>
+    <architecture>
+      <component name="ApprovalEventManager">
+        <location>agents/hitl/approval_events.py</location>
+        <description>
+          Core class managing asyncio.Event instances for approval notifications.
+          Uses a dictionary mapping approval_id to Event objects.
+        </description>
+        <key-methods>
+          <method name="wait_for_approval">
+            Uses asyncio.Event.wait() with asyncio.wait_for() for timeout
+          </method>
+          <method name="on_approval_response">
+            Called by gateway when approval resolution event received.
+            Sets the Event to wake waiting coroutines.
+          </method>
+        </key-methods>
+        <thread-safety>
+          Uses asyncio.Event which is safe within a single event loop.
+          No additional locking required for the agent system.
+        </thread-safety>
+      </component>
+
+      <component name="ApprovalEventGateway">
+        <location>agents/gateway/approval_events.py</location>
+        <description>
+          Socket.io client that connects to Foundation's /realtime namespace
+          and subscribes to approval.updated events.
+        </description>
+        <dependencies>
+          <dep>python-socketio[asyncio_client]</dep>
+        </dependencies>
+        <connection-pattern>
+          Connect during startup, subscribe to workspace:* rooms for approval events.
+          Dispatch events to ApprovalEventManager.on_approval_response().
+        </connection-pattern>
+      </component>
+    </architecture>
+
+    <integration-points>
+      <point name="ApprovalQueueBridge">
+        <changes>
+          <change>Add use_events: bool = True parameter to __init__</change>
+          <change>Add _event_manager: Optional[ApprovalEventManager] field</change>
+          <change>Modify wait_for_approval to try event-driven first, fallback to polling</change>
+          <change>Add _poll_for_approval as private method for fallback</change>
+        </changes>
+      </point>
+
+      <point name="main.py startup">
+        <changes>
+          <change>Import get_approval_event_gateway, close_approval_event_gateway</change>
+          <change>Add await get_approval_event_gateway() in startup_event()</change>
+          <change>Add await close_approval_event_gateway() in shutdown_event()</change>
+        </changes>
+      </point>
+
+      <point name="config.py">
+        <changes>
+          <change>Add event_bus_url: str field with default derived from api_base_url</change>
+        </changes>
+      </point>
+    </integration-points>
+
+    <socket-io-integration>
+      <client-library>python-socketio with asyncio support</client-library>
+      <namespace>/realtime</namespace>
+      <events-to-subscribe>
+        <event name="approval.updated">Main event for approval resolutions</event>
+      </events-to-subscribe>
+      <authentication>
+        Use JWT token from agent context for Socket.io handshake.
+        Token passed via handshake.auth.token as per RealtimeGateway.
+      </authentication>
+      <reconnection>
+        Enable auto-reconnection with exponential backoff.
+        Existing pending waits should be preserved during reconnection.
+      </reconnection>
+    </socket-io-integration>
+
+    <fallback-strategy>
+      <when>
+        <condition>Event bus connection fails during startup</condition>
+        <condition>Event bus disconnects during operation</condition>
+        <condition>Event delivery times out (race condition)</condition>
+      </when>
+      <action>
+        Log warning and fall through to polling implementation.
+        Polling is already implemented in current wait_for_approval().
+      </action>
+    </fallback-strategy>
+
+    <event-message-format>
+      <description>
+        The ApprovalUpdatePayload from realtime.types.ts shows the event structure.
+        Python code should expect this format.
+      </description>
+      <example><![CDATA[
+{
+  "id": "appr_abc123",
+  "status": "approved",  // or "rejected", "cancelled", "auto_approved"
+  "decidedById": "user_xyz",
+  "decisionNotes": "Approved by manager",
+  "decidedAt": "2026-01-01T12:00:00.000Z",
+  "correlationId": "req_123"
+}
+]]></example>
+    </event-message-format>
+  </implementation-guidance>
+
+  <test-requirements>
+    <unit-tests>
+      <test-file>agents/hitl/__tests__/test_approval_events.py</test-file>
+      <test-cases>
+        <case>Event received triggers wait completion</case>
+        <case>Timeout raises asyncio.TimeoutError</case>
+        <case>Cancellation raises ApprovalCancelledException</case>
+        <case>Multiple concurrent waits handled correctly</case>
+        <case>Cleanup occurs on success, timeout, and cancellation</case>
+        <case>Falls back to polling when event bus disconnected</case>
+        <case>Falls back on event delivery failure</case>
+        <case>Logs warning when falling back</case>
+      </test-cases>
+    </unit-tests>
+
+    <integration-tests>
+      <test-cases>
+        <case>Event gateway connects to Socket.io server</case>
+        <case>Events dispatched to event manager</case>
+        <case>Full round-trip: approval created -> resolved -> agent notified</case>
+      </test-cases>
+    </integration-tests>
+
+    <performance-tests>
+      <test-cases>
+        <case>CPU usage test: 10 concurrent waits, measure over 30s, verify &lt;1%</case>
+        <case>Latency test: measure time from resolution to notification, verify &lt;100ms</case>
+      </test-cases>
+    </performance-tests>
+  </test-requirements>
+
+  <acceptance-criteria>
+    <criterion id="AC1">
+      Approvals use event-driven notification - wait_for_approval() uses asyncio.Event
+      instead of polling loop
+    </criterion>
+    <criterion id="AC2">
+      No polling in normal flow - When event bus is connected, no polling occurs
+      during wait
+    </criterion>
+    <criterion id="AC3">
+      Polling fallback for disconnected scenarios - If event bus connection fails,
+      gracefully falls back to polling
+    </criterion>
+    <criterion id="AC4">
+      CPU usage reduced during approval wait - Measurable reduction in CPU usage
+      during approval waits
+    </criterion>
+    <criterion id="AC5">
+      Response time improved - Approval resolution notification received within
+      100ms of decision
+    </criterion>
+  </acceptance-criteria>
+
+  <dependencies>
+    <story id="DM-11.3">Approval Cancellation API - provides cancellation event handling</story>
+    <story id="DM-05">HITL Foundation - provides base ApprovalQueueBridge</story>
+    <infrastructure>Foundation Event Bus (Socket.io) for event delivery</infrastructure>
+  </dependencies>
+
+  <python-dependencies>
+    <dependency>python-socketio[asyncio_client]</dependency>
+  </python-dependencies>
+
+  <files-to-create>
+    <file>agents/hitl/approval_events.py</file>
+    <file>agents/gateway/approval_events.py</file>
+    <file>agents/hitl/__tests__/test_approval_events.py</file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file>agents/hitl/approval_bridge.py</file>
+    <file>agents/hitl/__init__.py</file>
+    <file>agents/main.py</file>
+    <file>agents/config.py</file>
+  </files-to-modify>
+
+  <references>
+    <ref>docs/modules/bm-dm/epics/epic-dm-11-tech-spec.md</ref>
+    <ref>docs/modules/bm-dm/stories/dm-05-3-approval-workflow-integration.md</ref>
+    <ref>docs/modules/bm-dm/stories/dm-11-3-approval-cancellation-api.md</ref>
+    <ref>docs/modules/bm-dm/tech-debt-consolidated.md (TD-20, REC-27)</ref>
+    <ref>https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event</ref>
+  </references>
+</story-context>

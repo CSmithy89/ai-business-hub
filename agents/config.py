@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # NestJS API (for BYOAI integration)
     api_base_url: str = "http://localhost:3001"
 
+    # Event Bus URL for approval notifications (DM-11.6)
+    # If not set, derived from api_base_url by converting http:// to ws://
+    event_bus_url: Optional[str] = None
+
     # Control Plane (optional)
     control_plane_enabled: bool = True
     agno_api_key: Optional[SecretStr] = None

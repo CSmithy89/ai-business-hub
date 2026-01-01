@@ -245,7 +245,7 @@ development_status:
   dm-11-3-approval-cancellation-api: done
   dm-11-4-parallel-mcp-connections: done
   dm-11-5-parallel-health-checks: done
-  dm-11-6-event-driven-approvals: backlog
+  dm-11-6-event-driven-approvals: done
   dm-11-7-remaining-widget-types: backlog
   dm-11-8-state-migration-system: backlog
   dm-11-9-state-compression: backlog
