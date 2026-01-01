@@ -262,3 +262,34 @@ export {
   type MigrationDefinition,
   type MigrationResult,
 } from './state-migrations'
+
+// =============================================================================
+// STATE COMPRESSION (DM-11.9)
+// =============================================================================
+
+/**
+ * Re-export state compression utilities
+ *
+ * These utilities handle transparent LZ-String compression for localStorage:
+ * - Threshold-based compression (50KB default)
+ * - Automatic compression/decompression
+ * - Compression metrics for monitoring
+ * - Graceful fallback on failures
+ *
+ * @see compression.ts for implementation details
+ * @see docs/modules/bm-dm/stories/dm-11-9-state-compression.md
+ */
+export {
+  // Core functions
+  compressIfNeeded,
+  decompressIfNeeded,
+  getCompressionMetrics,
+  getCompressionThreshold,
+  // Constants
+  COMPRESSION_THRESHOLD,
+  COMPRESSED_MARKER_SUFFIX,
+  // Error class
+  CompressionError,
+  // Types
+  type CompressionMetrics,
+} from './compression'

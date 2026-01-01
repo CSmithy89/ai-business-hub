@@ -81,3 +81,6 @@ export const STORAGE_DASHBOARD_STATE = 'hyvve-dashboard-state' as const;
 
 /** Dashboard state version for schema migrations */
 export const STORAGE_DASHBOARD_STATE_VERSION = 'hyvve-dashboard-state-version' as const;
+
+/** Dashboard state compression marker (DM-11.9) */
+export const STORAGE_DASHBOARD_STATE_COMPRESSED = 'hyvve-dashboard-state:compressed' as const;

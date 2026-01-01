@@ -30,7 +30,13 @@ import {
 import {
   STORAGE_DASHBOARD_STATE,
   STORAGE_DASHBOARD_STATE_VERSION,
+  STORAGE_DASHBOARD_STATE_COMPRESSED,
 } from '@/lib/storage-keys';
+import {
+  compressIfNeeded,
+  decompressIfNeeded,
+  CompressionError,
+} from '@/lib/storage/compression';
 import { useAgentStateSync } from './use-agent-state-sync';
 
 // =============================================================================
@@ -175,7 +181,8 @@ export function useStatePersistence(
   );
 
   /**
-   * Save state to localStorage
+   * Save state to localStorage with automatic compression.
+   * Compression is applied when state exceeds 50KB threshold.
    */
   const saveState = useCallback(
     (state: DashboardState) => {
@@ -198,11 +205,27 @@ export function useStatePersistence(
         };
 
         const stateJson = JSON.stringify(stateToSave);
-        localStorage.setItem(storageKey, stateJson);
-        localStorage.setItem(STORAGE_DASHBOARD_STATE_VERSION, String(STATE_VERSION));
-        lastSavedTimestamp.current = state.timestamp;
 
-        log('State saved:', new Date(state.timestamp).toISOString());
+        // Compress if needed (threshold: 50KB)
+        const { data: dataToStore, compressed, metrics } = compressIfNeeded(stateJson);
+
+        localStorage.setItem(storageKey, dataToStore);
+        localStorage.setItem(STORAGE_DASHBOARD_STATE_VERSION, String(STATE_VERSION));
+
+        // Store compression marker for decompression on load
+        if (compressed) {
+          localStorage.setItem(STORAGE_DASHBOARD_STATE_COMPRESSED, 'true');
+          log('State saved (compressed):', {
+            originalSize: `${(metrics.originalSize / 1024).toFixed(2)} KB`,
+            compressedSize: `${(metrics.compressedSize / 1024).toFixed(2)} KB`,
+            ratio: metrics.compressionRatio.toFixed(2),
+          });
+        } else {
+          localStorage.removeItem(STORAGE_DASHBOARD_STATE_COMPRESSED);
+          log('State saved:', new Date(state.timestamp).toISOString());
+        }
+
+        lastSavedTimestamp.current = state.timestamp;
 
         // Notify other tabs if cross-tab sync is enabled
         if (enableCrossTabSync && broadcastChannel.current) {
@@ -222,6 +245,7 @@ export function useStatePersistence(
           console.warn('[StatePersistence] localStorage quota exceeded, clearing old state');
           try {
             localStorage.removeItem(storageKey);
+            localStorage.removeItem(STORAGE_DASHBOARD_STATE_COMPRESSED);
           } catch {
             // Ignore cleanup errors
           }
@@ -252,6 +276,7 @@ export function useStatePersistence(
     try {
       localStorage.removeItem(storageKey);
       localStorage.removeItem(STORAGE_DASHBOARD_STATE_VERSION);
+      localStorage.removeItem(STORAGE_DASHBOARD_STATE_COMPRESSED);
       log('Persisted state cleared');
 
       // Notify other tabs
@@ -269,7 +294,7 @@ export function useStatePersistence(
   }, [storageKey, enableCrossTabSync, log]);
 
   /**
-   * Load state from localStorage
+   * Load state from localStorage with automatic decompression.
    */
   const loadState = useCallback((): DashboardState | null => {
     if (typeof window === 'undefined') return null;
@@ -281,12 +306,34 @@ export function useStatePersistence(
         return null;
       }
 
-      const parsed = JSON.parse(stored);
+      // Check if data was compressed and decompress if needed
+      const isCompressed = localStorage.getItem(STORAGE_DASHBOARD_STATE_COMPRESSED) === 'true';
+      let jsonString: string;
+
+      try {
+        jsonString = decompressIfNeeded(stored, isCompressed);
+        if (isCompressed) {
+          log('State decompressed successfully');
+        }
+      } catch (decompressError) {
+        // Handle compression error - data may be corrupted
+        if (decompressError instanceof CompressionError) {
+          console.error('[StatePersistence] Corrupted compressed data, clearing state');
+          localStorage.removeItem(storageKey);
+          localStorage.removeItem(STORAGE_DASHBOARD_STATE_VERSION);
+          localStorage.removeItem(STORAGE_DASHBOARD_STATE_COMPRESSED);
+          return null;
+        }
+        throw decompressError;
+      }
+
+      const parsed = JSON.parse(jsonString);
       const validated = validateDashboardState(parsed);
 
       if (!validated) {
         log('Invalid persisted state, removing');
         localStorage.removeItem(storageKey);
+        localStorage.removeItem(STORAGE_DASHBOARD_STATE_COMPRESSED);
         return null;
       }
 
@@ -295,6 +342,7 @@ export function useStatePersistence(
       if (age > STATE_TTL_MS) {
         log('Stale state detected (age:', Math.floor(age / 1000 / 60), 'minutes), removing');
         localStorage.removeItem(storageKey);
+        localStorage.removeItem(STORAGE_DASHBOARD_STATE_COMPRESSED);
         return null;
       }
 
@@ -304,6 +352,7 @@ export function useStatePersistence(
         log('State version mismatch, removing (stored:', storedVersion, ', current:', STATE_VERSION, ')');
         localStorage.removeItem(storageKey);
         localStorage.removeItem(STORAGE_DASHBOARD_STATE_VERSION);
+        localStorage.removeItem(STORAGE_DASHBOARD_STATE_COMPRESSED);
         return null;
       }
 
@@ -313,6 +362,7 @@ export function useStatePersistence(
       console.warn('[StatePersistence] Failed to load state:', e);
       try {
         localStorage.removeItem(storageKey);
+        localStorage.removeItem(STORAGE_DASHBOARD_STATE_COMPRESSED);
       } catch {
         // Ignore cleanup errors
       }
@@ -464,6 +514,7 @@ export function clearPersistedDashboardState(
   try {
     localStorage.removeItem(storageKey);
     localStorage.removeItem(STORAGE_DASHBOARD_STATE_VERSION);
+    localStorage.removeItem(STORAGE_DASHBOARD_STATE_COMPRESSED);
 
     // Notify other tabs
     if (typeof BroadcastChannel !== 'undefined') {
