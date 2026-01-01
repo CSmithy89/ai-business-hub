@@ -439,6 +439,69 @@ class MeshRouter:
             "agents_by_module": registry.get_stats().get("modules", {}),
         }
 
+    async def refresh_mesh_health(
+        self,
+        timeout: float = 5.0,
+    ) -> Dict[str, Any]:
+        """
+        Refresh health status of all agents in parallel.
+
+        Triggers parallel health checks for all external agents and returns
+        a summary of the mesh health status. This is useful for periodic
+        health monitoring and dashboard status updates.
+
+        Args:
+            timeout: Per-agent health check timeout in seconds
+
+        Returns:
+            Dict with health check summary and per-agent results:
+            - healthy_count: Number of healthy agents
+            - total_count: Total number of external agents
+            - healthy_ratio: Ratio of healthy to total (0.0 to 1.0)
+            - agents: Per-agent health details with response times
+
+        Example:
+            router = get_router()
+            status = await router.refresh_mesh_health(timeout=3.0)
+            print(f"Mesh health: {status['healthy_count']}/{status['total_count']}")
+
+        @see docs/modules/bm-dm/stories/dm-11-5-parallel-health-checks.md
+        Epic: DM-11 | Story: DM-11.5
+        """
+        from .discovery import get_discovery_service
+
+        discovery = get_discovery_service()
+
+        # Check if discovery service is running; if not, return empty status
+        if not discovery.is_running:
+            logger.warning("Discovery service not running, cannot refresh mesh health")
+            return {
+                "healthy_count": 0,
+                "total_count": 0,
+                "healthy_ratio": 1.0,
+                "agents": {},
+                "error": "Discovery service not running",
+            }
+
+        results = await discovery.health_check_all(timeout=timeout)
+
+        healthy_count = sum(1 for r in results.values() if r.healthy)
+        total_count = len(results)
+
+        return {
+            "healthy_count": healthy_count,
+            "total_count": total_count,
+            "healthy_ratio": healthy_count / total_count if total_count > 0 else 1.0,
+            "agents": {
+                name: {
+                    "healthy": result.healthy,
+                    "response_time_ms": result.response_time_ms,
+                    "error": result.error,
+                }
+                for name, result in results.items()
+            },
+        }
+
 
 # =============================================================================
 # GLOBAL SINGLETON
