@@ -554,10 +554,17 @@ export class ApprovalsService {
       );
     }
 
-    // Update status to cancelled
+    // SECURITY: Use atomic conditional update to prevent TOCTOU race condition
+    // Between the status check above and this update, another request could
+    // approve/reject the approval. Using updateMany with status condition
+    // ensures we only update if status is still 'pending'.
     const now = new Date();
-    await this.prisma.approvalItem.update({
-      where: { id },
+    const updateResult = await this.prisma.approvalItem.updateMany({
+      where: {
+        id,
+        workspaceId,
+        status: 'pending', // Only update if still pending
+      },
       data: {
         status: 'cancelled',
         resolvedById: userId,
@@ -569,6 +576,18 @@ export class ApprovalsService {
         },
       },
     });
+
+    // If no rows updated, the approval was modified by another request
+    if (updateResult.count === 0) {
+      // Re-fetch to get the current status for a better error message
+      const currentApproval = await this.prisma.approvalItem.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+      throw new BadRequestException(
+        `Approval cannot be cancelled - status is now '${currentApproval?.status ?? 'unknown'}'`,
+      );
+    }
 
     // Emit cancellation event
     const cancelPayload: ApprovalCancelledPayload = {

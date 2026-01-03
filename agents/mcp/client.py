@@ -160,12 +160,34 @@ class MCPConnection:
             logger.info(f"MCP server '{self.config.name}' started (pid={self._process.pid})")
 
         except FileNotFoundError as e:
+            # Clean up any orphaned process before raising
+            await self._cleanup_orphaned_process()
             raise MCPConnectionError(
                 f"MCP server command not found: {self.config.command}. "
                 f"Is the MCP server package installed? Error: {e}"
             )
         except Exception as e:
+            # Clean up any orphaned process before raising
+            await self._cleanup_orphaned_process()
             raise MCPConnectionError(f"Failed to start MCP server '{self.config.name}': {e}")
+
+    async def _cleanup_orphaned_process(self) -> None:
+        """
+        Clean up any orphaned subprocess created during failed start().
+        Prevents process leaks when start() fails after subprocess creation.
+        """
+        if self._process is not None:
+            try:
+                self._process.terminate()
+                try:
+                    await asyncio.wait_for(self._process.wait(), timeout=2.0)
+                except asyncio.TimeoutError:
+                    self._process.kill()
+                    await self._process.wait()
+            except Exception as e:
+                logger.warning(f"Error cleaning up orphaned MCP process: {e}")
+            finally:
+                self._process = None
 
     async def stop(self) -> None:
         """

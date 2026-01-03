@@ -147,9 +147,11 @@ class DiscoveryService:
             logger.warning("Discovery service already running")
             return
 
+        # SECURITY: Explicitly enable SSL verification to prevent MITM attacks
         self._client = httpx.AsyncClient(
             timeout=httpx.Timeout(self.timeout),
             follow_redirects=True,
+            verify=True,
         )
         self._running = True
 

@@ -170,9 +170,12 @@ export function useDashboardSync(): UseDashboardSyncReturn {
           clearTimeout(syncTimeoutRef.current);
         }
 
-        // Debounce the sync
+        // Debounce the sync with error handling
         syncTimeoutRef.current = setTimeout(() => {
-          syncToServer();
+          syncToServer().catch((error: unknown) => {
+            // syncToServer already sets syncError internally, but log for debugging
+            console.error('[useDashboardSync] Background sync failed:', error);
+          });
           syncTimeoutRef.current = null;
         }, SYNC_DEBOUNCE_MS);
       },

@@ -8,7 +8,7 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger, Injectable } from '@nestjs/common';
+import { Logger, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
@@ -204,7 +204,7 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
 })
 @Injectable()
 export class RealtimeGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
 {
   private readonly logger = new Logger(RealtimeGateway.name);
 
@@ -220,6 +220,8 @@ export class RealtimeGateway
   private readonly DASHBOARD_STATE_RATE_LIMIT = 100;
   private readonly DASHBOARD_STATE_RATE_WINDOW_MS = 60_000; // 1 minute
   private readonly MAX_STATE_PAYLOAD_SIZE = 64 * 1024; // 64KB
+  private readonly RATE_LIMIT_CLEANUP_INTERVAL_MS = 5 * 60_000; // 5 minutes
+  private rateLimitCleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -256,6 +258,47 @@ export class RealtimeGateway
             'This is a migration-only fallback and should be disabled.',
         );
       }
+    }
+
+    // Start periodic cleanup of expired rate limit entries to prevent memory leak
+    this.startRateLimitCleanup();
+  }
+
+  /**
+   * Start periodic cleanup of expired rate limit entries.
+   * Prevents memory leak from abandoned user sessions.
+   */
+  private startRateLimitCleanup(): void {
+    this.rateLimitCleanupInterval = setInterval(() => {
+      const now = Date.now();
+      let cleaned = 0;
+      for (const [userId, limit] of this.dashboardStateRateLimits.entries()) {
+        if (now > limit.resetAt) {
+          this.dashboardStateRateLimits.delete(userId);
+          cleaned++;
+        }
+      }
+      if (cleaned > 0) {
+        this.logger.debug({
+          message: 'Rate limit cleanup completed',
+          entriesRemoved: cleaned,
+          remaining: this.dashboardStateRateLimits.size,
+        });
+      }
+    }, this.RATE_LIMIT_CLEANUP_INTERVAL_MS);
+
+    this.logger.log('Rate limit cleanup task started');
+  }
+
+  /**
+   * Called when the module is being destroyed.
+   * Clean up resources.
+   */
+  onModuleDestroy(): void {
+    if (this.rateLimitCleanupInterval) {
+      clearInterval(this.rateLimitCleanupInterval);
+      this.rateLimitCleanupInterval = null;
+      this.logger.log('Rate limit cleanup task stopped');
     }
   }
 

@@ -2,7 +2,7 @@
  * State Compression Module
  *
  * Provides transparent LZ-String compression for localStorage state persistence.
- * Compression is applied when state exceeds a configurable threshold (50KB),
+ * Compression is applied when state exceeds a configurable threshold (10KB),
  * with automatic decompression on load.
  *
  * Uses LZ-String compressToUTF16/decompressFromUTF16 for optimal localStorage
@@ -27,8 +27,12 @@ import { trackCompressionMetrics } from '@/lib/telemetry';
 // CONSTANTS
 // =============================================================================
 
-/** Size threshold for compression in bytes (50KB) */
-export const COMPRESSION_THRESHOLD = 50 * 1024;
+/**
+ * Size threshold for compression in bytes (10KB).
+ * Dashboard state typically grows quickly with widgets, so compress early
+ * to reduce localStorage usage and improve performance.
+ */
+export const COMPRESSION_THRESHOLD = 10 * 1024;
 
 /** Suffix for storage keys that indicate compressed data */
 export const COMPRESSED_MARKER_SUFFIX = ':compressed';

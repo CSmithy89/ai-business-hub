@@ -9,6 +9,13 @@
  * - Are scoped to user + workspace (TenantGuard)
  * - Are accessible to all workspace members
  *
+ * Security: Multi-Tenant Isolation
+ * - TenantGuard verifies user is a member of the workspace by querying
+ *   WorkspaceMember table for the user+workspaceId combination
+ * - Dashboard state is keyed by userId:workspaceId, so users can only
+ *   access their own state within workspaces they belong to
+ * - Workspace switching requires re-authentication via TenantGuard
+ *
  * Story: DM-11.1 - Redis State Persistence
  */
 

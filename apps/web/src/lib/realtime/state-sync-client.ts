@@ -8,7 +8,13 @@
  * Story: DM-11.2 - WebSocket State Synchronization
  */
 
+// External packages
 import type { Socket } from 'socket.io-client';
+
+// Internal packages (@/)
+import { DM_CONSTANTS } from '@/lib/dm-constants';
+
+// Relative imports
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -17,7 +23,6 @@ import type {
   DashboardStateFullPayload,
   DashboardStateRequestPayload,
 } from './types';
-import { DM_CONSTANTS } from '@/lib/dm-constants';
 import { StateChange } from './state-diff';
 
 const { WS_SYNC } = DM_CONSTANTS;
@@ -369,11 +374,8 @@ export class StateSyncClient {
         continue;
       }
 
-      // Emit using the socket's emit method with proper typing
-      (this.socket as unknown as { emit: (event: string, data: unknown) => void }).emit(
-        'dashboard.state.update',
-        payload
-      );
+      // Emit using properly typed socket.emit
+      this.socket.emit('dashboard.state.update', payload);
     }
 
     this.pendingChanges = [];
@@ -393,10 +395,7 @@ export class StateSyncClient {
       lastKnownVersion: this.lastKnownVersion,
     };
 
-    (this.socket as unknown as { emit: (event: string, data: unknown) => void }).emit(
-      'dashboard.state.request',
-      payload
-    );
+    this.socket.emit('dashboard.state.request', payload);
   }
 
   /**

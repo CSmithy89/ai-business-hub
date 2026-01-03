@@ -13,8 +13,8 @@
  * Story: DM-11.1 - Redis State Persistence
  */
 
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { Injectable, Logger, OnModuleInit, BadRequestException } from '@nestjs/common';
+import { randomUUID, createHash } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -203,6 +203,23 @@ export class DashboardStateService implements OnModuleInit {
     }
 
     try {
+      // SECURITY: Validate checksum if provided to detect data corruption
+      if (dto.checksum) {
+        const expectedChecksum = this.computeChecksum(dto.state);
+        if (dto.checksum !== expectedChecksum) {
+          this.logger.warn({
+            message: 'Checksum mismatch in dashboard state',
+            userId,
+            workspaceId,
+            providedChecksum: dto.checksum,
+            expectedChecksum,
+          });
+          throw new BadRequestException(
+            'State checksum mismatch - data may be corrupted',
+          );
+        }
+      }
+
       // Prepare state data
       const stateData: StoredStateData = {
         version: dto.version,
@@ -549,6 +566,21 @@ export class DashboardStateService implements OnModuleInit {
 
     // Default: not retryable (script errors, invalid commands, OOM, etc.)
     return false;
+  }
+
+  /**
+   * Compute SHA-256 checksum of state object
+   *
+   * Uses deterministic JSON stringification (sorted keys) to ensure
+   * consistent checksums regardless of property order.
+   *
+   * @param state - State object to hash
+   * @returns SHA-256 hash in hex format
+   */
+  private computeChecksum(state: Record<string, unknown>): string {
+    // Sort keys for deterministic serialization
+    const sortedJson = JSON.stringify(state, Object.keys(state).sort());
+    return createHash('sha256').update(sortedJson).digest('hex');
   }
 
   /**
