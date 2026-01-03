@@ -271,17 +271,21 @@ export class RealtimeGateway
   private startRateLimitCleanup(): void {
     this.rateLimitCleanupInterval = setInterval(() => {
       const now = Date.now();
-      let cleaned = 0;
+      // Collect expired entries first to avoid modifying Map during iteration
+      const expiredUserIds: string[] = [];
       for (const [userId, limit] of this.dashboardStateRateLimits.entries()) {
         if (now > limit.resetAt) {
-          this.dashboardStateRateLimits.delete(userId);
-          cleaned++;
+          expiredUserIds.push(userId);
         }
       }
-      if (cleaned > 0) {
+      // Delete collected entries
+      for (const userId of expiredUserIds) {
+        this.dashboardStateRateLimits.delete(userId);
+      }
+      if (expiredUserIds.length > 0) {
         this.logger.debug({
           message: 'Rate limit cleanup completed',
-          entriesRemoved: cleaned,
+          entriesRemoved: expiredUserIds.length,
           remaining: this.dashboardStateRateLimits.size,
         });
       }
@@ -465,12 +469,17 @@ export class RealtimeGateway
             }
           });
         }
+
+        // Explicitly clear projectRooms to prevent memory leaks
+        projectRooms.clear();
       } catch (error) {
         this.logger.error({
           message: 'Failed to fetch user for presence cleanup',
           userId,
           error: error instanceof Error ? error.message : String(error),
         });
+        // Still clear projectRooms on error to prevent leaks
+        projectRooms.clear();
       }
     }
 

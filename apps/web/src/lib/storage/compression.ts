@@ -141,6 +141,13 @@ export function compressIfNeeded(data: string): {
       throw new Error('compressToUTF16 returned null');
     }
 
+    // Round-trip validation: verify compressed data can be decompressed correctly
+    const roundTrip = decompressFromUTF16(compressed);
+    if (roundTrip !== data) {
+      console.error('[State Compression] Round-trip validation failed');
+      throw new Error('Compression round-trip validation failed');
+    }
+
     const compressedSize = compressed.length;
     const compressionRatio = originalSize / compressedSize;
 

@@ -99,14 +99,23 @@ interface MetricsConfig {
 
 /**
  * Get current configuration from environment
+ * Uses defensive parsing to handle invalid values
  */
 function getConfig(): MetricsConfig {
+  // Parse sample rate with fallback to 1.0 if invalid
+  const parsedSampleRate = parseFloat(process.env.NEXT_PUBLIC_METRICS_SAMPLE_RATE || '1.0');
+  const sampleRate = Number.isNaN(parsedSampleRate) ? 1.0 : Math.max(0, Math.min(1, parsedSampleRate));
+
+  // Parse batch size with fallback to 10 if invalid
+  const parsedBatchSize = parseInt(process.env.NEXT_PUBLIC_METRICS_BATCH_SIZE || '10', 10);
+  const batchSize = Number.isNaN(parsedBatchSize) || parsedBatchSize < 1 ? 10 : parsedBatchSize;
+
   return {
     enabled: process.env.NEXT_PUBLIC_METRICS_ENABLED === 'true' ||
              process.env.NEXT_PUBLIC_ERROR_TRACKING_ENABLED === 'true',
     environment: process.env.NEXT_PUBLIC_APP_ENVIRONMENT || 'development',
-    sampleRate: parseFloat(process.env.NEXT_PUBLIC_METRICS_SAMPLE_RATE || '1.0'),
-    batchSize: parseInt(process.env.NEXT_PUBLIC_METRICS_BATCH_SIZE || '10', 10),
+    sampleRate,
+    batchSize,
   }
 }
 

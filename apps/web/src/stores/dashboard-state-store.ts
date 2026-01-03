@@ -251,6 +251,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
           ...current,
           ...update,
           timestamp: Date.now(),
+          stateVersion: current.stateVersion + 1,
           widgets: newWidgets,
           loading: update.loading
             ? { ...current.loading, ...update.loading }
@@ -270,7 +271,11 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     // =========================================================================
 
     setActiveProject: (projectId: string | null) => {
-      set({ activeProject: projectId, timestamp: Date.now() });
+      set((state) => ({
+        activeProject: projectId,
+        timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
+      }));
     },
 
     // =========================================================================
@@ -280,6 +285,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     setProjectStatus: (status: ProjectStatusState | null) => {
       set((state) => ({
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
         widgets: {
           ...state.widgets,
           projectStatus: status,
@@ -290,6 +296,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     setMetrics: (metrics: MetricsState | null) => {
       set((state) => ({
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
         widgets: {
           ...state.widgets,
           // DM-08.6: Cap metrics at MAX_METRICS
@@ -306,6 +313,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     setActivity: (activity: ActivityState | null) => {
       set((state) => ({
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
         widgets: {
           ...state.widgets,
           // DM-08.6: Cap activities at MAX_ACTIVITIES
@@ -328,6 +336,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         const activeAlerts = newAlerts.filter((a) => !a.dismissed);
         return {
           timestamp: Date.now(),
+          stateVersion: state.stateVersion + 1,
           widgets: {
             ...state.widgets,
             alerts: newAlerts,
@@ -346,6 +355,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         const activeAlerts = state.activeAlerts.filter((a) => a.id !== alertId);
         return {
           timestamp: Date.now(),
+          stateVersion: state.stateVersion + 1,
           widgets: {
             ...state.widgets,
             alerts: newAlerts,
@@ -358,6 +368,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     clearAlerts: () => {
       set((state) => ({
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
         widgets: {
           ...state.widgets,
           alerts: [],
@@ -407,7 +418,11 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     // =========================================================================
 
     setActiveTasks: (tasks: TaskProgress[]) => {
-      set({ activeTasks: tasks, timestamp: Date.now() });
+      set((state) => ({
+        activeTasks: tasks,
+        timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
+      }));
     },
 
     addTask: (task: TaskProgress) => {
@@ -415,6 +430,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         // DM-08.6: Cap at MAX_ACTIVE_TASKS, prioritizing active (pending/running) tasks
         activeTasks: prioritizeActiveTasks([...state.activeTasks, task]),
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
       }));
     },
 
@@ -424,6 +440,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
           t.taskId === taskId ? { ...t, ...update } : t
         ),
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
       }));
     },
 
@@ -439,6 +456,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
           };
         }),
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
       }));
     },
 
@@ -446,6 +464,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
       set((state) => ({
         activeTasks: state.activeTasks.filter((t) => t.taskId !== taskId),
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
       }));
     },
 

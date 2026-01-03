@@ -129,9 +129,9 @@ def count_tokens(text: str, model: str = "default") -> int:
             logger.warning(f"Token encoding failed, using estimation: {e}")
 
     # Fallback estimation
-    # Average of 4 characters per token for English text
-    # This is a reasonable approximation for most Western languages
-    return len(text) // 4
+    # Use 3.5 characters per token for safer estimation with code/technical content
+    # Code and technical content typically has lower chars-per-token than prose
+    return int(len(text) / 3.5)
 
 
 def count_tokens_with_metadata(

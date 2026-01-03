@@ -39,7 +39,7 @@ const KEY_PREFIX = 'hyvve:dashboard:state:';
 const LOCK_PREFIX = 'hyvve:dashboard:lock:';
 
 /** Lock TTL in seconds (auto-expire to prevent deadlocks) */
-const LOCK_TTL_SECONDS = 5;
+const LOCK_TTL_SECONDS = 10;
 
 /** Max lock acquisition attempts */
 const LOCK_MAX_ATTEMPTS = 3;
@@ -238,13 +238,24 @@ export class DashboardStateService implements OnModuleInit {
         String(this.stateTtlSeconds), // ARGV[3]
       );
 
-      // Parse Lua script result
+      // Parse Lua script result with error handling
       interface LuaResult {
         status: 'success' | 'conflict' | 'overwrite';
         version?: number;
         serverVersion?: number;
       }
-      const luaResult: LuaResult = JSON.parse(result as string);
+      let luaResult: LuaResult;
+      try {
+        luaResult = JSON.parse(result as string);
+      } catch (parseError) {
+        this.logger.error({
+          message: 'Failed to parse Lua script result',
+          key,
+          result: String(result).substring(0, 100),
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+        });
+        throw new Error('Invalid response from state storage');
+      }
 
       if (luaResult.status === 'conflict') {
         // Server version is newer - client should restore from server

@@ -767,6 +767,17 @@ async def shutdown_event():
     await close_approval_event_gateway()
     logger.info("Approval event gateway closed")
 
+    # Cancel MCP retry task if running
+    global _mcp_retry_task
+    if _mcp_retry_task is not None:
+        _mcp_retry_task.cancel()
+        try:
+            await _mcp_retry_task
+        except asyncio.CancelledError:
+            pass
+        _mcp_retry_task = None
+        logger.info("MCP retry task cancelled")
+
     # Disconnect MCP servers (DM-11.4)
     global _mcp_client
     if _mcp_client is not None:
@@ -866,6 +877,9 @@ async def startup_dashboard_gateway():
 # Global reference to MCP client (created on startup)
 _mcp_client: Optional[MCPClient] = None
 
+# Global reference to MCP retry task (for cleanup on shutdown)
+_mcp_retry_task: Optional[asyncio.Task] = None
+
 # Global reference to approval cleanup task (CR-07)
 _approval_cleanup_task: Optional[asyncio.Task] = None
 
@@ -917,9 +931,10 @@ async def startup_mcp_connections():
     failed = [name for name, result in results.items() if not result.success]
 
     if failed:
+        global _mcp_retry_task
         logger.warning(f"Failed to connect to MCP servers: {failed}")
-        # Schedule background retries (non-blocking)
-        asyncio.create_task(retry_failed_mcp_connections(failed))
+        # Schedule background retries (non-blocking), store reference for shutdown cleanup
+        _mcp_retry_task = asyncio.create_task(retry_failed_mcp_connections(failed))
 
 
 async def retry_failed_mcp_connections(failed_servers: List[str]) -> None:
