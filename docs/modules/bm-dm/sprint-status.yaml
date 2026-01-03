@@ -226,7 +226,7 @@ development_status:
   dm-10: contexted
   dm-10-1-a2a-architecture-diagrams: done
   dm-10-2-copilotkit-patterns-guide: done
-  dm-10-3-mcp-configuration-guide: backlog
+  dm-10-3-mcp-configuration-guide: done
   dm-10-4-a2a-troubleshooting-guide: backlog
   dm-10-5-http2-deployment-guide: backlog
   dm-10-6-implementation-notes-backfill: backlog
