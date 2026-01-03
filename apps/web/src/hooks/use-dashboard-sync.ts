@@ -206,6 +206,7 @@ export function useDashboardSync(): UseDashboardSyncReturn {
   // =========================================================================
 
   // Connect to WebSocket state sync client
+  // Note: stateVersion intentionally excluded from deps to prevent reconnection loops
   useEffect(() => {
     if (!isAuthenticated || !socket) {
       return;
@@ -218,8 +219,9 @@ export function useDashboardSync(): UseDashboardSyncReturn {
       socket as unknown as Socket<ServerToClientEvents, ClientToServerEvents>
     );
 
-    // Set initial version
-    stateSyncClient.setLastKnownVersion(stateVersion);
+    // Set initial version from current store state
+    const currentVersion = useDashboardStateStore.getState().stateVersion;
+    stateSyncClient.setLastKnownVersion(currentVersion);
 
     // Subscribe to sync events
     const handleSync: StateSyncCallback = (data) => {
@@ -241,7 +243,8 @@ export function useDashboardSync(): UseDashboardSyncReturn {
       stateSyncClient.disconnect();
       wsInitializedRef.current = false;
     };
-  }, [isAuthenticated, socket, stateVersion, applyRemoteUpdate, applyFullState]);
+  // Note: stateVersion intentionally excluded to prevent reconnection loops
+  }, [isAuthenticated, socket, applyRemoteUpdate, applyFullState]);
 
   // Track WebSocket connection status
   useEffect(() => {

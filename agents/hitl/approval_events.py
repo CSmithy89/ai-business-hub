@@ -22,10 +22,14 @@ Epic: DM-11 | Story: DM-11.6
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
+
+# TTL for orphaned results (results that were never retrieved)
+# Set to 1 hour - enough time for race condition handling, not too long to cause memory issues
+RESULT_TTL_SECONDS = 3600
 
 
 # =============================================================================
@@ -115,6 +119,7 @@ class ApprovalEventManager:
         """Initialize the approval event manager."""
         self._pending_events: Dict[str, _PendingApproval] = {}
         self._results: Dict[str, ApprovalResult] = {}
+        self._result_timestamps: Dict[str, datetime] = {}  # Track when results were added
         self._lock = asyncio.Lock()
         self._event_bus_connected: bool = False
 
@@ -182,8 +187,8 @@ class ApprovalEventManager:
             raise
 
         finally:
-            # Cleanup
-            self.cleanup(approval_id)
+            # Cleanup (async with proper locking)
+            await self.cleanup(approval_id)
 
     async def notify(
         self,
@@ -201,8 +206,9 @@ class ApprovalEventManager:
             result: ApprovalResult with resolution details
         """
         async with self._lock:
-            # Store the result
+            # Store the result and timestamp
             self._results[approval_id] = result
+            self._result_timestamps[approval_id] = datetime.utcnow()
 
             # Wake up any waiting coroutine
             if approval_id in self._pending_events:
@@ -213,25 +219,25 @@ class ApprovalEventManager:
                 # No one waiting - result will be picked up on next wait
                 logger.debug(f"Received notification for non-pending approval: {approval_id}")
 
-    def cleanup(self, approval_id: str) -> None:
+    async def cleanup(self, approval_id: str) -> None:
         """
-        Clean up pending events and results for an approval.
+        Clean up pending events for an approval.
 
         Called automatically after wait completes, but can also be called
-        manually to clean up abandoned waits.
+        manually to clean up abandoned waits. Uses proper locking for
+        thread safety.
 
         Args:
             approval_id: ID of the approval to clean up
         """
-        # Use sync cleanup since this may be called from finally block
-        # Note: This is safe because we're only modifying dicts
-        self._pending_events.pop(approval_id, None)
-        # Don't remove results here - they may be needed for race condition handling
-        # Results are cleaned up when retrieved
+        async with self._lock:
+            self._pending_events.pop(approval_id, None)
+            # Don't remove results here - they may be needed for race condition handling
+            # Results are cleaned up when retrieved or by cleanup_stale_results()
 
     async def cleanup_async(self, approval_id: str) -> None:
         """
-        Async version of cleanup with proper locking.
+        Full cleanup including results (for explicit cleanup).
 
         Args:
             approval_id: ID of the approval to clean up
@@ -239,6 +245,41 @@ class ApprovalEventManager:
         async with self._lock:
             self._pending_events.pop(approval_id, None)
             self._results.pop(approval_id, None)
+            self._result_timestamps.pop(approval_id, None)
+
+    async def cleanup_stale_results(self) -> int:
+        """
+        Remove orphaned results that have exceeded TTL.
+
+        Should be called periodically (e.g., every 10 minutes) to prevent
+        memory leaks from results that were never retrieved.
+
+        Returns:
+            Number of stale results cleaned up
+        """
+        now = datetime.utcnow()
+        ttl = timedelta(seconds=RESULT_TTL_SECONDS)
+        cleaned = 0
+
+        async with self._lock:
+            stale_ids = [
+                approval_id
+                for approval_id, timestamp in self._result_timestamps.items()
+                if now - timestamp > ttl
+            ]
+
+            for approval_id in stale_ids:
+                # Only clean up if not pending (someone might still be waiting)
+                if approval_id not in self._pending_events:
+                    self._results.pop(approval_id, None)
+                    self._result_timestamps.pop(approval_id, None)
+                    cleaned += 1
+                    logger.debug(f"Cleaned up stale result for approval {approval_id}")
+
+        if cleaned > 0:
+            logger.info(f"Cleaned up {cleaned} stale approval result(s)")
+
+        return cleaned
 
     def set_event_bus_connected(self, connected: bool) -> None:
         """

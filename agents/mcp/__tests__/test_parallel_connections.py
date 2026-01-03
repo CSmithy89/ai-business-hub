@@ -602,14 +602,6 @@ class TestMCPClientParallelVsSequential:
     async def test_all_connections_completed(self, mcp_config_five_servers):
         """Should complete all connections even with varying delays."""
         client = MCPClient(mcp_config_five_servers)
-
-        delays = {"server0": 0.05, "server1": 0.10, "server2": 0.02, "server3": 0.08, "server4": 0.03}
-
-        async def mock_start_with_delay():
-            # Get server name from the connection config
-            # This is a bit hacky but works for testing
-            pass
-
         connection_count = {"count": 0}
 
         async def mock_start():

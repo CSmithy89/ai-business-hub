@@ -8,11 +8,14 @@ DM-11.13 Update:
 - Added optional metrics endpoint authentication
 """
 
+import logging
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
+
+logger = logging.getLogger(__name__)
 
 
 class OTelSettings(BaseSettings):
@@ -56,6 +59,16 @@ class OTelSettings(BaseSettings):
         default=None,
         description="API key for metrics endpoint (required if metrics_require_auth=True)",
     )
+
+    @model_validator(mode="after")
+    def validate_metrics_auth_config(self) -> "OTelSettings":
+        """Validate metrics auth configuration consistency."""
+        if self.metrics_require_auth and not self.metrics_api_key:
+            logger.warning(
+                "METRICS_REQUIRE_AUTH is enabled but METRICS_API_KEY is not set. "
+                "The /metrics endpoint will return 500 errors until configured."
+            )
+        return self
 
     class Config:
         env_file = ".env"

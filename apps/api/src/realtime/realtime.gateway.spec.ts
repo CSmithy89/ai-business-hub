@@ -43,11 +43,11 @@ describe('RealtimeGateway', () => {
   };
 
   beforeEach(async () => {
-    // Mock the Socket.io server
+    // Mock the Socket.io server with proper type-safe emit method
     mockServer = {
       to: jest.fn().mockReturnThis(),
+      emit: jest.fn(),
     };
-    (mockServer as { emit: jest.Mock }).emit = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

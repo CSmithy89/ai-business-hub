@@ -23,6 +23,8 @@ Example:
           - targets: ['agentos:8000']
 """
 
+import hmac
+
 from fastapi import Depends, HTTPException, Request, status
 from functools import lru_cache
 
@@ -64,15 +66,19 @@ async def verify_metrics_auth(
         )
 
     # Check Authorization header (Bearer token)
+    # Use hmac.compare_digest to prevent timing attacks
     auth_header = request.headers.get("Authorization")
     if auth_header:
         scheme, _, token = auth_header.partition(" ")
-        if scheme.lower() == "bearer" and token == settings.metrics_api_key:
+        if scheme.lower() == "bearer" and hmac.compare_digest(
+            token, settings.metrics_api_key
+        ):
             return
 
     # Check X-Metrics-Key header
+    # Use hmac.compare_digest to prevent timing attacks
     metrics_key = request.headers.get("X-Metrics-Key")
-    if metrics_key == settings.metrics_api_key:
+    if metrics_key and hmac.compare_digest(metrics_key, settings.metrics_api_key):
         return
 
     # No valid authentication provided

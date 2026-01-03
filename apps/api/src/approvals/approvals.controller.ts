@@ -7,8 +7,10 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -201,10 +203,13 @@ export class ApprovalsController {
     @CurrentWorkspace() workspaceId: string,
     @Param('id') id: string,
     @Body() dto: CancelApprovalDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: { id: string; email: string },
+    @Req() req: Request,
   ) {
     // Check if user has admin/owner role for permission bypass
-    const isAdmin = user.role === 'admin' || user.role === 'owner';
+    // Use memberRole from request (set by TenantGuard) not user.role
+    const memberRole = (req as unknown as { memberRole?: string }).memberRole;
+    const isAdmin = memberRole === 'admin' || memberRole === 'owner';
     return this.approvalsService.cancel(workspaceId, id, user.id, dto, isAdmin);
   }
 }

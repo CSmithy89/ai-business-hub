@@ -46,14 +46,16 @@ export class DashboardStateService implements OnModuleInit {
   ) {
     // Read TTL from environment variable (per DM-08 retrospective recommendation)
     const ttlEnv = this.configService.get<string>('REDIS_STATE_TTL');
-    this.stateTtlSeconds = ttlEnv
-      ? parseInt(ttlEnv, 10)
-      : DEFAULT_STATE_TTL_SECONDS;
+    const parsedTtl = ttlEnv ? parseInt(ttlEnv, 10) : DEFAULT_STATE_TTL_SECONDS;
 
-    if (Number.isNaN(this.stateTtlSeconds) || this.stateTtlSeconds <= 0) {
+    // Reset to default if TTL is invalid (NaN or <= 0)
+    if (Number.isNaN(parsedTtl) || parsedTtl <= 0) {
       this.logger.warn(
-        `Invalid REDIS_STATE_TTL value, using default: ${DEFAULT_STATE_TTL_SECONDS}`,
+        `Invalid REDIS_STATE_TTL value '${ttlEnv}', using default: ${DEFAULT_STATE_TTL_SECONDS}`,
       );
+      this.stateTtlSeconds = DEFAULT_STATE_TTL_SECONDS;
+    } else {
+      this.stateTtlSeconds = parsedTtl;
     }
   }
 
