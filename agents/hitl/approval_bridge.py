@@ -10,8 +10,15 @@ Confidence-Based Routing:
 - 60-84% (QUICK): Inline CopilotKit approval
 - < 60% (FULL): Queue to Foundation approval system (this module)
 
+Event-Driven Waiting (DM-11.6):
+- Primary: Uses asyncio.Event-based notification for zero-CPU wait
+- Fallback: Uses polling when event bus is unavailable
+- Benefit: ~50x faster response, ~100% CPU reduction during wait
+
 @see docs/modules/bm-dm/stories/dm-05-3-approval-workflow-integration.md
+@see docs/modules/bm-dm/stories/dm-11-6-event-driven-approvals.md
 Epic: DM-05 | Story: DM-05.3
+Epic: DM-11 | Story: DM-11.6
 """
 
 import asyncio
@@ -26,6 +33,32 @@ from pydantic import BaseModel, Field
 from .decorators import HITLConfig, HITLToolResult
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# CUSTOM EXCEPTIONS
+# =============================================================================
+
+
+class ApprovalCancelledException(Exception):
+    """
+    Raised when an approval is cancelled by the user.
+
+    This exception allows agents to gracefully handle cancellation
+    and clean up any pending resources.
+
+    Attributes:
+        approval_id: ID of the cancelled approval
+        reason: Optional reason provided by the user
+    """
+
+    def __init__(self, approval_id: str, reason: str = None):
+        self.approval_id = approval_id
+        self.reason = reason
+        message = f"Approval {approval_id} was cancelled"
+        if reason:
+            message += f": {reason}"
+        super().__init__(message)
 
 
 # =============================================================================
@@ -105,6 +138,11 @@ class ApprovalQueueBridge:
     This bridge creates approval items in the Foundation queue when
     HITL tools have low confidence (<60%) requiring full review.
 
+    Event-Driven Waiting (DM-11.6):
+        By default, wait_for_approval() uses event-driven notifications via
+        the ApprovalEventManager. This provides zero-CPU waiting with sub-100ms
+        response latency. Falls back to polling if event bus is unavailable.
+
     Usage:
         bridge = get_approval_bridge()
         approval = await bridge.create_approval_item(
@@ -122,6 +160,7 @@ class ApprovalQueueBridge:
         api_base_url: str,
         api_key: Optional[str] = None,
         timeout: float = 30.0,
+        use_events: bool = True,
     ):
         """
         Initialize the approval queue bridge.
@@ -130,10 +169,13 @@ class ApprovalQueueBridge:
             api_base_url: Base URL for Foundation API (e.g., http://localhost:3001)
             api_key: Optional API key for internal authentication
             timeout: HTTP request timeout in seconds
+            use_events: Whether to use event-driven waiting (default True).
+                       Falls back to polling if event bus is unavailable.
         """
         self.api_base_url = api_base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
+        self.use_events = use_events
         self._client: Optional[httpx.AsyncClient] = None
 
     async def _get_client(self) -> httpx.AsyncClient:
@@ -531,34 +573,174 @@ class ApprovalQueueBridge:
         poll_interval_seconds: int = 5,
     ) -> Dict[str, Any]:
         """
-        Wait for an approval to be resolved (polling implementation).
+        Wait for an approval to be resolved.
 
-        Polls the approval status until it is resolved (approved/rejected)
-        or the timeout is reached.
+        Uses event-driven notification for efficiency (DM-11.6), with polling
+        fallback for disconnected scenarios or event delivery failures.
+
+        Event-Driven Mode (default):
+            - Zero CPU usage during wait
+            - Sub-100ms response latency
+            - Single API call on resolution
+
+        Polling Fallback:
+            - Used when event bus is unavailable
+            - Polls at poll_interval_seconds
+            - Higher latency but always works
 
         Args:
             workspace_id: Workspace ID for tenant isolation
             approval_id: ID of the approval item
             timeout_seconds: Maximum time to wait (default 1 hour)
-            poll_interval_seconds: Time between polls (default 5 seconds)
+            poll_interval_seconds: Time between polls for fallback (default 5s)
+
+        Returns:
+            Resolved approval item with status:
+            - 'approved': Action should proceed
+            - 'rejected': Action should not proceed
+            - 'auto_approved': Action should proceed (high confidence)
+
+        Raises:
+            TimeoutError: If not resolved within timeout
+            ApprovalCancelledException: If approval was cancelled by user
+            httpx.HTTPStatusError: If the API request fails
+        """
+        # Try event-driven approach first
+        if self.use_events:
+            try:
+                return await self._wait_for_approval_event_driven(
+                    workspace_id=workspace_id,
+                    approval_id=approval_id,
+                    timeout_seconds=timeout_seconds,
+                )
+            except Exception as e:
+                if isinstance(e, (asyncio.TimeoutError, ApprovalCancelledException)):
+                    raise
+                logger.warning(
+                    f"Event-driven wait failed, falling back to polling: {e}"
+                )
+                # Fall through to polling
+
+        # Fallback to polling
+        logger.debug(f"Using polling for approval {approval_id}")
+        return await self._poll_for_approval(
+            workspace_id=workspace_id,
+            approval_id=approval_id,
+            timeout_seconds=timeout_seconds,
+            poll_interval_seconds=poll_interval_seconds,
+        )
+
+    async def _wait_for_approval_event_driven(
+        self,
+        workspace_id: str,
+        approval_id: str,
+        timeout_seconds: int,
+    ) -> Dict[str, Any]:
+        """
+        Wait for approval using event-driven notification.
+
+        Uses ApprovalEventManager to wait for approval resolution event.
+
+        Args:
+            workspace_id: Workspace ID for tenant isolation
+            approval_id: ID of the approval item
+            timeout_seconds: Maximum time to wait
+
+        Returns:
+            Resolved approval item
+
+        Raises:
+            asyncio.TimeoutError: If not resolved within timeout
+            ApprovalCancelledException: If approval was cancelled
+        """
+        from .approval_events import get_approval_event_manager
+
+        event_manager = get_approval_event_manager()
+
+        # Check if event bus is connected
+        if not event_manager.is_connected:
+            raise RuntimeError("Event bus not connected")
+
+        logger.info(f"Waiting for approval {approval_id} via events")
+
+        try:
+            result = await event_manager.wait_for_event(
+                approval_id=approval_id,
+                timeout=float(timeout_seconds),
+            )
+
+            # Handle cancellation
+            if result.status == "cancelled":
+                reason = result.notes or (
+                    result.resolution.get("reason")
+                    if isinstance(result.resolution, dict)
+                    else None
+                )
+                logger.info(f"Approval {approval_id} was cancelled via event")
+                raise ApprovalCancelledException(
+                    approval_id=approval_id,
+                    reason=reason,
+                )
+
+            # Fetch full approval data for compatibility
+            approval = await self.get_approval_status(workspace_id, approval_id)
+            logger.info(f"Approval {approval_id} resolved via event: {result.status}")
+            return approval
+
+        except asyncio.TimeoutError:
+            logger.info(f"Approval {approval_id} timed out after {timeout_seconds}s")
+            raise TimeoutError(
+                f"Approval {approval_id} not resolved within {timeout_seconds} seconds"
+            )
+
+    async def _poll_for_approval(
+        self,
+        workspace_id: str,
+        approval_id: str,
+        timeout_seconds: int,
+        poll_interval_seconds: int,
+    ) -> Dict[str, Any]:
+        """
+        Poll for approval status (fallback implementation).
+
+        Used when event-driven approach is unavailable or fails.
+
+        Args:
+            workspace_id: Workspace ID for tenant isolation
+            approval_id: ID of the approval item
+            timeout_seconds: Maximum time to wait
+            poll_interval_seconds: Time between polls
 
         Returns:
             Resolved approval item
 
         Raises:
             TimeoutError: If not resolved within timeout
-            httpx.HTTPStatusError: If the API request fails
+            ApprovalCancelledException: If approval was cancelled
         """
         start_time = datetime.utcnow()
         timeout_delta = timedelta(seconds=timeout_seconds)
+
+        logger.info(f"Polling for approval {approval_id} (interval={poll_interval_seconds}s)")
 
         while True:
             approval = await self.get_approval_status(workspace_id, approval_id)
             status = approval.get("status", "pending")
 
+            # Handle resolved states
             if status in ("approved", "rejected", "auto_approved"):
-                logger.info(f"Approval {approval_id} resolved with status: {status}")
+                logger.info(f"Approval {approval_id} resolved via polling: {status}")
                 return approval
+
+            # Handle cancellation
+            if status == "cancelled":
+                resolution = approval.get("resolution", {})
+                reason = resolution.get("reason") if isinstance(resolution, dict) else None
+                logger.info(f"Approval {approval_id} was cancelled (polling)")
+                raise ApprovalCancelledException(
+                    approval_id=approval_id,
+                    reason=reason,
+                )
 
             # Check timeout
             elapsed = datetime.utcnow() - start_time

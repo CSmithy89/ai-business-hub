@@ -7,9 +7,13 @@ discovered agents in the mesh registry.
 
 @see docs/modules/bm-dm/stories/dm-06-5-universal-agent-mesh.md
 Epic: DM-06 | Story: DM-06.5
+
+Enhanced in DM-11.5 with parallel health checks for improved performance.
 """
 import asyncio
 import logging
+import time
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -42,6 +46,30 @@ class InvalidAgentCardError(DiscoveryError):
     """Raised when an AgentCard is invalid or cannot be parsed."""
 
     pass
+
+
+@dataclass
+class HealthCheckResult:
+    """
+    Result of a single agent health check.
+
+    Provides structured information about health check success/failure,
+    timing, and error details for logging and monitoring.
+
+    Attributes:
+        agent_name: Name of the agent that was checked
+        healthy: Whether the agent is healthy (True) or not (False)
+        response_time_ms: Time taken for the health check in milliseconds
+        error: Error message if the health check failed
+
+    @see docs/modules/bm-dm/stories/dm-11-5-parallel-health-checks.md
+    Epic: DM-11 | Story: DM-11.5
+    """
+
+    agent_name: str
+    healthy: bool
+    response_time_ms: float = 0.0
+    error: Optional[str] = None
 
 
 class DiscoveryService:
@@ -81,6 +109,7 @@ class DiscoveryService:
         scan_interval: int = 300,
         timeout: float = DEFAULT_TIMEOUT,
         auto_register: bool = True,
+        health_check_timeout: float = 5.0,
     ) -> None:
         """
         Initialize the discovery service.
@@ -90,11 +119,13 @@ class DiscoveryService:
             scan_interval: Seconds between periodic scans (default: 300 = 5 minutes)
             timeout: HTTP request timeout in seconds (default: 30)
             auto_register: Whether to automatically register discovered agents
+            health_check_timeout: Per-agent health check timeout in seconds (default: 5.0)
         """
         self.discovery_urls: List[str] = list(discovery_urls or [])
         self.scan_interval = scan_interval
         self.timeout = timeout
         self.auto_register = auto_register
+        self.health_check_timeout = health_check_timeout
 
         self._client: Optional[httpx.AsyncClient] = None
         self._running = False
@@ -116,9 +147,11 @@ class DiscoveryService:
             logger.warning("Discovery service already running")
             return
 
+        # SECURITY: Explicitly enable SSL verification to prevent MITM attacks
         self._client = httpx.AsyncClient(
             timeout=httpx.Timeout(self.timeout),
             follow_redirects=True,
+            verify=True,
         )
         self._running = True
 
@@ -407,22 +440,142 @@ class DiscoveryService:
             registry.update_health(agent_name, False)
             return AgentHealth.UNHEALTHY
 
-    async def health_check_all(self) -> Dict[str, AgentHealth]:
+    async def health_check_all(
+        self,
+        timeout: Optional[float] = None,
+    ) -> Dict[str, HealthCheckResult]:
         """
-        Check health of all external agents.
+        Check health of all external agents in parallel.
+
+        Uses asyncio.gather() to execute health checks concurrently,
+        significantly reducing total check time compared to sequential checks.
+        Each agent has an individual timeout to prevent slow agents from
+        blocking the entire check.
+
+        Args:
+            timeout: Per-agent health check timeout in seconds.
+                     If None, uses self.health_check_timeout (default: 5.0s)
 
         Returns:
-            Dict mapping agent names to their health status
+            Dict mapping agent names to their HealthCheckResult
+
+        Example:
+            results = await discovery.health_check_all(timeout=3.0)
+            for name, result in results.items():
+                if result.healthy:
+                    print(f"{name}: OK ({result.response_time_ms:.1f}ms)")
+                else:
+                    print(f"{name}: FAILED - {result.error}")
+
+        @see docs/modules/bm-dm/stories/dm-11-5-parallel-health-checks.md
+        Epic: DM-11 | Story: DM-11.5
         """
+        if not self._client:
+            raise RuntimeError("Discovery service not started")
+
         registry = get_registry()
         external_agents = registry.list_external()
 
-        results: Dict[str, AgentHealth] = {}
-        for agent in external_agents:
-            health = await self.check_agent_health(agent.name)
-            results[agent.name] = health
+        if not external_agents:
+            logger.debug("No external agents to health check")
+            return {}
 
-        return results
+        # Use instance timeout if not specified
+        check_timeout = timeout if timeout is not None else self.health_check_timeout
+
+        async def check_with_timeout(agent: MeshAgentCard) -> HealthCheckResult:
+            """Check a single agent's health with timeout and timing."""
+            start_time = time.time()
+            try:
+                # Execute health check with per-agent timeout
+                health = await asyncio.wait_for(
+                    self.check_agent_health(agent.name),
+                    timeout=check_timeout,
+                )
+                elapsed_ms = (time.time() - start_time) * 1000
+                is_healthy = health == AgentHealth.HEALTHY
+
+                logger.debug(
+                    f"Health check for '{agent.name}': "
+                    f"{'healthy' if is_healthy else 'unhealthy'} ({elapsed_ms:.1f}ms)"
+                )
+
+                return HealthCheckResult(
+                    agent_name=agent.name,
+                    healthy=is_healthy,
+                    response_time_ms=elapsed_ms,
+                    error=None if is_healthy else f"Status: {health.value}",
+                )
+
+            except asyncio.TimeoutError:
+                elapsed_ms = (time.time() - start_time) * 1000
+                error_msg = f"Timeout after {check_timeout}s"
+                logger.warning(f"Health check for '{agent.name}' timed out")
+
+                # Update registry to mark agent unhealthy
+                registry.update_health(agent.name, False)
+
+                return HealthCheckResult(
+                    agent_name=agent.name,
+                    healthy=False,
+                    response_time_ms=elapsed_ms,
+                    error=error_msg,
+                )
+
+            except Exception as e:
+                elapsed_ms = (time.time() - start_time) * 1000
+                error_msg = str(e)
+                logger.warning(f"Health check for '{agent.name}' failed: {error_msg}")
+
+                # Update registry to mark agent unhealthy
+                registry.update_health(agent.name, False)
+
+                return HealthCheckResult(
+                    agent_name=agent.name,
+                    healthy=False,
+                    response_time_ms=elapsed_ms,
+                    error=error_msg,
+                )
+
+        # Execute all health checks in parallel
+        logger.debug(f"Starting parallel health checks for {len(external_agents)} agents")
+        overall_start = time.time()
+
+        tasks = [check_with_timeout(agent) for agent in external_agents]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        health_status: Dict[str, HealthCheckResult] = {}
+        for agent, result in zip(external_agents, results):
+            if isinstance(result, Exception):
+                # Defensive handling - should not happen due to try/except in check_with_timeout
+                logger.error(
+                    f"Unexpected exception in health check for '{agent.name}': {result}"
+                )
+                health_status[agent.name] = HealthCheckResult(
+                    agent_name=agent.name,
+                    healthy=False,
+                    error=f"Unexpected error: {result}",
+                )
+            else:
+                health_status[result.agent_name] = result
+
+        # Log summary
+        overall_elapsed = (time.time() - overall_start) * 1000
+        healthy_count = sum(1 for r in health_status.values() if r.healthy)
+        total_count = len(health_status)
+        avg_time = (
+            sum(r.response_time_ms for r in health_status.values()) / total_count
+            if total_count > 0
+            else 0
+        )
+
+        logger.info(
+            f"Parallel health check complete: {healthy_count}/{total_count} healthy, "
+            f"avg response: {avg_time:.1f}ms, total: {overall_elapsed:.1f}ms"
+        )
+
+        return health_status
 
 
 # =============================================================================
@@ -455,6 +608,7 @@ async def configure_discovery_service(
     scan_interval: int = 300,
     timeout: float = DEFAULT_TIMEOUT,
     auto_register: bool = True,
+    health_check_timeout: float = 5.0,
 ) -> DiscoveryService:
     """
     Configure and return the global discovery service.
@@ -467,6 +621,7 @@ async def configure_discovery_service(
         scan_interval: Seconds between scans
         timeout: HTTP timeout in seconds
         auto_register: Whether to auto-register discovered agents
+        health_check_timeout: Per-agent health check timeout in seconds
 
     Returns:
         The configured DiscoveryService instance
@@ -483,6 +638,7 @@ async def configure_discovery_service(
         scan_interval=scan_interval,
         timeout=timeout,
         auto_register=auto_register,
+        health_check_timeout=health_check_timeout,
     )
 
     logger.info(

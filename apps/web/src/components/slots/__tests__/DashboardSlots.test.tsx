@@ -4,14 +4,17 @@ import { DashboardSlots } from '../DashboardSlots';
 
 // Mock CopilotKit
 const mockUseCopilotAction = vi.fn();
+const mockUseCoAgentStateRender = vi.fn();
 
 vi.mock('@copilotkit/react-core', () => ({
   useCopilotAction: (config: unknown) => mockUseCopilotAction(config),
+  useCoAgentStateRender: (config: unknown) => mockUseCoAgentStateRender(config),
 }));
 
 describe('DashboardSlots', () => {
   beforeEach(() => {
     mockUseCopilotAction.mockClear();
+    mockUseCoAgentStateRender.mockClear();
   });
 
   afterEach(() => {
@@ -19,10 +22,10 @@ describe('DashboardSlots', () => {
   });
 
   it('renders without crashing', () => {
-    const { container } = render(<DashboardSlots />);
+    render(<DashboardSlots />);
 
-    // Component renders nothing (null)
-    expect(container).toBeEmptyDOMElement();
+    // Component renders state-driven widgets container in hybrid mode
+    expect(document.querySelector('[data-testid="dashboard-state-widgets"]')).toBeInTheDocument();
   });
 
   it('registers render_dashboard_widget tool with useCopilotAction', () => {
@@ -84,7 +87,16 @@ describe('DashboardSlots', () => {
 describe('DashboardSlots render function', () => {
   beforeEach(() => {
     mockUseCopilotAction.mockClear();
+    mockUseCoAgentStateRender.mockClear();
   });
+
+  /**
+   * Helper function to get the first child component from a wrapper div
+   * The render function wraps everything in a div for animation
+   */
+  const getWrappedChild = (renderResult: { props: { children: unknown } }) => {
+    return renderResult?.props?.children;
+  };
 
   it('renders widget for valid type', () => {
     render(<DashboardSlots />);
@@ -93,15 +105,24 @@ describe('DashboardSlots render function', () => {
     const renderResult = config.render({
       args: {
         type: 'ProjectStatus',
-        data: { projectId: '123', projectName: 'Test' },
+        data: {
+          projectId: '123',
+          projectName: 'Test Project',
+          status: 'on_track',
+          progress: 50,
+          tasksCompleted: 5,
+          tasksTotal: 10,
+        },
       },
       status: 'complete',
     });
 
-    // Should return a React element (wrapped in error boundary)
+    // Should return a div wrapper with WidgetErrorBoundary inside
     expect(renderResult).toBeTruthy();
-    expect(renderResult.type.name).toBe('WidgetErrorBoundary');
-    expect(renderResult.props.widgetType).toBe('ProjectStatus');
+    expect(renderResult.type).toBe('div');
+    const child = getWrappedChild(renderResult);
+    expect(child.type.name).toBe('WidgetErrorBoundary');
+    expect(child.props.widgetType).toBe('ProjectStatus');
   });
 
   it('renders error widget for invalid widget type', () => {
@@ -116,12 +137,14 @@ describe('DashboardSlots render function', () => {
       status: 'complete',
     });
 
-    // Should return ErrorWidget
+    // Should return div wrapper with ErrorWidget inside
     expect(renderResult).toBeTruthy();
-    expect(renderResult.type.name).toBe('ErrorWidget');
-    expect(renderResult.props.widgetType).toBe('InvalidType');
-    expect(renderResult.props.message).toContain('Unknown widget type');
-    expect(renderResult.props.availableTypes).toBeDefined();
+    expect(renderResult.type).toBe('div');
+    const child = getWrappedChild(renderResult);
+    expect(child.type.name).toBe('ErrorWidget');
+    expect(child.props.widgetType).toBe('InvalidType');
+    expect(child.props.message).toContain('Unknown widget type');
+    expect(child.props.availableTypes).toBeDefined();
   });
 
   it('renders loading widget when status is inProgress', () => {
@@ -136,10 +159,12 @@ describe('DashboardSlots render function', () => {
       status: 'inProgress',
     });
 
-    // Should return LoadingWidget
+    // Should return div wrapper with LoadingWidget inside
     expect(renderResult).toBeTruthy();
-    expect(renderResult.type.name).toBe('LoadingWidget');
-    expect(renderResult.props.type).toBe('ProjectStatus');
+    expect(renderResult.type).toBe('div');
+    const child = getWrappedChild(renderResult);
+    expect(child.type.name).toBe('LoadingWidget');
+    expect(child.props.type).toBe('ProjectStatus');
   });
 
   it('renders loading widget when status is executing', () => {
@@ -154,9 +179,11 @@ describe('DashboardSlots render function', () => {
       status: 'executing',
     });
 
-    // Should return LoadingWidget
+    // Should return div wrapper with LoadingWidget inside
     expect(renderResult).toBeTruthy();
-    expect(renderResult.type.name).toBe('LoadingWidget');
+    expect(renderResult.type).toBe('div');
+    const child = getWrappedChild(renderResult);
+    expect(child.type.name).toBe('LoadingWidget');
   });
 
   it('renders error widget when data contains error field', () => {
@@ -171,11 +198,13 @@ describe('DashboardSlots render function', () => {
       status: 'complete',
     });
 
-    // Should return ErrorWidget with the error message
+    // Should return div wrapper with ErrorWidget inside
     expect(renderResult).toBeTruthy();
-    expect(renderResult.type.name).toBe('ErrorWidget');
-    expect(renderResult.props.message).toBe('Failed to load project data');
-    expect(renderResult.props.widgetType).toBe('ProjectStatus');
+    expect(renderResult.type).toBe('div');
+    const child = getWrappedChild(renderResult);
+    expect(child.type.name).toBe('ErrorWidget');
+    expect(child.props.message).toBe('Failed to load project data');
+    expect(child.props.widgetType).toBe('ProjectStatus');
   });
 
   it('wraps valid widgets in error boundary', () => {
@@ -185,14 +214,23 @@ describe('DashboardSlots render function', () => {
     const renderResult = config.render({
       args: {
         type: 'ProjectStatus',
-        data: { projectId: '123' },
+        data: {
+          projectId: '123',
+          projectName: 'Test Project',
+          status: 'on_track',
+          progress: 75,
+          tasksCompleted: 15,
+          tasksTotal: 20,
+        },
       },
       status: 'complete',
     });
 
-    // Should be wrapped in WidgetErrorBoundary
-    expect(renderResult.type.name).toBe('WidgetErrorBoundary');
-    expect(renderResult.props.widgetType).toBe('ProjectStatus');
+    // Should be div wrapper with WidgetErrorBoundary inside
+    expect(renderResult.type).toBe('div');
+    const child = getWrappedChild(renderResult);
+    expect(child.type.name).toBe('WidgetErrorBoundary');
+    expect(child.props.widgetType).toBe('ProjectStatus');
   });
 
   it('renders TeamActivity widget correctly', () => {
@@ -211,9 +249,11 @@ describe('DashboardSlots render function', () => {
       status: 'complete',
     });
 
-    // Should be wrapped in WidgetErrorBoundary
+    // Should be div wrapper with WidgetErrorBoundary inside
     expect(renderResult).toBeTruthy();
-    expect(renderResult.type.name).toBe('WidgetErrorBoundary');
-    expect(renderResult.props.widgetType).toBe('TeamActivity');
+    expect(renderResult.type).toBe('div');
+    const child = getWrappedChild(renderResult);
+    expect(child.type.name).toBe('WidgetErrorBoundary');
+    expect(child.props.widgetType).toBe('TeamActivity');
   });
 });

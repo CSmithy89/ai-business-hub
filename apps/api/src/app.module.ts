@@ -18,6 +18,7 @@ import { PmModule } from './pm/pm.module';
 import { KbModule } from './kb/kb.module';
 import { WebhooksModule } from './settings/webhooks/webhooks.module';
 import { ApiKeysModule } from './settings/api-keys/api-keys.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -81,6 +82,7 @@ import { validate } from './config/env.validation';
     KbModule,
     WebhooksModule,
     ApiKeysModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -90,6 +90,12 @@ export {
   type UseDashboardDataResult,
 } from './use-dashboard-data';
 
+// Dashboard sync hooks (Story DM-11.1)
+export {
+  useDashboardSync,
+  type UseDashboardSyncReturn,
+} from './use-dashboard-sync';
+
 // HITL hooks (Story DM-05.2)
 export {
   useHITLAction,

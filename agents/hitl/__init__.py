@@ -102,12 +102,24 @@ from .decorators import (
 from .approval_bridge import (
     # Bridge class
     ApprovalQueueBridge,
+    # Exception
+    ApprovalCancelledException,
     # Singleton accessors
     get_approval_bridge,
     close_approval_bridge,
     # Constants
     PRIORITY_HOURS,
     RISK_TO_PRIORITY,
+)
+
+from .approval_events import (
+    # Event Manager class
+    ApprovalEventManager,
+    # Result dataclass
+    ApprovalResult,
+    # Singleton accessors
+    get_approval_event_manager,
+    reset_approval_event_manager,
 )
 
 from .task_manager import (
@@ -149,10 +161,16 @@ __all__ = [
     "DEFAULT_CONFIDENCE_SCORE",
     # Approval Queue Bridge (DM-05.3)
     "ApprovalQueueBridge",
+    "ApprovalCancelledException",
     "get_approval_bridge",
     "close_approval_bridge",
     "PRIORITY_HOURS",
     "RISK_TO_PRIORITY",
+    # Approval Event Manager (DM-11.6)
+    "ApprovalEventManager",
+    "ApprovalResult",
+    "get_approval_event_manager",
+    "reset_approval_event_manager",
     # Task Manager (DM-05.5)
     "TaskManager",
     "TaskState",

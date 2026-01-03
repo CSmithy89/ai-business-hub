@@ -1,0 +1,691 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-11.9 State Compression
+
+  This context file provides all relevant code snippets and guidance
+  for implementing state compression for dashboard persistence.
+
+  Epic: DM-11 - Advanced Features & Optimizations
+  Story: DM-11.9 - State Compression (3 pts)
+  Status: backlog
+
+  Generated: 2026-01-01
+-->
+<story-context>
+  <metadata>
+    <story-id>DM-11.9</story-id>
+    <story-title>State Compression</story-title>
+    <epic>DM-11</epic>
+    <points>3</points>
+    <priority>Low</priority>
+    <gap-addressed>REC-20: Large state may exceed localStorage quota</gap-addressed>
+  </metadata>
+
+  <!-- =========================================================================
+       OVERVIEW
+       ========================================================================= -->
+  <overview>
+    <description>
+      This story adds transparent LZ-String compression to dashboard state persistence
+      to prevent localStorage quota issues as state grows over time. Compression is
+      applied when state exceeds a configurable threshold (50KB), with automatic
+      decompression on load.
+    </description>
+
+    <key-changes>
+      <change>Create compression.ts module with LZ-String compression utilities</change>
+      <change>Add lz-string dependency to apps/web/package.json</change>
+      <change>Update storage/index.ts to export compression utilities</change>
+      <change>Integrate compression into use-state-persistence.ts hook</change>
+    </key-changes>
+
+    <acceptance-criteria>
+      <criterion id="AC1">State compressed when > threshold (50KB)</criterion>
+      <criterion id="AC2">Decompression transparent on load</criterion>
+      <criterion id="AC3">Compression ratio logged in development</criterion>
+      <criterion id="AC4">No data corruption through compress/decompress cycle</criterion>
+      <criterion id="AC5">Fallback to original data if compression fails</criterion>
+    </acceptance-criteria>
+  </overview>
+
+  <!-- =========================================================================
+       EXISTING CODE - STORAGE UTILITIES
+       ========================================================================= -->
+  <existing-code>
+    <file path="apps/web/src/lib/storage/index.ts">
+      <description>
+        Main storage module that re-exports all storage utilities.
+        This file will need to be updated to export the new compression utilities.
+      </description>
+      <snippet language="typescript"><![CDATA[
+// Current exports from index.ts (add compression exports after these)
+
+// Re-export quota management utilities
+export {
+  isStorageAvailable,
+  getStorageUsage,
+  isNearQuota,
+  isCriticalQuota,
+  safeSetItem,
+  safeGetItem,
+  safeRemoveItem,
+  cleanupOldEntries,
+  getHyvveStorageKeys,
+  clearHyvveStorage,
+  MAX_STORAGE_SIZE,
+  QUOTA_WARNING_THRESHOLD,
+  QUOTA_CRITICAL_THRESHOLD,
+  HYVVE_PREFIX,
+  DEFAULT_CLEANUP_TARGET,
+  type StorageResult,
+  type StorageUsage,
+} from './quota-handler'
+
+// Re-export state migration utilities
+export {
+  detectVersionMismatch,
+  needsMigration,
+  getMigrationPath,
+  migrateState,
+  registerMigration,
+  getRegisteredMigrations,
+  clearMigrations,
+  getDefaultState,
+  STATE_VERSION,
+  type MigrationDefinition,
+  type MigrationResult,
+} from './state-migrations'
+]]></snippet>
+      <integration-point>
+        Add compression exports at the end of this file:
+
+        export {
+          compressIfNeeded,
+          decompressIfNeeded,
+          CompressionError,
+          getCompressionThreshold,
+          type CompressionMetrics,
+        } from './compression'
+      </integration-point>
+    </file>
+
+    <file path="apps/web/src/lib/storage/quota-handler.ts">
+      <description>
+        LocalStorage quota management utilities. Provides safe storage operations,
+        quota detection, and LRU cleanup. The compression module should integrate
+        with safeSetItem for transparent compression.
+      </description>
+      <snippet language="typescript"><![CDATA[
+// Key constants to be aware of
+export const MAX_STORAGE_SIZE = 5 * 1024 * 1024; // 5MB typical limit
+export const QUOTA_WARNING_THRESHOLD = 0.8;
+export const QUOTA_CRITICAL_THRESHOLD = 0.95;
+export const HYVVE_PREFIX = 'hyvve-';
+
+// The safeSetItem function handles quota exceeded errors
+export function safeSetItem(key: string, value: string): StorageResult {
+  if (!isStorageAvailable()) {
+    return {
+      success: false,
+      error: 'localStorage is not available',
+    };
+  }
+
+  try {
+    window.localStorage.setItem(key, value);
+    // ... quota checking and warning logic
+  } catch (e) {
+    if (isQuotaExceededError(e)) {
+      // Attempts cleanup and retry
+      const cleanedBytes = cleanupOldEntries(targetCleanup);
+      // ... retry logic
+    }
+    // ... error handling
+  }
+}
+
+// isQuotaExceededError handles browser variance (Chrome, Safari, Firefox)
+export function isQuotaExceededError(error: unknown): boolean {
+  if (!(error instanceof DOMException)) {
+    return false;
+  }
+  // Chrome/Edge: 'QuotaExceededError'
+  // Safari: code 22
+  // Firefox: 'NS_ERROR_DOM_QUOTA_REACHED'
+  return error.name === 'QuotaExceededError' ||
+         error.code === 22 ||
+         error.name === 'NS_ERROR_DOM_QUOTA_REACHED';
+}
+]]></snippet>
+      <note>
+        The compression module should be used BEFORE calling safeSetItem.
+        Compress the data first, then pass to safeSetItem for safe storage.
+      </note>
+    </file>
+
+    <file path="apps/web/src/lib/storage/state-migrations.ts">
+      <description>
+        State migration system for dashboard state schema evolution.
+        Compression should work alongside migrations - migrations transform
+        structure, compression reduces size.
+      </description>
+      <snippet language="typescript"><![CDATA[
+import { STATE_VERSION } from '@/lib/schemas/dashboard-state';
+
+export { STATE_VERSION };
+
+export interface MigrationDefinition {
+  version: number;
+  description: string;
+  migrate: (state: unknown) => unknown;
+  validate?: (state: unknown) => boolean;
+}
+
+export interface MigrationResult {
+  success: boolean;
+  fromVersion: number;
+  toVersion: number;
+  migratedState: unknown;
+  error?: string;
+  migrationsApplied: number[];
+}
+
+// Migrations are applied sequentially
+export function migrateState(
+  state: unknown,
+  fromVersion: number,
+  toVersion: number = STATE_VERSION
+): MigrationResult {
+  // ... migration logic
+}
+]]></snippet>
+      <note>
+        State flow: Load from storage -> Decompress -> Migrate -> Validate -> Use
+        Save flow: State -> Validate -> Compress -> Save to storage
+      </note>
+    </file>
+  </existing-code>
+
+  <!-- =========================================================================
+       EXISTING CODE - PERSISTENCE HOOK
+       ========================================================================= -->
+  <existing-code>
+    <file path="apps/web/src/hooks/use-state-persistence.ts">
+      <description>
+        The primary hook that manages dashboard state persistence.
+        This is the main integration point for compression.
+      </description>
+      <snippet language="typescript"><![CDATA[
+import { useEffect, useRef, useCallback } from 'react';
+import { useDashboardStateStore } from '@/stores/dashboard-state-store';
+import {
+  validateDashboardState,
+  STATE_VERSION,
+  type DashboardState,
+} from '@/lib/schemas/dashboard-state';
+import {
+  STORAGE_DASHBOARD_STATE,
+  STORAGE_DASHBOARD_STATE_VERSION,
+} from '@/lib/storage-keys';
+
+/** Default debounce interval for saving state (ms) */
+export const PERSISTENCE_DEBOUNCE_MS = 1000;
+
+/** State TTL in milliseconds (24 hours) */
+export const STATE_TTL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Save state to localStorage - THIS IS THE KEY INTEGRATION POINT
+ */
+const saveState = useCallback(
+  (state: DashboardState) => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      // Create state to save, excluding transient data
+      const stateToSave: DashboardState = {
+        version: state.version,
+        timestamp: state.timestamp,
+        activeProject: state.activeProject,
+        workspaceId: state.workspaceId,
+        userId: state.userId,
+        widgets: state.widgets,
+        loading: { isLoading: false, loadingAgents: [] },
+        errors: {},
+        activeTasks: [],
+      };
+
+      const stateJson = JSON.stringify(stateToSave);
+
+      // INTEGRATION POINT: Add compression here
+      // const { data: compressedData, metrics } = compressIfNeeded(
+      //   STORAGE_DASHBOARD_STATE,
+      //   stateJson
+      // );
+      // localStorage.setItem(storageKey, compressedData);
+      // if (metrics.wasCompressed) {
+      //   localStorage.setItem(STORAGE_DASHBOARD_STATE + ':compressed', 'true');
+      // } else {
+      //   localStorage.removeItem(STORAGE_DASHBOARD_STATE + ':compressed');
+      // }
+
+      localStorage.setItem(storageKey, stateJson);
+      localStorage.setItem(STORAGE_DASHBOARD_STATE_VERSION, String(STATE_VERSION));
+      lastSavedTimestamp.current = state.timestamp;
+
+      log('State saved:', new Date(state.timestamp).toISOString());
+    } catch (e) {
+      console.warn('[StatePersistence] Failed to save state:', e);
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+        console.warn('[StatePersistence] localStorage quota exceeded, clearing old state');
+        try {
+          localStorage.removeItem(storageKey);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    }
+  },
+  [storageKey, enableCrossTabSync, log]
+);
+
+/**
+ * Load state from localStorage - ALSO NEEDS COMPRESSION INTEGRATION
+ */
+const loadState = useCallback((): DashboardState | null => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (!stored) {
+      log('No persisted state found');
+      return null;
+    }
+
+    // INTEGRATION POINT: Add decompression here
+    // const isCompressed = localStorage.getItem(storageKey + ':compressed') === 'true';
+    // const decompressed = decompressIfNeeded(stored, isCompressed);
+    // const parsed = JSON.parse(decompressed);
+
+    const parsed = JSON.parse(stored);
+    const validated = validateDashboardState(parsed);
+
+    if (!validated) {
+      log('Invalid persisted state, removing');
+      localStorage.removeItem(storageKey);
+      return null;
+    }
+
+    // Check for stale state (older than TTL)
+    const age = Date.now() - validated.timestamp;
+    if (age > STATE_TTL_MS) {
+      log('Stale state detected (age:', Math.floor(age / 1000 / 60), 'minutes), removing');
+      localStorage.removeItem(storageKey);
+      return null;
+    }
+
+    log('Restored state from localStorage (age:', Math.floor(age / 1000), 'seconds)');
+    return validated;
+  } catch (e) {
+    console.warn('[StatePersistence] Failed to load state:', e);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      // Ignore cleanup errors
+    }
+    return null;
+  }
+}, [storageKey, log]);
+]]></snippet>
+      <integration-guidance>
+        Key changes needed:
+        1. Import compression utilities at top of file
+        2. In saveState: Compress JSON before storing, track compressed marker
+        3. In loadState: Check compressed marker, decompress before parsing
+        4. In clearPersistedState: Also clear the compressed marker
+        5. Handle CompressionError in catch blocks
+      </integration-guidance>
+    </file>
+
+    <file path="apps/web/src/lib/storage-keys.ts">
+      <description>
+        Centralized storage key constants. The compressed marker key
+        should follow the pattern: `${STORAGE_DASHBOARD_STATE}:compressed`
+      </description>
+      <snippet language="typescript"><![CDATA[
+/** Dashboard state persistence for session continuity */
+export const STORAGE_DASHBOARD_STATE = 'hyvve-dashboard-state' as const;
+
+/** Dashboard state version for schema migrations */
+export const STORAGE_DASHBOARD_STATE_VERSION = 'hyvve-dashboard-state-version' as const;
+
+// NOTE: The story suggests adding a compressed marker key suffix
+// STORAGE_DASHBOARD_STATE + ':compressed' = 'hyvve-dashboard-state:compressed'
+]]></snippet>
+      <recommendation>
+        You could optionally add an explicit constant for the compressed marker:
+        export const STORAGE_DASHBOARD_STATE_COMPRESSED = 'hyvve-dashboard-state:compressed' as const;
+      </recommendation>
+    </file>
+  </existing-code>
+
+  <!-- =========================================================================
+       EXISTING CODE - DASHBOARD STORE
+       ========================================================================= -->
+  <existing-code>
+    <file path="apps/web/src/stores/dashboard-state-store.ts">
+      <description>
+        Zustand store for dashboard state. The store itself doesn't need changes -
+        compression is handled at the persistence layer (use-state-persistence.ts).
+        However, understanding the state structure is important for testing.
+      </description>
+      <snippet language="typescript"><![CDATA[
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import type {
+  DashboardState,
+  DashboardStateUpdate,
+  ProjectStatusState,
+  MetricsState,
+  ActivityState,
+  AlertEntry,
+  TaskProgress,
+  TaskStep,
+} from '@/lib/schemas/dashboard-state';
+
+// State includes: version, timestamp, activeProject, workspaceId, userId,
+// widgets (projectStatus, metrics, activity, alerts), loading, errors, activeTasks
+
+export const useDashboardStateStore = create<DashboardStateStore>()(
+  subscribeWithSelector((set, get) => ({
+    ...createInitialDashboardState(),
+    activeAlerts: [],
+    isSyncing: false,
+    lastSyncedAt: null,
+    syncError: null,
+    wsConnected: false,
+    stateVersion: 0,
+    // ... actions
+  }))
+);
+]]></snippet>
+      <note>
+        The store uses subscribeWithSelector middleware for efficient re-renders.
+        State persistence is external to the store (handled by useStatePersistence hook).
+      </note>
+    </file>
+
+    <file path="apps/web/src/lib/schemas/dashboard-state.ts">
+      <description>
+        Dashboard state schema with Zod validation. The STATE_VERSION constant
+        is used for migrations. Understanding the structure helps estimate
+        typical state sizes for compression threshold decisions.
+      </description>
+      <snippet language="typescript"><![CDATA[
+export const STATE_VERSION = 1;
+
+export const DashboardStateSchema = z.object({
+  version: z.number().default(STATE_VERSION),
+  timestamp: z.number(),
+  activeProject: z.string().nullable().default(null),
+  workspaceId: z.string().optional(),
+  userId: z.string().optional(),
+  widgets: WidgetsStateSchema.default({
+    projectStatus: null,
+    metrics: null,
+    activity: null,
+    alerts: [],
+  }),
+  loading: LoadingStateSchema.default({
+    isLoading: false,
+    loadingAgents: [],
+  }),
+  errors: ErrorStateSchema.default({}),
+  activeTasks: z.array(TaskProgressSchema).default([]),
+});
+
+export type DashboardState = z.infer<typeof DashboardStateSchema>;
+
+export function validateDashboardState(data: unknown): DashboardState | null {
+  const result = DashboardStateSchema.safeParse(data);
+  if (result.success) {
+    return result.data;
+  }
+  console.error('[DashboardState] Validation failed:', result.error.issues);
+  return null;
+}
+]]></snippet>
+    </file>
+  </existing-code>
+
+  <!-- =========================================================================
+       PACKAGE DEPENDENCIES
+       ========================================================================= -->
+  <dependencies>
+    <file path="apps/web/package.json">
+      <description>
+        Current package.json - lz-string is NOT currently installed.
+        This dependency needs to be added.
+      </description>
+      <current-state>
+        lz-string is not listed in dependencies or devDependencies
+      </current-state>
+      <required-addition>
+        Add to dependencies:
+        "lz-string": "^1.5.0"
+
+        Also install types:
+        npm install lz-string @types/lz-string
+        OR
+        pnpm add lz-string @types/lz-string
+      </required-addition>
+    </file>
+  </dependencies>
+
+  <!-- =========================================================================
+       IMPLEMENTATION GUIDANCE
+       ========================================================================= -->
+  <implementation-guidance>
+    <file-to-create path="apps/web/src/lib/storage/compression.ts">
+      <description>
+        New compression module implementing LZ-String compression for localStorage.
+        See the story file for the complete implementation specification.
+      </description>
+      <key-exports>
+        - compressIfNeeded(key: string, data: string): { data: string; metrics: CompressionMetrics }
+        - decompressIfNeeded(data: string, isCompressed: boolean): string
+        - CompressionError (custom error class)
+        - CompressionMetrics (interface)
+        - getCompressionThreshold(): number (for testing)
+      </key-exports>
+      <constants>
+        - COMPRESSION_THRESHOLD = 50 * 1024 (50KB)
+      </constants>
+    </file-to-create>
+
+    <file-to-create path="apps/web/src/lib/storage/__tests__/compression.test.ts">
+      <description>
+        Unit tests for compression module.
+      </description>
+      <test-categories>
+        1. Threshold Tests
+           - Data below threshold not compressed
+           - Data above threshold is compressed
+           - Boundary conditions
+
+        2. Roundtrip Tests
+           - Simple string roundtrip
+           - Complex JSON object roundtrip
+           - Unicode content preservation
+
+        3. Metrics Tests
+           - Correct sizes reported
+           - Compression ratio calculation
+           - wasCompressed flag accuracy
+
+        4. Error Handling Tests
+           - Compression failure fallback
+           - Decompression failure throws CompressionError
+           - Null decompression result handling
+      </test-categories>
+    </file-to-create>
+
+    <file-to-modify path="apps/web/src/lib/storage/index.ts">
+      <changes>
+        Add exports for compression utilities at end of file
+      </changes>
+    </file-to-modify>
+
+    <file-to-modify path="apps/web/src/hooks/use-state-persistence.ts">
+      <changes>
+        1. Import compression utilities
+        2. Modify saveState to compress before storing
+        3. Modify loadState to decompress after loading
+        4. Update clearPersistedState to clear compressed marker
+        5. Handle CompressionError in error handling
+      </changes>
+    </file-to-modify>
+
+    <optional-modification path="apps/web/src/lib/storage-keys.ts">
+      <changes>
+        Optionally add explicit constant for compressed marker:
+        export const STORAGE_DASHBOARD_STATE_COMPRESSED = 'hyvve-dashboard-state:compressed' as const;
+      </changes>
+    </optional-modification>
+  </implementation-guidance>
+
+  <!-- =========================================================================
+       TECHNICAL NOTES
+       ========================================================================= -->
+  <technical-notes>
+    <note category="lz-string">
+      LZ-String provides multiple compression methods:
+      - compressToUTF16 / decompressFromUTF16: Best for localStorage (UTF-16 encoding)
+      - compressToBase64 / decompressFromBase64: Good for URLs/transport
+      - compress / decompress: Generic (not recommended for localStorage)
+
+      Use UTF-16 variant for localStorage because JavaScript strings are UTF-16
+      and localStorage stores strings, so this avoids encoding overhead.
+    </note>
+
+    <note category="threshold">
+      50KB threshold rationale:
+      - Below 50KB, compression overhead may exceed savings
+      - Typical dashboard state is 5-20KB initially
+      - Allows 2-3x growth before compression kicks in
+      - Keeps normal operations fast (no compression overhead)
+    </note>
+
+    <note category="performance">
+      - LZ-String compression is synchronous but fast (&lt;10ms for typical sizes)
+      - Decompression happens once on load (not on every render)
+      - Debounced saves (1 second) prevent compression overhead on rapid updates
+      - Consider Web Workers for very large states (future enhancement)
+    </note>
+
+    <note category="backwards-compatibility">
+      - Old uncompressed state should still load correctly
+      - Check for compressed marker before attempting decompression
+      - If no marker, treat data as uncompressed JSON
+    </note>
+
+    <note category="error-handling">
+      - Compression failure: Fall back to storing uncompressed
+      - Decompression failure: Throw CompressionError, caller should clear corrupted state
+      - Null decompression result: Indicates data corruption, throw error
+    </note>
+  </technical-notes>
+
+  <!-- =========================================================================
+       TEST PATTERNS
+       ========================================================================= -->
+  <test-patterns>
+    <pattern name="compression-roundtrip">
+      <description>Test data integrity through compress/decompress cycle</description>
+      <example language="typescript"><![CDATA[
+import { compressIfNeeded, decompressIfNeeded, getCompressionThreshold } from './compression';
+
+describe('compression roundtrip', () => {
+  it('should preserve data through compression cycle', () => {
+    const THRESHOLD = getCompressionThreshold();
+    const largeData = JSON.stringify({
+      widgets: { data: 'x'.repeat(THRESHOLD + 1000) }
+    });
+
+    const { data: compressed, metrics } = compressIfNeeded('test-key', largeData);
+    expect(metrics.wasCompressed).toBe(true);
+    expect(compressed).not.toBe(largeData);
+
+    const decompressed = decompressIfNeeded(compressed, true);
+    expect(decompressed).toBe(largeData);
+    expect(JSON.parse(decompressed)).toEqual(JSON.parse(largeData));
+  });
+});
+]]></example>
+    </pattern>
+
+    <pattern name="threshold-behavior">
+      <description>Test compression threshold logic</description>
+      <example language="typescript"><![CDATA[
+describe('compression threshold', () => {
+  it('should not compress data below threshold', () => {
+    const smallData = JSON.stringify({ small: true });
+    const { data, metrics } = compressIfNeeded('test-key', smallData);
+
+    expect(metrics.wasCompressed).toBe(false);
+    expect(data).toBe(smallData);
+    expect(metrics.compressionRatio).toBe(1);
+  });
+});
+]]></example>
+    </pattern>
+
+    <pattern name="error-handling">
+      <description>Test error scenarios</description>
+      <example language="typescript"><![CDATA[
+import { decompressIfNeeded, CompressionError } from './compression';
+
+describe('decompression errors', () => {
+  it('should throw CompressionError on invalid compressed data', () => {
+    const corruptedData = 'not-valid-lz-string-data';
+
+    expect(() => {
+      decompressIfNeeded(corruptedData, true);
+    }).toThrow(CompressionError);
+  });
+});
+]]></example>
+    </pattern>
+  </test-patterns>
+
+  <!-- =========================================================================
+       RELATED STORIES
+       ========================================================================= -->
+  <related-stories>
+    <story id="DM-04.5" title="State Persistence" status="complete">
+      Original persistence implementation that this story enhances with compression.
+    </story>
+    <story id="DM-11.8" title="State Migration System" status="complete">
+      Migration system that transforms state structure. Compression works alongside
+      migrations - migrations handle schema changes, compression handles size.
+    </story>
+    <story id="DM-09.8" title="LocalStorage Quota Tests" status="complete">
+      Established quota handling patterns in quota-handler.ts.
+    </story>
+  </related-stories>
+
+  <!-- =========================================================================
+       CHECKLIST
+       ========================================================================= -->
+  <implementation-checklist>
+    <item status="pending">Install lz-string and @types/lz-string dependencies</item>
+    <item status="pending">Create apps/web/src/lib/storage/compression.ts</item>
+    <item status="pending">Create apps/web/src/lib/storage/__tests__/compression.test.ts</item>
+    <item status="pending">Update apps/web/src/lib/storage/index.ts with exports</item>
+    <item status="pending">Update apps/web/src/hooks/use-state-persistence.ts with compression integration</item>
+    <item status="pending">Optionally add STORAGE_DASHBOARD_STATE_COMPRESSED to storage-keys.ts</item>
+    <item status="pending">Run tests: pnpm -F @hyvve/web test</item>
+    <item status="pending">Verify TypeScript: pnpm -F @hyvve/web type-check</item>
+    <item status="pending">Manual testing with browser dev tools</item>
+  </implementation-checklist>
+</story-context>

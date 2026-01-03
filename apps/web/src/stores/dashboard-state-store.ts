@@ -30,8 +30,22 @@ import type {
 import {
   createInitialDashboardState,
   validateDashboardState,
+  STATE_VERSION,
 } from '@/lib/schemas/dashboard-state';
 import { DM_CONSTANTS } from '@/lib/dm-constants';
+import {
+  saveDashboardState,
+  getDashboardState,
+} from '@/lib/api/dashboard-state';
+import {
+  applyChange,
+  type StateChange,
+} from '@/lib/realtime/state-diff';
+import {
+  migrateState,
+  needsMigration,
+  getDefaultState,
+} from '@/lib/storage/state-migrations';
 
 // =============================================================================
 // CONSTANTS (DM-08.6: Imported from centralized dm-constants)
@@ -143,6 +157,40 @@ export interface DashboardStateStore extends DashboardState {
   // Reset
   /** Reset store to initial state */
   reset: () => void;
+
+  // Sync state (DM-11.1)
+  /** Whether sync is in progress */
+  isSyncing: boolean;
+  /** Timestamp of last successful sync */
+  lastSyncedAt: number | null;
+  /** Error from last sync attempt */
+  syncError: string | null;
+
+  // Sync actions (DM-11.1)
+  /** Sync current state to server */
+  syncToServer: () => Promise<void>;
+  /** Restore state from server (e.g., on login) */
+  restoreFromServer: () => Promise<boolean>;
+  /** Clear sync error */
+  clearSyncError: () => void;
+
+  // WebSocket sync state (DM-11.2)
+  /** Whether WebSocket is connected for state sync */
+  wsConnected: boolean;
+  /** Current state version for conflict detection */
+  stateVersion: number;
+
+  // WebSocket sync actions (DM-11.2)
+  /** Apply a remote state update from WebSocket */
+  applyRemoteUpdate: (path: string, value: unknown, version: number) => void;
+  /** Apply full state from server (reconnection recovery) */
+  applyFullState: (state: Record<string, unknown>, version: number) => void;
+  /** Set WebSocket connection status */
+  setWsConnected: (connected: boolean) => void;
+  /** Increment state version (called on local changes) */
+  incrementVersion: () => number;
+  /** Get current state as plain object for sync */
+  getStateForSync: () => Record<string, unknown>;
 }
 
 // =============================================================================
@@ -157,11 +205,18 @@ export interface DashboardStateStore extends DashboardState {
  * when those slices change.
  */
 export const useDashboardStateStore = create<DashboardStateStore>()(
-  subscribeWithSelector((set) => ({
+  subscribeWithSelector((set, get) => ({
     // Initial state
     ...createInitialDashboardState(),
     // Pre-computed derived state (DM-08.6)
     activeAlerts: [],
+    // Sync state (DM-11.1)
+    isSyncing: false,
+    lastSyncedAt: null,
+    syncError: null,
+    // WebSocket sync state (DM-11.2)
+    wsConnected: false,
+    stateVersion: 0,
 
     // =========================================================================
     // FULL STATE UPDATES
@@ -196,6 +251,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
           ...current,
           ...update,
           timestamp: Date.now(),
+          stateVersion: current.stateVersion + 1,
           widgets: newWidgets,
           loading: update.loading
             ? { ...current.loading, ...update.loading }
@@ -215,7 +271,11 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     // =========================================================================
 
     setActiveProject: (projectId: string | null) => {
-      set({ activeProject: projectId, timestamp: Date.now() });
+      set((state) => ({
+        activeProject: projectId,
+        timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
+      }));
     },
 
     // =========================================================================
@@ -225,6 +285,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     setProjectStatus: (status: ProjectStatusState | null) => {
       set((state) => ({
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
         widgets: {
           ...state.widgets,
           projectStatus: status,
@@ -235,6 +296,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     setMetrics: (metrics: MetricsState | null) => {
       set((state) => ({
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
         widgets: {
           ...state.widgets,
           // DM-08.6: Cap metrics at MAX_METRICS
@@ -251,6 +313,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     setActivity: (activity: ActivityState | null) => {
       set((state) => ({
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
         widgets: {
           ...state.widgets,
           // DM-08.6: Cap activities at MAX_ACTIVITIES
@@ -273,6 +336,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         const activeAlerts = newAlerts.filter((a) => !a.dismissed);
         return {
           timestamp: Date.now(),
+          stateVersion: state.stateVersion + 1,
           widgets: {
             ...state.widgets,
             alerts: newAlerts,
@@ -291,6 +355,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         const activeAlerts = state.activeAlerts.filter((a) => a.id !== alertId);
         return {
           timestamp: Date.now(),
+          stateVersion: state.stateVersion + 1,
           widgets: {
             ...state.widgets,
             alerts: newAlerts,
@@ -303,6 +368,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     clearAlerts: () => {
       set((state) => ({
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
         widgets: {
           ...state.widgets,
           alerts: [],
@@ -352,7 +418,11 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
     // =========================================================================
 
     setActiveTasks: (tasks: TaskProgress[]) => {
-      set({ activeTasks: tasks, timestamp: Date.now() });
+      set((state) => ({
+        activeTasks: tasks,
+        timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
+      }));
     },
 
     addTask: (task: TaskProgress) => {
@@ -360,6 +430,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
         // DM-08.6: Cap at MAX_ACTIVE_TASKS, prioritizing active (pending/running) tasks
         activeTasks: prioritizeActiveTasks([...state.activeTasks, task]),
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
       }));
     },
 
@@ -369,6 +440,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
           t.taskId === taskId ? { ...t, ...update } : t
         ),
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
       }));
     },
 
@@ -384,6 +456,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
           };
         }),
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
       }));
     },
 
@@ -391,6 +464,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
       set((state) => ({
         activeTasks: state.activeTasks.filter((t) => t.taskId !== taskId),
         timestamp: Date.now(),
+        stateVersion: state.stateVersion + 1,
       }));
     },
 
@@ -400,7 +474,343 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
     reset: () => {
       // DM-08.6: Also reset pre-computed activeAlerts
-      set({ ...createInitialDashboardState(), activeAlerts: [] });
+      // DM-11.1: Also reset sync state
+      // DM-11.2: Also reset WebSocket sync state
+      set({
+        ...createInitialDashboardState(),
+        activeAlerts: [],
+        isSyncing: false,
+        lastSyncedAt: null,
+        syncError: null,
+        wsConnected: false,
+        stateVersion: 0,
+      });
+    },
+
+    // =========================================================================
+    // SYNC ACTIONS (DM-11.1)
+    // =========================================================================
+
+    syncToServer: async () => {
+      const state = get();
+
+      // Don't sync if already syncing
+      if (state.isSyncing) {
+        return;
+      }
+
+      set({ isSyncing: true, syncError: null });
+
+      try {
+        // Extract the dashboard state (without store-specific fields)
+        const dashboardState: DashboardState = {
+          version: state.version,
+          timestamp: state.timestamp,
+          activeProject: state.activeProject,
+          workspaceId: state.workspaceId,
+          userId: state.userId,
+          widgets: state.widgets,
+          loading: state.loading,
+          errors: state.errors,
+          activeTasks: state.activeTasks,
+        };
+
+        const response = await saveDashboardState(dashboardState, state.version);
+
+        if (response?.success) {
+          set({ lastSyncedAt: Date.now(), isSyncing: false });
+        } else if (response?.conflictResolution === 'server') {
+          // Server has newer version - restore from server
+          console.warn('[DashboardStateStore] Conflict detected, restoring from server');
+          set({ isSyncing: false });
+          // Trigger restore from server
+          await get().restoreFromServer();
+        } else {
+          // Save failed
+          set({
+            isSyncing: false,
+            syncError: 'Failed to sync state to server',
+          });
+        }
+      } catch (error) {
+        console.error('[DashboardStateStore] Sync error:', error);
+        set({
+          isSyncing: false,
+          syncError: error instanceof Error ? error.message : 'Sync failed',
+        });
+      }
+    },
+
+    restoreFromServer: async (): Promise<boolean> => {
+      const state = get();
+
+      // Don't restore if already syncing
+      if (state.isSyncing) {
+        return false;
+      }
+
+      set({ isSyncing: true, syncError: null });
+
+      try {
+        const serverState = await getDashboardState();
+
+        if (!serverState) {
+          // No state on server - this is fine for new users
+          set({ isSyncing: false, lastSyncedAt: Date.now() });
+          return true;
+        }
+
+        // Apply server state with conflict resolution
+        const currentVersion = state.version;
+        const serverVersion = serverState.version;
+
+        if (serverVersion >= currentVersion) {
+          // Server is equal or newer - apply server state
+          let stateToApply = serverState.state;
+
+          // DM-11.8: Check for schema version mismatch and migrate if needed
+          const schemaVersion =
+            typeof stateToApply === 'object' &&
+            stateToApply !== null &&
+            'version' in stateToApply
+              ? (stateToApply as { version: number }).version
+              : 1;
+
+          if (needsMigration(schemaVersion)) {
+            console.log(
+              `[DashboardStateStore] State schema migration needed: v${schemaVersion} -> v${STATE_VERSION}`
+            );
+
+            const migrationResult = migrateState(stateToApply, schemaVersion);
+
+            if (migrationResult.success) {
+              console.log(
+                `[DashboardStateStore] State migrated successfully from v${migrationResult.fromVersion} to v${migrationResult.toVersion}`,
+                `(${migrationResult.migrationsApplied.length} migrations applied)`
+              );
+              stateToApply = migrationResult.migratedState as DashboardState;
+            } else {
+              console.error(
+                '[DashboardStateStore] State migration failed, falling back to defaults:',
+                migrationResult.error
+              );
+              // Fall back to default state on migration failure
+              const defaultState = getDefaultState() as DashboardState;
+              const activeAlerts: AlertEntry[] = [];
+              set({
+                ...defaultState,
+                activeAlerts,
+                isSyncing: false,
+                lastSyncedAt: Date.now(),
+                syncError: `Migration failed: ${migrationResult.error}`,
+              });
+              return false;
+            }
+          }
+
+          const validated = validateDashboardState(stateToApply);
+          if (validated) {
+            const activeAlerts = validated.widgets.alerts.filter((a) => !a.dismissed);
+            set({
+              ...validated,
+              activeAlerts,
+              isSyncing: false,
+              lastSyncedAt: Date.now(),
+              syncError: null,
+            });
+            return true;
+          } else {
+            console.warn('[DashboardStateStore] Server state validation failed');
+            set({
+              isSyncing: false,
+              syncError: 'Invalid state received from server',
+            });
+            return false;
+          }
+        } else {
+          // Local is newer - push to server
+          set({ isSyncing: false });
+          await get().syncToServer();
+          return true;
+        }
+      } catch (error) {
+        console.error('[DashboardStateStore] Restore error:', error);
+        set({
+          isSyncing: false,
+          syncError: error instanceof Error ? error.message : 'Restore failed',
+        });
+        return false;
+      }
+    },
+
+    clearSyncError: () => {
+      set({ syncError: null });
+    },
+
+    // =========================================================================
+    // WEBSOCKET SYNC ACTIONS (DM-11.2)
+    // =========================================================================
+
+    applyRemoteUpdate: (path: string, value: unknown, version: number) => {
+      const state = get();
+
+      // Version-based conflict resolution: only apply if remote is newer or equal
+      if (version < state.stateVersion) {
+        console.debug(
+          '[DashboardStateStore] Ignoring stale remote update:',
+          path,
+          'remote version:',
+          version,
+          'local version:',
+          state.stateVersion
+        );
+        return;
+      }
+
+      // Apply the change using path-based update
+      const currentState = {
+        version: state.version,
+        timestamp: state.timestamp,
+        activeProject: state.activeProject,
+        workspaceId: state.workspaceId,
+        userId: state.userId,
+        widgets: state.widgets,
+        loading: state.loading,
+        errors: state.errors,
+        activeTasks: state.activeTasks,
+      };
+
+      const change: StateChange = { path, value };
+      const updatedState = applyChange(currentState, change);
+
+      // Validate the updated state
+      const validated = validateDashboardState(updatedState as DashboardState);
+      if (!validated) {
+        console.warn('[DashboardStateStore] Invalid remote update rejected:', path);
+        return;
+      }
+
+      // DM-08.6: Pre-compute activeAlerts if alerts changed
+      const activeAlerts = validated.widgets.alerts.filter((a) => !a.dismissed);
+
+      set({
+        ...validated,
+        activeAlerts,
+        stateVersion: Math.max(state.stateVersion, version),
+        timestamp: Date.now(),
+      });
+
+      console.debug('[DashboardStateStore] Applied remote update:', path);
+    },
+
+    applyFullState: (remoteState: Record<string, unknown>, version: number) => {
+      const state = get();
+
+      // Only apply if version is newer
+      if (version <= state.stateVersion) {
+        console.debug(
+          '[DashboardStateStore] Ignoring stale full state:',
+          'remote version:',
+          version,
+          'local version:',
+          state.stateVersion
+        );
+        return;
+      }
+
+      // DM-11.8: Check for schema version mismatch and migrate if needed
+      let stateToMerge = remoteState;
+      const schemaVersion =
+        typeof remoteState.version === 'number' ? remoteState.version : 1;
+
+      if (needsMigration(schemaVersion)) {
+        console.log(
+          `[DashboardStateStore] WebSocket state migration needed: v${schemaVersion} -> v${STATE_VERSION}`
+        );
+
+        const migrationResult = migrateState(remoteState, schemaVersion);
+
+        if (migrationResult.success) {
+          console.log(
+            `[DashboardStateStore] WebSocket state migrated successfully from v${migrationResult.fromVersion} to v${migrationResult.toVersion}`
+          );
+          stateToMerge = migrationResult.migratedState as Record<string, unknown>;
+        } else {
+          console.error(
+            '[DashboardStateStore] WebSocket state migration failed:',
+            migrationResult.error
+          );
+          // On migration failure, reject the full state update
+          return;
+        }
+      }
+
+      // Merge remote state into current state
+      // Remote state may be partial, so we merge carefully
+      const mergedState: DashboardState = {
+        version: state.version,
+        timestamp: Date.now(),
+        activeProject:
+          (stateToMerge.activeProject as string | null) ?? state.activeProject,
+        workspaceId:
+          (stateToMerge.workspaceId as string | null) ?? state.workspaceId,
+        userId: (stateToMerge.userId as string | null) ?? state.userId,
+        widgets: stateToMerge.widgets
+          ? { ...state.widgets, ...(stateToMerge.widgets as typeof state.widgets) }
+          : state.widgets,
+        loading: stateToMerge.loading
+          ? { ...state.loading, ...(stateToMerge.loading as typeof state.loading) }
+          : state.loading,
+        errors: stateToMerge.errors
+          ? { ...state.errors, ...(stateToMerge.errors as typeof state.errors) }
+          : state.errors,
+        activeTasks: stateToMerge.activeTasks
+          ? (stateToMerge.activeTasks as typeof state.activeTasks)
+          : state.activeTasks,
+      };
+
+      // Validate the merged state
+      const validated = validateDashboardState(mergedState);
+      if (!validated) {
+        console.warn('[DashboardStateStore] Invalid full state rejected');
+        return;
+      }
+
+      // DM-08.6: Pre-compute activeAlerts
+      const activeAlerts = validated.widgets.alerts.filter((a) => !a.dismissed);
+
+      set({
+        ...validated,
+        activeAlerts,
+        stateVersion: version,
+      });
+
+      console.debug('[DashboardStateStore] Applied full state, version:', version);
+    },
+
+    setWsConnected: (connected: boolean) => {
+      set({ wsConnected: connected });
+    },
+
+    incrementVersion: () => {
+      const newVersion = get().stateVersion + 1;
+      set({ stateVersion: newVersion, timestamp: Date.now() });
+      return newVersion;
+    },
+
+    getStateForSync: () => {
+      const state = get();
+      return {
+        version: state.version,
+        timestamp: state.timestamp,
+        activeProject: state.activeProject,
+        workspaceId: state.workspaceId,
+        userId: state.userId,
+        widgets: state.widgets,
+        loading: state.loading,
+        errors: state.errors,
+        activeTasks: state.activeTasks,
+      };
     },
   }))
 );

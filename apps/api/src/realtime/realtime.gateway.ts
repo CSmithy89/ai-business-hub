@@ -8,7 +8,7 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger, Injectable } from '@nestjs/common';
+import { Logger, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
@@ -46,12 +46,22 @@ import {
   PMSuggestionEventPayload,
   PMSuggestionActionPayload,
   PMHealthUpdatePayload,
+  // DM-11.2: Dashboard State Sync
+  DashboardStateUpdatePayloadSchema,
+  DashboardStateSyncPayload,
+  DashboardStateFullPayload,
+  DashboardStateRequestPayloadSchema,
+  getDashboardStateRoom,
   WS_EVENTS,
   getWorkspaceRoom,
   getUserRoom,
   getProjectRoom,
+  // Room management
+  RoomJoinPayloadSchema,
+  RoomLeavePayloadSchema,
 } from './realtime.types';
 import { PresenceService } from './presence.service';
+import { DashboardStateService } from '../modules/dashboard/dashboard-state.service';
 
 // ============================================
 // Input Validation Schemas (Zod)
@@ -194,7 +204,7 @@ const MAX_CONNECTIONS_PER_USER = parseInt(
 })
 @Injectable()
 export class RealtimeGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
 {
   private readonly logger = new Logger(RealtimeGateway.name);
 
@@ -205,10 +215,20 @@ export class RealtimeGateway
   private readonly connectedClients = new Map<string, Set<string>>(); // workspaceId -> Set<socketId>
   private readonly userConnections = new Map<string, Set<string>>(); // userId -> Set<socketId>
 
+  // DM-11.2: Rate limiting for dashboard state updates (100 per minute per user)
+  private readonly dashboardStateRateLimits = new Map<string, { count: number; resetAt: number }>(); // userId -> rate limit state
+  private readonly DASHBOARD_STATE_RATE_LIMIT = 100;
+  private readonly DASHBOARD_STATE_RATE_WINDOW_MS = 60_000; // 1 minute
+  private readonly MAX_STATE_PAYLOAD_SIZE = 64 * 1024; // 64KB
+  private readonly RATE_LIMIT_CLEANUP_INTERVAL_MS = 5 * 60_000; // 5 minutes
+  private readonly RATE_LIMIT_MAP_MAX_SIZE = 10_000; // Max entries before forced cleanup
+  private rateLimitCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly presenceService: PresenceService,
+    private readonly dashboardStateService: DashboardStateService,
   ) {}
 
   /**
@@ -225,11 +245,12 @@ export class RealtimeGateway
     this.logger.log(`WebSocket CORS configured for: ${frontendUrl}`);
 
     if (process.env.NODE_ENV === 'production') {
+      // SECURITY: Cookie fallback creates CSRF vulnerabilities - block in production
       if (process.env.WS_ALLOW_COOKIE_FALLBACK === 'true') {
-        this.logger.warn(
-          '[SECURITY] WS_ALLOW_COOKIE_FALLBACK is enabled in production. ' +
-            'Ensure origin validation, monitoring, and session controls are in place. ' +
-            'Prefer passing the token via handshake.auth.token instead of cookies.',
+        throw new Error(
+          '[SECURITY] WS_ALLOW_COOKIE_FALLBACK must not be enabled in production. ' +
+            'Use handshake.auth.token instead. ' +
+            'See docs/DEPLOYMENT.md for secure WebSocket configuration.',
         );
       }
       if (process.env.WS_ALLOW_AUTH_HEADER_FALLBACK === 'true') {
@@ -238,6 +259,62 @@ export class RealtimeGateway
             'This is a migration-only fallback and should be disabled.',
         );
       }
+    }
+
+    // Start periodic cleanup of expired rate limit entries to prevent memory leak
+    this.startRateLimitCleanup();
+  }
+
+  /**
+   * Start periodic cleanup of expired rate limit entries.
+   * Prevents memory leak from abandoned user sessions.
+   */
+  private startRateLimitCleanup(): void {
+    this.rateLimitCleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const mapSize = this.dashboardStateRateLimits.size;
+
+      // Check for excessive map size - force cleanup if exceeded
+      if (mapSize > this.RATE_LIMIT_MAP_MAX_SIZE) {
+        this.logger.warn({
+          message: 'Rate limit map exceeds max size, forcing cleanup',
+          currentSize: mapSize,
+          maxSize: this.RATE_LIMIT_MAP_MAX_SIZE,
+        });
+      }
+
+      // Collect expired entries first to avoid modifying Map during iteration
+      const expiredUserIds: string[] = [];
+      for (const [userId, limit] of this.dashboardStateRateLimits.entries()) {
+        if (now > limit.resetAt) {
+          expiredUserIds.push(userId);
+        }
+      }
+      // Delete collected entries
+      for (const userId of expiredUserIds) {
+        this.dashboardStateRateLimits.delete(userId);
+      }
+      if (expiredUserIds.length > 0) {
+        this.logger.debug({
+          message: 'Rate limit cleanup completed',
+          entriesRemoved: expiredUserIds.length,
+          remaining: this.dashboardStateRateLimits.size,
+        });
+      }
+    }, this.RATE_LIMIT_CLEANUP_INTERVAL_MS);
+
+    this.logger.log('Rate limit cleanup task started');
+  }
+
+  /**
+   * Called when the module is being destroyed.
+   * Clean up resources.
+   */
+  onModuleDestroy(): void {
+    if (this.rateLimitCleanupInterval) {
+      clearInterval(this.rateLimitCleanupInterval);
+      this.rateLimitCleanupInterval = null;
+      this.logger.log('Rate limit cleanup task stopped');
     }
   }
 
@@ -315,6 +392,10 @@ export class RealtimeGateway
       const userRoom = getUserRoom(userId);
       await client.join(userRoom);
 
+      // DM-11.2: Join dashboard state room for cross-device sync
+      const dashboardStateRoom = getDashboardStateRoom(userId);
+      await client.join(dashboardStateRoom);
+
       // Track connection for rate limiting
       this.trackConnection(workspaceId, client.id, userId);
 
@@ -323,7 +404,7 @@ export class RealtimeGateway
         socketId: client.id,
         userId,
         workspaceId,
-        rooms: [workspaceRoom, userRoom],
+        rooms: [workspaceRoom, userRoom, dashboardStateRoom],
       });
 
       // Send connection confirmation
@@ -400,12 +481,17 @@ export class RealtimeGateway
             }
           });
         }
+
+        // Explicitly clear projectRooms to prevent memory leaks
+        projectRooms.clear();
       } catch (error) {
         this.logger.error({
           message: 'Failed to fetch user for presence cleanup',
           userId,
           error: error instanceof Error ? error.message : String(error),
         });
+        // Still clear projectRooms on error to prevent leaks
+        projectRooms.clear();
       }
     }
 
@@ -589,6 +675,189 @@ export class RealtimeGateway
   }
 
   /**
+   * Handle room.leave request (for workspace switching)
+   * Leaves the old workspace room and cleans up tracking
+   * SECURITY: Only allows leaving rooms the user is actually in
+   */
+  @SubscribeMessage('room.leave')
+  async handleRoomLeave(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    // SECURITY: Validate input
+    const parseResult = RoomLeavePayloadSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid room.leave payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const { workspaceId: targetWorkspaceId } = parseResult.data;
+    const { userId, workspaceId: currentWorkspaceId } = client.data || {};
+
+    // Only allow leaving the workspace you're currently connected to
+    if (targetWorkspaceId !== currentWorkspaceId) {
+      this.logger.warn({
+        message: 'Attempted to leave workspace not currently joined',
+        socketId: client.id,
+        userId,
+        targetWorkspaceId,
+        currentWorkspaceId,
+      });
+      return;
+    }
+
+    const workspaceRoom = getWorkspaceRoom(targetWorkspaceId);
+    const dashboardStateRoom = userId ? getDashboardStateRoom(userId) : null;
+
+    // Leave workspace room
+    if (client.rooms.has(workspaceRoom)) {
+      await client.leave(workspaceRoom);
+    }
+
+    // Leave dashboard state room
+    if (dashboardStateRoom && client.rooms.has(dashboardStateRoom)) {
+      await client.leave(dashboardStateRoom);
+    }
+
+    // Untrack connection
+    if (userId) {
+      this.untrackConnection(targetWorkspaceId, client.id, userId);
+    }
+
+    this.logger.log({
+      message: 'Client left workspace room',
+      socketId: client.id,
+      userId,
+      workspaceId: targetWorkspaceId,
+    });
+
+    // Confirm room leave
+    client.emit('connection.status', {
+      status: 'connected',
+      message: `Left workspace ${targetWorkspaceId}`,
+    });
+  }
+
+  /**
+   * Handle room.join request (for workspace switching)
+   * Joins the new workspace room after verifying access
+   * SECURITY: Validates user has membership in target workspace
+   */
+  @SubscribeMessage('room.join')
+  async handleRoomJoin(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    // SECURITY: Validate input
+    const parseResult = RoomJoinPayloadSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid room.join payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const { workspaceId: targetWorkspaceId } = parseResult.data;
+    const { userId } = client.data || {};
+
+    if (!userId) {
+      this.logger.warn({
+        message: 'room.join without authenticated user',
+        socketId: client.id,
+      });
+      return;
+    }
+
+    try {
+      // SECURITY: Verify user has access to target workspace
+      const membership = await this.prisma.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId,
+            workspaceId: targetWorkspaceId,
+          },
+        },
+        select: { role: true },
+      });
+
+      if (!membership) {
+        this.logger.warn({
+          message: 'User attempted to join workspace without membership',
+          socketId: client.id,
+          userId,
+          targetWorkspaceId,
+        });
+        client.emit('connection.status', {
+          status: 'error',
+          message: 'Access denied to workspace',
+        });
+        return;
+      }
+
+      // Check rate limits for new workspace
+      if (!this.checkRateLimits(userId, targetWorkspaceId)) {
+        this.logger.warn({
+          message: 'room.join rejected - rate limit exceeded',
+          socketId: client.id,
+          userId,
+          targetWorkspaceId,
+        });
+        client.emit('connection.status', {
+          status: 'error',
+          message: 'Rate limit exceeded for workspace',
+        });
+        return;
+      }
+
+      // Join workspace room
+      const workspaceRoom = getWorkspaceRoom(targetWorkspaceId);
+      await client.join(workspaceRoom);
+
+      // Join dashboard state room
+      const dashboardStateRoom = getDashboardStateRoom(userId);
+      await client.join(dashboardStateRoom);
+
+      // Update socket data with new workspace
+      client.data.workspaceId = targetWorkspaceId;
+
+      // Track connection
+      this.trackConnection(targetWorkspaceId, client.id, userId);
+
+      this.logger.log({
+        message: 'Client joined workspace room',
+        socketId: client.id,
+        userId,
+        workspaceId: targetWorkspaceId,
+        rooms: [workspaceRoom, dashboardStateRoom],
+      });
+
+      // Confirm room join
+      client.emit('connection.status', {
+        status: 'connected',
+        message: `Joined workspace ${targetWorkspaceId}`,
+      });
+    } catch (error) {
+      this.logger.error({
+        message: 'Error joining workspace room',
+        socketId: client.id,
+        userId,
+        targetWorkspaceId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      client.emit('connection.status', {
+        status: 'error',
+        message: 'Failed to join workspace',
+      });
+    }
+  }
+
+  /**
    * Handle PM presence updates
    * Tracks user presence in projects with 30-second heartbeat
    * SECURITY: Validates input and verifies project access
@@ -699,6 +968,225 @@ export class RealtimeGateway
         socketId: client.id,
         userId,
         projectId: data.projectId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  // ============================================
+  // DM-11.2: Dashboard State Sync Handlers
+  // ============================================
+
+  /**
+   * Check if user is within rate limit for dashboard state updates
+   */
+  private checkDashboardStateRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const userLimit = this.dashboardStateRateLimits.get(userId);
+
+    if (!userLimit || now > userLimit.resetAt) {
+      // Start new window
+      this.dashboardStateRateLimits.set(userId, {
+        count: 1,
+        resetAt: now + this.DASHBOARD_STATE_RATE_WINDOW_MS,
+      });
+      return true;
+    }
+
+    if (userLimit.count >= this.DASHBOARD_STATE_RATE_LIMIT) {
+      return false;
+    }
+
+    userLimit.count++;
+    return true;
+  }
+
+  /**
+   * Handle dashboard state updates from clients
+   * Validates, rate limits, and broadcasts to other tabs/devices
+   * SECURITY: Validates input with Zod schema, rate limits per user
+   */
+  @SubscribeMessage(WS_EVENTS.DASHBOARD_STATE_UPDATE)
+  async handleDashboardStateUpdate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    const { userId, workspaceId } = client.data || {};
+
+    if (!userId || !workspaceId) {
+      this.logger.warn({
+        message: 'Dashboard state update from unauthenticated client',
+        socketId: client.id,
+      });
+      return;
+    }
+
+    // SECURITY: Check payload size before parsing to prevent DoS with large payloads
+    const rawPayloadSize = JSON.stringify(rawData).length;
+    if (rawPayloadSize > this.MAX_STATE_PAYLOAD_SIZE) {
+      this.logger.warn({
+        message: 'Dashboard state update payload too large (pre-parse)',
+        socketId: client.id,
+        userId,
+        payloadSize: rawPayloadSize,
+        maxSize: this.MAX_STATE_PAYLOAD_SIZE,
+      });
+      return;
+    }
+
+    // SECURITY: Validate input with Zod schema
+    const parseResult = DashboardStateUpdatePayloadSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid dashboard.state.update payload',
+        socketId: client.id,
+        userId,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const data = parseResult.data;
+
+    // SECURITY: Defense-in-depth - check parsed payload size
+    // (pre-parse check above handles raw input, this catches any size changes from parsing)
+    const payloadSize = JSON.stringify(data).length;
+    if (payloadSize > this.MAX_STATE_PAYLOAD_SIZE) {
+      this.logger.warn({
+        message: 'Dashboard state update payload too large (post-parse)',
+        socketId: client.id,
+        userId,
+        payloadSize,
+        maxSize: this.MAX_STATE_PAYLOAD_SIZE,
+      });
+      return;
+    }
+
+    // Rate limit check
+    if (!this.checkDashboardStateRateLimit(userId)) {
+      this.logger.warn({
+        message: 'Dashboard state update rate limit exceeded',
+        socketId: client.id,
+        userId,
+      });
+      return;
+    }
+
+    // Broadcast to all other clients in the user's dashboard state room
+    const dashboardStateRoom = getDashboardStateRoom(userId);
+    const syncPayload: DashboardStateSyncPayload = {
+      path: data.path,
+      value: data.value,
+      version: data.version,
+      sourceTabId: data.sourceTabId,
+    };
+
+    // Emit to all clients in the room (including sender - sender filters by tabId)
+    (this.server.to(dashboardStateRoom) as { emit: (event: string, data: unknown) => void }).emit(
+      WS_EVENTS.DASHBOARD_STATE_SYNC,
+      syncPayload,
+    );
+
+    // Also persist to Redis for durability
+    try {
+      await this.dashboardStateService.saveState(userId, workspaceId, {
+        version: data.version,
+        state: { [data.path]: data.value },
+      });
+    } catch (error) {
+      // Log but don't fail the broadcast - Redis persistence is optional
+      this.logger.warn({
+        message: 'Failed to persist dashboard state update to Redis',
+        userId,
+        path: data.path,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    this.logger.debug({
+      message: 'Dashboard state update broadcast',
+      userId,
+      path: data.path,
+      version: data.version,
+      sourceTabId: data.sourceTabId,
+    });
+  }
+
+  /**
+   * Handle dashboard state request on reconnection
+   * Returns full state from Redis to the requesting client
+   * SECURITY: Validates input with Zod schema
+   */
+  @SubscribeMessage(WS_EVENTS.DASHBOARD_STATE_REQUEST)
+  async handleDashboardStateRequest(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    const { userId, workspaceId } = client.data || {};
+
+    if (!userId || !workspaceId) {
+      this.logger.warn({
+        message: 'Dashboard state request from unauthenticated client',
+        socketId: client.id,
+      });
+      return;
+    }
+
+    // SECURITY: Validate input with Zod
+    const parseResult = DashboardStateRequestPayloadSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid dashboard.state.request payload',
+        socketId: client.id,
+        userId,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const data = parseResult.data;
+
+    try {
+      // Fetch full state from Redis
+      const storedState = await this.dashboardStateService.getState(userId, workspaceId);
+
+      if (!storedState) {
+        // No state stored - send empty state
+        const fullPayload: DashboardStateFullPayload = {
+          state: {},
+          version: 0,
+        };
+        client.emit(WS_EVENTS.DASHBOARD_STATE_FULL, fullPayload);
+        return;
+      }
+
+      // Only send if server version is newer than client's known version
+      if (storedState.version > data.lastKnownVersion) {
+        const fullPayload: DashboardStateFullPayload = {
+          state: storedState.state as Record<string, unknown>,
+          version: storedState.version,
+        };
+        client.emit(WS_EVENTS.DASHBOARD_STATE_FULL, fullPayload);
+
+        this.logger.debug({
+          message: 'Dashboard state recovery sent',
+          userId,
+          clientVersion: data.lastKnownVersion,
+          serverVersion: storedState.version,
+        });
+      } else {
+        this.logger.debug({
+          message: 'Dashboard state request - client already up to date',
+          userId,
+          clientVersion: data.lastKnownVersion,
+          serverVersion: storedState.version,
+        });
+      }
+    } catch (error) {
+      this.logger.error({
+        message: 'Failed to fetch dashboard state from Redis',
+        socketId: client.id,
+        userId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -1373,14 +1861,9 @@ export class RealtimeGateway
       return auth.token;
     }
 
-    // Development fallback: allow token via cookie when session token is HttpOnly (browser can't read it).
-    // SECURITY: opt-in only via WS_ALLOW_COOKIE_FALLBACK=true (even in dev).
+    // Development-only fallback: allow token via cookie when session token is HttpOnly.
+    // SECURITY: Blocked in production (throws in constructor), dev-only opt-in via WS_ALLOW_COOKIE_FALLBACK=true.
     const allowCookieFallback = process.env.WS_ALLOW_COOKIE_FALLBACK === 'true';
-    if (process.env.NODE_ENV === 'production' && allowCookieFallback) {
-      this.logger.warn(
-        '[SECURITY] WS_ALLOW_COOKIE_FALLBACK is enabled in production. Ensure origin validation, monitoring, and session controls are in place.',
-      );
-    }
     if (allowCookieFallback) {
       const cookieHeader = headers.cookie;
       if (cookieHeader && typeof cookieHeader === 'string') {

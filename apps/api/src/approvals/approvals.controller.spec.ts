@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ApprovalsController } from './approvals.controller';
 import { ApprovalsService } from './approvals.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -55,6 +59,7 @@ describe('ApprovalsController', () => {
             approve: jest.fn(),
             reject: jest.fn(),
             bulkAction: jest.fn(),
+            cancel: jest.fn(),
           },
         },
       ],
@@ -367,6 +372,169 @@ describe('ApprovalsController', () => {
       expect(result.successes).toHaveLength(1);
       expect(result.failures).toHaveLength(1);
       expect(result.totalProcessed).toBe(2);
+    });
+  });
+
+  describe('cancelApproval', () => {
+    const mockUserWithRole = {
+      ...mockUser,
+      role: 'member',
+    };
+
+    const mockAdminUser = {
+      ...mockUser,
+      role: 'admin',
+    };
+
+    it('should cancel approval with reason', async () => {
+      const cancelResult = {
+        success: true,
+        cancelledAt: new Date().toISOString(),
+      };
+
+      service.cancel.mockResolvedValue(cancelResult);
+
+      const result = await controller.cancelApproval(
+        mockWorkspaceId,
+        mockApprovalId,
+        { reason: 'No longer needed' },
+        mockUserWithRole,
+      );
+
+      expect(result).toEqual(cancelResult);
+      expect(service.cancel).toHaveBeenCalledWith(
+        mockWorkspaceId,
+        mockApprovalId,
+        mockUserId,
+        { reason: 'No longer needed' },
+        false, // non-admin
+      );
+    });
+
+    it('should cancel approval without reason', async () => {
+      const cancelResult = {
+        success: true,
+        cancelledAt: new Date().toISOString(),
+      };
+
+      service.cancel.mockResolvedValue(cancelResult);
+
+      await controller.cancelApproval(
+        mockWorkspaceId,
+        mockApprovalId,
+        {},
+        mockUserWithRole,
+      );
+
+      expect(service.cancel).toHaveBeenCalledWith(
+        mockWorkspaceId,
+        mockApprovalId,
+        mockUserId,
+        {},
+        false, // non-admin
+      );
+    });
+
+    it('should pass admin flag when user is admin', async () => {
+      const cancelResult = {
+        success: true,
+        cancelledAt: new Date().toISOString(),
+      };
+
+      service.cancel.mockResolvedValue(cancelResult);
+
+      await controller.cancelApproval(
+        mockWorkspaceId,
+        mockApprovalId,
+        {},
+        mockAdminUser,
+      );
+
+      expect(service.cancel).toHaveBeenCalledWith(
+        mockWorkspaceId,
+        mockApprovalId,
+        mockUserId,
+        {},
+        true, // is admin
+      );
+    });
+
+    it('should pass admin flag when user is owner', async () => {
+      const mockOwnerUser = {
+        ...mockUser,
+        role: 'owner',
+      };
+
+      const cancelResult = {
+        success: true,
+        cancelledAt: new Date().toISOString(),
+      };
+
+      service.cancel.mockResolvedValue(cancelResult);
+
+      await controller.cancelApproval(
+        mockWorkspaceId,
+        mockApprovalId,
+        {},
+        mockOwnerUser,
+      );
+
+      expect(service.cancel).toHaveBeenCalledWith(
+        mockWorkspaceId,
+        mockApprovalId,
+        mockUserId,
+        {},
+        true, // is owner
+      );
+    });
+
+    it('should throw NotFoundException for invalid ID', async () => {
+      service.cancel.mockRejectedValue(
+        new NotFoundException('Approval item not found in this workspace'),
+      );
+
+      await expect(
+        controller.cancelApproval(
+          mockWorkspaceId,
+          'invalid-id',
+          {},
+          mockUserWithRole,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException if already processed', async () => {
+      service.cancel.mockRejectedValue(
+        new BadRequestException(
+          "Approval cannot be cancelled - status is 'approved'",
+        ),
+      );
+
+      await expect(
+        controller.cancelApproval(
+          mockWorkspaceId,
+          mockApprovalId,
+          {},
+          mockUserWithRole,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw ForbiddenException if user lacks permission', async () => {
+      service.cancel.mockRejectedValue(
+        new ForbiddenException(
+          'You do not have permission to cancel this approval',
+        ),
+      );
+
+      await expect(
+        controller.cancelApproval(
+          mockWorkspaceId,
+          mockApprovalId,
+          {},
+          mockUserWithRole,
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 });

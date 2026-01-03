@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useApprovalMutations } from '@/hooks/use-approvals'
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { CheckCircle2, XCircle, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ApprovalActionsProps {
@@ -24,6 +24,10 @@ interface ApprovalActionsProps {
   onApprove?: () => void
   /** Callback after successful rejection */
   onReject?: () => void
+  /** Callback after successful cancellation */
+  onCancel?: () => void
+  /** Whether to show the cancel button (default: true for pending) */
+  showCancel?: boolean
   /** Display variant */
   variant?: 'default' | 'compact'
   /** Custom className */
@@ -38,23 +42,30 @@ export function ApprovalActions({
   approvalId,
   onApprove,
   onReject,
+  onCancel,
+  showCancel = true,
   variant = 'default',
   className,
 }: ApprovalActionsProps) {
   const [notes, setNotes] = useState('')
+  const [cancelReason, setCancelReason] = useState('')
   const [showApproveDialog, setShowApproveDialog] = useState(false)
   const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
 
   const {
     approve,
     reject,
+    cancel,
     isApproving,
     isRejecting,
+    isCancelling,
     approveError,
     rejectError,
+    cancelError,
   } = useApprovalMutations()
 
-  const isLoading = isApproving || isRejecting
+  const isLoading = isApproving || isRejecting || isCancelling
 
   // Handle approve action
   const handleApprove = () => {
@@ -79,6 +90,20 @@ export function ApprovalActions({
           setNotes('')
           setShowRejectDialog(false)
           onReject?.()
+        },
+      }
+    )
+  }
+
+  // Handle cancel action
+  const handleCancel = () => {
+    cancel(
+      { id: approvalId, reason: cancelReason || undefined },
+      {
+        onSuccess: () => {
+          setCancelReason('')
+          setShowCancelDialog(false)
+          onCancel?.()
         },
       }
     )
@@ -125,6 +150,28 @@ export function ApprovalActions({
             </>
           )}
         </Button>
+
+        {showCancel && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setShowCancelDialog(true)}
+            disabled={isLoading}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {isCancelling ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Cancelling...
+              </>
+            ) : (
+              <>
+                <X className="mr-1.5 h-3.5 w-3.5" />
+                Cancel
+              </>
+            )}
+          </Button>
+        )}
 
         {/* Approve Dialog */}
         <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
@@ -225,6 +272,56 @@ export function ApprovalActions({
             )}
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Cancel Dialog */}
+        <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancel this approval request?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will withdraw the approval request. The AI action will not proceed.
+                You can optionally provide a reason.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="my-4">
+              <Textarea
+                placeholder="Add reason (optional)..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isCancelling}>Back</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleCancel()
+                }}
+                disabled={isCancelling}
+                className="bg-gray-600 hover:bg-gray-700"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Cancel Request'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+
+            {cancelError && (
+              <p className="text-sm text-red-600 mt-2">
+                Error: {cancelError.message}
+              </p>
+            )}
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     )
   }
@@ -286,6 +383,27 @@ export function ApprovalActions({
             </>
           )}
         </Button>
+
+        {showCancel && (
+          <Button
+            variant="ghost"
+            onClick={() => setShowCancelDialog(true)}
+            disabled={isLoading}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {isCancelling ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cancelling...
+              </>
+            ) : (
+              <>
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Error Messages */}
@@ -299,6 +417,61 @@ export function ApprovalActions({
           Error rejecting: {rejectError.message}
         </div>
       )}
+      {cancelError && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+          Error cancelling: {cancelError.message}
+        </div>
+      )}
+
+      {/* Cancel Dialog (for default variant) */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this approval request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will withdraw the approval request. The AI action will not proceed.
+              You can optionally provide a reason.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="my-4">
+            <Textarea
+              placeholder="Add reason (optional)..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>Back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleCancel()
+              }}
+              disabled={isCancelling}
+              className="bg-gray-600 hover:bg-gray-700"
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                'Cancel Request'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+
+          {cancelError && (
+            <p className="text-sm text-red-600 mt-2">
+              Error: {cancelError.message}
+            </p>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

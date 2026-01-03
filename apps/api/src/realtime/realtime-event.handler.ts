@@ -88,6 +88,12 @@ export class RealtimeEventHandler {
         break;
       }
 
+      case EventTypes.APPROVAL_CANCELLED: {
+        const payload = this.mapApprovalCancelledPayload(event);
+        this.realtimeGateway.broadcastApprovalUpdated(workspaceId, payload);
+        break;
+      }
+
       default:
         this.logger.debug({
           message: 'Unhandled approval event type',
@@ -476,6 +482,18 @@ export class RealtimeEventHandler {
     return {
       id: data.approvalId as string,
       status: 'expired',
+      correlationId: event.correlationId,
+    };
+  }
+
+  private mapApprovalCancelledPayload(event: BaseEvent): ApprovalUpdatePayload {
+    const data = event.data as Record<string, unknown>;
+    return {
+      id: data.approvalId as string,
+      status: 'cancelled',
+      decidedById: data.cancelledById as string | undefined,
+      decisionNotes: data.reason as string | undefined,
+      decidedAt: event.timestamp,
       correlationId: event.correlationId,
     };
   }

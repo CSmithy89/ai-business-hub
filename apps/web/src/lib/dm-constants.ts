@@ -94,6 +94,42 @@ export const DM_CONSTANTS = {
     /** Maximum active tasks to track */
     MAX_ACTIVE_TASKS: 20,
   },
+
+  // State Sync Configuration (DM-11.1)
+  STATE_SYNC: {
+    /** Debounce delay before syncing to server (ms) */
+    SYNC_DEBOUNCE_MS: 2000,
+    /** Whether to restore state from server on authentication */
+    RESTORE_ON_AUTH: true,
+    /** State paths that trigger a sync when changed */
+    SIGNIFICANT_CHANGE_PATHS: [
+      'widgets',
+      'activeProject',
+      'activeTasks',
+    ] as const,
+    /** Maximum retry attempts for sync operations */
+    MAX_SYNC_RETRIES: 3,
+    /** Delay between retry attempts (ms) */
+    RETRY_DELAY_MS: 1000,
+  },
+
+  // WebSocket State Sync Configuration (DM-11.2)
+  WS_SYNC: {
+    /** Debounce delay for WebSocket state sync (ms) */
+    WS_DEBOUNCE_MS: 100,
+    /** Maximum payload size for WebSocket state updates (bytes) */
+    MAX_PAYLOAD_SIZE: 64 * 1024, // 64KB
+    /** Rate limit: max updates per window */
+    RATE_LIMIT_MAX: 100,
+    /** Rate limit window duration (ms) */
+    RATE_LIMIT_WINDOW_MS: 60_000, // 1 minute
+    /** Session storage key for tab ID */
+    TAB_ID_STORAGE_KEY: 'hyvve:dashboard:tabId',
+    /** Request full state on reconnection if version is stale */
+    REQUEST_FULL_STATE_ON_RECONNECT: true,
+    /** Retry delay for WebSocket reconnection recovery (ms) */
+    RECONNECT_RECOVERY_DELAY_MS: 500,
+  },
 } as const;
 
 export type DMConstantsType = typeof DM_CONSTANTS;

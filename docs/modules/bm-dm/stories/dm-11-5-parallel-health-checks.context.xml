@@ -1,0 +1,966 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-11.5 Parallel Health Checks
+  Generated: 2026-01-01
+  Epic: DM-11 - Advanced Features & Optimizations
+
+  This file provides implementation context for the story.
+  Use this to understand existing code patterns before making changes.
+-->
+<story-context>
+  <story>
+    <id>DM-11.5</id>
+    <title>Parallel Health Checks</title>
+    <epic>DM-11</epic>
+    <points>3</points>
+    <status>drafted</status>
+  </story>
+
+  <summary>
+    Refactor the mesh discovery service to run agent health checks in parallel
+    using asyncio.gather(), following the same pattern established in DM-11.4
+    for parallel MCP connections.
+  </summary>
+
+  <files-to-modify>
+    <file path="agents/mesh/discovery.py" action="modify">
+      Add HealthCheckResult dataclass, refactor health_check_all() for parallel execution,
+      add health_check_timeout parameter to DiscoveryService.__init__()
+    </file>
+    <file path="agents/mesh/router.py" action="modify">
+      Add refresh_mesh_health() method that calls parallel health checks
+    </file>
+    <file path="agents/mesh/__init__.py" action="modify">
+      Export HealthCheckResult from the mesh package
+    </file>
+  </files-to-modify>
+
+  <files-to-create>
+    <file path="agents/mesh/__tests__/test_parallel_health.py">
+      Unit tests for parallel health check logic
+    </file>
+  </files-to-create>
+
+  <!-- =========================================================================
+       REFERENCE PATTERN: DM-11.4 Parallel MCP Connections
+       The implementation should follow this established pattern
+       ========================================================================= -->
+  <reference-pattern name="DM-11.4 Parallel Connections">
+    <description>
+      DM-11.4 established the pattern for parallel async operations with:
+      - A dataclass to capture results (ConnectionResult)
+      - Timeout wrapping with asyncio.wait_for()
+      - asyncio.gather(*tasks, return_exceptions=True) for parallel execution
+      - Timing metrics in milliseconds
+      - Summary logging after completion
+    </description>
+
+    <code-snippet file="agents/mcp/client.py" lines="35-65">
+      <![CDATA[
+@dataclass
+class ConnectionResult:
+    """
+    Result of a single MCP server connection attempt.
+
+    Provides structured information about connection success/failure,
+    timing, and error details for logging and health reporting.
+
+    Attributes:
+        server_name: Name of the MCP server
+        success: Whether connection was successful
+        tools_count: Number of tools discovered (0 if failed)
+        error: Error message if connection failed
+        retry_scheduled: Whether retry is scheduled for this server
+        connect_time_ms: Time taken to connect in milliseconds
+    """
+    server_name: str
+    success: bool
+    tools_count: int = 0
+    error: Optional[str] = None
+    retry_scheduled: bool = False
+    connect_time_ms: float = 0.0
+]]>
+    </code-snippet>
+
+    <code-snippet file="agents/mcp/client.py" lines="493-616" title="connect_all() parallel pattern">
+      <![CDATA[
+async def connect_all(
+    self,
+    server_names: Optional[List[str]] = None,
+    timeout: float = 30.0,
+) -> Dict[str, ConnectionResult]:
+    """
+    Connect to multiple MCP servers in parallel.
+    """
+    # Determine which servers to connect
+    if server_names is None:
+        server_names = [
+            name for name, config in self.config.servers.items()
+            if config.enabled
+        ]
+
+    if not server_names:
+        logger.info("No servers to connect (all disabled or empty list)")
+        return {}
+
+    logger.info(f"Starting parallel MCP connections for {len(server_names)} servers...")
+    overall_start = time.time()
+
+    # Create connection task with timeout wrapper
+    async def connect_with_timeout(name: str) -> ConnectionResult:
+        """Connect to a single server with timeout and error handling."""
+        start_time = time.time()
+        try:
+            success = await asyncio.wait_for(
+                self.connect(name),
+                timeout=timeout
+            )
+            elapsed_ms = (time.time() - start_time) * 1000
+            tools_count = len(self._tools_cache.get(name, []))
+
+            if success:
+                logger.info(
+                    f"MCP server '{name}' connected: {tools_count} tools "
+                    f"({elapsed_ms:.1f}ms)"
+                )
+            return ConnectionResult(
+                server_name=name,
+                success=success,
+                tools_count=tools_count if success else 0,
+                connect_time_ms=elapsed_ms,
+            )
+        except asyncio.TimeoutError:
+            elapsed_ms = (time.time() - start_time) * 1000
+            error_msg = f"Connection timed out after {timeout}s"
+            logger.error(f"MCP server '{name}': {error_msg}")
+            return ConnectionResult(
+                server_name=name,
+                success=False,
+                error=error_msg,
+                retry_scheduled=True,
+                connect_time_ms=elapsed_ms,
+            )
+        except Exception as e:
+            elapsed_ms = (time.time() - start_time) * 1000
+            error_msg = str(e)
+            logger.error(f"MCP server '{name}' failed: {error_msg}")
+            return ConnectionResult(
+                server_name=name,
+                success=False,
+                error=error_msg,
+                retry_scheduled=True,
+                connect_time_ms=elapsed_ms,
+            )
+
+    # Execute all connections in parallel
+    tasks = [connect_with_timeout(name) for name in server_names]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Process results
+    connection_status: Dict[str, ConnectionResult] = {}
+    for name, result in zip(server_names, results):
+        if isinstance(result, Exception):
+            # Defensive handling
+            logger.error(f"Unexpected exception for MCP server '{name}': {result}")
+            connection_status[name] = ConnectionResult(
+                server_name=name,
+                success=False,
+                error=str(result),
+                retry_scheduled=True,
+            )
+        else:
+            connection_status[name] = result
+
+    # Log summary
+    successful = sum(1 for r in connection_status.values() if r.success)
+    total = len(connection_status)
+    overall_elapsed = (time.time() - overall_start) * 1000
+    logger.info(
+        f"Parallel MCP connection complete: {successful}/{total} servers "
+        f"connected ({overall_elapsed:.1f}ms total)"
+    )
+
+    return connection_status
+]]>
+    </code-snippet>
+  </reference-pattern>
+
+  <!-- =========================================================================
+       CURRENT IMPLEMENTATION: agents/mesh/discovery.py
+       ========================================================================= -->
+  <current-implementation>
+    <file path="agents/mesh/discovery.py">
+      <code-snippet title="DiscoveryService.__init__" lines="78-101">
+        <![CDATA[
+def __init__(
+    self,
+    discovery_urls: Optional[List[str]] = None,
+    scan_interval: int = 300,
+    timeout: float = DEFAULT_TIMEOUT,
+    auto_register: bool = True,
+) -> None:
+    """
+    Initialize the discovery service.
+
+    Args:
+        discovery_urls: Initial list of URLs to scan for agents
+        scan_interval: Seconds between periodic scans (default: 300 = 5 minutes)
+        timeout: HTTP request timeout in seconds (default: 30)
+        auto_register: Whether to automatically register discovered agents
+    """
+    self.discovery_urls: List[str] = list(discovery_urls or [])
+    self.scan_interval = scan_interval
+    self.timeout = timeout
+    self.auto_register = auto_register
+
+    self._client: Optional[httpx.AsyncClient] = None
+    self._running = False
+    self._scan_task: Optional[asyncio.Task] = None
+]]>
+      </code-snippet>
+
+      <code-snippet title="check_agent_health - Current Implementation" lines="372-408">
+        <![CDATA[
+async def check_agent_health(self, agent_name: str) -> AgentHealth:
+    """
+    Check the health of a registered agent.
+
+    Attempts to connect to the agent's URL and update its health status.
+
+    Args:
+        agent_name: Name of the agent to check
+
+    Returns:
+        The updated health status
+    """
+    if not self._client:
+        raise RuntimeError("Discovery service not started")
+
+    registry = get_registry()
+    agent = registry.get(agent_name)
+
+    if not agent:
+        return AgentHealth.UNKNOWN
+
+    try:
+        # Try to fetch the agent card
+        discovery_url = f"{agent.url.rstrip('/')}{WELL_KNOWN_PATH}"
+        response = await self._client.get(discovery_url)
+
+        if response.status_code == 200:
+            registry.update_health(agent_name, True)
+            return AgentHealth.HEALTHY
+        else:
+            registry.set_health(agent_name, AgentHealth.DEGRADED)
+            return AgentHealth.DEGRADED
+
+    except Exception as e:
+        logger.warning(f"Health check failed for {agent_name}: {e}")
+        registry.update_health(agent_name, False)
+        return AgentHealth.UNHEALTHY
+]]>
+      </code-snippet>
+
+      <code-snippet title="health_check_all - Current Sequential Implementation" lines="410-425">
+        <![CDATA[
+async def health_check_all(self) -> Dict[str, AgentHealth]:
+    """
+    Check health of all external agents.
+
+    Returns:
+        Dict mapping agent names to their health status
+    """
+    registry = get_registry()
+    external_agents = registry.list_external()
+
+    results: Dict[str, AgentHealth] = {}
+    for agent in external_agents:
+        health = await self.check_agent_health(agent.name)  # SEQUENTIAL!
+        results[agent.name] = health
+
+    return results
+]]>
+      </code-snippet>
+    </file>
+  </current-implementation>
+
+  <!-- =========================================================================
+       CURRENT IMPLEMENTATION: agents/mesh/router.py
+       ========================================================================= -->
+  <current-implementation>
+    <file path="agents/mesh/router.py">
+      <code-snippet title="MeshRouter class structure" lines="33-78">
+        <![CDATA[
+class MeshRouter:
+    """
+    Routes requests to agents in the mesh.
+
+    Provides intelligent routing based on:
+    - Agent capabilities and skills
+    - Agent health status
+    - Module preference
+    - Internal vs external preference
+    - Load balancing strategies
+    """
+
+    def __init__(self) -> None:
+        """Initialize the mesh router."""
+        self._round_robin_index: Dict[str, int] = {}
+
+    @property
+    def registry(self):
+        """Get the agent registry."""
+        return get_registry()
+]]>
+      </code-snippet>
+
+      <code-snippet title="get_routing_info method - pattern for new method" lines="409-440">
+        <![CDATA[
+def get_routing_info(self, task_type: str) -> Dict[str, Any]:
+    """
+    Get routing information without making a request.
+
+    Useful for debugging and understanding routing decisions.
+
+    Args:
+        task_type: Type of task to route
+
+    Returns:
+        Dict with routing analysis information
+    """
+    registry = self.registry
+
+    # Get all relevant agents
+    capability_agents = registry.list_by_capability(task_type)
+    healthy_agents = registry.list_healthy()
+    all_agents = registry.list_all()
+
+    # Find best match
+    best_agent = self.find_agent_for_task(task_type)
+
+    return {
+        "task_type": task_type,
+        "total_agents": len(all_agents),
+        "healthy_agents": len(healthy_agents),
+        "capability_matches": len(capability_agents),
+        "selected_agent": best_agent.name if best_agent else None,
+        "selected_module": best_agent.module if best_agent else None,
+        "is_external": best_agent.is_external if best_agent else None,
+        "agents_by_module": registry.get_stats().get("modules", {}),
+    }
+]]>
+      </code-snippet>
+    </file>
+  </current-implementation>
+
+  <!-- =========================================================================
+       CURRENT EXPORTS: agents/mesh/__init__.py
+       ========================================================================= -->
+  <current-implementation>
+    <file path="agents/mesh/__init__.py">
+      <code-snippet title="Current exports" lines="37-101">
+        <![CDATA[
+# Models
+from .models import (
+    AgentCapability,
+    AgentCapabilityType,
+    AgentEndpoint,
+    AgentHealth,
+    MeshAgentCard,
+)
+
+# Registry
+from .registry import (
+    AgentRegistry,
+    RegistryEvent,
+    get_registry,
+    reset_registry,
+)
+
+# Discovery
+from .discovery import (
+    AgentNotFoundError,
+    DiscoveryError,
+    DiscoveryService,
+    InvalidAgentCardError,
+    configure_discovery_service,
+    get_discovery_service,
+    shutdown_discovery_service,
+)
+
+# Router
+from .router import (
+    MeshRouter,
+    NoAgentFoundError,
+    RoutingError,
+    get_router,
+    reset_router,
+)
+
+__all__ = [
+    # Models
+    "AgentCapability",
+    "AgentCapabilityType",
+    "AgentEndpoint",
+    "AgentHealth",
+    "MeshAgentCard",
+    # Registry
+    "AgentRegistry",
+    "RegistryEvent",
+    "get_registry",
+    "reset_registry",
+    # Discovery
+    "DiscoveryService",
+    "DiscoveryError",
+    "AgentNotFoundError",
+    "InvalidAgentCardError",
+    "get_discovery_service",
+    "configure_discovery_service",
+    "shutdown_discovery_service",
+    # Router
+    "MeshRouter",
+    "RoutingError",
+    "NoAgentFoundError",
+    "get_router",
+    "reset_router",
+]
+]]>
+      </code-snippet>
+    </file>
+  </current-implementation>
+
+  <!-- =========================================================================
+       MODELS: agents/mesh/models.py
+       ========================================================================= -->
+  <current-implementation>
+    <file path="agents/mesh/models.py">
+      <code-snippet title="AgentHealth enum" lines="36-43">
+        <![CDATA[
+class AgentHealth(str, Enum):
+    """Agent health status."""
+
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNHEALTHY = "unhealthy"
+    UNKNOWN = "unknown"
+]]>
+      </code-snippet>
+
+      <code-snippet title="MeshAgentCard - key fields" lines="125-199">
+        <![CDATA[
+class MeshAgentCard(BaseModel):
+    """
+    Extended A2A AgentCard for mesh registration.
+    """
+    name: str = Field(..., description="Agent name/identifier")
+    description: str = Field(..., description="Agent description")
+    url: str = Field(..., description="A2A endpoint URL")
+    version: str = Field(default="1.0.0", description="Agent version")
+    capabilities: Dict[str, Any] = Field(default_factory=dict)
+    skills: List[AgentCapability] = Field(default_factory=list)
+    default_input_modes: List[str] = Field(default_factory=lambda: ["text"])
+    default_output_modes: List[str] = Field(default_factory=lambda: ["text"])
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    is_external: bool = Field(default=False, alias="isExternal")
+    module: Optional[str] = Field(default=None)
+    health: AgentHealth = Field(default=AgentHealth.UNKNOWN)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+]]>
+      </code-snippet>
+    </file>
+  </current-implementation>
+
+  <!-- =========================================================================
+       REGISTRY: agents/mesh/registry.py - Health update methods
+       ========================================================================= -->
+  <current-implementation>
+    <file path="agents/mesh/registry.py">
+      <code-snippet title="update_health and set_health methods" lines="212-276">
+        <![CDATA[
+def update_health(self, agent_name: str, healthy: bool) -> bool:
+    """
+    Update agent health status.
+
+    Args:
+        agent_name: Name of the agent
+        healthy: True for HEALTHY, False for UNHEALTHY
+
+    Returns:
+        True if agent was found and updated, False otherwise
+    """
+    with self._lock:
+        if agent_name not in self._agents:
+            logger.warning(f"Cannot update health for unknown agent: {agent_name}")
+            return False
+
+        new_status = AgentHealth.HEALTHY if healthy else AgentHealth.UNHEALTHY
+        old_status = self._health_status.get(agent_name, AgentHealth.UNKNOWN)
+
+        if old_status != new_status:
+            self._health_status[agent_name] = new_status
+            self._agents[agent_name].health = new_status
+            logger.info(f"Agent health updated: {agent_name} -> {new_status.value}")
+            self._notify_sync(RegistryEvent.HEALTH_UPDATE, agent_name)
+
+        return True
+
+def set_health(self, agent_name: str, health: AgentHealth) -> bool:
+    """
+    Set agent health to a specific status.
+
+    Args:
+        agent_name: Name of the agent
+        health: The AgentHealth status to set
+
+    Returns:
+        True if agent was found and updated, False otherwise
+    """
+    with self._lock:
+        if agent_name not in self._agents:
+            logger.warning(f"Cannot set health for unknown agent: {agent_name}")
+            return False
+
+        old_status = self._health_status.get(agent_name, AgentHealth.UNKNOWN)
+
+        if old_status != health:
+            self._health_status[agent_name] = health
+            self._agents[agent_name].health = health
+            logger.info(f"Agent health set: {agent_name} -> {health.value}")
+            self._notify_sync(RegistryEvent.HEALTH_UPDATE, agent_name)
+
+        return True
+
+def is_healthy(self, agent_name: str) -> bool:
+    """Check if an agent is healthy."""
+    with self._lock:
+        return self._health_status.get(agent_name) == AgentHealth.HEALTHY
+
+def list_external(self) -> List[MeshAgentCard]:
+    """List all external agents."""
+    with self._lock:
+        return [
+            agent for agent in self._agents.values()
+            if agent.is_external
+        ]
+]]>
+      </code-snippet>
+    </file>
+  </current-implementation>
+
+  <!-- =========================================================================
+       TEST PATTERNS: From existing mesh tests
+       ========================================================================= -->
+  <test-patterns>
+    <file path="agents/mesh/__tests__/test_discovery.py">
+      <code-snippet title="Fixture pattern for discovery service" lines="27-35">
+        <![CDATA[
+@pytest.fixture
+def discovery_service():
+    """Create a discovery service for testing."""
+    return DiscoveryService(
+        discovery_urls=["http://external-agent:8000"],
+        scan_interval=60,
+        auto_register=False,
+    )
+]]>
+      </code-snippet>
+
+      <code-snippet title="Reset global state pattern" lines="60-65">
+        <![CDATA[
+@pytest.fixture(autouse=True)
+def reset_global_state():
+    """Reset global state before each test."""
+    reset_registry()
+    yield
+    reset_registry()
+]]>
+      </code-snippet>
+
+      <code-snippet title="Mocking HTTP client pattern" lines="330-356">
+        <![CDATA[
+@pytest.mark.asyncio
+async def test_check_agent_health_healthy(
+    self, discovery_service, mock_agent_response
+):
+    """Should return HEALTHY for successful check."""
+    # Register an agent first
+    registry = get_registry()
+    from mesh.models import MeshAgentCard
+
+    agent = MeshAgentCard(
+        name="TestAgent",
+        description="Test",
+        url="http://test:8000",
+    )
+    registry.register(agent)
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+
+    mock_client = AsyncMock()
+    mock_client.get.return_value = mock_response
+    discovery_service._client = mock_client
+
+    health = await discovery_service.check_agent_health("TestAgent")
+
+    assert health == AgentHealth.HEALTHY
+    assert registry.is_healthy("TestAgent")
+]]>
+      </code-snippet>
+
+      <code-snippet title="Existing health_check_all test" lines="388-426">
+        <![CDATA[
+@pytest.mark.asyncio
+async def test_health_check_all(self, discovery_service):
+    """Should check health of all external agents."""
+    registry = get_registry()
+    from mesh.models import MeshAgentCard
+
+    # Register external agents
+    for i in range(2):
+        agent = MeshAgentCard(
+            name=f"External{i}",
+            description="External",
+            url=f"http://external{i}:8000",
+            is_external=True,
+        )
+        registry.register(agent)
+
+    # Also register an internal agent
+    internal = MeshAgentCard(
+        name="Internal",
+        description="Internal",
+        url="http://internal:8000",
+        is_external=False,
+    )
+    registry.register(internal)
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+
+    mock_client = AsyncMock()
+    mock_client.get.return_value = mock_response
+    discovery_service._client = mock_client
+
+    results = await discovery_service.health_check_all()
+
+    # Should only check external agents
+    assert len(results) == 2
+    assert "External0" in results
+    assert "External1" in results
+    assert "Internal" not in results
+]]>
+      </code-snippet>
+    </file>
+
+    <file path="agents/mcp/__tests__/test_parallel_connections.py">
+      <code-snippet title="Parallel execution test pattern" lines="128-154">
+        <![CDATA[
+@pytest.mark.asyncio
+async def test_connect_all_parallel_execution(self, mcp_config_multi):
+    """Should connect to all servers in parallel."""
+    client = MCPClient(mcp_config_multi)
+
+    with patch.object(MCPConnection, "start", new_callable=AsyncMock):
+        with patch.object(
+            MCPConnection,
+            "list_tools",
+            new_callable=AsyncMock,
+            return_value=[{"name": "tool1"}],
+        ):
+            results = await client.connect_all()
+
+    # Should connect to 3 enabled servers (not the disabled one)
+    assert len(results) == 3
+    assert "server1" in results
+    assert "server2" in results
+    assert "server3" in results
+    assert "disabled" not in results
+
+    # All should be successful
+    for name, result in results.items():
+        assert result.success is True
+        assert result.server_name == name
+        assert result.tools_count == 1
+]]>
+      </code-snippet>
+
+      <code-snippet title="Partial failure test pattern" lines="175-204">
+        <![CDATA[
+@pytest.mark.asyncio
+async def test_connect_all_partial_failure(self, mcp_config_multi):
+    """Should handle partial failures - one failure doesn't block others."""
+    client = MCPClient(mcp_config_multi)
+
+    # Mock connect() to fail for one specific server
+    async def mock_connect(server_name):
+        if server_name == "server2":
+            # Simulate failure
+            return False
+        # Simulate success
+        client._connections[server_name] = MagicMock()
+        client._tools_cache[server_name] = [{"name": "tool1"}]
+        return True
+
+    with patch.object(client, "connect", side_effect=mock_connect):
+        results = await client.connect_all()
+
+    # Should have results for all 3 enabled servers
+    assert len(results) == 3
+
+    # 2 should be successful (one failed)
+    successes = [r for r in results.values() if r.success]
+    failures = [r for r in results.values() if not r.success]
+
+    assert len(successes) == 2
+    assert len(failures) == 1
+    assert failures[0].server_name == "server2"
+]]>
+      </code-snippet>
+
+      <code-snippet title="Timeout handling test pattern" lines="206-223">
+        <![CDATA[
+@pytest.mark.asyncio
+async def test_connect_all_timeout_handling(self, mcp_config_single):
+    """Should handle individual server timeouts."""
+    client = MCPClient(mcp_config_single)
+
+    async def slow_start():
+        await asyncio.sleep(10)  # Simulate slow connection
+
+    with patch.object(MCPConnection, "start", side_effect=slow_start):
+        # Use a very short timeout
+        results = await client.connect_all(timeout=0.1)
+
+    assert len(results) == 1
+    result = results["test"]
+    assert result.success is False
+    assert "timed out" in result.error.lower()
+    assert result.retry_scheduled is True
+]]>
+      </code-snippet>
+
+      <code-snippet title="Timing verification test pattern" lines="569-599">
+        <![CDATA[
+@pytest.mark.asyncio
+async def test_parallel_faster_than_sequential(self, mcp_config_five_servers):
+    """
+    Verify parallel connections are faster than sequential.
+
+    Each server takes ~100ms to connect. With 5 servers:
+    - Sequential: ~500ms
+    - Parallel: ~100ms (bounded by slowest)
+    """
+    client = MCPClient(mcp_config_five_servers)
+
+    # Simulate 100ms connection time per server
+    async def mock_start():
+        await asyncio.sleep(0.1)  # 100ms
+
+    with patch.object(MCPConnection, "start", side_effect=mock_start):
+        with patch.object(
+            MCPConnection,
+            "list_tools",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
+            import time
+            start = time.time()
+            results = await client.connect_all()
+            elapsed = time.time() - start
+
+    # Should complete in roughly 100-200ms (parallel)
+    # Not 500ms (sequential)
+    assert len(results) == 5
+    assert elapsed < 0.3  # Allow some margin, but should be well under 0.5s
+]]>
+      </code-snippet>
+    </file>
+  </test-patterns>
+
+  <!-- =========================================================================
+       A2A CLIENT: Parallel call pattern for reference
+       ========================================================================= -->
+  <reference-pattern name="A2A Parallel Calls">
+    <file path="agents/a2a/client.py">
+      <code-snippet title="call_agents_parallel method" lines="353-440">
+        <![CDATA[
+async def call_agents_parallel(
+    self,
+    calls: List[Dict[str, Any]],
+    caller_id: str = "dashboard_gateway",
+) -> Dict[str, A2ATaskResult]:
+    """
+    Call multiple agents in parallel.
+
+    Executes multiple A2A calls concurrently using asyncio.gather,
+    which is more efficient than sequential calls when gathering
+    data from multiple agents.
+
+    Args:
+        calls: List of call specifications, each containing:
+            - agent_id (required): Target agent
+            - task (required): Task message
+            - context (optional): Additional context dict
+            - timeout (optional): Per-call timeout override
+        caller_id: Identifier of the calling agent for all calls
+
+    Returns:
+        Dict mapping agent_id to A2ATaskResult
+    """
+    if not calls:
+        return {}
+
+    # Build parallel tasks
+    tasks = []
+    agent_ids = []
+
+    for call in calls:
+        agent_id = call.get("agent_id")
+        if not agent_id:
+            logger.warning("Skipping call with missing agent_id")
+            continue
+
+        agent_ids.append(agent_id)
+        tasks.append(
+            self.call_agent(
+                agent_id=agent_id,
+                task=call.get("task", ""),
+                context=call.get("context"),
+                caller_id=caller_id,
+                timeout=call.get("timeout"),
+            )
+        )
+
+    if not tasks:
+        return {}
+
+    # Execute all calls in parallel
+    # Using return_exceptions=True ensures all calls complete even if some fail
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Build result dictionary, converting any exceptions to error results
+    output: Dict[str, A2ATaskResult] = {}
+    for agent_id, result in zip(agent_ids, results):
+        if isinstance(result, A2ATaskResult):
+            output[agent_id] = result
+        elif isinstance(result, Exception):
+            logger.error(f"Parallel call to {agent_id} raised exception: {result}")
+            output[agent_id] = A2ATaskResult(
+                content="",
+                success=False,
+                error=str(result),
+                agent_id=agent_id,
+            )
+        else:
+            # Unexpected result type
+            output[agent_id] = A2ATaskResult(
+                content="",
+                success=False,
+                error=f"Unexpected result type: {type(result)}",
+                agent_id=agent_id,
+            )
+
+    return output
+]]>
+      </code-snippet>
+    </file>
+  </reference-pattern>
+
+  <!-- =========================================================================
+       IMPLEMENTATION GUIDANCE
+       ========================================================================= -->
+  <implementation-guidance>
+    <step number="1" title="Add HealthCheckResult dataclass">
+      <description>
+        Add a dataclass to discovery.py following the ConnectionResult pattern from DM-11.4.
+        Include: agent_name, health, response_time_ms, error (optional).
+      </description>
+      <location>agents/mesh/discovery.py - Add after line 45 (after exceptions)</location>
+      <pattern>Follow ConnectionResult from agents/mcp/client.py lines 35-65</pattern>
+    </step>
+
+    <step number="2" title="Add health_check_timeout to __init__">
+      <description>
+        Add health_check_timeout parameter to DiscoveryService.__init__().
+        Default to 5.0 seconds as specified in the story.
+      </description>
+      <location>agents/mesh/discovery.py - Update __init__ at line 78</location>
+    </step>
+
+    <step number="3" title="Refactor health_check_all for parallel execution">
+      <description>
+        Replace the sequential loop with asyncio.gather pattern.
+        Use asyncio.wait_for for per-agent timeout wrapping.
+        Return Dict[str, HealthCheckResult] instead of Dict[str, AgentHealth].
+      </description>
+      <location>agents/mesh/discovery.py - Replace lines 410-425</location>
+      <pattern>Follow connect_all() from agents/mcp/client.py lines 493-616</pattern>
+      <key-points>
+        - Create async inner function check_with_timeout(agent)
+        - Use asyncio.wait_for(self.check_agent_health(agent.name), timeout=timeout)
+        - Track start_time for response_time_ms
+        - Handle asyncio.TimeoutError separately
+        - Use asyncio.gather(*tasks, return_exceptions=True)
+        - Process results and handle any Exception instances
+        - Log summary: healthy/total with avg response time
+      </key-points>
+    </step>
+
+    <step number="4" title="Add refresh_mesh_health to MeshRouter">
+      <description>
+        Add a method to MeshRouter that triggers parallel health checks
+        and returns a summary dict with health status.
+      </description>
+      <location>agents/mesh/router.py - Add after get_routing_info method</location>
+      <pattern>Follow the story specification for return format</pattern>
+    </step>
+
+    <step number="5" title="Update exports in __init__.py">
+      <description>
+        Export HealthCheckResult from the mesh package.
+      </description>
+      <location>agents/mesh/__init__.py - Add to Discovery imports and __all__</location>
+    </step>
+
+    <step number="6" title="Write tests in test_parallel_health.py">
+      <description>
+        Create comprehensive tests following patterns from test_parallel_connections.py.
+      </description>
+      <location>agents/mesh/__tests__/test_parallel_health.py</location>
+      <test-cases>
+        - TestHealthCheckResult: dataclass creation success/failure
+        - TestHealthCheckAllParallel: parallel execution, partial failure, timeout, empty list
+        - TestRefreshMeshHealth: summary format, integration with discovery
+        - TestParallelVsSequential: timing verification
+      </test-cases>
+    </step>
+  </implementation-guidance>
+
+  <!-- =========================================================================
+       ACCEPTANCE CRITERIA MAPPING
+       ========================================================================= -->
+  <acceptance-criteria>
+    <criterion id="AC1" title="Health checks run in parallel">
+      <requirement>All agents checked concurrently via asyncio.gather()</requirement>
+      <verification>Test that checks multiple agents complete in parallel time, not sequential</verification>
+    </criterion>
+    <criterion id="AC2" title="Individual timeouts don't block others">
+      <requirement>One agent timing out doesn't prevent other agents from being checked</requirement>
+      <verification>Test with one slow agent and verify others complete normally</verification>
+    </criterion>
+    <criterion id="AC3" title="Mesh status update time reduced">
+      <requirement>Measured improvement matches expected parallelization</requirement>
+      <verification>Timing test similar to test_parallel_faster_than_sequential</verification>
+    </criterion>
+    <criterion id="AC4" title="Graceful handling of partial failures">
+      <requirement>Failed checks logged with error details, other agents still checked</requirement>
+      <verification>Test partial failure scenario with error captured in HealthCheckResult</verification>
+    </criterion>
+    <criterion id="AC5" title="Timeout per agent configurable">
+      <requirement>health_check_timeout parameter added to DiscoveryService and timeout param to health_check_all()</requirement>
+      <verification>Test custom timeout is respected</verification>
+    </criterion>
+  </acceptance-criteria>
+</story-context>

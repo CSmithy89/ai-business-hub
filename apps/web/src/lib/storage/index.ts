@@ -229,3 +229,67 @@ export {
   type StorageResult,
   type StorageUsage,
 } from './quota-handler'
+
+// =============================================================================
+// STATE MIGRATION SYSTEM (DM-11.8)
+// =============================================================================
+
+/**
+ * Re-export state migration utilities
+ *
+ * These utilities handle dashboard state schema evolution:
+ * - Version mismatch detection
+ * - Sequential migration execution
+ * - Data preservation through migrations
+ * - Fallback to defaults on failure
+ *
+ * @see state-migrations.ts for implementation details
+ * @see docs/modules/bm-dm/stories/dm-11-8-state-migration-system.md
+ */
+export {
+  // Core functions
+  detectVersionMismatch,
+  needsMigration,
+  getMigrationPath,
+  migrateState,
+  registerMigration,
+  getRegisteredMigrations,
+  clearMigrations,
+  getDefaultState,
+  // Constants
+  STATE_VERSION,
+  // Types
+  type MigrationDefinition,
+  type MigrationResult,
+} from './state-migrations'
+
+// =============================================================================
+// STATE COMPRESSION (DM-11.9)
+// =============================================================================
+
+/**
+ * Re-export state compression utilities
+ *
+ * These utilities handle transparent LZ-String compression for localStorage:
+ * - Threshold-based compression (50KB default)
+ * - Automatic compression/decompression
+ * - Compression metrics for monitoring
+ * - Graceful fallback on failures
+ *
+ * @see compression.ts for implementation details
+ * @see docs/modules/bm-dm/stories/dm-11-9-state-compression.md
+ */
+export {
+  // Core functions
+  compressIfNeeded,
+  decompressIfNeeded,
+  getCompressionMetrics,
+  getCompressionThreshold,
+  // Constants
+  COMPRESSION_THRESHOLD,
+  COMPRESSED_MARKER_SUFFIX,
+  // Error class
+  CompressionError,
+  // Types
+  type CompressionMetrics,
+} from './compression'

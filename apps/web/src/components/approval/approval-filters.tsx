@@ -45,6 +45,7 @@ export function ApprovalFilters({
     approved: 'Approved',
     rejected: 'Rejected',
     auto_approved: 'Auto-Approved',
+    cancelled: 'Cancelled',
   }
 
   const confidenceLabels: Record<ConfidenceLevel | 'all', string> = {
@@ -96,6 +97,9 @@ export function ApprovalFilters({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onStatusChange('auto_approved')}>
               Auto-Approved
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onStatusChange('cancelled')}>
+              Cancelled
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

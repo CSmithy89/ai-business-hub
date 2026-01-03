@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ApprovalsService } from './approvals.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { EventPublisherService } from '../events';
@@ -84,6 +88,7 @@ describe('ApprovalsService', () => {
           useValue: {
             logApprovalDecision: jest.fn(),
             logBulkAction: jest.fn(),
+            logApprovalCancellation: jest.fn(),
           },
         },
       ],
@@ -462,6 +467,192 @@ describe('ApprovalsService', () => {
       });
 
       expect(result.successes).toHaveLength(1);
+    });
+  });
+
+  describe('cancel', () => {
+    const mockApprovalWithRequester = {
+      ...mockApproval,
+      requestedBy: mockUserId,
+    };
+
+    it('should cancel pending approval when user is requester', async () => {
+      prisma.approvalItem.findUnique.mockResolvedValue(mockApprovalWithRequester);
+      prisma.approvalItem.update.mockResolvedValue({
+        ...mockApprovalWithRequester,
+        status: 'cancelled',
+        resolvedById: mockUserId,
+        resolvedAt: new Date(),
+      });
+
+      const result = await service.cancel(
+        mockWorkspaceId,
+        mockApprovalId,
+        mockUserId,
+        { reason: 'No longer needed' },
+        false, // not admin
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.cancelledAt).toBeDefined();
+      expect(prisma.approvalItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: mockApprovalId },
+          data: expect.objectContaining({
+            status: 'cancelled',
+            resolvedById: mockUserId,
+          }),
+        }),
+      );
+    });
+
+    it('should cancel pending approval when user is admin', async () => {
+      const differentUserId = 'different-user';
+      const approvalWithDifferentRequester = {
+        ...mockApproval,
+        requestedBy: 'original-requester',
+      };
+
+      prisma.approvalItem.findUnique.mockResolvedValue(approvalWithDifferentRequester);
+      prisma.approvalItem.update.mockResolvedValue({
+        ...approvalWithDifferentRequester,
+        status: 'cancelled',
+        resolvedById: differentUserId,
+        resolvedAt: new Date(),
+      });
+
+      const result = await service.cancel(
+        mockWorkspaceId,
+        mockApprovalId,
+        differentUserId,
+        {},
+        true, // is admin
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should throw ForbiddenException when non-requester non-admin tries to cancel', async () => {
+      const differentUserId = 'different-user';
+      const approvalWithDifferentRequester = {
+        ...mockApproval,
+        requestedBy: 'original-requester',
+      };
+
+      prisma.approvalItem.findUnique.mockResolvedValue(approvalWithDifferentRequester);
+
+      await expect(
+        service.cancel(
+          mockWorkspaceId,
+          mockApprovalId,
+          differentUserId,
+          {},
+          false, // not admin
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw BadRequestException when approval is not pending', async () => {
+      prisma.approvalItem.findUnique.mockResolvedValue({
+        ...mockApprovalWithRequester,
+        status: 'approved',
+      });
+
+      await expect(
+        service.cancel(
+          mockWorkspaceId,
+          mockApprovalId,
+          mockUserId,
+          {},
+          false,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException for invalid ID', async () => {
+      prisma.approvalItem.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.cancel(
+          mockWorkspaceId,
+          'invalid-id',
+          mockUserId,
+          {},
+          false,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException for wrong workspace', async () => {
+      prisma.approvalItem.findUnique.mockResolvedValue({
+        ...mockApprovalWithRequester,
+        workspaceId: 'different-workspace',
+      });
+
+      await expect(
+        service.cancel(
+          mockWorkspaceId,
+          mockApprovalId,
+          mockUserId,
+          {},
+          false,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should emit APPROVAL_CANCELLED event', async () => {
+      prisma.approvalItem.findUnique.mockResolvedValue(mockApprovalWithRequester);
+      prisma.approvalItem.update.mockResolvedValue({
+        ...mockApprovalWithRequester,
+        status: 'cancelled',
+      });
+
+      await service.cancel(
+        mockWorkspaceId,
+        mockApprovalId,
+        mockUserId,
+        { reason: 'Test reason' },
+        false,
+      );
+
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        EventTypes.APPROVAL_CANCELLED,
+        expect.objectContaining({
+          approvalId: mockApprovalId,
+          cancelledById: mockUserId,
+          reason: 'Test reason',
+        }),
+        expect.objectContaining({
+          tenantId: mockWorkspaceId,
+          userId: mockUserId,
+          source: 'approvals',
+        }),
+      );
+    });
+
+    it('should log to audit trail', async () => {
+      prisma.approvalItem.findUnique.mockResolvedValue(mockApprovalWithRequester);
+      prisma.approvalItem.update.mockResolvedValue({
+        ...mockApprovalWithRequester,
+        status: 'cancelled',
+      });
+
+      await service.cancel(
+        mockWorkspaceId,
+        mockApprovalId,
+        mockUserId,
+        { reason: 'Test reason' },
+        false,
+      );
+
+      expect(auditLogger.logApprovalCancellation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: mockWorkspaceId,
+          userId: mockUserId,
+          approvalId: mockApprovalId,
+          reason: 'Test reason',
+        }),
+      );
     });
   });
 });

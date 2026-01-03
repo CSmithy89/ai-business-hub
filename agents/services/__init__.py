@@ -12,6 +12,12 @@ from .ccr_usage import (
     UsageMetrics,
     QuotaStatus,
 )
+from .token_counter import (
+    count_tokens,
+    count_tokens_with_metadata,
+    is_tiktoken_available,
+    estimate_tokens,
+)
 
 __all__ = [
     # Health
@@ -23,4 +29,9 @@ __all__ = [
     "AlertLevel",
     "UsageMetrics",
     "QuotaStatus",
+    # Token counting (DM-11.14)
+    "count_tokens",
+    "count_tokens_with_metadata",
+    "is_tiktoken_available",
+    "estimate_tokens",
 ]

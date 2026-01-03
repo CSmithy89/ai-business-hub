@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context File: DM-11.8 State Migration System
+  Generated: 2026-01-01
+  Epic: DM-11 - Advanced Features & Optimizations
+  Points: 5 | Priority: Medium
+
+  This file provides implementation context for the state migration system.
+-->
+<story-context>
+  <metadata>
+    <story-id>DM-11.8</story-id>
+    <title>State Migration System</title>
+    <gap-addressed>REC-19: No migration path when STATE_VERSION changes</gap-addressed>
+    <dependencies>
+      <dependency>DM-04 (Shared State)</dependency>
+      <dependency>DM-08.6 (Zustand Optimization)</dependency>
+    </dependencies>
+  </metadata>
+
+  <problem-statement>
+    Currently, there is no migration path when STATE_VERSION changes in the dashboard
+    state persistence system. When the state schema evolves (new fields, renamed
+    properties, restructured data), users lose their saved preferences and configurations
+    because the stored state format becomes incompatible with the current version.
+
+    The current STATE_VERSION is set to 1 in dashboard-state.ts, and there is no
+    migration logic to handle version upgrades.
+  </problem-statement>
+
+  <files-to-create>
+    <file path="apps/web/src/lib/storage/state-migrations.ts">
+      Core migration module with version-keyed migration functions
+    </file>
+    <file path="apps/web/src/lib/storage/__tests__/state-migrations.test.ts">
+      Comprehensive unit tests for migration system
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="apps/web/src/stores/dashboard-state-store.ts">
+      Add migration on hydration/initialization
+    </file>
+    <file path="apps/web/src/lib/schemas/dashboard-state.ts">
+      Export STATE_VERSION for use in migration module (already exported)
+    </file>
+    <file path="apps/web/src/lib/storage/index.ts">
+      Export migration utilities
+    </file>
+  </files-to-modify>
+
+  <current-state-schema>
+    <description>
+      The current dashboard state structure from dashboard-state.ts.
+      STATE_VERSION is currently 1.
+    </description>
+    <code language="typescript" file="apps/web/src/lib/schemas/dashboard-state.ts">
+<![CDATA[
+/**
+ * State schema version for migrations.
+ * Increment when making breaking changes to the schema structure.
+ */
+export const STATE_VERSION = 1;
+
+/**
+ * Root Dashboard State Schema
+ */
+export const DashboardStateSchema = z.object({
+  /** Schema version for migrations */
+  version: z.number().default(STATE_VERSION),
+  /** Last update timestamp (Unix ms) */
+  timestamp: z.number(),
+  /** Currently focused project ID */
+  activeProject: z.string().nullable().default(null),
+  /** Current workspace ID */
+  workspaceId: z.string().optional(),
+  /** Current user ID */
+  userId: z.string().optional(),
+
+  /** Widget data container */
+  widgets: WidgetsStateSchema.default({
+    projectStatus: null,
+    metrics: null,
+    activity: null,
+    alerts: [],
+  }),
+
+  /** Loading state */
+  loading: LoadingStateSchema.default({
+    isLoading: false,
+    loadingAgents: [],
+  }),
+
+  /** Error state (agentId -> error message) */
+  errors: ErrorStateSchema.default({}),
+
+  /** Currently active long-running tasks (DM-05.4) */
+  activeTasks: z.array(TaskProgressSchema).default([]),
+});
+]]>
+    </code>
+  </current-state-schema>
+
+  <dashboard-store-structure>
+    <description>
+      The dashboard state store using Zustand with subscribeWithSelector middleware.
+      Note: It does NOT currently use the persist middleware - state sync is handled
+      via DM-11.1 Redis persistence and DM-11.2 WebSocket sync.
+    </description>
+    <code language="typescript" file="apps/web/src/stores/dashboard-state-store.ts">
+<![CDATA[
+/**
+ * Dashboard State Store
+ *
+ * Uses subscribeWithSelector middleware for efficient re-renders.
+ * Components can subscribe to specific state slices and only re-render
+ * when those slices change.
+ */
+export const useDashboardStateStore = create<DashboardStateStore>()(
+  subscribeWithSelector((set, get) => ({
+    // Initial state
+    ...createInitialDashboardState(),
+    // Pre-computed derived state (DM-08.6)
+    activeAlerts: [],
+    // Sync state (DM-11.1)
+    isSyncing: false,
+    lastSyncedAt: null,
+    syncError: null,
+    // WebSocket sync state (DM-11.2)
+    wsConnected: false,
+    stateVersion: 0,
+
+    // ... actions ...
+
+    restoreFromServer: async (): Promise<boolean> => {
+      const state = get();
+
+      // ... existing code ...
+
+      try {
+        const serverState = await getDashboardState();
+
+        if (!serverState) {
+          // No state on server - this is fine for new users
+          set({ isSyncing: false, lastSyncedAt: Date.now() });
+          return true;
+        }
+
+        // Apply server state with conflict resolution
+        const currentVersion = state.version;
+        const serverVersion = serverState.version;
+
+        if (serverVersion >= currentVersion) {
+          // Server is equal or newer - apply server state
+          const validated = validateDashboardState(serverState.state);
+          if (validated) {
+            const activeAlerts = validated.widgets.alerts.filter((a) => !a.dismissed);
+            set({
+              ...validated,
+              activeAlerts,
+              isSyncing: false,
+              lastSyncedAt: Date.now(),
+              syncError: null,
+            });
+            return true;
+          }
+        }
+        // ...
+      } catch (error) {
+        // ...
+      }
+    },
+  }))
+);
+]]>
+    </code>
+  </dashboard-store-structure>
+
+  <ui-store-persist-pattern>
+    <description>
+      Reference pattern from UI store showing how Zustand persist middleware is used.
+      The dashboard state store does NOT use persist middleware (uses server sync instead),
+      but this shows the pattern for onRehydrateStorage and version handling.
+    </description>
+    <code language="typescript" file="apps/web/src/stores/ui.ts">
+<![CDATA[
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export const UI_STORE_KEY = 'hyvve-ui-state' as const;
+
+export const useUIStore = create<UIState>()(
+  persist(
+    (set, get) => ({
+      // ... state and actions ...
+    }),
+    {
+      name: UI_STORE_KEY,
+      partialize: (state) => ({
+        sidebarCollapsed: state.sidebarCollapsed,
+        chatPanelWidth: state.chatPanelWidth,
+        // ... other persisted fields
+      }),
+      // Skip automatic hydration to prevent SSR mismatches
+      skipHydration: true,
+    }
+  )
+);
+
+/**
+ * Hook to check if the UI store has been hydrated from localStorage.
+ */
+export function useUIStoreHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    // Rehydrate the store on mount
+    useUIStore.persist.rehydrate();
+
+    // Mark as hydrated after rehydration completes
+    const unsubFinishHydration = useUIStore.persist.onFinishHydration(() => {
+      setHydrated(true);
+    });
+
+    // Check if already hydrated (in case rehydrate was sync)
+    if (useUIStore.persist.hasHydrated()) {
+      setHydrated(true);
+    }
+
+    return () => {
+      unsubFinishHydration();
+    };
+  }, []);
+
+  return hydrated;
+}
+]]>
+    </code>
+  </ui-store-persist-pattern>
+
+  <storage-keys>
+    <description>
+      Storage keys defined for dashboard state persistence.
+    </description>
+    <code language="typescript" file="apps/web/src/lib/storage-keys.ts">
+<![CDATA[
+// Dashboard State Keys (Epic DM-04)
+
+/** Dashboard state persistence for session continuity */
+export const STORAGE_DASHBOARD_STATE = 'hyvve-dashboard-state' as const;
+
+/** Dashboard state version for schema migrations */
+export const STORAGE_DASHBOARD_STATE_VERSION = 'hyvve-dashboard-state-version' as const;
+]]>
+    </code>
+  </storage-keys>
+
+  <quota-handler-utilities>
+    <description>
+      Safe storage utilities from quota-handler.ts for localStorage operations.
+      Use these for safe reads/writes when dealing with localStorage.
+    </description>
+    <code language="typescript" file="apps/web/src/lib/storage/quota-handler.ts">
+<![CDATA[
+/**
+ * Safely set an item in localStorage with quota handling.
+ */
+export function safeSetItem(key: string, value: string): StorageResult {
+  if (!isStorageAvailable()) {
+    return {
+      success: false,
+      error: 'localStorage is not available',
+    };
+  }
+
+  try {
+    window.localStorage.setItem(key, value);
+    // ... quota warning logic ...
+    return result;
+  } catch (e) {
+    if (isQuotaExceededError(e)) {
+      // Attempt cleanup and retry
+      // ...
+    }
+    // ...
+  }
+}
+
+/**
+ * Safely get an item from localStorage with error handling.
+ */
+export function safeGetItem(key: string): string | null {
+  if (!isStorageAvailable()) {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(key);
+  } catch (e) {
+    console.warn('[StorageQuota] Failed to read from localStorage:', e);
+    return null;
+  }
+}
+]]>
+    </code>
+  </quota-handler-utilities>
+
+  <dm-constants>
+    <description>
+      DM constants used in the dashboard state store.
+      Note: STATE_VERSION is in dashboard-state.ts, not dm-constants.ts.
+    </description>
+    <code language="typescript" file="apps/web/src/lib/dm-constants.ts">
+<![CDATA[
+// Dashboard State Boundaries (DM-08.6)
+DASHBOARD: {
+  /** Maximum alerts to keep in state */
+  MAX_ALERTS: 50,
+  /** Maximum activities to keep in state */
+  MAX_ACTIVITIES: 100,
+  /** Maximum metrics to keep in state */
+  MAX_METRICS: 50,
+  /** Maximum active tasks to track */
+  MAX_ACTIVE_TASKS: 20,
+},
+
+// State Sync Configuration (DM-11.1)
+STATE_SYNC: {
+  /** Debounce delay before syncing to server (ms) */
+  SYNC_DEBOUNCE_MS: 2000,
+  /** Whether to restore state from server on authentication */
+  RESTORE_ON_AUTH: true,
+  /** State paths that trigger a sync when changed */
+  SIGNIFICANT_CHANGE_PATHS: [
+    'widgets',
+    'activeProject',
+    'activeTasks',
+  ] as const,
+  /** Maximum retry attempts for sync operations */
+  MAX_SYNC_RETRIES: 3,
+  /** Delay between retry attempts (ms) */
+  RETRY_DELAY_MS: 1000,
+},
+]]>
+    </code>
+  </dm-constants>
+
+  <tech-spec-guidance>
+    <description>
+      Relevant guidance from epic-dm-11-tech-spec.md for state migrations.
+    </description>
+    <code language="typescript">
+<![CDATA[
+// From epic-dm-11-tech-spec.md - Migration System Pattern
+const migrations: Record<number, (state: unknown) => unknown> = {
+  2: (state: any) => ({
+    ...state,
+    widgets: state.widgets || [],
+    version: 2,
+  }),
+  3: (state: any) => ({
+    ...state,
+    preferences: {
+      ...state.preferences,
+      theme: state.preferences?.theme || 'system',
+    },
+    version: 3,
+  }),
+  4: (state: any) => ({
+    ...state,
+    syncSettings: {
+      enabled: true,
+      conflictResolution: 'server',
+    },
+    version: 4,
+  }),
+};
+
+export function migrateState(
+  state: unknown,
+  fromVersion: number,
+  toVersion: number
+): { state: unknown; migrationsApplied: number[] } {
+  let current = state;
+  const applied: number[] = [];
+
+  for (let v = fromVersion + 1; v <= toVersion; v++) {
+    if (migrations[v]) {
+      try {
+        current = migrations[v](current);
+        applied.push(v);
+      } catch (error) {
+        console.error(`Migration v${v} failed:`, error);
+        // Return state as-is, don't apply further migrations
+        break;
+      }
+    }
+  }
+
+  return { state: current, migrationsApplied: applied };
+}
+]]>
+    </code>
+  </tech-spec-guidance>
+
+  <implementation-guidance>
+    <section name="State Migration Module">
+      <description>
+        Create a dedicated migration module at apps/web/src/lib/storage/state-migrations.ts
+        that handles version transitions.
+      </description>
+      <key-points>
+        <point>Export STATE_VERSION from here (or re-export from dashboard-state.ts)</point>
+        <point>Migration functions should be keyed by target version number</point>
+        <point>Each migration transforms state from version N-1 to version N</point>
+        <point>Apply migrations sequentially from stored version to current version</point>
+        <point>Log migration events for debugging and analytics</point>
+        <point>Handle migration failures gracefully - fall back to defaults</point>
+        <point>Preserve unknown fields using spread operator</point>
+      </key-points>
+    </section>
+
+    <section name="Integration Points">
+      <description>
+        The migration system integrates with:
+        1. restoreFromServer() in dashboard-state-store.ts - migrate after fetching from Redis
+        2. applyFullState() in dashboard-state-store.ts - migrate when receiving WebSocket sync
+        3. Any localStorage hydration logic if added in the future
+      </description>
+      <integration-pattern>
+<![CDATA[
+// In restoreFromServer() or similar hydration logic:
+function hydrateState(persistedState: any): DashboardState {
+  // No persisted state, use defaults
+  if (!persistedState) {
+    return getDefaultState();
+  }
+
+  const stateVersion = persistedState.version ?? 1;
+
+  // Check if migration is needed
+  if (needsMigration(stateVersion)) {
+    const result = migrateState(persistedState, stateVersion);
+
+    if (result.success) {
+      console.log(
+        `State migrated from v${result.context.fromVersion} to v${result.context.toVersion}`
+      );
+      return result.migratedState;
+    } else {
+      console.error('State migration failed, falling back to defaults:', result.errors);
+      return getDefaultState();
+    }
+  }
+
+  return persistedState;
+}
+]]>
+      </integration-pattern>
+    </section>
+
+    <section name="Migration Function Guidelines">
+      <point>Always add migrations to end of registry - order matters</point>
+      <point>Provide sensible defaults - new fields should maintain existing behavior</point>
+      <point>Preserve unknown fields - use spread operator</point>
+      <point>Test both directions - verify data accessible before and after</point>
+      <point>Document breaking changes - add comments for non-obvious transformations</point>
+      <point>Keep migrations fast (under 10ms each)</point>
+      <point>Batch multiple field additions into single version bumps when possible</point>
+    </section>
+
+    <section name="Test Requirements">
+      <description>From the story - comprehensive test coverage needed.</description>
+      <test-categories>
+        <category name="Version Detection Tests">
+          <test>Detects when stored version less than current version</test>
+          <test>Returns false when versions match</test>
+          <test>Handles missing version field (assume v1)</test>
+          <test>Handles null/undefined state</test>
+        </category>
+        <category name="Migration Sequence Tests">
+          <test>Single version jump (v1 to v2)</test>
+          <test>Multiple version jumps (v1 to v3)</test>
+          <test>Large version jumps (v1 to v10)</test>
+          <test>No-op when already at current version</test>
+          <test>No-op when ahead of current version</test>
+        </category>
+        <category name="Data Preservation Tests">
+          <test>Existing fields preserved through migration</test>
+          <test>New fields added with defaults</test>
+          <test>Nested object structures preserved</test>
+          <test>Array data preserved</test>
+          <test>Complex widget configurations preserved</test>
+        </category>
+        <category name="Error Handling Tests">
+          <test>Failed migration returns failure result</test>
+          <test>Partial migrations tracked</test>
+          <test>Error messages captured</test>
+          <test>Fallback to defaults on failure</test>
+        </category>
+        <category name="Logging Tests">
+          <test>Success events logged</test>
+          <test>Error events logged with details</test>
+          <test>Migration context includes timestamps</test>
+          <test>Development vs production logging behavior</test>
+        </category>
+      </test-categories>
+    </section>
+  </implementation-guidance>
+
+  <acceptance-criteria>
+    <criterion id="AC1">Version mismatch detected on load</criterion>
+    <criterion id="AC2">Migrations run in sequence (v1→v2→v3, not v1→v3 directly)</criterion>
+    <criterion id="AC3">User data preserved through migrations</criterion>
+    <criterion id="AC4">Migration events logged for debugging</criterion>
+    <criterion id="AC5">Failed migrations fall back to defaults gracefully</criterion>
+  </acceptance-criteria>
+
+  <related-patterns>
+    <pattern name="Registry Pattern">
+      Use an extensible registry for migrations with metadata:
+      - version: target version number
+      - description: human-readable migration description
+      - migrate: transformation function
+      - validate: optional post-migration validation
+    </pattern>
+    <pattern name="Logging Pattern">
+      Log migration events with structure:
+      - type: 'state_migration'
+      - version: target version
+      - status: 'success' | 'error'
+      - timestamp: ISO string
+      - error?: error message if failed
+    </pattern>
+  </related-patterns>
+
+  <future-considerations>
+    <item>Async migrations for large state transformations</item>
+    <item>Rollback support - store previous version for recovery</item>
+    <item>Migration analytics - track success/failure rates</item>
+    <item>Schema validation - Zod validation post-migration</item>
+  </future-considerations>
+</story-context>

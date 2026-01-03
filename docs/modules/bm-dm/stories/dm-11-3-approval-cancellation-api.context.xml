@@ -1,0 +1,1218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: DM-11.3 Approval Cancellation API
+  Generated: 2026-01-01
+  Epic: DM-11 - Advanced Features & Optimizations
+
+  This context file provides implementation guidance for adding
+  approval cancellation functionality to the HYVVE platform.
+-->
+<story-context>
+  <metadata>
+    <story-id>DM-11.3</story-id>
+    <story-title>Approval Cancellation API</story-title>
+    <epic>DM-11</epic>
+    <points>5</points>
+    <priority>High</priority>
+    <status>drafted</status>
+  </metadata>
+
+  <!-- ================================================================== -->
+  <!-- BACKEND IMPLEMENTATION CONTEXT                                      -->
+  <!-- ================================================================== -->
+
+  <section name="backend-patterns">
+    <description>
+      Existing approval controller and service patterns to follow.
+      The new DELETE endpoint should follow the same structure as approve/reject.
+    </description>
+
+    <file path="apps/api/src/approvals/approvals.controller.ts">
+      <purpose>Main approvals REST controller - ADD DELETE endpoint here</purpose>
+      <current-endpoints>
+        <endpoint method="GET" path="/api/approvals" handler="listApprovals" />
+        <endpoint method="GET" path="/api/approvals/:id" handler="getApproval" />
+        <endpoint method="POST" path="/api/approvals/:id/approve" handler="approveItem" />
+        <endpoint method="POST" path="/api/approvals/:id/reject" handler="rejectItem" />
+        <endpoint method="POST" path="/api/approvals/bulk" handler="bulkAction" />
+        <endpoint method="GET" path="/api/approvals/escalation-config" handler="getEscalationConfig" />
+        <endpoint method="PUT" path="/api/approvals/escalation-config" handler="updateEscalationConfig" />
+      </current-endpoints>
+      <pattern-to-follow>
+```typescript
+// Pattern from reject endpoint - use similar structure for cancel:
+@Post(':id/reject')
+@Roles('owner', 'admin')
+async rejectItem(
+  @CurrentWorkspace() workspaceId: string,
+  @Param('id') id: string,
+  @Body() dto: RejectItemDto,
+  @CurrentUser() user: any,
+) {
+  return this.approvalsService.reject(workspaceId, id, user.id, dto);
+}
+
+// NEW: Cancel endpoint should be:
+@Delete(':id')
+@Roles('owner', 'admin', 'member')  // Members can cancel their own
+async cancelApproval(
+  @CurrentWorkspace() workspaceId: string,
+  @Param('id') id: string,
+  @Body() dto: CancelApprovalDto,
+  @CurrentUser() user: any,
+) {
+  return this.approvalsService.cancel(workspaceId, id, user.id, dto);
+}
+```
+      </pattern-to-follow>
+    </file>
+
+    <file path="apps/api/src/approvals/approvals.service.ts">
+      <purpose>Approval business logic - ADD cancel method here</purpose>
+      <dependencies>
+        <dep>PrismaService - Database operations</dep>
+        <dep>EventPublisherService - Event emission</dep>
+        <dep>ApprovalAuditService - Audit logging</dep>
+      </dependencies>
+      <approve-pattern>
+```typescript
+// Pattern from approve() method to follow for cancel():
+async approve(
+  workspaceId: string,
+  id: string,
+  userId: string,
+  dto: ApproveItemDto,
+): Promise<any> {
+  // 1. Fetch and validate approval
+  const approval = await this.prisma.approvalItem.findUnique({
+    where: { id },
+  });
+
+  if (!approval || approval.workspaceId !== workspaceId) {
+    throw new NotFoundException(
+      'Approval item not found in this workspace',
+    );
+  }
+
+  if (approval.status !== 'pending') {
+    throw new BadRequestException(
+      `Cannot approve item with status: ${approval.status}`,
+    );
+  }
+
+  // 2. Update approval
+  const updated = await this.prisma.approvalItem.update({
+    where: { id },
+    data: {
+      status: 'approved',
+      resolvedById: userId,
+      resolvedAt: new Date(),
+      resolution: {
+        action: 'approved',
+        notes: dto.notes,
+        decidedAt: new Date(),
+      },
+    },
+    include: {
+      assignedTo: { select: { id: true, name: true, email: true } },
+      resolvedBy: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  // 3. Emit event
+  await this.eventPublisher.publish(
+    EventTypes.APPROVAL_APPROVED,
+    approvalPayload,
+    { tenantId: workspaceId, userId, source: 'approvals' },
+  );
+
+  // 4. Log to audit trail
+  await this.auditLogger.logApprovalDecision({
+    workspaceId,
+    userId,
+    approvalId: id,
+    action: 'approval.approved',
+    oldStatus: approval.status,
+    newStatus: 'approved',
+    notes: dto.notes,
+    confidenceScore: approval.confidenceScore,
+  });
+
+  return this.mapToResponseDto(updated);
+}
+```
+      </approve-pattern>
+      <cancel-implementation-guide>
+```typescript
+// NEW cancel() method to implement:
+async cancel(
+  workspaceId: string,
+  id: string,
+  userId: string,
+  dto: CancelApprovalDto,
+): Promise<{ success: boolean; cancelledAt: string }> {
+  // 1. Fetch and validate
+  const approval = await this.prisma.approvalItem.findUnique({
+    where: { id },
+  });
+
+  if (!approval || approval.workspaceId !== workspaceId) {
+    throw new NotFoundException('Approval item not found in this workspace');
+  }
+
+  if (approval.status !== 'pending') {
+    throw new BadRequestException(
+      `Approval cannot be cancelled - status is '${approval.status}'`
+    );
+  }
+
+  // 2. Check permission: creator or admin can cancel
+  const isCreator = approval.requestedBy === userId;
+  // Note: Admin check is done by @Roles decorator, but for member role
+  // we need to verify they are the creator
+  if (!isCreator) {
+    // Additional admin check may be needed here based on role
+    throw new ForbiddenException(
+      'You do not have permission to cancel this approval'
+    );
+  }
+
+  // 3. Update status to cancelled
+  const now = new Date();
+  await this.prisma.approvalItem.update({
+    where: { id },
+    data: {
+      status: 'cancelled',
+      resolvedById: userId,
+      resolvedAt: now,
+      resolution: {
+        action: 'cancelled',
+        reason: dto.reason,
+        cancelledAt: now,
+      },
+    },
+  });
+
+  // 4. Emit cancellation event (new event type needed)
+  await this.eventPublisher.publish(
+    EventTypes.APPROVAL_CANCELLED,  // Need to add this
+    {
+      approvalId: id,
+      type: approval.type,
+      title: approval.title,
+      cancelledById: userId,
+      reason: dto.reason,
+    },
+    { tenantId: workspaceId, userId, source: 'approvals' },
+  );
+
+  // 5. Audit log
+  await this.auditLogger.logApprovalCancellation({
+    workspaceId,
+    userId,
+    approvalId: id,
+    reason: dto.reason,
+  });
+
+  return {
+    success: true,
+    cancelledAt: now.toISOString(),
+  };
+}
+```
+      </cancel-implementation-guide>
+    </file>
+
+    <file path="apps/api/src/approvals/dto/reject-item.dto.ts">
+      <purpose>Example DTO pattern to follow for CancelApprovalDto</purpose>
+      <content>
+```typescript
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+
+export class RejectItemDto {
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+```
+      </content>
+    </file>
+
+    <file path="apps/api/src/approvals/dto/cancel-approval.dto.ts" status="TO_CREATE">
+      <purpose>DTO for cancellation request</purpose>
+      <implementation>
+```typescript
+import { IsString, IsOptional, MaxLength } from 'class-validator';
+
+/**
+ * Request body DTO for cancelling an approval item
+ *
+ * Reason is optional but recommended for audit purposes.
+ */
+export class CancelApprovalDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
+```
+      </implementation>
+    </file>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- AUDIT LOGGING PATTERNS                                              -->
+  <!-- ================================================================== -->
+
+  <section name="audit-logging">
+    <description>
+      Existing audit service patterns. Add logApprovalCancellation method.
+    </description>
+
+    <file path="apps/api/src/approvals/services/approval-audit.service.ts">
+      <existing-methods>
+        <method name="logApprovalCreated" />
+        <method name="logApprovalDecision" />
+        <method name="logAutoApproval" />
+        <method name="logEscalation" />
+        <method name="logBulkAction" />
+        <method name="getApprovalAuditLogs" />
+      </existing-methods>
+      <audit-log-pattern>
+```typescript
+// Pattern from logApprovalDecision to follow:
+async logApprovalDecision(params: LogApprovalDecisionParams): Promise<void> {
+  try {
+    await this.prisma.auditLog.create({
+      data: {
+        workspaceId: params.workspaceId,
+        action: params.action,
+        entity: 'approval_item',
+        entityId: params.approvalId,
+        userId: params.userId,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+        oldValues: { status: params.oldStatus },
+        newValues: { status: params.newStatus, decidedAt: new Date() },
+        metadata: {
+          notes: params.notes,
+          reason: params.reason,
+          confidenceScore: params.confidenceScore,
+          description: 'Approval manually approved/rejected',
+        },
+      },
+    });
+  } catch (error) {
+    this.logger.error('Failed to log approval decision:', error);
+  }
+}
+```
+      </audit-log-pattern>
+      <new-method-to-add>
+```typescript
+/**
+ * Parameters for logging approval cancellation
+ */
+export interface LogApprovalCancellationParams {
+  workspaceId: string;
+  userId: string;
+  approvalId: string;
+  reason?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/**
+ * Log approval cancellation
+ *
+ * Called when user cancels a pending approval request.
+ */
+async logApprovalCancellation(params: LogApprovalCancellationParams): Promise<void> {
+  try {
+    await this.prisma.auditLog.create({
+      data: {
+        workspaceId: params.workspaceId,
+        action: 'approval.cancelled',
+        entity: 'approval_item',
+        entityId: params.approvalId,
+        userId: params.userId,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+        oldValues: { status: 'pending' },
+        newValues: { status: 'cancelled', cancelledAt: new Date() },
+        metadata: {
+          reason: params.reason,
+          description: 'Approval cancelled by user',
+        },
+      },
+    });
+
+    this.logger.log({
+      message: 'Approval cancellation logged',
+      approvalId: params.approvalId,
+      userId: params.userId,
+    });
+  } catch (error) {
+    this.logger.error('Failed to log approval cancellation:', error);
+  }
+}
+```
+      </new-method-to-add>
+    </file>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- EVENT TYPES AND HANDLING                                            -->
+  <!-- ================================================================== -->
+
+  <section name="event-types">
+    <description>
+      Event type definitions. Need to add APPROVAL_CANCELLED event.
+    </description>
+
+    <file path="packages/shared/src/types/events.ts">
+      <current-approval-events>
+```typescript
+// Approval events (Epic 04)
+APPROVAL_REQUESTED: 'approval.item.requested',
+APPROVAL_CREATED: 'approval.item.created',
+APPROVAL_APPROVED: 'approval.item.approved',
+APPROVAL_REJECTED: 'approval.item.rejected',
+APPROVAL_ESCALATED: 'approval.item.escalated',
+APPROVAL_EXPIRED: 'approval.item.expired',
+APPROVAL_AUTO_APPROVED: 'approval.item.auto_approved',
+```
+      </current-approval-events>
+      <add-new-event>
+```typescript
+// Add to EventTypes:
+APPROVAL_CANCELLED: 'approval.item.cancelled',
+
+// Add new payload interface:
+export interface ApprovalCancelledPayload {
+  approvalId: string;
+  type: string;
+  title: string;
+  cancelledById: string;
+  reason?: string;
+}
+
+// Add to EventPayloadMap:
+[EventTypes.APPROVAL_CANCELLED]: ApprovalCancelledPayload;
+```
+      </add-new-event>
+    </file>
+
+    <file path="packages/shared/src/types/approval.ts">
+      <current-status-type>
+```typescript
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'auto_approved';
+```
+      </current-status-type>
+      <updated-status-type>
+```typescript
+// Update to include 'cancelled':
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'auto_approved' | 'cancelled';
+```
+      </updated-status-type>
+    </file>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- WEBSOCKET / REALTIME EVENTS                                         -->
+  <!-- ================================================================== -->
+
+  <section name="realtime-events">
+    <description>
+      WebSocket event handling for real-time updates.
+    </description>
+
+    <file path="apps/api/src/realtime/realtime.types.ts">
+      <current-approval-events>
+```typescript
+// Server-to-Client Events for approvals:
+'approval.created': (data: ApprovalEventPayload) => void;
+'approval.updated': (data: ApprovalUpdatePayload) => void;
+'approval.deleted': (data: { id: string }) => void;
+```
+      </current-approval-events>
+      <ws-events-constant>
+```typescript
+// Current WS_EVENTS for approvals:
+APPROVAL_CREATED: 'approval.created',
+APPROVAL_UPDATED: 'approval.updated',
+APPROVAL_DELETED: 'approval.deleted',
+```
+      </ws-events-constant>
+      <guidance>
+        The existing 'approval.updated' event can be used for cancellation.
+        The ApprovalUpdatePayload already supports status changes:
+
+```typescript
+export interface ApprovalUpdatePayload {
+  id: string;
+  status?: string;  // Will be 'cancelled'
+  // ... other fields
+  correlationId?: string;
+}
+```
+      </guidance>
+    </file>
+
+    <file path="apps/api/src/realtime/realtime-event.handler.ts">
+      <current-pattern>
+```typescript
+// Existing approval event handler:
+@EventSubscriber('approval.*', { priority: 50 })
+async handleApprovalEvents(event: BaseEvent): Promise<void> {
+  const workspaceId = event.tenantId;
+
+  switch (event.type) {
+    case EventTypes.APPROVAL_APPROVED:
+    case EventTypes.APPROVAL_REJECTED:
+    case EventTypes.APPROVAL_AUTO_APPROVED: {
+      const payload = this.mapApprovalDecisionPayload(event);
+      this.realtimeGateway.broadcastApprovalUpdated(workspaceId, payload);
+      break;
+    }
+    // ... other cases
+  }
+}
+```
+      </current-pattern>
+      <add-cancellation-handler>
+```typescript
+// Add new case in handleApprovalEvents:
+case EventTypes.APPROVAL_CANCELLED: {
+  const payload = this.mapApprovalCancelledPayload(event);
+  this.realtimeGateway.broadcastApprovalUpdated(workspaceId, payload);
+  break;
+}
+
+// Add mapper method:
+private mapApprovalCancelledPayload(event: BaseEvent): ApprovalUpdatePayload {
+  const data = event.data as Record<string, unknown>;
+  return {
+    id: data.approvalId as string,
+    status: 'cancelled',
+    decidedById: data.cancelledById as string | undefined,
+    decisionNotes: data.reason as string | undefined,
+    decidedAt: event.timestamp,
+    correlationId: event.correlationId,
+  };
+}
+```
+      </add-cancellation-handler>
+    </file>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- AGENT INTEGRATION                                                   -->
+  <!-- ================================================================== -->
+
+  <section name="agent-integration">
+    <description>
+      Agent-side handling for cancellation events.
+    </description>
+
+    <file path="agents/hitl/approval_bridge.py">
+      <current-wait-for-approval>
+```python
+async def wait_for_approval(
+    self,
+    workspace_id: str,
+    approval_id: str,
+    timeout_seconds: int = 3600,
+    poll_interval_seconds: int = 5,
+) -> Dict[str, Any]:
+    """
+    Wait for an approval to be resolved (polling implementation).
+    """
+    while True:
+        approval = await self.get_approval_status(workspace_id, approval_id)
+        status = approval.get("status", "pending")
+
+        if status in ("approved", "rejected", "auto_approved"):
+            logger.info(f"Approval {approval_id} resolved with status: {status}")
+            return approval
+
+        # Check timeout
+        elapsed = datetime.utcnow() - start_time
+        if elapsed > timeout_delta:
+            raise TimeoutError(
+                f"Approval {approval_id} not resolved within {timeout_seconds} seconds"
+            )
+
+        await asyncio.sleep(poll_interval_seconds)
+```
+      </current-wait-for-approval>
+      <updated-implementation>
+```python
+# Update wait_for_approval to handle cancellation:
+async def wait_for_approval(
+    self,
+    workspace_id: str,
+    approval_id: str,
+    timeout_seconds: int = 3600,
+    poll_interval_seconds: int = 5,
+) -> Dict[str, Any]:
+    """
+    Wait for an approval to be resolved (polling implementation).
+
+    Returns:
+        Resolved approval item with status:
+        - 'approved': Action should proceed
+        - 'rejected': Action should not proceed
+        - 'auto_approved': Action should proceed (high confidence)
+        - 'cancelled': Action was cancelled by user
+
+    Raises:
+        TimeoutError: If not resolved within timeout
+        ApprovalCancelledException: If approval was cancelled
+    """
+    while True:
+        approval = await self.get_approval_status(workspace_id, approval_id)
+        status = approval.get("status", "pending")
+
+        # Handle resolved states
+        if status in ("approved", "rejected", "auto_approved"):
+            logger.info(f"Approval {approval_id} resolved with status: {status}")
+            return approval
+
+        # Handle cancellation
+        if status == "cancelled":
+            logger.info(f"Approval {approval_id} was cancelled by user")
+            raise ApprovalCancelledException(
+                approval_id=approval_id,
+                reason=approval.get("resolution", {}).get("reason")
+            )
+
+        # Check timeout
+        elapsed = datetime.utcnow() - start_time
+        if elapsed > timeout_delta:
+            raise TimeoutError(...)
+
+        await asyncio.sleep(poll_interval_seconds)
+
+# Add exception class:
+class ApprovalCancelledException(Exception):
+    """Raised when an approval is cancelled by the user."""
+
+    def __init__(self, approval_id: str, reason: str = None):
+        self.approval_id = approval_id
+        self.reason = reason
+        message = f"Approval {approval_id} was cancelled"
+        if reason:
+            message += f": {reason}"
+        super().__init__(message)
+```
+      </updated-implementation>
+    </file>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- FRONTEND IMPLEMENTATION                                             -->
+  <!-- ================================================================== -->
+
+  <section name="frontend-patterns">
+    <description>
+      Frontend components and hooks for cancellation UI.
+    </description>
+
+    <file path="apps/web/src/hooks/use-approvals.ts">
+      <current-mutations>
+```typescript
+// Existing mutation pattern:
+const approveMutation = useMutation({
+  mutationFn: ({ id, data }: { id: string; data?: ApprovalActionRequest }) =>
+    approveApproval(id, data),
+
+  onMutate: async ({ id }) => {
+    await queryClient.cancelQueries({ queryKey: ['approvals'] });
+    const previousCaches = getAllApprovalCaches();
+    updateApprovalInAllCaches(id, 'approved' as ApprovalStatus);
+    return { previousCaches };
+  },
+
+  onError: (_error, { id }, context) => {
+    if (context?.previousCaches) {
+      context.previousCaches.forEach(({ queryKey, data }) => {
+        if (data) queryClient.setQueryData(queryKey, data);
+      });
+    }
+    toast.error('Failed to approve. Please try again.');
+  },
+
+  onSuccess: (response) => {
+    toast.success('Approval granted');
+    queryClient.invalidateQueries({ queryKey: ['approvals'] });
+  },
+});
+```
+      </current-mutations>
+      <add-cancel-mutation>
+```typescript
+// Add to useApprovalMutations():
+
+// API call function (add near other API functions):
+async function cancelApproval(
+  id: string,
+  data: { reason?: string } = {}
+): Promise<{ success: boolean; cancelledAt: string }> {
+  const response = await fetch(
+    `${NESTJS_API_URL}/api/approvals/${encodeURIComponent(id)}`,
+    {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    }
+  );
+
+  const body = await safeJson<unknown>(response);
+  if (!response.ok) {
+    const message = body?.message || 'Failed to cancel approval';
+    throw new Error(message);
+  }
+
+  return body as { success: boolean; cancelledAt: string };
+}
+
+// Add cancel mutation in useApprovalMutations:
+const cancelMutation = useMutation({
+  mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+    cancelApproval(id, { reason }),
+
+  onMutate: async ({ id }) => {
+    await queryClient.cancelQueries({ queryKey: ['approvals'] });
+    const previousCaches = getAllApprovalCaches();
+    const previousApproval = queryClient.getQueryData<ApprovalResponse>(
+      ['approval', id]
+    );
+
+    // Optimistically remove from active queue
+    updateApprovalInAllCaches(id, 'cancelled' as ApprovalStatus);
+
+    return { previousCaches, previousApproval };
+  },
+
+  onError: (_error, { id }, context) => {
+    // Rollback on error
+    if (context?.previousCaches) {
+      context.previousCaches.forEach(({ queryKey, data }) => {
+        if (data) queryClient.setQueryData(queryKey, data);
+      });
+    }
+    if (context?.previousApproval) {
+      queryClient.setQueryData(['approval', id], context.previousApproval);
+    }
+    toast.error('Failed to cancel. Please try again.');
+  },
+
+  onSuccess: () => {
+    toast.success('Approval cancelled');
+    queryClient.invalidateQueries({ queryKey: ['approvals'] });
+  },
+});
+
+// Return from hook:
+return {
+  approve: approveMutation.mutate,
+  reject: rejectMutation.mutate,
+  cancel: cancelMutation.mutate,  // NEW
+  isApproving: approveMutation.isPending,
+  isRejecting: rejectMutation.isPending,
+  isCancelling: cancelMutation.isPending,  // NEW
+  approveError: approveMutation.error,
+  rejectError: rejectMutation.error,
+  cancelError: cancelMutation.error,  // NEW
+};
+```
+      </add-cancel-mutation>
+    </file>
+
+    <file path="apps/web/src/components/approval/approval-card.tsx">
+      <current-actions-section>
+```typescript
+// Only show actions if status is pending:
+const canShowActions = showActions && approval.status === 'pending';
+
+// Actions section in compact variant:
+<div className="flex gap-2">
+  {canShowActions && (
+    <ApprovalQuickActions approvalId={approval.id} />
+  )}
+  <Button size="sm" variant="outline" asChild>
+    <Link href={`/approvals/${approval.id}`}>View Details</Link>
+  </Button>
+</div>
+```
+      </current-actions-section>
+      <add-cancel-button>
+        The cancel button should be added to ApprovalQuickActions or ApprovalActions component.
+        See implementation guidance below.
+      </add-cancel-button>
+    </file>
+
+    <file path="apps/web/src/components/approval/approval-actions.tsx">
+      <current-structure>
+```typescript
+interface ApprovalActionsProps {
+  approvalId: string;
+  onApprove?: () => void;
+  onReject?: () => void;
+  variant?: 'default' | 'compact';
+  className?: string;
+}
+
+export function ApprovalActions({ ... }) {
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const { approve, reject, isApproving, isRejecting } = useApprovalMutations();
+
+  // ... handlers and dialogs
+}
+```
+      </current-structure>
+      <add-cancel-functionality>
+```typescript
+// Updated interface:
+interface ApprovalActionsProps {
+  approvalId: string;
+  onApprove?: () => void;
+  onReject?: () => void;
+  onCancel?: () => void;  // NEW
+  showCancel?: boolean;   // NEW - default true for pending
+  variant?: 'default' | 'compact';
+  className?: string;
+}
+
+// Add to component:
+export function ApprovalActions({
+  approvalId,
+  onApprove,
+  onReject,
+  onCancel,
+  showCancel = true,
+  variant = 'default',
+  className,
+}: ApprovalActionsProps) {
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+
+  const {
+    approve,
+    reject,
+    cancel,
+    isApproving,
+    isRejecting,
+    isCancelling,
+  } = useApprovalMutations();
+
+  const isLoading = isApproving || isRejecting || isCancelling;
+
+  const handleCancel = () => {
+    cancel(
+      { id: approvalId, reason: cancelReason || undefined },
+      {
+        onSuccess: () => {
+          setCancelReason('');
+          setShowCancelDialog(false);
+          onCancel?.();
+        },
+      }
+    );
+  };
+
+  // Add Cancel Button (for compact variant):
+  {showCancel && (
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={() => setShowCancelDialog(true)}
+      disabled={isLoading}
+      className="text-gray-500 hover:text-gray-700"
+    >
+      {isCancelling ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <X className="h-3.5 w-3.5" />
+      )}
+    </Button>
+  )}
+
+  // Add Cancel Dialog:
+  <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Cancel this approval request?</AlertDialogTitle>
+        <AlertDialogDescription>
+          This will cancel the pending approval. The agent waiting for this
+          approval will be notified that the request was cancelled.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+
+      <div className="my-4">
+        <Textarea
+          placeholder="Reason for cancellation (optional)..."
+          value={cancelReason}
+          onChange={(e) => setCancelReason(e.target.value)}
+          rows={3}
+          className="resize-none"
+        />
+      </div>
+
+      <AlertDialogFooter>
+        <AlertDialogCancel disabled={isCancelling}>
+          Keep Request
+        </AlertDialogCancel>
+        <AlertDialogAction
+          onClick={(e) => {
+            e.preventDefault();
+            handleCancel();
+          }}
+          disabled={isCancelling}
+          className="bg-gray-600 hover:bg-gray-700"
+        >
+          {isCancelling ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Cancelling...
+            </>
+          ) : (
+            'Cancel Request'
+          )}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+}
+```
+      </add-cancel-functionality>
+    </file>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- DATABASE CONSIDERATIONS                                             -->
+  <!-- ================================================================== -->
+
+  <section name="database">
+    <description>
+      The Prisma schema already supports the 'cancelled' status.
+      The status field is a String, not an enum, so no migration is needed.
+    </description>
+
+    <file path="packages/db/prisma/schema.prisma">
+      <approval-item-model>
+```prisma
+model ApprovalItem {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+
+  // ... other fields ...
+
+  status   String @default("pending")  // Supports any string value
+
+  resolvedAt   DateTime? @map("resolved_at")
+  resolvedById String?   @map("resolved_by_id")
+  resolution   Json?     // Can store cancellation details
+
+  // ... indexes ...
+}
+```
+      </approval-item-model>
+      <no-migration-needed>
+        The status field is a String, so adding 'cancelled' as a new value
+        does not require a database migration. The resolution JSON field
+        can store cancellation-specific data like reason and timestamp.
+      </no-migration-needed>
+    </file>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- TESTING GUIDANCE                                                    -->
+  <!-- ================================================================== -->
+
+  <section name="testing">
+    <description>
+      Test patterns to follow for the new functionality.
+    </description>
+
+    <file path="apps/api/src/approvals/approvals.controller.spec.ts" status="TO_UPDATE">
+      <existing-test-pattern>
+```typescript
+// Pattern from existing tests:
+describe('ApprovalsController', () => {
+  describe('POST /approvals/:id/approve', () => {
+    it('should approve pending approval', async () => { ... });
+    it('should return 404 for non-existent approval', async () => { ... });
+    it('should return 400 for already processed approval', async () => { ... });
+  });
+});
+```
+      </existing-test-pattern>
+      <new-tests-to-add>
+```typescript
+describe('DELETE /approvals/:id', () => {
+  it('should cancel pending approval', async () => {
+    // Setup: Create pending approval
+    // Action: DELETE /approvals/:id with optional reason
+    // Assert: Status is 'cancelled', cancelledAt is set
+  });
+
+  it('should return 404 for non-existent approval', async () => {
+    // Action: DELETE /approvals/nonexistent
+    // Assert: 404 Not Found
+  });
+
+  it('should return 400 for already processed approval', async () => {
+    // Setup: Create approved approval
+    // Action: DELETE /approvals/:id
+    // Assert: 400 Bad Request with message
+  });
+
+  it('should return 403 when non-creator tries to cancel', async () => {
+    // Setup: Create approval as user A
+    // Action: DELETE /approvals/:id as user B (non-admin)
+    // Assert: 403 Forbidden
+  });
+
+  it('should allow admin to cancel any approval', async () => {
+    // Setup: Create approval as user A
+    // Action: DELETE /approvals/:id as admin user
+    // Assert: 200 OK, approval cancelled
+  });
+
+  it('should emit cancellation event', async () => {
+    // Setup: Mock EventPublisher, create pending approval
+    // Action: DELETE /approvals/:id
+    // Assert: EventPublisher.publish called with APPROVAL_CANCELLED
+  });
+
+  it('should create audit log entry', async () => {
+    // Setup: Create pending approval
+    // Action: DELETE /approvals/:id
+    // Assert: AuditLog entry created with action 'approval.cancelled'
+  });
+});
+```
+      </new-tests-to-add>
+    </file>
+
+    <file path="apps/web/src/components/approval/__tests__/ApprovalCard.cancel.test.tsx" status="TO_CREATE">
+      <test-cases>
+```typescript
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { ApprovalCard } from '../approval-card';
+import { useApprovalMutations } from '@/hooks/use-approvals';
+
+jest.mock('@/hooks/use-approvals');
+
+describe('ApprovalCard Cancel Functionality', () => {
+  const mockCancel = jest.fn();
+
+  beforeEach(() => {
+    (useApprovalMutations as jest.Mock).mockReturnValue({
+      cancel: mockCancel,
+      isCancelling: false,
+      cancelError: null,
+    });
+  });
+
+  it('shows cancel button for pending approvals only', () => {
+    render(<ApprovalCard approval={{ ...mockApproval, status: 'pending' }} />);
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+
+    render(<ApprovalCard approval={{ ...mockApproval, status: 'approved' }} />);
+    expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
+  });
+
+  it('shows confirmation dialog on cancel click', async () => {
+    render(<ApprovalCard approval={mockPendingApproval} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(screen.getByText(/Cancel this approval request/i)).toBeInTheDocument();
+  });
+
+  it('calls cancel mutation on confirm', async () => {
+    render(<ApprovalCard approval={mockPendingApproval} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Cancel Request/i }));
+
+    await waitFor(() => {
+      expect(mockCancel).toHaveBeenCalledWith({
+        id: mockPendingApproval.id,
+        reason: undefined,
+      });
+    });
+  });
+
+  it('shows loading state during cancellation', () => {
+    (useApprovalMutations as jest.Mock).mockReturnValue({
+      cancel: mockCancel,
+      isCancelling: true,
+    });
+
+    render(<ApprovalCard approval={mockPendingApproval} />);
+
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
+  });
+
+  it('shows error toast on cancellation failure', async () => {
+    // Test error handling
+  });
+});
+```
+      </test-cases>
+    </file>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- IMPLEMENTATION CHECKLIST                                            -->
+  <!-- ================================================================== -->
+
+  <section name="implementation-checklist">
+    <description>
+      Step-by-step implementation order with file paths.
+    </description>
+
+    <phase name="1-types-and-events">
+      <step order="1">
+        Update `packages/shared/src/types/approval.ts`:
+        - Add 'cancelled' to ApprovalStatus type
+      </step>
+      <step order="2">
+        Update `packages/shared/src/types/events.ts`:
+        - Add APPROVAL_CANCELLED event type
+        - Add ApprovalCancelledPayload interface
+        - Add to EventPayloadMap
+      </step>
+    </phase>
+
+    <phase name="2-backend-implementation">
+      <step order="3">
+        Create `apps/api/src/approvals/dto/cancel-approval.dto.ts`:
+        - CancelApprovalDto with optional reason
+      </step>
+      <step order="4">
+        Update `apps/api/src/approvals/services/approval-audit.service.ts`:
+        - Add LogApprovalCancellationParams interface
+        - Add logApprovalCancellation method
+      </step>
+      <step order="5">
+        Update `apps/api/src/approvals/approvals.service.ts`:
+        - Add cancel() method
+        - Implement validation, update, event emission, audit logging
+      </step>
+      <step order="6">
+        Update `apps/api/src/approvals/approvals.controller.ts`:
+        - Add DELETE endpoint with @Delete(':id')
+        - Import CancelApprovalDto
+      </step>
+      <step order="7">
+        Update `apps/api/src/approvals/handlers/approval-event.handler.ts`:
+        - Add handler for APPROVAL_CANCELLED event
+      </step>
+      <step order="8">
+        Update `apps/api/src/realtime/realtime-event.handler.ts`:
+        - Add APPROVAL_CANCELLED case in handleApprovalEvents
+        - Add mapApprovalCancelledPayload mapper
+      </step>
+    </phase>
+
+    <phase name="3-agent-integration">
+      <step order="9">
+        Update `agents/hitl/approval_bridge.py`:
+        - Add ApprovalCancelledException class
+        - Update wait_for_approval to handle 'cancelled' status
+      </step>
+    </phase>
+
+    <phase name="4-frontend-implementation">
+      <step order="10">
+        Update `apps/web/src/hooks/use-approvals.ts`:
+        - Add cancelApproval API function
+        - Add cancelMutation to useApprovalMutations
+        - Export cancel, isCancelling, cancelError
+      </step>
+      <step order="11">
+        Update `apps/web/src/components/approval/approval-actions.tsx`:
+        - Add cancel button and confirmation dialog
+        - Add showCancel prop
+        - Handle loading/error states
+      </step>
+      <step order="12">
+        Update `apps/web/src/components/approval/approval-card.tsx`:
+        - Pass showCancel prop to ApprovalActions (optional)
+      </step>
+    </phase>
+
+    <phase name="5-testing">
+      <step order="13">
+        Add tests to `apps/api/src/approvals/approvals.controller.spec.ts`:
+        - Test cancel endpoint scenarios
+      </step>
+      <step order="14">
+        Create `apps/web/src/components/approval/__tests__/ApprovalCard.cancel.test.tsx`:
+        - Test cancel button visibility
+        - Test confirmation dialog
+        - Test mutation calls
+      </step>
+    </phase>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- ACCEPTANCE CRITERIA MAPPING                                         -->
+  <!-- ================================================================== -->
+
+  <section name="acceptance-criteria-mapping">
+    <ac id="AC1" description="Cancel endpoint works - DELETE /api/approvals/{id} returns success for pending approvals">
+      <implementation>
+        - Controller: DELETE endpoint in approvals.controller.ts
+        - Service: cancel() method in approvals.service.ts
+        - Returns: { success: true, cancelledAt: string }
+      </implementation>
+    </ac>
+
+    <ac id="AC2" description="Agent notified of cancellation - Agent receives approval:cancelled event via WebSocket">
+      <implementation>
+        - Event: APPROVAL_CANCELLED in events.ts
+        - Publisher: eventPublisher.publish() in cancel() method
+        - Handler: realtime-event.handler.ts broadcasts to WebSocket
+        - Agent: wait_for_approval handles 'cancelled' status
+      </implementation>
+    </ac>
+
+    <ac id="AC3" description="UI shows cancel button - ApprovalCard displays cancel action for pending approvals only">
+      <implementation>
+        - Component: Cancel button in approval-actions.tsx
+        - Condition: Only shown when status === 'pending'
+        - Dialog: Confirmation with optional reason
+      </implementation>
+    </ac>
+
+    <ac id="AC4" description="Cancelled approvals excluded from queue - Queue filters out cancelled status">
+      <implementation>
+        - Frontend: Status filter in useApprovals
+        - Backend: Query filter in findAll() already supports status filter
+        - Optimistic: updateApprovalInAllCaches sets 'cancelled' status
+      </implementation>
+    </ac>
+
+    <ac id="AC5" description="Audit log captures cancellation - Audit entry created with user, timestamp, and reason">
+      <implementation>
+        - Method: logApprovalCancellation in approval-audit.service.ts
+        - Fields: workspaceId, userId, approvalId, reason, timestamp
+        - Action: 'approval.cancelled'
+      </implementation>
+    </ac>
+  </section>
+</story-context>

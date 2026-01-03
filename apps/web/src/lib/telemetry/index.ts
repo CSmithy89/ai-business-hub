@@ -1,7 +1,7 @@
 /**
  * Telemetry Module
  *
- * Exports error tracking and observability utilities.
+ * Exports error tracking, metrics tracking, and observability utilities.
  *
  * @module telemetry
  */
@@ -17,3 +17,21 @@ export {
   type ErrorSeverity,
   type ErrorContext,
 } from './error-tracking'
+
+export {
+  initializeMetricsTracking,
+  trackMetric,
+  trackEvent,
+  trackGauge,
+  trackCompressionMetrics,
+  getMetricsBuffer,
+  clearMetricsBuffer,
+  flushMetrics,
+  type MetricType,
+  type Metric,
+  type GaugeMetric,
+  type CounterMetric,
+  type DistributionMetric,
+  type EventMetric,
+  type CompressionMetricData,
+} from './metrics-tracking'

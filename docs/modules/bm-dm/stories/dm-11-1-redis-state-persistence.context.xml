@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="dm-11-1-redis-state-persistence">
+  <metadata>
+    <epic>DM-11</epic>
+    <title>Redis State Persistence</title>
+    <points>8</points>
+    <priority>High</priority>
+    <generated>2026-01-01</generated>
+  </metadata>
+
+  <architecture>
+    <description>
+      This story implements server-side persistence for dashboard state using Redis.
+      Currently, dashboard state only persists to localStorage (DM-04.5), which means
+      state is lost when browser storage is cleared or when switching devices.
+
+      The implementation adds a REST API layer to save/retrieve state from Redis,
+      with conflict resolution for multi-device scenarios. The frontend dashboard
+      store will be extended to sync with the server on significant state changes
+      and restore state on authentication.
+
+      Key integration points:
+      - NestJS API module for dashboard state endpoints
+      - Redis via BullMQ connection (existing pattern from EventsModule)
+      - Frontend API client integration with apiClient helper
+      - Dashboard state store extension for sync logic
+    </description>
+    <dependencies>
+      <dependency>DM-07 (Infrastructure Stabilization) - Stable base required</dependency>
+      <dependency>DM-08 (Quality &amp; Performance) - Caching patterns to follow</dependency>
+      <dependency>DM-09 (Observability) - Tracing for Redis operations</dependency>
+      <dependency>DM-04.5 (State Persistence) - Existing localStorage persistence</dependency>
+      <dependency>EventsModule - Redis connection pattern via BullMQ</dependency>
+      <dependency>AuthGuard/TenantGuard - Authentication and workspace scoping</dependency>
+    </dependencies>
+  </architecture>
+
+  <existing-code>
+    <!-- Backend Patterns -->
+    <file path="apps/api/src/app.module.ts">
+      <purpose>Root module showing BullMQ Redis configuration and module imports</purpose>
+      <key-patterns>
+        - BullModule.forRootAsync with ConfigService for Redis config
+        - Module import pattern for new feature modules
+        - Add DashboardModule here after creation
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/events/redis.provider.ts">
+      <purpose>Shows how to get Redis client from BullMQ queue</purpose>
+      <key-patterns>
+        - @InjectQueue decorator to get BullMQ queue
+        - await queue.client to get ioredis client
+        - OnModuleInit for connection verification
+        - getClient() pattern for exposing Redis operations
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/events/events.module.ts">
+      <purpose>Example module structure with Redis integration</purpose>
+      <key-patterns>
+        - BullModule.registerQueue for queue registration
+        - OnModuleInit for initialization logic
+        - Provider export pattern for cross-module usage
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/common/services/rate-limit.service.ts">
+      <purpose>Example Redis service with Lua scripting and error handling</purpose>
+      <key-patterns>
+        - @InjectQueue pattern for Redis access
+        - Lua script execution via redis.eval()
+        - Atomic operations for concurrent access
+        - Fail-open error handling pattern
+        - Key prefix convention: 'hyvve:ratelimit:'
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/approvals/approvals.controller.ts">
+      <purpose>Example controller with auth guards and decorators</purpose>
+      <key-patterns>
+        - @UseGuards(AuthGuard, TenantGuard, RolesGuard)
+        - @CurrentWorkspace() and @CurrentUser() decorators
+        - @Roles() decorator for role-based access
+        - REST endpoint patterns (GET, POST, PUT, DELETE)
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/approvals/dto/approve-item.dto.ts">
+      <purpose>Example DTO with class-validator decorators</purpose>
+      <key-patterns>
+        - class-validator decorators (@IsOptional, @IsString)
+        - Simple DTO class structure
+      </key-patterns>
+    </file>
+
+    <file path="apps/api/src/realtime/realtime.module.ts">
+      <purpose>Example feature module with EventsModule import</purpose>
+      <key-patterns>
+        - Importing EventsModule for Redis access
+        - CommonModule import for PrismaService and guards
+        - Service/Gateway provider registration
+      </key-patterns>
+    </file>
+
+    <!-- Frontend Patterns -->
+    <file path="apps/web/src/stores/dashboard-state-store.ts">
+      <purpose>Current dashboard state store - needs sync extension</purpose>
+      <key-patterns>
+        - Zustand store with subscribeWithSelector middleware
+        - State interface extending DashboardState
+        - Action methods for state manipulation
+        - reset() method pattern
+        - Pre-computed derived state (activeAlerts)
+        - DM_CONSTANTS import for boundaries
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/lib/schemas/dashboard-state.ts">
+      <purpose>Dashboard state Zod schemas and types</purpose>
+      <key-patterns>
+        - Zod schema definitions for state structure
+        - STATE_VERSION for migrations
+        - validateDashboardState() helper
+        - createInitialDashboardState() factory
+        - Type exports for TypeScript integration
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/lib/api-client.ts">
+      <purpose>API client with CSRF protection</purpose>
+      <key-patterns>
+        - apiClient() base function with CSRF handling
+        - apiGet(), apiPost(), apiPut(), apiDelete() shortcuts
+        - credentials: 'include' for session cookies
+        - JSON body handling with json option
+        - Error response patterns
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/lib/dm-constants.ts">
+      <purpose>DM module constants - add state sync config here</purpose>
+      <key-patterns>
+        - Centralized configuration constants
+        - Timeout, interval, and threshold values
+        - Type-safe const assertions
+      </key-patterns>
+    </file>
+
+    <file path="apps/web/src/stores/__tests__/dashboard-state-store.test.ts">
+      <purpose>Test patterns for dashboard store</purpose>
+      <key-patterns>
+        - Vitest with @testing-library/react
+        - act() wrapper for state updates
+        - Store reset in beforeEach
+        - Testing action methods and state changes
+        - Mock console methods for warning tests
+      </key-patterns>
+    </file>
+
+    <!-- Common Patterns -->
+    <file path="apps/api/src/common/guards/auth.guard.ts">
+      <purpose>Authentication guard for protected endpoints</purpose>
+      <key-patterns>JWT validation and user extraction</key-patterns>
+    </file>
+
+    <file path="apps/api/src/common/guards/tenant.guard.ts">
+      <purpose>Workspace scoping guard</purpose>
+      <key-patterns>Workspace ID extraction from headers/params</key-patterns>
+    </file>
+
+    <file path="apps/api/src/common/decorators/current-workspace.decorator.ts">
+      <purpose>Decorator to inject workspace ID</purpose>
+      <key-patterns>Parameter decorator pattern for request context</key-patterns>
+    </file>
+
+    <file path="apps/api/src/common/decorators/current-user.decorator.ts">
+      <purpose>Decorator to inject authenticated user</purpose>
+      <key-patterns>Parameter decorator for user object</key-patterns>
+    </file>
+  </existing-code>
+
+  <implementation-guidance>
+    <step order="1">
+      <description>Create dashboard state DTO with Zod schemas for API validation</description>
+      <files>
+        - Create: apps/api/src/modules/dashboard/dto/dashboard-state.dto.ts
+      </files>
+      <details>
+        Define DTOs matching the frontend Zod schemas:
+        - SaveDashboardStateDto: { version: number, state: Record&lt;string, unknown&gt;, checksum?: string }
+        - GetStateResponseDto: { version: number, state: Record&lt;string, unknown&gt;, lastModified: string }
+        - SaveStateResponseDto: { success: boolean, serverVersion: number, conflictResolution?: 'server' | 'client' }
+
+        Use class-validator decorators (@IsNumber, @IsObject, @IsOptional, @IsString).
+      </details>
+    </step>
+
+    <step order="2">
+      <description>Create dashboard state service with Redis operations</description>
+      <files>
+        - Create: apps/api/src/modules/dashboard/dashboard-state.service.ts
+      </files>
+      <details>
+        Follow pattern from rate-limit.service.ts:
+        - @Injectable() with @InjectQueue('event-retry') for Redis access
+        - OnModuleInit to verify Redis connection
+        - Key pattern: dashboard:state:{userId}:{workspaceId}
+        - Methods: saveState(), getState(), deleteState()
+        - Use TTL from env: REDIS_STATE_TTL (default 30 days = 2592000s)
+        - Implement conflict resolution based on version comparison
+        - Fail-open for Redis errors (return null, log error)
+      </details>
+    </step>
+
+    <step order="3">
+      <description>Create dashboard state controller with REST endpoints</description>
+      <files>
+        - Create: apps/api/src/modules/dashboard/dashboard-state.controller.ts
+      </files>
+      <details>
+        Follow pattern from approvals.controller.ts:
+        - @Controller('dashboard/state')
+        - @UseGuards(AuthGuard, TenantGuard)
+        - POST / - Save state with conflict resolution
+        - GET / - Retrieve state with version and lastModified
+        - DELETE / - Clear state
+
+        Use @CurrentWorkspace() and @CurrentUser() decorators.
+        All operations scoped to user + workspace combination.
+      </details>
+    </step>
+
+    <step order="4">
+      <description>Create dashboard module and register in app.module</description>
+      <files>
+        - Create: apps/api/src/modules/dashboard/dashboard.module.ts
+        - Modify: apps/api/src/app.module.ts
+      </files>
+      <details>
+        Follow pattern from realtime.module.ts:
+        - Import EventsModule (for RedisProvider) or use BullModule.registerQueue
+        - Import CommonModule for guards
+        - Register controller and service
+        - Export service if needed by other modules
+
+        Add DashboardModule to app.module.ts imports array.
+      </details>
+    </step>
+
+    <step order="5">
+      <description>Create frontend API client for dashboard state</description>
+      <files>
+        - Create: apps/web/src/lib/api/dashboard-state.ts
+      </files>
+      <details>
+        Use existing apiClient patterns:
+        - saveDashboardState(state, version): Promise&lt;SaveStateResponse&gt;
+        - getDashboardState(): Promise&lt;GetStateResponse | null&gt;
+        - deleteDashboardState(): Promise&lt;{ success: boolean }&gt;
+
+        Handle errors gracefully - return null on failure for GET.
+        Log errors but don't throw to avoid breaking dashboard.
+      </details>
+    </step>
+
+    <step order="6">
+      <description>Add sync constants to dm-constants.ts</description>
+      <files>
+        - Modify: apps/web/src/lib/dm-constants.ts
+      </files>
+      <details>
+        Add STATE_SYNC section:
+        - SYNC_DEBOUNCE_MS: 2000 (debounce before syncing)
+        - RESTORE_ON_AUTH: true (restore from server on login)
+        - SIGNIFICANT_CHANGE_THRESHOLD: ['widgets', 'activeProject'] (trigger sync)
+      </details>
+    </step>
+
+    <step order="7">
+      <description>Extend dashboard store with sync logic</description>
+      <files>
+        - Modify: apps/web/src/stores/dashboard-state-store.ts
+      </files>
+      <details>
+        Add to store interface:
+        - syncToServer(): Promise&lt;void&gt; - sync state to Redis
+        - restoreFromServer(): Promise&lt;void&gt; - restore from Redis
+        - isSyncing: boolean - sync in progress flag
+        - lastSyncedAt: number | null - timestamp of last sync
+
+        Conflict resolution:
+        - If serverVersion &gt; localVersion: apply server state
+        - If localVersion &gt; serverVersion: push local to server
+        - If equal: compare timestamps, newer wins
+
+        Add debounced sync subscription for significant changes.
+        Call restoreFromServer() on auth (via useEffect in provider).
+      </details>
+    </step>
+
+    <step order="8">
+      <description>Create integration hook for auth-based restore</description>
+      <files>
+        - Create: apps/web/src/hooks/use-dashboard-sync.ts
+      </files>
+      <details>
+        Create hook to manage sync lifecycle:
+        - Listen for auth state changes
+        - Call restoreFromServer() on login
+        - Subscribe to significant state changes for debounced sync
+        - Handle sync errors gracefully with console warnings
+      </details>
+    </step>
+  </implementation-guidance>
+
+  <testing-context>
+    <existing-patterns>
+      - Backend: NestJS testing with Jest, @nestjs/testing module
+      - Frontend: Vitest with @testing-library/react
+      - Store tests: act() wrapper, beforeEach reset, vi.spyOn for mocks
+      - API tests: Mock Redis client, test HTTP status codes
+      - Integration: Redis mock fixtures in agents/tests/fixtures/redis_mocks.py (Python patterns)
+    </existing-patterns>
+
+    <test-files-to-create>
+      <test-file>apps/api/src/modules/dashboard/dashboard-state.service.spec.ts</test-file>
+      <test-file>apps/api/src/modules/dashboard/dashboard-state.controller.spec.ts</test-file>
+      <test-file>apps/web/src/lib/api/__tests__/dashboard-state.test.ts</test-file>
+      <test-file>apps/web/src/stores/__tests__/dashboard-state-store-sync.test.ts</test-file>
+      <test-file>apps/web/src/hooks/__tests__/use-dashboard-sync.test.ts</test-file>
+    </test-files-to-create>
+
+    <test-scenarios>
+      <scenario name="Service: Save state to Redis">
+        - Mock Redis client with jest.fn()
+        - Call saveState() with valid state
+        - Verify Redis SET called with correct key pattern
+        - Verify TTL set correctly
+      </scenario>
+      <scenario name="Service: Get state from Redis">
+        - Mock Redis GET to return JSON state
+        - Verify proper deserialization
+        - Verify version and lastModified included
+      </scenario>
+      <scenario name="Service: Conflict resolution">
+        - Test serverVersion &gt; clientVersion (return server)
+        - Test clientVersion &gt; serverVersion (accept client, update Redis)
+        - Test equal versions with timestamp comparison
+      </scenario>
+      <scenario name="Controller: Authentication required">
+        - Test 401 without auth token
+        - Test 403 for wrong workspace
+      </scenario>
+      <scenario name="Store: Sync to server">
+        - Mock API client
+        - Trigger sync via action
+        - Verify API called with correct payload
+      </scenario>
+      <scenario name="Store: Restore from server">
+        - Mock API to return state
+        - Call restoreFromServer()
+        - Verify store state updated
+      </scenario>
+      <scenario name="Store: Conflict resolution in store">
+        - Test server wins scenario
+        - Test client wins scenario
+        - Verify state correctly applied
+      </scenario>
+    </test-scenarios>
+  </testing-context>
+
+  <redis-key-structure>
+    <key pattern="dashboard:state:{userId}:{workspaceId}">
+      <description>Main state JSON string</description>
+      <ttl>30 days (REDIS_STATE_TTL env var)</ttl>
+    </key>
+    <key pattern="dashboard:state:{userId}:{workspaceId}:version">
+      <description>Version number (integer)</description>
+      <ttl>Same as main state</ttl>
+    </key>
+    <key pattern="dashboard:state:{userId}:{workspaceId}:modified">
+      <description>Last modified ISO timestamp</description>
+      <ttl>Same as main state</ttl>
+    </key>
+  </redis-key-structure>
+
+  <api-contracts>
+    <endpoint method="POST" path="/api/dashboard/state">
+      <description>Save dashboard state to Redis</description>
+      <auth>Bearer token required</auth>
+      <request-body>{ version: number, state: DashboardState, checksum?: string }</request-body>
+      <response>{ success: boolean, serverVersion: number, conflictResolution?: 'server' | 'client' }</response>
+    </endpoint>
+
+    <endpoint method="GET" path="/api/dashboard/state">
+      <description>Retrieve dashboard state from Redis</description>
+      <auth>Bearer token required</auth>
+      <response>{ version: number, state: DashboardState, lastModified: string }</response>
+      <response-404>State not found (first-time user)</response-404>
+    </endpoint>
+
+    <endpoint method="DELETE" path="/api/dashboard/state">
+      <description>Delete dashboard state from Redis</description>
+      <auth>Bearer token required</auth>
+      <response>{ success: boolean }</response>
+    </endpoint>
+  </api-contracts>
+
+  <acceptance-criteria>
+    <criterion id="AC1">State persists to Redis via API - POST saves state, GET retrieves it</criterion>
+    <criterion id="AC2">State restores on login - restoreFromServer() called on authentication</criterion>
+    <criterion id="AC3">Conflict resolution handles version mismatches correctly</criterion>
+    <criterion id="AC4">State scoped to user + workspace - isolated per tenant</criterion>
+    <criterion id="AC5">TTL configurable (default 30 days) - via REDIS_STATE_TTL env var</criterion>
+  </acceptance-criteria>
+
+  <references>
+    <reference>Story: docs/modules/bm-dm/stories/dm-11-1-redis-state-persistence.md</reference>
+    <reference>Tech Spec: docs/modules/bm-dm/epics/epic-dm-11-tech-spec.md</reference>
+    <reference>Tech Debt: docs/modules/bm-dm/tech-debt-consolidated.md (TD-04, REC-17)</reference>
+    <reference>DM-04 Retrospective: docs/modules/bm-dm/retrospectives/epic-dm-04-retro-2025-12-30.md</reference>
+    <reference>DM-08 Retrospective: docs/modules/bm-dm/retrospective-dm-08.md (caching patterns)</reference>
+  </references>
+</story-context>

@@ -54,6 +54,9 @@ export * from './types/api-scopes';
 // Widget types (DM-08.5: Single source of truth)
 export * from './types/widget';
 
+// Agent naming utilities (DM-11.12: Address naming complexity)
+export * from './agent-names';
+
 // NOTE: Encryption utilities are NOT exported from the main entry point
 // because they use node:crypto which breaks client-side bundling.
 // Import from '@hyvve/shared/server' for server-side utilities.

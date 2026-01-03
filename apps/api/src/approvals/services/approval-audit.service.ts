@@ -84,6 +84,24 @@ export interface LogBulkActionParams {
 }
 
 /**
+ * Parameters for logging approval cancellation
+ */
+export interface LogApprovalCancellationParams {
+  workspaceId: string;
+  userId: string;
+  approvalId: string;
+  reason?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  // CR-10: Additional context for cancellation audit logs
+  approvalType?: string;
+  approvalTitle?: string;
+  cancelledByAdmin?: boolean;
+  originalRequesterId?: string;
+  originalConfidence?: number;
+}
+
+/**
  * ApprovalAuditService - Approval-specific audit logging
  *
  * Story 04-9: Implement Approval Audit Trail
@@ -350,6 +368,57 @@ export class ApprovalAuditService {
       });
     } catch (error) {
       this.logger.error('Failed to log bulk action:', error);
+    }
+  }
+
+  /**
+   * Log approval cancellation
+   *
+   * Called when user cancels a pending approval request.
+   *
+   * @param params - Cancellation parameters
+   */
+  async logApprovalCancellation(params: LogApprovalCancellationParams): Promise<void> {
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          workspaceId: params.workspaceId,
+          action: 'approval.cancelled',
+          entity: 'approval_item',
+          entityId: params.approvalId,
+          userId: params.userId,
+          ipAddress: params.ipAddress,
+          userAgent: params.userAgent,
+          oldValues: {
+            status: 'pending',
+          },
+          newValues: {
+            status: 'cancelled',
+            cancelledAt: new Date(),
+          },
+          metadata: {
+            reason: params.reason,
+            description: params.cancelledByAdmin
+              ? 'Approval cancelled by workspace admin'
+              : 'Approval cancelled by requester',
+            // CR-10: Additional context
+            approvalType: params.approvalType,
+            approvalTitle: params.approvalTitle,
+            cancelledByAdmin: params.cancelledByAdmin,
+            originalRequesterId: params.originalRequesterId,
+            originalConfidence: params.originalConfidence,
+          },
+        },
+      });
+
+      this.logger.log({
+        message: 'Approval cancellation logged',
+        approvalId: params.approvalId,
+        userId: params.userId,
+      });
+    } catch (error) {
+      // Audit logging failure should not block operations
+      this.logger.error('Failed to log approval cancellation:', error);
     }
   }
 
