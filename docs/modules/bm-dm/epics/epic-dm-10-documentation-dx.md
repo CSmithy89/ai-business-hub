@@ -8,7 +8,7 @@ Address documentation gaps, improve developer tooling, and create comprehensive 
 
 **Tech Debt Document:** `docs/modules/bm-dm/tech-debt-consolidated.md`
 **Priority:** Sprint 3+ - Documentation & DX
-**Items Addressed:** REC-08, REC-09, REC-13, REC-14, REC-21, REC-25, REC-26, TD-09, TD-10, Doc Gaps 1-6, DM-09 Retrospective Recommendations 1-3
+**Items Addressed:** REC-08, REC-09, REC-13, REC-14, REC-21, REC-25, REC-26, TD-09, TD-10, TD-21, TD-23, Doc Gaps 1-6, DM-09 Retrospective Recommendations 1-3, DM-11 Retrospective Recommendations 1-5
 
 ## Scope
 
@@ -22,6 +22,11 @@ Address documentation gaps, improve developer tooling, and create comprehensive 
 | 4 | MCP server configuration docs | Low | DM-06 |
 | 5 | CopilotKit patterns central guide | Medium | DM-05 |
 | 6 | Implementation notes backfill (DM-01.6-01.8, DM-02.5-02.9) | Medium | DM-01, DM-02 |
+| 7 | State sync system documentation | Medium | DM-11 |
+| 8 | Event-driven approval patterns | Medium | DM-11 |
+| 9 | WebSocket security in production | High | DM-11 |
+| 10 | Metrics auth key rotation runbook | Low | DM-11 |
+| 11 | Async primitive patterns (Future vs Event) | Medium | DM-11 |
 
 ### Developer Experience Recommendations
 
@@ -36,6 +41,13 @@ Address documentation gaps, improve developer tooling, and create comprehensive 
 | REC-26 | Document CopilotKit patterns in central guide | Documentation | DM-05 |
 | TD-09 | Missing implementation notes for DM-01.6 to DM-01.8 | Documentation | DM-01 |
 | TD-10 | Missing implementation notes for DM-02.5 to DM-02.9 | Documentation | DM-02 |
+| TD-21 | WebSocket room cleanup comprehensive testing | Testing | DM-11 |
+| TD-23 | Metrics auth key rotation documentation | Operations | DM-11 |
+| REC-27 | Security review checklist for PRs | Security | DM-11 |
+| REC-28 | Async primitive guidelines (Future vs Event) | Code Quality | DM-11 |
+| REC-29 | PR size limits documentation | Process | DM-11 |
+| REC-30 | Comment hygiene in PR template | Code Quality | DM-11 |
+| REC-31 | Production security defaults documentation | Security | DM-11 |
 
 ## Proposed Stories
 
@@ -713,7 +725,411 @@ docs/runbooks/
 
 ---
 
-## Total Points: 38
+### Story DM-10.11: Security Review Checklist
+
+**Problem:** Critical security issues weren't caught until later code review rounds in DM-11.
+
+**Gap Addressed:** REC-27, REC-31, Documentation Gap #9
+
+**Checklist Scope:**
+1. **Authentication/Authorization** - Token handling, session management
+2. **WebSocket handling** - Handshake auth, room security, CSRF protection
+3. **User input processing** - XSS prevention, path validation, injection attacks
+4. **API key/secret handling** - Storage, rotation, exposure prevention
+5. **Timing attacks** - Use constant-time comparison for secrets
+
+**Implementation:**
+```markdown
+# Security Review Checklist
+
+## Before Approving PRs Touching Security-Sensitive Code
+
+### Authentication/Authorization
+- [ ] Token validation uses constant-time comparison
+- [ ] Session tokens have appropriate TTL
+- [ ] Role checks happen before sensitive operations
+- [ ] No credential exposure in logs or error messages
+
+### WebSocket Security
+- [ ] Production uses handshake auth tokens ONLY (no cookies)
+- [ ] Room membership verified before join
+- [ ] Tab/session isolation prevents cross-user data leaks
+- [ ] CSRF protections in place for state-changing operations
+
+### User Input
+- [ ] Path validation prevents directory traversal
+- [ ] Script tag detection for XSS vectors
+- [ ] JSON parsing handles malformed input
+- [ ] Size limits prevent DoS via large payloads
+
+### API Keys & Secrets
+- [ ] Secrets loaded from environment, not hardcoded
+- [ ] Key rotation procedure documented
+- [ ] Minimal permission scopes used
+- [ ] Audit logging for key usage
+```
+
+**Files to Create:**
+```
+.github/
+├── PULL_REQUEST_TEMPLATE/
+│   └── security-sensitive.md
+docs/security/
+└── review-checklist.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: Security checklist created
+- [ ] AC2: PR template references checklist for security-tagged PRs
+- [ ] AC3: WebSocket security section from DM-11 learnings
+- [ ] AC4: Timing attack examples included
+- [ ] AC5: Production defaults guidance (throw errors, not warnings)
+
+**Points:** 3
+
+---
+
+### Story DM-10.12: Async Primitive Patterns Guide
+
+**Problem:** Race condition in DM-11 approval events due to using asyncio.Event instead of Future.
+
+**Gap Addressed:** REC-28, Documentation Gap #11
+
+**Patterns to Document:**
+1. **Event vs Future** - When to use each
+2. **Lock ordering** - Preventing deadlocks in multi-lock code
+3. **Race condition detection** - Common patterns that cause issues
+4. **Task cancellation** - Proper cleanup patterns
+
+**Guide Structure:**
+```markdown
+# Async Primitive Patterns
+
+## Event vs Future
+
+### asyncio.Event
+- Signal-only, no result delivery
+- Can fire before anyone is waiting → signal lost
+- Use for: repeated signals, start/stop flags
+
+```python
+# BAD: Signal can be lost
+event = asyncio.Event()
+event.set()  # No one waiting → lost
+await event.wait()  # Never returns
+```
+
+### asyncio.Future
+- Delivers result directly to awaiter
+- Result stored until retrieved → no race condition
+- Use for: one-shot result delivery
+
+```python
+# GOOD: Result always delivered
+future = asyncio.get_event_loop().create_future()
+future.set_result(data)  # Stored
+await future  # Returns immediately with data
+```
+
+## Lock Ordering
+When acquiring multiple locks, always acquire in consistent order:
+```python
+# Define global lock order
+LOCK_ORDER = ['pending_lock', 'results_lock', 'cleanup_lock']
+
+# Always acquire in order
+async with pending_lock:
+    async with results_lock:
+        # Safe - consistent order
+```
+
+## Common Race Conditions
+1. **Check-then-act without lock**
+2. **Event set before wait**
+3. **Double-checked locking failures**
+```
+
+**Files to Create:**
+```
+docs/guides/
+└── async-patterns.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: Event vs Future comparison with examples
+- [ ] AC2: Lock ordering guidelines
+- [ ] AC3: Race condition examples from DM-11
+- [ ] AC4: Task cancellation patterns
+- [ ] AC5: Python and TypeScript examples
+
+**Points:** 3
+
+---
+
+### Story DM-10.13: WebSocket Security Documentation
+
+**Problem:** Cookie fallback authentication created CSRF vulnerability in DM-11.
+
+**Gap Addressed:** Documentation Gap #9, REC-31
+
+**Topics to Cover:**
+1. **Production vs Development** - Different security requirements
+2. **Handshake authentication** - Token-only approach
+3. **Cookie fallback dangers** - Why it creates CSRF risk
+4. **Room security** - Membership verification
+5. **Tab isolation** - Preventing cross-tab data leaks
+
+**Guide Structure:**
+```markdown
+# WebSocket Security
+
+## Authentication
+
+### Production Requirements
+- MUST use handshake auth tokens only
+- Cookie fallback is DISABLED (throws error)
+- Token passed in connection handshake.auth
+
+### Development
+- Cookie fallback allowed for convenience
+- Logs warning when cookie auth used
+
+### Implementation
+```typescript
+// Client
+const socket = io(REALTIME_URL, {
+  auth: { token: accessToken },  // Required
+});
+
+// Server (Production)
+if (!handshakeToken) {
+  // Cookie fallback NOT allowed
+  throw new WsException('Token required in handshake');
+}
+```
+
+## Room Security
+- Verify workspace membership before room.join
+- Track connections per room for cleanup
+- Use tab IDs to prevent echo loops
+
+## CSRF Protection
+Cookie-based WebSocket auth is vulnerable because:
+1. Browser auto-sends cookies on WebSocket upgrade
+2. Malicious site can initiate WebSocket to your domain
+3. User's session cookie included → attacker has access
+```
+
+**Files to Update:**
+```
+docs/DEPLOYMENT.md (add WebSocket security section)
+docs/guides/
+└── websocket-security.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: Production vs dev requirements clear
+- [ ] AC2: CSRF vulnerability explained
+- [ ] AC3: Code examples for proper auth
+- [ ] AC4: DEPLOYMENT.md updated
+- [ ] AC5: Room security patterns documented
+
+**Points:** 3
+
+---
+
+### Story DM-10.14: State Sync System Documentation
+
+**Problem:** No documentation for the Redis + WebSocket state sync system added in DM-11.
+
+**Gap Addressed:** Documentation Gap #7, Documentation Gap #8
+
+**Topics to Cover:**
+1. **Architecture overview** - Redis persistence + WebSocket sync
+2. **State versioning** - Conflict detection
+3. **Tab ID management** - Echo prevention
+4. **Reconnection recovery** - Full state request
+5. **State compression** - For large payloads
+6. **Migration system** - Schema evolution
+
+**Guide Structure:**
+```markdown
+# Dashboard State Sync System
+
+## Architecture
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Tab A     │────▶│   Server    │◀────│   Tab B     │
+│  (source)   │     │  (Redis +   │     │  (receiver) │
+│             │◀────│  WebSocket) │────▶│             │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
+
+## State Flow
+1. User changes state in Tab A
+2. Change debounced (100ms) and emitted via WebSocket
+3. Server persists to Redis and broadcasts to room
+4. Tab B receives change (filtered by tab ID)
+5. Tab B applies change to local state
+
+## Version-Based Conflict Detection
+- Each state change increments version
+- Server tracks version per dashboard
+- Clients include lastKnownVersion in requests
+- Version mismatch triggers full state sync
+
+## Tab ID Management
+- Each tab gets unique ID (UUID) in sessionStorage
+- Source tab ID included in all payloads
+- Clients filter out self-echoed events
+```
+
+**Files to Create:**
+```
+docs/architecture/
+└── state-sync.md
+docs/guides/
+└── state-sync-development.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: Architecture diagram created
+- [ ] AC2: State flow documented
+- [ ] AC3: Conflict detection explained
+- [ ] AC4: Migration system documented
+- [ ] AC5: Development guide for adding new state
+
+**Points:** 5
+
+---
+
+### Story DM-10.15: Metrics Auth Key Rotation Runbook
+
+**Problem:** No documentation for rotating METRICS_API_KEY (TD-23).
+
+**Gap Addressed:** TD-23, Documentation Gap #10
+
+**Runbook Content:**
+```markdown
+# Metrics API Key Rotation
+
+## When to Rotate
+- Suspected key exposure
+- Personnel changes
+- Periodic rotation (recommended: every 90 days)
+
+## Rotation Steps
+
+### 1. Generate New Key
+```bash
+# Generate a secure random key
+openssl rand -base64 32
+```
+
+### 2. Update Secret Store
+```bash
+# If using Kubernetes
+kubectl create secret generic metrics-auth \
+  --from-literal=METRICS_API_KEY=<new-key> \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# If using environment file
+# Update .env.production with new key
+```
+
+### 3. Rolling Deployment
+```bash
+# Deploy new key without downtime
+kubectl rollout restart deployment/agent-api
+```
+
+### 4. Update Monitoring Tools
+- Prometheus scrape config
+- Grafana datasource
+- Any external monitoring
+
+### 5. Verify Access
+```bash
+curl -H "Authorization: Bearer <new-key>" \
+  https://api.example.com/metrics
+```
+
+### 6. Revoke Old Key
+- Old key automatically invalid after deployment
+- No explicit revocation needed
+
+## Rollback
+If issues occur:
+```bash
+kubectl rollout undo deployment/agent-api
+```
+```
+
+**Files to Create:**
+```
+docs/runbooks/
+└── metrics-key-rotation.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: Step-by-step rotation procedure
+- [ ] AC2: Secret store update instructions
+- [ ] AC3: Rolling deployment without downtime
+- [ ] AC4: Verification steps
+- [ ] AC5: Rollback procedure
+
+**Points:** 2
+
+---
+
+### Story DM-10.16: PR Template Updates
+
+**Problem:** PR process doesn't enforce size limits or comment hygiene checks.
+
+**Gap Addressed:** REC-29, REC-30
+
+**Updates:**
+1. **Size warning** - Add checklist item for large PRs
+2. **Comment hygiene** - Add review checklist item
+3. **Security tag** - Auto-link to security checklist
+
+**Template Changes:**
+```markdown
+## PR Checklist
+
+### Size Check
+- [ ] This PR changes fewer than 50 files
+  - If 50-100 files: Consider splitting into smaller PRs
+  - If 100+ files: Requires explicit approval for large refactor
+
+### Code Quality
+- [ ] All comments accurately describe current behavior
+- [ ] No comments describe removed/changed functionality
+- [ ] No TODO comments without linked issue
+
+### Security (if applicable)
+If this PR touches auth, WebSocket, or user input:
+- [ ] Reviewed [Security Checklist](docs/security/review-checklist.md)
+```
+
+**Files to Update:**
+```
+.github/
+└── PULL_REQUEST_TEMPLATE.md
+```
+
+**Acceptance Criteria:**
+- [ ] AC1: Size warning added to template
+- [ ] AC2: Comment hygiene checklist item added
+- [ ] AC3: Security checklist link added
+- [ ] AC4: Auto-labeling for large PRs (optional)
+- [ ] AC5: Team aligned on new process
+
+**Points:** 2
+
+---
+
+## Total Points: 56
 
 ## Dependencies
 
@@ -751,6 +1167,55 @@ The following items from the DM-08 retrospective should be incorporated:
    - Note the limitation: lacks compile-time validation
    - Reference DM-11 for potential code generation implementation
    - Provide troubleshooting guide for type mismatch errors between TS and Python
+
+## Recommendations from DM-11 Retrospective
+
+The following items from the DM-11 retrospective are addressed by new stories:
+
+### Security Review Process
+
+1. **Security review checklist (REC-27)** - DM-10.11 creates a comprehensive checklist for PRs touching security-sensitive code:
+   - Authentication/authorization patterns
+   - WebSocket security requirements
+   - User input validation
+   - Timing attack prevention (constant-time comparison)
+
+2. **Production security defaults (REC-31)** - DM-10.11 and DM-10.13 document the principle of throwing errors for insecure configurations in production (not just warnings).
+
+### Async Patterns
+
+3. **Async primitive guidelines (REC-28)** - DM-10.12 documents:
+   - asyncio.Future vs asyncio.Event (Future for one-shot delivery)
+   - Lock ordering for multi-lock code
+   - Common race condition patterns and prevention
+
+### Process Improvements
+
+4. **PR size limits (REC-29)** - DM-10.16 adds to PR template:
+   - Warning at 50 files changed
+   - Suggest split at 100+ files
+   - Exception process for large refactors
+
+5. **Comment hygiene (REC-30)** - DM-10.16 adds review checklist:
+   - "Do all comments accurately describe current behavior?"
+   - "Are there any comments describing removed functionality?"
+
+### Tech Debt Resolution
+
+6. **TD-23: Metrics auth key rotation** - DM-10.15 creates runbook with:
+   - Step-by-step rotation procedure
+   - Secret store update instructions
+   - Rollback procedure
+
+### New Documentation
+
+7. **State sync system** - DM-10.14 documents the Redis + WebSocket state sync system:
+   - Architecture overview
+   - Version-based conflict detection
+   - Tab ID echo prevention
+   - Migration system
+
+8. **Event-driven approvals** - Included in DM-10.12 (async patterns) with the Event → Future conversion example.
 
 ## Technical Notes
 
@@ -793,4 +1258,5 @@ graph LR
 - [DM-03 Retrospective](epic-dm-03-retrospective.md) - REC-08, REC-13, REC-14
 - [DM-05 Retrospective](../../sprint-artifacts/epic-dm-05-retrospective.md) - REC-25, REC-26
 - [DM-06 Retrospective](epic-dm-06-retrospective.md) - REC-21
+- [DM-11 Retrospective](../../sprint-artifacts/epic-11-retro-2026-01-03.md) - REC-27 to REC-31, TD-21, TD-23
 - [Semgrep Documentation](https://semgrep.dev/docs/)
