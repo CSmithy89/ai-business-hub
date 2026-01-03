@@ -45,8 +45,27 @@ Follow existing TokenUsageDashboard pattern with:
 - Unit: Reset date displays correctly
 
 ## Definition of Done
-- [ ] All acceptance criteria met
-- [ ] Unit tests written and passing
-- [ ] No TypeScript errors
-- [ ] No ESLint errors
-- [ ] Code reviewed
+- [x] All acceptance criteria met
+- [x] Unit tests written and passing
+- [x] No TypeScript errors
+- [x] No ESLint errors
+- [x] Code reviewed
+
+## Implementation Notes
+
+### Files Created
+- `apps/web/src/components/settings/ccr-quota-display.tsx` - Quota progress bars component
+- `apps/web/src/hooks/useCCRQuota.ts` - Quota data fetching hook
+- `apps/web/src/components/settings/__tests__/ccr-quota-display.test.tsx` - Unit tests (87% coverage)
+
+### Key Implementation Details
+- **Thresholds**: Warning at 80%, Critical at 95% (configurable via DM_CONSTANTS)
+- **Progress Bar Colors**: Normal (blue), Warning (yellow), Critical (red)
+- **Reset Date**: Formatted using `formatDistanceToNow` from date-fns
+- **Integration**: Added as card in Token Usage dashboard
+
+### Technical Decisions
+- Reused existing Progress component from shadcn/ui
+- Quota data cached for 5 minutes (staleTime in React Query)
+- Empty state shows when no CCR providers configured
+- Overflow handling: shows "+N more" for long provider lists

@@ -218,19 +218,29 @@ development_status:
 
   # ===========================================
   # DM-10: Documentation & Developer Experience
-  # Phase 7 | 7 stories | 29 points
-  # Architecture diagrams, Guides, Semgrep
-  # Source: tech-debt-consolidated.md Doc Gaps
+  # Phase 7 | 16 stories | 56 points
+  # Architecture diagrams, Guides, Semgrep, Security docs
+  # Source: tech-debt-consolidated.md + DM-08/09/11 Retrospectives
+  # Tech Spec: docs/modules/bm-dm/epics/epic-dm-10-documentation-dx.md
   # ===========================================
-  dm-10: backlog
-  dm-10-1-a2a-architecture-diagrams: backlog
-  dm-10-2-copilotkit-patterns-guide: backlog
-  dm-10-3-mcp-configuration-guide: backlog
-  dm-10-4-a2a-troubleshooting-guide: backlog
-  dm-10-5-http2-deployment-guide: backlog
-  dm-10-6-implementation-notes-backfill: backlog
-  dm-10-7-semgrep-precommit: backlog
-  dm-10-retrospective: backlog
+  dm-10: complete
+  dm-10-1-a2a-architecture-diagrams: done
+  dm-10-2-copilotkit-patterns-guide: done
+  dm-10-3-mcp-configuration-guide: done
+  dm-10-4-a2a-troubleshooting-guide: done
+  dm-10-5-http2-deployment-guide: done
+  dm-10-6-implementation-notes-backfill: done
+  dm-10-7-semgrep-precommit: done
+  dm-10-8-opentelemetry-usage-guide: done
+  dm-10-9-e2e-test-writing-guide: done
+  dm-10-10-observability-stack-runbook: done
+  dm-10-11-security-review-checklist: done
+  dm-10-12-async-primitive-patterns-guide: done
+  dm-10-13-websocket-security-documentation: done
+  dm-10-14-state-sync-system-documentation: done
+  dm-10-15-metrics-auth-key-rotation-runbook: done
+  dm-10-16-pr-template-updates: done
+  dm-10-retrospective: done
 
   # ===========================================
   # DM-11: Advanced Features & Optimizations

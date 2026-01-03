@@ -95,3 +95,25 @@ Different agents have different optimal task types:
 - [x] Unit tests pass with good coverage
 - [x] All code uses DMConstants (no magic numbers)
 - [x] Sprint status updated to "done"
+
+## Implementation Notes
+
+### Files Created
+- `agents/providers/ccr_provider.py` - CCRModel class wrapping CCR API
+- `agents/tests/test_dm_02_7_ccr_provider.py` - Unit tests for CCRModel
+
+### Key Implementation Details
+- **CCRModel Class**: Extends Agno Model interface, routes requests through CCR
+- **Hybrid Mode**: Falls back to direct API when CCR unavailable
+- **Agent Preferences**: Per-agent model routing via `agent_model_preferences` config
+- **Validation**: Startup checks CCR connectivity, warns if unavailable
+
+### Hybrid Mode Selection Logic
+```
+if CCR_ENABLED and ccr_is_healthy:
+    use CCR routing
+elif agent has BYOAI key:
+    use direct API call
+else:
+    raise ModelUnavailableError
+```

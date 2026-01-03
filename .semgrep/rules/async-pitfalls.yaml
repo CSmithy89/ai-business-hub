@@ -1,0 +1,81 @@
+rules:
+  # Python async pitfalls
+  - id: asyncmock-without-spec
+    pattern: AsyncMock()
+    languages:
+      - python
+    message: "AsyncMock should specify spec for type safety"
+    severity: INFO
+    metadata:
+      category: best-practices
+      cwe: "CWE-20: Improper Input Validation"
+
+  - id: asyncio-create-task-no-reference
+    pattern: asyncio.create_task($CORO)
+    pattern-not-inside: |
+      $TASK = asyncio.create_task($CORO)
+    languages:
+      - python
+    message: "asyncio.create_task() result should be stored to prevent task from being garbage collected"
+    severity: WARNING
+    metadata:
+      category: correctness
+      cwe: "CWE-404: Improper Resource Shutdown or Release"
+
+  - id: fire-and-forget-no-exception-handling
+    patterns:
+      - pattern-either:
+          - pattern: asyncio.create_task($CORO)
+          - pattern: loop.create_task($CORO)
+      - pattern-not-inside: |
+          try:
+            ...
+          except:
+            ...
+      - pattern-not-inside: |
+          $TASK = asyncio.create_task($CORO)
+          $TASK.add_done_callback(...)
+    languages:
+      - python
+    message: "Consider adding exception handling or done_callback for background tasks"
+    severity: INFO
+    metadata:
+      category: best-practices
+      references:
+        - https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
+
+  # TypeScript async pitfalls
+  - id: promise-no-catch
+    patterns:
+      - pattern: $PROMISE.then($HANDLER)
+      - pattern-not-either:
+          - pattern: $PROMISE.then($HANDLER).catch($CATCH)
+          - pattern: $PROMISE.then($HANDLER, $REJECT)
+    languages:
+      - typescript
+      - javascript
+    message: "Promise chain should have error handling with .catch() or rejection handler"
+    severity: WARNING
+    metadata:
+      category: best-practices
+      cwe: "CWE-754: Improper Check for Unusual or Exceptional Conditions"
+
+  - id: async-function-no-await
+    pattern-either:
+      - pattern: |
+          async function $FN(...) {
+            ...
+          }
+      - pattern: |
+          async ($PARAMS) => {
+            ...
+          }
+    pattern-not-inside: |
+      await ...
+    languages:
+      - typescript
+      - javascript
+    message: "Async function without await - may not need to be async"
+    severity: INFO
+    metadata:
+      category: best-practices

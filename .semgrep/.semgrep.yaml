@@ -1,0 +1,34 @@
+# Semgrep Configuration for HYVVE
+#
+# Usage:
+#   semgrep scan --config .semgrep/              # Run custom rules only
+#   semgrep scan --config .semgrep/ --config auto # Run with auto config too
+#
+# Severity filtering (in CI):
+#   semgrep scan --config .semgrep/ --severity ERROR --severity WARNING
+#
+# Scan test files for security issues:
+#   semgrep scan --config .semgrep/ --include="**/*.test.ts" --severity ERROR
+
+# Paths to scan
+paths:
+  include:
+    - apps/
+    - agents/
+    - packages/
+
+  exclude:
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/*.spec.ts"
+    - "**/*.spec.tsx"
+    - "**/test/**"
+    - "**/tests/**"
+    - "**/fixtures/**"
+    - "**/mocks/**"
+    - "**/__mocks__/**"
+    - "**/node_modules/**"
+    - "**/.venv/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/.next/**"

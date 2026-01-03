@@ -56,16 +56,32 @@
 
 <!-- Ensure all items are checked before requesting review -->
 
+### Code Quality
+
 - [ ] My code follows the project's coding standards
 - [ ] I have performed a self-review of my code
-- [ ] I have commented my code where necessary
-- [ ] I have updated the documentation (if applicable)
 - [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix/feature works
-- [ ] New and existing unit tests pass locally
 - [ ] TypeScript check passes (`pnpm type-check`)
 - [ ] ESLint passes (`pnpm lint`)
 - [ ] Build succeeds (`pnpm build`)
+
+### Testing
+
+- [ ] I have added tests that prove my fix/feature works
+- [ ] New and existing unit tests pass locally
+
+### Documentation & Comments
+
+- [ ] I have updated the documentation (if applicable)
+- [ ] All comments accurately describe current behavior (no stale comments)
+- [ ] No comments describe removed/changed functionality without update
+- [ ] No TODO comments without linked issue
+
+### PR Size & Scope
+
+- [ ] PR has focused scope (single epic or related stories)
+  <!-- If 50+ files: Ensure changes are cohesive (related refactoring is OK) -->
+  <!-- If 100+ files: Consider splitting or get explicit approval for large refactor -->
 
 ## Multi-Tenant Considerations
 
@@ -78,11 +94,13 @@
 ## Security Considerations
 
 <!-- If your changes have security implications -->
+<!-- For security-sensitive PRs, review [Security Checklist](docs/security/review-checklist.md) -->
 
 - [ ] Input validation implemented
 - [ ] No sensitive data logged
 - [ ] Authentication/authorization checked
 - [ ] No new security vulnerabilities introduced
+- [ ] Reviewed security checklist (if touching auth, WebSocket, or user input)
 
 ## Additional Notes
 
