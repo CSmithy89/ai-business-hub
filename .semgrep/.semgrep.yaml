@@ -1,0 +1,39 @@
+# Semgrep Configuration for HYVVE
+# Run with: semgrep scan --config .semgrep/
+
+# Include our custom rules
+rules:
+  - ".semgrep/rules/"
+
+# Also use Semgrep's auto config for comprehensive coverage
+# This includes OWASP Top 10, common security issues, etc.
+# The 'auto' config is applied via command line: semgrep scan --config auto
+
+# Paths to scan
+paths:
+  include:
+    - apps/
+    - agents/
+    - packages/
+
+  exclude:
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/*.spec.ts"
+    - "**/*.spec.tsx"
+    - "**/test/**"
+    - "**/tests/**"
+    - "**/fixtures/**"
+    - "**/mocks/**"
+    - "**/__mocks__/**"
+    - "**/node_modules/**"
+    - "**/.venv/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/.next/**"
+
+# Severity thresholds
+# Set to 'error' to fail on any finding
+severity:
+  - ERROR
+  - WARNING

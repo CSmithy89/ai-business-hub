@@ -230,7 +230,7 @@ development_status:
   dm-10-4-a2a-troubleshooting-guide: done
   dm-10-5-http2-deployment-guide: done
   dm-10-6-implementation-notes-backfill: done
-  dm-10-7-semgrep-precommit: backlog
+  dm-10-7-semgrep-precommit: done
   dm-10-8-opentelemetry-usage-guide: backlog
   dm-10-9-e2e-test-writing-guide: backlog
   dm-10-10-observability-stack-runbook: backlog

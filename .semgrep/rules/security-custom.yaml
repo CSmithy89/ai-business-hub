@@ -1,0 +1,104 @@
+rules:
+  # HYVVE-specific security rules
+
+  - id: hardcoded-api-key
+    pattern-either:
+      - pattern: |
+          $KEY = "sk-..."
+      - pattern: |
+          $KEY = "sk_..."
+      - pattern: |
+          apiKey: "sk-..."
+      - pattern: |
+          api_key = "sk-..."
+    languages:
+      - typescript
+      - javascript
+      - python
+    message: "Potential hardcoded API key detected. Use environment variables instead."
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A3:2017 - Sensitive Data Exposure"
+
+  - id: raw-sql-query
+    pattern-either:
+      - pattern: |
+          $DB.query(`... ${$VAR} ...`)
+      - pattern: |
+          $DB.$METHOD(f"... {$VAR} ...")
+    languages:
+      - typescript
+      - javascript
+      - python
+    message: "Potential SQL injection - use parameterized queries instead"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A1:2017 - Injection"
+
+  - id: dangerouslySetInnerHTML-usage
+    pattern: dangerouslySetInnerHTML={{__html: $HTML}}
+    languages:
+      - typescript
+      - javascript
+    message: "dangerouslySetInnerHTML can lead to XSS. Ensure content is properly sanitized."
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-site Scripting (XSS)"
+      owasp: "A7:2017 - Cross-Site Scripting (XSS)"
+
+  - id: unvalidated-redirect
+    pattern-either:
+      - pattern: |
+          window.location.href = $URL
+      - pattern: |
+          redirect($URL)
+      - pattern: |
+          res.redirect($URL)
+    languages:
+      - typescript
+      - javascript
+    message: "Potential open redirect. Validate redirect URLs against an allowlist."
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-601: URL Redirection to Untrusted Site"
+
+  - id: eval-usage
+    pattern-either:
+      - pattern: eval($CODE)
+      - pattern: new Function($CODE)
+    languages:
+      - typescript
+      - javascript
+    message: "eval() or Function constructor is dangerous - avoid if possible"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-94: Code Injection"
+
+  - id: subprocess-shell-true
+    pattern: subprocess.$METHOD(..., shell=True, ...)
+    languages:
+      - python
+    message: "subprocess with shell=True is dangerous. Use shell=False with explicit command list."
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+
+  - id: jwt-no-verify
+    pattern-either:
+      - pattern: jwt.decode($TOKEN, verify=False)
+      - pattern: jwt.decode($TOKEN, options={"verify_signature": False})
+    languages:
+      - python
+    message: "JWT decoded without signature verification - potential security vulnerability"
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
