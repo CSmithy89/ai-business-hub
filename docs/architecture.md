@@ -145,17 +145,22 @@ hyvve/
 │       └── package.json
 │
 ├── agents/                          # AgentOS Runtime (Python/FastAPI)
-│   ├── platform/                    # Platform agents
-│   │   ├── __init__.py
+│   ├── core_platform/               # Core platform agents
 │   │   ├── approval_agent.py        # Approval routing agent
 │   │   ├── orchestrator_agent.py    # Workflow orchestrator
+│   │   ├── scribe/                  # Knowledge Base agent
+│   │   ├── bridge/                  # Bridge agent
 │   │   └── tools/                   # Agent tools
-│   │       ├── __init__.py
-│   │       ├── approval_tools.py    # HITL approval tools
-│   │       └── workspace_tools.py   # Workspace context tools
+│   ├── pm/                          # Project Management agents
+│   │   ├── navi.py                  # PM team lead
+│   │   ├── chrono.py                # Timeline/scheduling
+│   │   ├── oracle.py                # Strategy/forecasting
+│   │   ├── prism.py                 # Analytics/insights
+│   │   └── team.py                  # Team coordination
+│   ├── gateway/                     # Gateway agent (A2A routing)
+│   ├── mesh/                        # Agent mesh infrastructure
+│   ├── hitl/                        # Human-in-the-loop handlers
 │   ├── middleware/                  # Custom middleware
-│   │   ├── __init__.py
-│   │   └── tenant.py               # Workspace context injection
 │   ├── config.py                    # AgentOS configuration
 │   ├── main.py                      # FastAPI entry point
 │   ├── requirements.txt             # Python dependencies

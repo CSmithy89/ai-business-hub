@@ -13,7 +13,7 @@ This file provides context for Claude Code when working on this project.
 
 ### Key Reference Docs
 
-- Implementation plan (source of truth): `docs/detailed-implementation-plan.md`
+- Master plan (source of truth): `docs/MASTER-PLAN.md`
 - Getting started: `docs/GETTING-STARTED.md`
 - Deployment: `docs/DEPLOYMENT.md`
 - Architecture: `docs/architecture.md` and `docs/architecture/`
