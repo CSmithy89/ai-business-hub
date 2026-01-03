@@ -22,6 +22,8 @@ describe('DashboardStateService', () => {
       get: jest.fn(),
       set: jest.fn(),
       del: jest.fn(),
+      eval: jest.fn(),
+      setnx: jest.fn(),
     }),
   };
 
@@ -72,28 +74,26 @@ describe('DashboardStateService', () => {
     };
 
     it('should save state to Redis successfully', async () => {
-      mockRedis.get.mockResolvedValue(null);
+      // Lock acquisition succeeds (SET with NX returns 'OK')
       mockRedis.set.mockResolvedValue('OK');
+      // Lua script succeeds
+      mockRedis.eval.mockResolvedValue(JSON.stringify({ status: 'success', version: 1 }));
 
       const result = await service.saveState(userId, workspaceId, validDto);
 
       expect(result.success).toBe(true);
       expect(result.serverVersion).toBe(1);
-      expect(mockRedis.set).toHaveBeenCalledWith(
-        `hyvve:dashboard:state:${userId}:${workspaceId}`,
-        expect.any(String),
-        'EX',
-        expect.any(Number)
-      );
+      expect(mockRedis.eval).toHaveBeenCalled();
     });
 
     it('should return conflict resolution when server version is newer', async () => {
-      const existingState = {
-        version: 2,
-        state: { widgets: {} },
-        lastModified: new Date().toISOString(),
-      };
-      mockRedis.get.mockResolvedValue(JSON.stringify(existingState));
+      // Lock acquisition succeeds
+      mockRedis.set.mockResolvedValue('OK');
+      // Lua script detects conflict
+      mockRedis.eval.mockResolvedValue(JSON.stringify({
+        status: 'conflict',
+        serverVersion: 2,
+      }));
 
       const result = await service.saveState(userId, workspaceId, {
         ...validDto,
@@ -103,17 +103,13 @@ describe('DashboardStateService', () => {
       expect(result.success).toBe(false);
       expect(result.serverVersion).toBe(2);
       expect(result.conflictResolution).toBe('server');
-      expect(mockRedis.set).not.toHaveBeenCalled();
     });
 
     it('should update state when client version is newer', async () => {
-      const existingState = {
-        version: 1,
-        state: { widgets: {} },
-        lastModified: new Date().toISOString(),
-      };
-      mockRedis.get.mockResolvedValue(JSON.stringify(existingState));
+      // Lock acquisition succeeds
       mockRedis.set.mockResolvedValue('OK');
+      // Lua script succeeds with client resolution
+      mockRedis.eval.mockResolvedValue(JSON.stringify({ status: 'success', version: 2 }));
 
       const result = await service.saveState(userId, workspaceId, {
         ...validDto,
@@ -126,17 +122,21 @@ describe('DashboardStateService', () => {
     });
 
     it('should handle corrupted existing data', async () => {
-      mockRedis.get.mockResolvedValue('invalid json');
+      // Lock acquisition succeeds
       mockRedis.set.mockResolvedValue('OK');
+      // Lua script handles corruption and overwrites
+      mockRedis.eval.mockResolvedValue(JSON.stringify({ status: 'overwrite', version: 1 }));
 
       const result = await service.saveState(userId, workspaceId, validDto);
 
       expect(result.success).toBe(true);
-      expect(mockRedis.set).toHaveBeenCalled();
+      expect(mockRedis.eval).toHaveBeenCalled();
     });
 
     it('should handle Redis errors gracefully', async () => {
-      mockRedis.get.mockRejectedValue(new Error('Redis connection failed'));
+      // Lock acquisition succeeds but eval fails
+      mockRedis.set.mockResolvedValue('OK');
+      mockRedis.eval.mockRejectedValue(new Error('Redis connection failed'));
 
       const result = await service.saveState(userId, workspaceId, validDto);
 
@@ -296,20 +296,24 @@ describe('DashboardStateService', () => {
   describe('TTL configuration', () => {
     it('should use default TTL when env var not set', async () => {
       mockConfigService.get.mockReturnValue(undefined);
-      mockRedis.get.mockResolvedValue(null);
+      // Lock acquisition succeeds
       mockRedis.set.mockResolvedValue('OK');
+      // Lua script succeeds
+      mockRedis.eval.mockResolvedValue(JSON.stringify({ status: 'success', version: 1 }));
 
       await service.saveState('user', 'workspace', {
         version: 1,
         state: {},
       });
 
-      // Default TTL is 30 days = 2592000 seconds
-      expect(mockRedis.set).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        'EX',
-        2592000
+      // Default TTL is 30 days = 2592000 seconds (passed as ARGV[3] to Lua script)
+      expect(mockRedis.eval).toHaveBeenCalledWith(
+        expect.any(String), // Lua script
+        1, // Number of keys
+        expect.stringContaining('hyvve:dashboard:state:'), // KEYS[1]
+        expect.any(String), // ARGV[1] - state data JSON
+        '1', // ARGV[2] - version
+        '2592000' // ARGV[3] - TTL
       );
     });
   });
@@ -319,32 +323,19 @@ describe('DashboardStateService', () => {
    *
    * Simulates two tabs modifying state simultaneously.
    * Tests version-based conflict detection and resolution.
+   * Note: saveState uses Lua scripts (eval) for atomic operations.
    */
   describe('concurrent state updates (CR-11)', () => {
     const userId = 'user-123';
     const workspaceId = 'workspace-456';
 
     it('should detect conflict when two tabs save simultaneously with same version', async () => {
-      // Initial state: version 1
-      const existingState = {
-        version: 1,
-        state: { widgets: { projectStatus: 'initial' } },
-        lastModified: '2024-01-01T00:00:00.000Z',
-      };
+      // Lock acquisition succeeds for both tabs
+      mockRedis.set.mockResolvedValue('OK');
 
-      // Tab 1 reads state (version 1)
-      mockRedis.get.mockResolvedValueOnce(JSON.stringify(existingState));
-      mockRedis.set.mockResolvedValueOnce('OK');
+      // Tab 1 saves with version 2 (succeeds via Lua script)
+      mockRedis.eval.mockResolvedValueOnce(JSON.stringify({ status: 'success', version: 2 }));
 
-      // Tab 2 reads state (version 1) but server now has version 2
-      const updatedState = {
-        version: 2,
-        state: { widgets: { projectStatus: 'from-tab-1' } },
-        lastModified: new Date().toISOString(),
-      };
-      mockRedis.get.mockResolvedValueOnce(JSON.stringify(updatedState));
-
-      // Tab 1 saves with version 2 (succeeds)
       const tab1Result = await service.saveState(userId, workspaceId, {
         version: 2,
         state: { widgets: { projectStatus: 'from-tab-1' } },
@@ -353,9 +344,9 @@ describe('DashboardStateService', () => {
       expect(tab1Result.success).toBe(true);
       expect(tab1Result.serverVersion).toBe(2);
 
-      // Tab 2 tries to save with version 2 but server already has version 2
-      // This should succeed because versions are equal
-      mockRedis.set.mockResolvedValueOnce('OK');
+      // Tab 2 also saves with version 2 (Lua script succeeds - versions equal)
+      mockRedis.eval.mockResolvedValueOnce(JSON.stringify({ status: 'success', version: 2 }));
+
       const tab2Result = await service.saveState(userId, workspaceId, {
         version: 2,
         state: { widgets: { projectStatus: 'from-tab-2' } },
@@ -365,13 +356,14 @@ describe('DashboardStateService', () => {
     });
 
     it('should reject stale update when server version is ahead', async () => {
-      // Server has version 3 (from another tab's updates)
-      const serverState = {
-        version: 3,
-        state: { widgets: { projectStatus: 'latest' } },
-        lastModified: new Date().toISOString(),
-      };
-      mockRedis.get.mockResolvedValue(JSON.stringify(serverState));
+      // Lock acquisition succeeds
+      mockRedis.set.mockResolvedValue('OK');
+
+      // Lua script returns conflict (server v3 > client v2)
+      mockRedis.eval.mockResolvedValue(JSON.stringify({
+        status: 'conflict',
+        serverVersion: 3,
+      }));
 
       // Stale tab tries to save with version 2
       const result = await service.saveState(userId, workspaceId, {
@@ -382,13 +374,14 @@ describe('DashboardStateService', () => {
       expect(result.success).toBe(false);
       expect(result.serverVersion).toBe(3);
       expect(result.conflictResolution).toBe('server');
-      expect(mockRedis.set).not.toHaveBeenCalled();
     });
 
     it('should handle rapid successive updates from same tab', async () => {
-      // First update
-      mockRedis.get.mockResolvedValueOnce(null);
-      mockRedis.set.mockResolvedValueOnce('OK');
+      // Lock always succeeds
+      mockRedis.set.mockResolvedValue('OK');
+
+      // First update (version 1)
+      mockRedis.eval.mockResolvedValueOnce(JSON.stringify({ status: 'success', version: 1 }));
 
       const result1 = await service.saveState(userId, workspaceId, {
         version: 1,
@@ -397,14 +390,8 @@ describe('DashboardStateService', () => {
 
       expect(result1.success).toBe(true);
 
-      // Second update immediately after
-      const state1 = {
-        version: 1,
-        state: { widgets: { count: 1 } },
-        lastModified: new Date().toISOString(),
-      };
-      mockRedis.get.mockResolvedValueOnce(JSON.stringify(state1));
-      mockRedis.set.mockResolvedValueOnce('OK');
+      // Second update (version 2)
+      mockRedis.eval.mockResolvedValueOnce(JSON.stringify({ status: 'success', version: 2 }));
 
       const result2 = await service.saveState(userId, workspaceId, {
         version: 2,
@@ -414,14 +401,8 @@ describe('DashboardStateService', () => {
       expect(result2.success).toBe(true);
       expect(result2.serverVersion).toBe(2);
 
-      // Third update
-      const state2 = {
-        version: 2,
-        state: { widgets: { count: 2 } },
-        lastModified: new Date().toISOString(),
-      };
-      mockRedis.get.mockResolvedValueOnce(JSON.stringify(state2));
-      mockRedis.set.mockResolvedValueOnce('OK');
+      // Third update (version 3)
+      mockRedis.eval.mockResolvedValueOnce(JSON.stringify({ status: 'success', version: 3 }));
 
       const result3 = await service.saveState(userId, workspaceId, {
         version: 3,
@@ -442,6 +423,22 @@ describe('DashboardStateService', () => {
   describe('Redis complete failure (CR-12)', () => {
     const userId = 'user-123';
     const workspaceId = 'workspace-456';
+    let originalRedis: any;
+
+    // Save redis client and reset mocks before each test
+    beforeEach(() => {
+      originalRedis = (service as any).redis;
+      mockRedis.get.mockReset();
+      mockRedis.set.mockReset();
+      mockRedis.del.mockReset();
+      mockRedis.eval.mockReset();
+      mockRedis.setnx.mockReset();
+    });
+
+    // Restore redis client after each test
+    afterEach(() => {
+      (service as any).redis = originalRedis;
+    });
 
     it('should fail-open on saveState when Redis unavailable', async () => {
       // Simulate Redis unavailable
@@ -478,32 +475,34 @@ describe('DashboardStateService', () => {
     });
 
     it('should handle Redis connection timeout gracefully', async () => {
-      // Simulate connection timeout
-      mockRedis.get.mockImplementation(() =>
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('ETIMEDOUT')), 100)
-        )
-      );
+      // Simulate persistent connection timeout (fails all retries)
+      mockRedis.get.mockRejectedValue(new Error('ETIMEDOUT'));
 
       const result = await service.getState(userId, workspaceId);
 
-      // Should return null, not throw
+      // Should return null, not throw (fail-open after retries exhausted)
       expect(result).toBeNull();
+      // Should have retried 3 times
+      expect(mockRedis.get).toHaveBeenCalledTimes(3);
     });
 
     it('should handle Redis connection reset gracefully', async () => {
-      // Simulate connection reset
+      // Simulate persistent connection reset (fails all retries)
       mockRedis.get.mockRejectedValue(new Error('ECONNRESET'));
 
       const result = await service.getState(userId, workspaceId);
 
-      // Should return null, not throw
+      // Should return null, not throw (fail-open after retries exhausted)
       expect(result).toBeNull();
+      // Should have retried 3 times
+      expect(mockRedis.get).toHaveBeenCalledTimes(3);
     });
 
     it('should handle Redis out-of-memory errors gracefully', async () => {
-      // Simulate OOM error
-      mockRedis.set.mockRejectedValue(new Error('OOM command not allowed when used memory > maxmemory'));
+      // Lock acquisition succeeds
+      mockRedis.set.mockResolvedValue('OK');
+      // Lua eval fails with OOM
+      mockRedis.eval.mockRejectedValue(new Error('OOM command not allowed when used memory > maxmemory'));
 
       const result = await service.saveState(userId, workspaceId, {
         version: 1,
@@ -522,10 +521,10 @@ describe('DashboardStateService', () => {
         lastModified: new Date().toISOString(),
       };
 
-      // GET succeeds
-      mockRedis.get.mockResolvedValue(JSON.stringify(goodState));
-      // SET fails
-      mockRedis.set.mockRejectedValue(new Error('Redis cluster failover in progress'));
+      // Lock acquisition succeeds
+      mockRedis.set.mockResolvedValue('OK');
+      // Lua eval fails with error
+      mockRedis.eval.mockRejectedValue(new Error('EXECABORT Transaction discarded because of previous errors'));
 
       // Attempt to save new state
       const result = await service.saveState(userId, workspaceId, {
@@ -536,7 +535,8 @@ describe('DashboardStateService', () => {
       // Update should fail
       expect(result.success).toBe(false);
 
-      // Original state should still be readable
+      // Clear mocks and verify original state is still readable
+      jest.clearAllMocks();
       mockRedis.get.mockResolvedValue(JSON.stringify(goodState));
       const currentState = await service.getState(userId, workspaceId);
 
