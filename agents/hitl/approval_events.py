@@ -1,12 +1,12 @@
 """
 Event-Driven Approval Notification System
 
-Replaces polling with asyncio.Event-based notification for efficient
+Replaces polling with asyncio.Future-based notification for efficient
 approval wait handling. Subscribes to approval resolution events from
 the Foundation event bus.
 
 This module provides:
-- ApprovalEventManager: Core class managing asyncio.Event instances
+- ApprovalEventManager: Core class managing asyncio.Future instances
 - ApprovalResult: Dataclass for approval decision results
 - Singleton accessor for global event manager instance
 
@@ -14,6 +14,12 @@ Performance Impact:
 - CPU during wait: ~0% (vs ~1% per approval with polling)
 - Response latency: <100ms (vs 0-5 seconds with polling)
 - API calls during wait: 1 (vs ~60 calls per 5min wait)
+
+Race Condition Safety:
+Uses asyncio.Future instead of asyncio.Event to prevent race conditions.
+The Future is registered under lock before waiting, and notify() delivers
+the result directly to the Future. This ensures the result is never lost
+even if notify() happens before the await starts.
 
 @see docs/modules/bm-dm/stories/dm-11-6-event-driven-approvals.md
 Epic: DM-11 | Story: DM-11.6
@@ -69,9 +75,15 @@ class ApprovalResult:
 
 @dataclass
 class _PendingApproval:
-    """Internal tracking for a pending approval wait."""
+    """
+    Internal tracking for a pending approval wait.
 
-    event: asyncio.Event
+    Uses asyncio.Future instead of asyncio.Event to prevent race conditions.
+    The Future receives the result directly via set_result(), ensuring the
+    result is never lost even if notify() happens before the await starts.
+    """
+
+    future: asyncio.Future[ApprovalResult]
     created_at: datetime = field(default_factory=datetime.utcnow)
 
 
@@ -84,8 +96,15 @@ class ApprovalEventManager:
     """
     Event-driven approval notification manager.
 
-    Uses asyncio.Event for zero-CPU wait on approval resolution.
+    Uses asyncio.Future for zero-CPU wait on approval resolution.
     Falls back to polling only when event delivery fails.
+
+    Race Condition Safety:
+        Uses asyncio.Future instead of asyncio.Event to prevent race conditions.
+        With Event, if notify() fires between lock release and event.wait(),
+        the signal is lost. With Future, notify() delivers the result directly
+        to the Future via set_result(), and the awaiting coroutine receives it
+        regardless of timing.
 
     Thread Safety:
         Uses asyncio.Lock for safe concurrent access within a single event loop.
@@ -117,7 +136,7 @@ class ApprovalEventManager:
 
     def __init__(self):
         """Initialize the approval event manager."""
-        self._pending_events: Dict[str, _PendingApproval] = {}
+        self._pending_futures: Dict[str, _PendingApproval] = {}
         self._results: Dict[str, ApprovalResult] = {}
         self._result_timestamps: Dict[str, datetime] = {}  # Track when results were added
         self._lock = asyncio.Lock()
@@ -131,8 +150,10 @@ class ApprovalEventManager:
         """
         Wait for an approval to be resolved using event-driven notification.
 
-        Uses asyncio.Event for efficient waiting with zero CPU usage.
+        Uses asyncio.Future for efficient waiting with zero CPU usage.
         The wait will complete when notify() is called for this approval_id.
+        The Future-based approach prevents race conditions by delivering
+        the result directly through the Future object.
 
         Args:
             approval_id: ID of the approval to wait for
@@ -144,18 +165,21 @@ class ApprovalEventManager:
         Raises:
             asyncio.TimeoutError: If not resolved within timeout
             asyncio.CancelledError: If the wait is cancelled
+            ValueError: If another coroutine is already waiting for this approval
         """
-        event = asyncio.Event()
-        pending = _PendingApproval(event=event)
+        future: asyncio.Future[ApprovalResult] = asyncio.get_event_loop().create_future()
+        pending = _PendingApproval(future=future)
 
         async with self._lock:
-            # Check if result already exists (race condition protection)
+            # Check if result already exists (from notify before wait)
             if approval_id in self._results:
                 logger.debug(f"Approval {approval_id} already resolved, returning cached result")
-                return self._results.pop(approval_id)
+                result = self._results.pop(approval_id)
+                self._result_timestamps.pop(approval_id, None)
+                return result
 
             # Prevent multiple waiters for the same approval_id
-            if approval_id in self._pending_events:
+            if approval_id in self._pending_futures:
                 logger.warning(
                     f"Duplicate wait attempt for approval {approval_id} - "
                     "another coroutine is already waiting"
@@ -165,32 +189,21 @@ class ApprovalEventManager:
                     "Only one coroutine can wait per approval."
                 )
 
-            self._pending_events[approval_id] = pending
-            logger.debug(f"Registered wait for approval {approval_id}")
+            # Register the Future BEFORE releasing the lock
+            # This ensures notify() can find and set the result on this Future
+            self._pending_futures[approval_id] = pending
+            logger.debug(f"Registered Future wait for approval {approval_id}")
 
         try:
-            # Wait for event or timeout
-            await asyncio.wait_for(event.wait(), timeout=timeout)
-
-            # Get result
-            async with self._lock:
-                if approval_id in self._results:
-                    result = self._results.pop(approval_id)
-                    logger.debug(f"Approval {approval_id} resolved via event: {result.status}")
-                    return result
-                else:
-                    # Event was set but no result - shouldn't happen
-                    logger.warning(f"Approval {approval_id} event set but no result found")
-                    raise RuntimeError(f"Approval {approval_id} event set without result")
+            # Wait for Future to receive result or timeout
+            # Race condition safe: if notify() called after lock release but before await,
+            # the result is set on the Future and await returns immediately
+            result = await asyncio.wait_for(future, timeout=timeout)
+            logger.debug(f"Approval {approval_id} resolved via Future: {result.status}")
+            return result
 
         except asyncio.TimeoutError:
             logger.debug(f"Approval {approval_id} wait timed out after {timeout}s")
-            # Check if we missed an event (race condition protection)
-            async with self._lock:
-                if approval_id in self._results:
-                    result = self._results.pop(approval_id)
-                    logger.debug(f"Found result for {approval_id} after timeout - returning")
-                    return result
             raise
 
         except asyncio.CancelledError:
@@ -198,7 +211,7 @@ class ApprovalEventManager:
             raise
 
         finally:
-            # Cleanup (async with proper locking)
+            # Cleanup the pending Future
             await self.cleanup(approval_id)
 
     async def notify(
@@ -210,29 +223,35 @@ class ApprovalEventManager:
         Handle approval response event from the event bus.
 
         Called when the Foundation approval system emits a resolution event.
-        Sets the asyncio.Event to wake up waiting coroutines.
+        Delivers the result directly to the waiting Future, or stores it
+        for later retrieval if no one is waiting yet.
 
         Args:
             approval_id: ID of the resolved approval
             result: ApprovalResult with resolution details
         """
         async with self._lock:
-            # Store the result and timestamp
-            self._results[approval_id] = result
-            self._result_timestamps[approval_id] = datetime.utcnow()
-
-            # Wake up any waiting coroutine
-            if approval_id in self._pending_events:
-                pending = self._pending_events[approval_id]
-                pending.event.set()
-                logger.debug(f"Approval {approval_id} notified: {result.status}")
+            # If someone is waiting, deliver result directly to their Future
+            if approval_id in self._pending_futures:
+                pending = self._pending_futures[approval_id]
+                # set_result delivers the value directly to the awaiting coroutine
+                # Race condition safe: works regardless of timing
+                if not pending.future.done():
+                    pending.future.set_result(result)
+                    logger.debug(f"Approval {approval_id} delivered to Future: {result.status}")
+                else:
+                    logger.warning(f"Approval {approval_id} Future already done, storing result")
+                    self._results[approval_id] = result
+                    self._result_timestamps[approval_id] = datetime.utcnow()
             else:
-                # No one waiting - result will be picked up on next wait
-                logger.debug(f"Received notification for non-pending approval: {approval_id}")
+                # No one waiting yet - store for when wait_for_event is called
+                self._results[approval_id] = result
+                self._result_timestamps[approval_id] = datetime.utcnow()
+                logger.debug(f"Approval {approval_id} stored for later retrieval: {result.status}")
 
     async def cleanup(self, approval_id: str) -> None:
         """
-        Clean up pending events for an approval.
+        Clean up pending Futures for an approval.
 
         Called automatically after wait completes, but can also be called
         manually to clean up abandoned waits. Uses proper locking for
@@ -242,9 +261,10 @@ class ApprovalEventManager:
             approval_id: ID of the approval to clean up
         """
         async with self._lock:
-            self._pending_events.pop(approval_id, None)
-            # Don't remove results here - they may be needed for race condition handling
-            # Results are cleaned up when retrieved or by cleanup_stale_results()
+            self._pending_futures.pop(approval_id, None)
+            # Don't remove results here - they may be needed if notify() was called
+            # before wait_for_event(). Results are cleaned up when retrieved or
+            # by cleanup_stale_results()
 
     async def cleanup_async(self, approval_id: str) -> None:
         """
@@ -254,7 +274,7 @@ class ApprovalEventManager:
             approval_id: ID of the approval to clean up
         """
         async with self._lock:
-            self._pending_events.pop(approval_id, None)
+            self._pending_futures.pop(approval_id, None)
             self._results.pop(approval_id, None)
             self._result_timestamps.pop(approval_id, None)
 
@@ -281,7 +301,7 @@ class ApprovalEventManager:
 
             for approval_id in stale_ids:
                 # Only clean up if not pending (someone might still be waiting)
-                if approval_id not in self._pending_events:
+                if approval_id not in self._pending_futures:
                     self._results.pop(approval_id, None)
                     self._result_timestamps.pop(approval_id, None)
                     cleaned += 1
@@ -305,7 +325,7 @@ class ApprovalEventManager:
     @property
     def pending_count(self) -> int:
         """Number of approvals currently waiting."""
-        return len(self._pending_events)
+        return len(self._pending_futures)
 
     @property
     def is_connected(self) -> bool:
@@ -322,7 +342,7 @@ class ApprovalEventManager:
             List of pending approval IDs
         """
         async with self._lock:
-            return list(self._pending_events.keys())
+            return list(self._pending_futures.keys())
 
 
 # =============================================================================

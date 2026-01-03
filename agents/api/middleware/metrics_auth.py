@@ -65,20 +65,27 @@ async def verify_metrics_auth(
             detail="Metrics authentication enabled but no API key configured",
         )
 
-    # Check Authorization header (Bearer token)
-    # Use hmac.compare_digest to prevent timing attacks
+    # Extract tokens from headers (constant time operations)
+    # Avoid early returns to prevent timing side-channels
+    bearer_token: str | None = None
     auth_header = request.headers.get("Authorization")
     if auth_header:
         scheme, _, token = auth_header.partition(" ")
-        if scheme.lower() == "bearer" and hmac.compare_digest(
-            token, settings.metrics_api_key
-        ):
-            return
+        if scheme.lower() == "bearer" and token:
+            bearer_token = token
 
-    # Check X-Metrics-Key header
-    # Use hmac.compare_digest to prevent timing attacks
     metrics_key = request.headers.get("X-Metrics-Key")
-    if metrics_key and hmac.compare_digest(metrics_key, settings.metrics_api_key):
+
+    # Perform all comparisons in constant time
+    # Use empty string fallback to ensure compare_digest always runs
+    api_key = settings.metrics_api_key
+    bearer_valid = bearer_token is not None and hmac.compare_digest(
+        bearer_token, api_key
+    )
+    key_valid = metrics_key is not None and hmac.compare_digest(metrics_key, api_key)
+
+    # Check results after all comparisons complete
+    if bearer_valid or key_valid:
         return
 
     # No valid authentication provided

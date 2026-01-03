@@ -15,13 +15,44 @@ import { z } from 'zod';
 // ============================================
 
 /**
+ * Allowed dashboard state paths for XSS prevention.
+ * Only these paths can be updated via WebSocket.
+ */
+export const ALLOWED_STATE_PATHS = ['widgets', 'activeProject', 'activeTasks'] as const;
+
+/**
+ * Check if a value contains potential XSS content (script tags).
+ * Defense in depth - React auto-escapes, but we block obvious attacks server-side.
+ */
+function containsScriptTags(value: unknown): boolean {
+  if (typeof value === 'string') {
+    // Check for script tags or event handlers
+    const dangerous = /<script|javascript:|on\w+\s*=/i;
+    return dangerous.test(value);
+  }
+  if (Array.isArray(value)) {
+    return value.some(containsScriptTags);
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value).some(containsScriptTags);
+  }
+  return false;
+}
+
+/**
  * Zod schema for dashboard state update payload (client -> server)
  */
 export const DashboardStateUpdatePayloadSchema = z.object({
   /** JSONPath to the updated property (e.g., 'widgets.w1', 'activeProject') */
-  path: z.string().min(1).max(200),
+  path: z.string().min(1).max(200).refine(
+    (path) => ALLOWED_STATE_PATHS.some((allowed) => path.startsWith(allowed)),
+    { message: 'Path must start with an allowed prefix: widgets, activeProject, or activeTasks' }
+  ),
   /** The new value for the path */
-  value: z.unknown(),
+  value: z.unknown().refine(
+    (val) => !containsScriptTags(val),
+    { message: 'Value contains potentially dangerous content' }
+  ),
   /** Version number for conflict detection */
   version: z.number().int().min(0),
   /** ISO timestamp of the update */
@@ -69,6 +100,32 @@ export const DashboardStateRequestPayloadSchema = z.object({
 });
 
 export type DashboardStateRequestPayload = z.infer<typeof DashboardStateRequestPayloadSchema>;
+
+// ============================================
+// Room Management Schemas
+// ============================================
+
+/**
+ * Zod schema for room.join payload (client -> server)
+ * Used when switching workspaces to join the new workspace room
+ */
+export const RoomJoinPayloadSchema = z.object({
+  /** Workspace ID to join */
+  workspaceId: z.string().min(1).max(50),
+});
+
+export type RoomJoinPayload = z.infer<typeof RoomJoinPayloadSchema>;
+
+/**
+ * Zod schema for room.leave payload (client -> server)
+ * Used when switching workspaces to leave the old workspace room
+ */
+export const RoomLeavePayloadSchema = z.object({
+  /** Workspace ID to leave */
+  workspaceId: z.string().min(1).max(50),
+});
+
+export type RoomLeavePayload = z.infer<typeof RoomLeavePayloadSchema>;
 
 // ============================================
 // Server/Client Event Interfaces

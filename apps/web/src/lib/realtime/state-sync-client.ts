@@ -330,7 +330,11 @@ export class StateSyncClient {
       return;
     }
 
-    // If disconnected, notify error and preserve changes for retry on reconnect
+    // If disconnected, drop pending changes and notify error
+    // Note: Changes are intentionally dropped (not preserved) because:
+    // 1. Reconnection triggers full state sync from server
+    // 2. Local state is the source of truth until sync completes
+    // 3. Preserving stale changes could cause conflicts on reconnect
     if (!this.socket?.connected) {
       console.warn(
         '[StateSyncClient] Socket disconnected, dropping',

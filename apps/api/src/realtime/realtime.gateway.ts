@@ -56,6 +56,9 @@ import {
   getWorkspaceRoom,
   getUserRoom,
   getProjectRoom,
+  // Room management
+  RoomJoinPayloadSchema,
+  RoomLeavePayloadSchema,
 } from './realtime.types';
 import { PresenceService } from './presence.service';
 import { DashboardStateService } from '../modules/dashboard/dashboard-state.service';
@@ -239,11 +242,12 @@ export class RealtimeGateway
     this.logger.log(`WebSocket CORS configured for: ${frontendUrl}`);
 
     if (process.env.NODE_ENV === 'production') {
+      // SECURITY: Cookie fallback creates CSRF vulnerabilities - block in production
       if (process.env.WS_ALLOW_COOKIE_FALLBACK === 'true') {
-        this.logger.warn(
-          '[SECURITY] WS_ALLOW_COOKIE_FALLBACK is enabled in production. ' +
-            'Ensure origin validation, monitoring, and session controls are in place. ' +
-            'Prefer passing the token via handshake.auth.token instead of cookies.',
+        throw new Error(
+          '[SECURITY] WS_ALLOW_COOKIE_FALLBACK must not be enabled in production. ' +
+            'Use handshake.auth.token instead. ' +
+            'See docs/DEPLOYMENT.md for secure WebSocket configuration.',
         );
       }
       if (process.env.WS_ALLOW_AUTH_HEADER_FALLBACK === 'true') {
@@ -602,6 +606,189 @@ export class RealtimeGateway
         pendingApprovals: 0,
         unreadNotifications: 0,
         lastEventTimestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Handle room.leave request (for workspace switching)
+   * Leaves the old workspace room and cleans up tracking
+   * SECURITY: Only allows leaving rooms the user is actually in
+   */
+  @SubscribeMessage('room.leave')
+  async handleRoomLeave(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    // SECURITY: Validate input
+    const parseResult = RoomLeavePayloadSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid room.leave payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const { workspaceId: targetWorkspaceId } = parseResult.data;
+    const { userId, workspaceId: currentWorkspaceId } = client.data || {};
+
+    // Only allow leaving the workspace you're currently connected to
+    if (targetWorkspaceId !== currentWorkspaceId) {
+      this.logger.warn({
+        message: 'Attempted to leave workspace not currently joined',
+        socketId: client.id,
+        userId,
+        targetWorkspaceId,
+        currentWorkspaceId,
+      });
+      return;
+    }
+
+    const workspaceRoom = getWorkspaceRoom(targetWorkspaceId);
+    const dashboardStateRoom = userId ? getDashboardStateRoom(userId) : null;
+
+    // Leave workspace room
+    if (client.rooms.has(workspaceRoom)) {
+      await client.leave(workspaceRoom);
+    }
+
+    // Leave dashboard state room
+    if (dashboardStateRoom && client.rooms.has(dashboardStateRoom)) {
+      await client.leave(dashboardStateRoom);
+    }
+
+    // Untrack connection
+    if (userId) {
+      this.untrackConnection(targetWorkspaceId, client.id, userId);
+    }
+
+    this.logger.log({
+      message: 'Client left workspace room',
+      socketId: client.id,
+      userId,
+      workspaceId: targetWorkspaceId,
+    });
+
+    // Confirm room leave
+    client.emit('connection.status', {
+      status: 'connected',
+      message: `Left workspace ${targetWorkspaceId}`,
+    });
+  }
+
+  /**
+   * Handle room.join request (for workspace switching)
+   * Joins the new workspace room after verifying access
+   * SECURITY: Validates user has membership in target workspace
+   */
+  @SubscribeMessage('room.join')
+  async handleRoomJoin(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() rawData: unknown,
+  ) {
+    // SECURITY: Validate input
+    const parseResult = RoomJoinPayloadSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      this.logger.warn({
+        message: 'Invalid room.join payload',
+        socketId: client.id,
+        errors: parseResult.error.errors,
+      });
+      return;
+    }
+
+    const { workspaceId: targetWorkspaceId } = parseResult.data;
+    const { userId } = client.data || {};
+
+    if (!userId) {
+      this.logger.warn({
+        message: 'room.join without authenticated user',
+        socketId: client.id,
+      });
+      return;
+    }
+
+    try {
+      // SECURITY: Verify user has access to target workspace
+      const membership = await this.prisma.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId,
+            workspaceId: targetWorkspaceId,
+          },
+        },
+        select: { role: true },
+      });
+
+      if (!membership) {
+        this.logger.warn({
+          message: 'User attempted to join workspace without membership',
+          socketId: client.id,
+          userId,
+          targetWorkspaceId,
+        });
+        client.emit('connection.status', {
+          status: 'error',
+          message: 'Access denied to workspace',
+        });
+        return;
+      }
+
+      // Check rate limits for new workspace
+      if (!this.checkRateLimits(userId, targetWorkspaceId)) {
+        this.logger.warn({
+          message: 'room.join rejected - rate limit exceeded',
+          socketId: client.id,
+          userId,
+          targetWorkspaceId,
+        });
+        client.emit('connection.status', {
+          status: 'error',
+          message: 'Rate limit exceeded for workspace',
+        });
+        return;
+      }
+
+      // Join workspace room
+      const workspaceRoom = getWorkspaceRoom(targetWorkspaceId);
+      await client.join(workspaceRoom);
+
+      // Join dashboard state room
+      const dashboardStateRoom = getDashboardStateRoom(userId);
+      await client.join(dashboardStateRoom);
+
+      // Update socket data with new workspace
+      client.data.workspaceId = targetWorkspaceId;
+
+      // Track connection
+      this.trackConnection(targetWorkspaceId, client.id, userId);
+
+      this.logger.log({
+        message: 'Client joined workspace room',
+        socketId: client.id,
+        userId,
+        workspaceId: targetWorkspaceId,
+        rooms: [workspaceRoom, dashboardStateRoom],
+      });
+
+      // Confirm room join
+      client.emit('connection.status', {
+        status: 'connected',
+        message: `Joined workspace ${targetWorkspaceId}`,
+      });
+    } catch (error) {
+      this.logger.error({
+        message: 'Error joining workspace room',
+        socketId: client.id,
+        userId,
+        targetWorkspaceId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      client.emit('connection.status', {
+        status: 'error',
+        message: 'Failed to join workspace',
       });
     }
   }
@@ -1596,14 +1783,9 @@ export class RealtimeGateway
       return auth.token;
     }
 
-    // Development fallback: allow token via cookie when session token is HttpOnly (browser can't read it).
-    // SECURITY: opt-in only via WS_ALLOW_COOKIE_FALLBACK=true (even in dev).
+    // Development-only fallback: allow token via cookie when session token is HttpOnly.
+    // SECURITY: Blocked in production (throws in constructor), dev-only opt-in via WS_ALLOW_COOKIE_FALLBACK=true.
     const allowCookieFallback = process.env.WS_ALLOW_COOKIE_FALLBACK === 'true';
-    if (process.env.NODE_ENV === 'production' && allowCookieFallback) {
-      this.logger.warn(
-        '[SECURITY] WS_ALLOW_COOKIE_FALLBACK is enabled in production. Ensure origin validation, monitoring, and session controls are in place.',
-      );
-    }
     if (allowCookieFallback) {
       const cookieHeader = headers.cookie;
       if (cookieHeader && typeof cookieHeader === 'string') {
