@@ -94,6 +94,7 @@ export class StateSyncClient {
   private fullCallbacks: Set<StateFullCallback> = new Set();
   private errorCallbacks: Set<StateSyncErrorCallback> = new Set();
   private debounceTimeout: NodeJS.Timeout | null = null;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
   private pendingChanges: StateChange[] = [];
   private lastKnownVersion = 0;
   private isConnected = false;
@@ -150,10 +151,14 @@ export class StateSyncClient {
       this.socket = null;
     }
 
-    // Clear pending changes
+    // Clear pending changes and timeouts
     if (this.debounceTimeout) {
       clearTimeout(this.debounceTimeout);
       this.debounceTimeout = null;
+    }
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
     }
     this.pendingChanges = [];
     this.isConnected = false;
@@ -165,10 +170,17 @@ export class StateSyncClient {
   private handleConnect = (): void => {
     this.isConnected = true;
 
+    // Clear any pending reconnect timeout from previous connection attempt
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
     // Request full state on reconnection if configured
     if (WS_SYNC.REQUEST_FULL_STATE_ON_RECONNECT) {
       // Small delay to ensure the server has processed the connection
-      setTimeout(() => {
+      this.reconnectTimeout = setTimeout(() => {
+        this.reconnectTimeout = null;
         this.requestFullState();
       }, WS_SYNC.RECONNECT_RECOVERY_DELAY_MS);
     }
@@ -179,6 +191,12 @@ export class StateSyncClient {
    */
   private handleDisconnect = (): void => {
     this.isConnected = false;
+
+    // Clear reconnect timeout to prevent stale state requests
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
   };
 
   /**

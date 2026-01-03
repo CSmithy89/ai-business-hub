@@ -72,7 +72,6 @@ export function useDashboardSync(): UseDashboardSyncReturn {
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousTimestampRef = useRef<number>(0);
   const hasRestoredRef = useRef<boolean>(false);
-  const wsInitializedRef = useRef<boolean>(false);
 
   // Realtime context for WebSocket (DM-11.2)
   const { socket, isConnected } = useRealtime();
@@ -231,13 +230,10 @@ export function useDashboardSync(): UseDashboardSyncReturn {
     const unsubscribeSync = stateSyncClient.onSync(handleSync);
     const unsubscribeFull = stateSyncClient.onFull(handleFull);
 
-    wsInitializedRef.current = true;
-
     return () => {
       unsubscribeSync();
       unsubscribeFull();
       stateSyncClient.disconnect();
-      wsInitializedRef.current = false;
     };
   // Note: stateVersion intentionally excluded to prevent reconnection loops
   }, [isAuthenticated, socket, applyRemoteUpdate, applyFullState]);
@@ -248,8 +244,9 @@ export function useDashboardSync(): UseDashboardSyncReturn {
   }, [isConnected, setWsConnected]);
 
   // Emit local state changes via WebSocket
+  // Depends on wsConnected state to properly re-subscribe when connection changes
   useEffect(() => {
-    if (!isAuthenticated || !wsInitializedRef.current) {
+    if (!isAuthenticated || !wsConnected) {
       return;
     }
 
@@ -289,7 +286,7 @@ export function useDashboardSync(): UseDashboardSyncReturn {
     return () => {
       unsubscribe();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, wsConnected]);
 
   return {
     isSyncing,
