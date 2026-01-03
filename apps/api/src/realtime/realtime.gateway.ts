@@ -221,6 +221,7 @@ export class RealtimeGateway
   private readonly DASHBOARD_STATE_RATE_WINDOW_MS = 60_000; // 1 minute
   private readonly MAX_STATE_PAYLOAD_SIZE = 64 * 1024; // 64KB
   private readonly RATE_LIMIT_CLEANUP_INTERVAL_MS = 5 * 60_000; // 5 minutes
+  private readonly RATE_LIMIT_MAP_MAX_SIZE = 10_000; // Max entries before forced cleanup
   private rateLimitCleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -271,6 +272,17 @@ export class RealtimeGateway
   private startRateLimitCleanup(): void {
     this.rateLimitCleanupInterval = setInterval(() => {
       const now = Date.now();
+      const mapSize = this.dashboardStateRateLimits.size;
+
+      // Check for excessive map size - force cleanup if exceeded
+      if (mapSize > this.RATE_LIMIT_MAP_MAX_SIZE) {
+        this.logger.warn({
+          message: 'Rate limit map exceeds max size, forcing cleanup',
+          currentSize: mapSize,
+          maxSize: this.RATE_LIMIT_MAP_MAX_SIZE,
+        });
+      }
+
       // Collect expired entries first to avoid modifying Map during iteration
       const expiredUserIds: string[] = [];
       for (const [userId, limit] of this.dashboardStateRateLimits.entries()) {
@@ -1009,7 +1021,20 @@ export class RealtimeGateway
       return;
     }
 
-    // SECURITY: Validate input with Zod first (cheaper than size check)
+    // SECURITY: Check payload size before parsing to prevent DoS with large payloads
+    const rawPayloadSize = JSON.stringify(rawData).length;
+    if (rawPayloadSize > this.MAX_STATE_PAYLOAD_SIZE) {
+      this.logger.warn({
+        message: 'Dashboard state update payload too large (pre-parse)',
+        socketId: client.id,
+        userId,
+        payloadSize: rawPayloadSize,
+        maxSize: this.MAX_STATE_PAYLOAD_SIZE,
+      });
+      return;
+    }
+
+    // SECURITY: Validate input with Zod schema
     const parseResult = DashboardStateUpdatePayloadSchema.safeParse(rawData);
     if (!parseResult.success) {
       this.logger.warn({
@@ -1023,11 +1048,12 @@ export class RealtimeGateway
 
     const data = parseResult.data;
 
-    // SECURITY: Validate payload size (after validation to prevent DoS with malformed payloads)
+    // SECURITY: Defense-in-depth - check parsed payload size
+    // (pre-parse check above handles raw input, this catches any size changes from parsing)
     const payloadSize = JSON.stringify(data).length;
     if (payloadSize > this.MAX_STATE_PAYLOAD_SIZE) {
       this.logger.warn({
-        message: 'Dashboard state update payload too large',
+        message: 'Dashboard state update payload too large (post-parse)',
         socketId: client.id,
         userId,
         payloadSize,

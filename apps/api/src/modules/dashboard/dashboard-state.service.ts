@@ -13,7 +13,7 @@
  * Story: DM-11.1 - Redis State Persistence
  */
 
-import { Injectable, Logger, OnModuleInit, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, BadRequestException } from '@nestjs/common';
 import { randomUUID, createHash } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -54,6 +54,9 @@ const LOCK_RETRY_DELAY_MS = 100;
 const REDIS_MAX_RETRIES = 3;
 const REDIS_RETRY_BASE_DELAY_MS = 50;
 const REDIS_RETRY_MAX_DELAY_MS = 500;
+
+/** Redis connection retry interval (30 seconds) */
+const REDIS_CONNECTION_RETRY_INTERVAL_MS = 30_000;
 
 /**
  * Lua script for atomic check-and-set operation
@@ -120,10 +123,11 @@ end
 `;
 
 @Injectable()
-export class DashboardStateService implements OnModuleInit {
+export class DashboardStateService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DashboardStateService.name);
   private redis: RedisClient | null = null;
   private readonly stateTtlSeconds: number;
+  private redisRetryInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     @InjectQueue('event-retry') private eventRetryQueue: Queue,
@@ -151,8 +155,50 @@ export class DashboardStateService implements OnModuleInit {
       this.logger.log('Dashboard state service initialized with Redis');
     } catch (error) {
       this.logger.error('Failed to initialize Redis for dashboard state', error);
-      // Don't throw - allow fail-open pattern
+      // Start periodic retry for Redis connection
+      this.startRedisConnectionRetry();
     }
+  }
+
+  onModuleDestroy() {
+    if (this.redisRetryInterval) {
+      clearInterval(this.redisRetryInterval);
+      this.redisRetryInterval = null;
+    }
+  }
+
+  /**
+   * Periodically retry Redis connection if initial connection failed.
+   * Allows recovery if Redis becomes available after startup.
+   */
+  private startRedisConnectionRetry(): void {
+    if (this.redisRetryInterval) return;
+
+    this.redisRetryInterval = setInterval(async () => {
+      if (this.redis) {
+        // Connection established, stop retrying
+        if (this.redisRetryInterval) {
+          clearInterval(this.redisRetryInterval);
+          this.redisRetryInterval = null;
+        }
+        return;
+      }
+
+      try {
+        this.redis = await this.eventRetryQueue.client;
+        await this.redis.ping();
+        this.logger.log('Redis connection established after retry');
+        // Stop retrying
+        if (this.redisRetryInterval) {
+          clearInterval(this.redisRetryInterval);
+          this.redisRetryInterval = null;
+        }
+      } catch (error) {
+        this.logger.warn('Redis still unavailable, will retry...');
+      }
+    }, REDIS_CONNECTION_RETRY_INTERVAL_MS);
+
+    this.logger.log('Started Redis connection retry task');
   }
 
   /**
