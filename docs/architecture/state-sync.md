@@ -130,7 +130,8 @@ interface StateUpdate {
 
 // Server-side version check
 async function applyUpdate(update: StateUpdate): Promise<UpdateResult> {
-  const currentVersion = await redis.get(`dashboard:${id}:version`);
+  const versionStr = await redis.get(`dashboard:${id}:version`);
+  const currentVersion = parseInt(versionStr || '0', 10);
 
   if (update.lastKnownVersion !== currentVersion) {
     return { success: false, serverVersion: currentVersion };

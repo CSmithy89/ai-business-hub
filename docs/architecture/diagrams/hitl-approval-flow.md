@@ -156,5 +156,5 @@ sequenceDiagram
 ## Related Documentation
 
 - [A2A Request Flow](./a2a-request-flow.md)
-- [Async Primitive Patterns](../../guides/async-patterns.md)
+- [Async Primitive Patterns](../../guides/async-primitive-patterns.md)
 - [Security Review Checklist](../../security/review-checklist.md)

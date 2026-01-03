@@ -1,13 +1,14 @@
 # Semgrep Configuration for HYVVE
-# Run with: semgrep scan --config .semgrep/
-
-# Include our custom rules
-rules:
-  - ".semgrep/rules/"
-
-# Also use Semgrep's auto config for comprehensive coverage
-# This includes OWASP Top 10, common security issues, etc.
-# The 'auto' config is applied via command line: semgrep scan --config auto
+#
+# Usage:
+#   semgrep scan --config .semgrep/              # Run custom rules only
+#   semgrep scan --config .semgrep/ --config auto # Run with auto config too
+#
+# Severity filtering (in CI):
+#   semgrep scan --config .semgrep/ --severity ERROR --severity WARNING
+#
+# Scan test files for security issues:
+#   semgrep scan --config .semgrep/ --include="**/*.test.ts" --severity ERROR
 
 # Paths to scan
 paths:
@@ -31,12 +32,3 @@ paths:
     - "**/dist/**"
     - "**/build/**"
     - "**/.next/**"
-
-# Severity thresholds for CI (blocks commit on ERROR/WARNING)
-# INFO findings are logged but don't block
-# To also scan test files for security issues, run:
-#   semgrep scan --config .semgrep/ --include="**/*.test.ts" --severity=ERROR --severity=WARNING
-severity:
-  - ERROR
-  - WARNING
-  - INFO

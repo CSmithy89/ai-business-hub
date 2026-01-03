@@ -23,17 +23,18 @@ rules:
       cwe: "CWE-404: Improper Resource Shutdown or Release"
 
   - id: fire-and-forget-no-exception-handling
-    pattern-either:
-      - pattern: asyncio.create_task($CORO)
-      - pattern: loop.create_task($CORO)
-    pattern-not-inside: |
-      try:
-        ...
-      except:
-        ...
-    pattern-not-inside: |
-      $TASK = asyncio.create_task($CORO)
-      $TASK.add_done_callback(...)
+    patterns:
+      - pattern-either:
+          - pattern: asyncio.create_task($CORO)
+          - pattern: loop.create_task($CORO)
+      - pattern-not-inside: |
+          try:
+            ...
+          except:
+            ...
+      - pattern-not-inside: |
+          $TASK = asyncio.create_task($CORO)
+          $TASK.add_done_callback(...)
     languages:
       - python
     message: "Consider adding exception handling or done_callback for background tasks"
@@ -45,9 +46,11 @@ rules:
 
   # TypeScript async pitfalls
   - id: promise-no-catch
-    pattern: $PROMISE.then($HANDLER)
-    pattern-not: $PROMISE.then($HANDLER).catch($CATCH)
-    pattern-not: $PROMISE.then($HANDLER, $REJECT)
+    patterns:
+      - pattern: $PROMISE.then($HANDLER)
+      - pattern-not-either:
+          - pattern: $PROMISE.then($HANDLER).catch($CATCH)
+          - pattern: $PROMISE.then($HANDLER, $REJECT)
     languages:
       - typescript
       - javascript

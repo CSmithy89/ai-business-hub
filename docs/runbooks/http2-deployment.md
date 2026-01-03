@@ -66,6 +66,17 @@ class Settings(BaseSettings):
 
 ```python
 # agents/main.py
+# Note: Uvicorn does not natively support HTTP/2.
+# For HTTP/2 in production, use one of these approaches:
+#
+# Option 1: Use Hypercorn (native HTTP/2 support)
+#   hypercorn main:app --bind 0.0.0.0:8000 --certfile server.crt --keyfile server.key
+#
+# Option 2: Use Nginx as HTTP/2 termination proxy (recommended)
+#   Nginx handles HTTP/2 -> proxies to uvicorn over HTTP/1.1
+#   See nginx configuration below.
+#
+# For development/internal traffic, uvicorn with HTTP/1.1 + TLS:
 import uvicorn
 
 if __name__ == "__main__":
@@ -75,7 +86,6 @@ if __name__ == "__main__":
         port=8000,
         ssl_keyfile=settings.tls_key_path,
         ssl_certfile=settings.tls_cert_path,
-        http="h2",  # Enable HTTP/2
         limit_concurrency=100,
         limit_max_requests=10000,
     )

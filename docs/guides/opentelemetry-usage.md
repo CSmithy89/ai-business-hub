@@ -33,6 +33,7 @@ OTEL_TRACES_SAMPLER_ARG=1.0
 ```typescript
 // apps/api/src/telemetry/otel.ts
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-grpc';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -60,7 +61,9 @@ export function initTelemetry() {
 # agents/telemetry/otel.py
 from opentelemetry import trace, metrics
 from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 
@@ -83,7 +86,7 @@ def init_telemetry():
 
 ```typescript
 // TypeScript
-import { trace } from '@opentelemetry/api';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 const tracer = trace.getTracer('hyvve-api');
 
@@ -109,6 +112,7 @@ async function processWidget(widgetId: string) {
 ```python
 # Python
 from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 
 tracer = trace.get_tracer("agentos")
 
