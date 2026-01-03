@@ -81,6 +81,100 @@ Notes:
 - The token is checked on every agent-to-API call
 - Monitor for `401 Unauthorized` errors in agent logs during rotation
 
+#### METRICS_API_KEY (Metrics Endpoint Authentication)
+
+The `METRICS_API_KEY` protects the `/metrics` endpoint used by Prometheus and Grafana for scraping application metrics.
+
+##### When to Rotate
+- Suspected key exposure
+- Personnel changes (ops team members leaving)
+- Periodic rotation (recommended: every 90 days)
+
+##### Rotation Steps
+
+1. **Generate new key:**
+   ```bash
+   openssl rand -base64 32
+   ```
+
+2. **Update secret store:**
+
+   For Kubernetes:
+   ```bash
+   kubectl create secret generic metrics-auth \
+     --from-literal=METRICS_API_KEY=<new-key> \
+     --dry-run=client -o yaml | kubectl apply -f -
+   ```
+
+   For environment file:
+   ```bash
+   # Update .env.production
+   METRICS_API_KEY=<new-key>
+   ```
+
+3. **Rolling deployment (zero downtime):**
+   ```bash
+   kubectl rollout restart deployment/agent-api
+   kubectl rollout status deployment/agent-api
+   ```
+
+4. **Update monitoring tools:**
+
+   Prometheus scrape config:
+   ```yaml
+   # prometheus.yml
+   scrape_configs:
+     - job_name: 'hyvve-api'
+       bearer_token: '<new-key>'
+       static_configs:
+         - targets: ['api.hyvve.app:443']
+   ```
+
+   Grafana datasource (via UI or provisioning):
+   ```yaml
+   # grafana/provisioning/datasources/prometheus.yaml
+   datasources:
+     - name: Prometheus
+       type: prometheus
+       access: proxy
+       url: http://prometheus:9090
+       basicAuth: false
+       httpHeaderName1: 'Authorization'
+       httpHeaderValue1: 'Bearer <new-key>'
+   ```
+
+5. **Verify access:**
+   ```bash
+   curl -H "Authorization: Bearer <new-key>" \
+     https://api.hyvve.app/metrics
+
+   # Should return Prometheus-format metrics
+   # HELP http_requests_total Total HTTP requests
+   # TYPE http_requests_total counter
+   ```
+
+6. **Revoke old key:**
+   - Old key is automatically invalid after deployment
+   - No explicit revocation needed (not stored externally)
+
+##### Rollback
+
+If issues occur after rotation:
+```bash
+kubectl rollout undo deployment/agent-api
+```
+
+Then restore old key in monitoring tools.
+
+##### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Prometheus scrape failing | Key mismatch | Update prometheus.yml with new key |
+| Grafana showing no data | Datasource outdated | Update Grafana datasource config |
+| 401 on /metrics | Key not deployed | Verify METRICS_API_KEY in pod env |
+| Metrics endpoint 404 | Endpoint disabled | Check METRICS_ENABLED=true |
+
 ### 4. Decommission old secrets
 - After you verify stability, revoke old keys from provider.
 - Remove old secret versions from deployment config.
