@@ -89,3 +89,24 @@ Implement task-based routing middleware that classifies requests and routes them
 - [x] Unit tests pass
 - [x] All code uses DMConstants
 - [x] Sprint status updated to "done"
+
+## Implementation Notes
+
+### Files Created
+- `agents/services/task_classifier.py` - TaskClassifier for routing decisions
+- `agents/tests/test_dm_02_8_task_classifier.py` - Unit tests for classification
+
+### Key Implementation Details
+- **Task Types**: `code`, `content`, `strategy`, `analysis`, `general`
+- **Classification Sources**: Keyword matching, explicit hints (e.g., "use deepseek"), agent context
+- **Routing Rules**: Defined in `DMConstants.CCR.TASK_ROUTING_RULES`
+- **Integration**: `CCRModel.classify_task()` called before routing
+
+### Task Type → Provider Mapping (Default)
+| Task Type | Primary Provider | Fallback |
+|-----------|-----------------|----------|
+| code | claude-cli | deepseek |
+| content | claude-cli | gemini |
+| strategy | claude-cli | openrouter |
+| analysis | gemini | deepseek |
+| general | auto (CCR decides) | - |

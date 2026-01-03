@@ -48,8 +48,27 @@ Follow existing AgentModelPreferences component pattern with:
 - Integration: Mock API calls work correctly
 
 ## Definition of Done
-- [ ] All acceptance criteria met
-- [ ] Unit tests written and passing
-- [ ] No TypeScript errors
-- [ ] No ESLint errors
-- [ ] Code reviewed
+- [x] All acceptance criteria met
+- [x] Unit tests written and passing
+- [x] No TypeScript errors
+- [x] No ESLint errors
+- [x] Code reviewed
+
+## Implementation Notes
+
+### Files Created
+- `apps/web/src/components/settings/ccr-routing-config.tsx` - Main routing config component with 4 routing modes
+- `apps/web/src/hooks/useCCRRouting.ts` - React Query hooks for CCR routing state
+- `apps/web/src/components/settings/__tests__/ccr-routing-config.test.tsx` - Unit tests (89% coverage)
+
+### Key Implementation Details
+- **Routing Modes**: `auto`, `cost-optimized`, `performance`, `manual`
+- **Fallback Chain**: Drag-and-drop reordering using native HTML5 drag events
+- **Per-Agent Overrides**: Collapsible cards with provider selection
+- **Status Indicators**: Real-time health status for each provider
+
+### Technical Decisions
+- Used React Query for server state management (consistent with other settings)
+- Optimistic updates with rollback on failure
+- Card-based layout following AgentModelPreferences pattern
+- Provider status fetched from `/api/ccr/providers/status` endpoint

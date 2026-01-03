@@ -106,3 +106,25 @@ CCR is a node-based service that provides OpenAI-compatible API endpoints, allow
 - [x] Unit tests pass with coverage for error scenarios
 - [x] All code uses DMConstants (no magic numbers)
 - [x] Sprint status updated to "done"
+
+## Implementation Notes
+
+### Files Created
+- `docs/guides/ccr-setup.md` - CCR installation and configuration guide
+- `agents/ccr_config/ccr_config_template.json` - Template for CCR provider configuration
+- `agents/services/ccr_health.py` - CCRHealthChecker singleton service
+- `agents/tests/test_dm_02_6_ccr_health.py` - Unit tests for health checker
+
+### Key Implementation Details
+- **CCR Port**: Default 3456, configurable via `CCR_URL` environment variable
+- **Health Check Interval**: 30s (via `DMConstants.CCR.HEALTH_CHECK_INTERVAL_SECONDS`)
+- **Singleton Pattern**: `CCRHealthChecker.get_instance()` for shared health state
+- **Graceful Degradation**: Returns `UNKNOWN` status when CCR unreachable
+
+### Configuration Template Providers
+| Provider | Type | Notes |
+|----------|------|-------|
+| claude-cli | CLI | Uses local Claude subscription |
+| deepseek | openai-compatible | API key required |
+| gemini | gemini-cli | Uses local Gemini subscription |
+| openrouter | openai-compatible | API key required |
