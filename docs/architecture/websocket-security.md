@@ -53,6 +53,8 @@ export class RealtimeGateway {
 }
 ```
 
+> **Security Note:** When extracting tokens from multiple sources (handshake.auth vs headers), ensure the same `validateToken()` function is used for all paths. Different validation logic per source can create subtle authentication bypasses.
+
 ### Token Refresh
 
 ```typescript

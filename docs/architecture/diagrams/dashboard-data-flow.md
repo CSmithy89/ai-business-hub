@@ -127,4 +127,4 @@ sequenceDiagram
 
 - [A2A Request Flow](./a2a-request-flow.md)
 - [State Sync System](../state-sync.md)
-- [Widget Types Reference](../../guides/widget-types.md)
+- [CopilotKit Patterns](../../guides/copilotkit-patterns.md)

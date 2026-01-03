@@ -159,4 +159,4 @@ semgrep scan --config auto --config .semgrep/
 
 - [WebSocket Security](../architecture/websocket-security.md)
 - [MCP Security Model](../architecture/mcp-security.md)
-- [Semgrep Rules](./.semgrep/rules/)
+- [Semgrep Rules](../../.semgrep/rules/)

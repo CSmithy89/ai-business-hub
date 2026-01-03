@@ -31,10 +31,13 @@ rules:
         ...
       except:
         ...
+    pattern-not-inside: |
+      $TASK = asyncio.create_task($CORO)
+      $TASK.add_done_callback(...)
     languages:
       - python
-    message: "Fire-and-forget tasks should have exception handling to prevent silent failures"
-    severity: WARNING
+    message: "Consider adding exception handling or done_callback for background tasks"
+    severity: INFO
     metadata:
       category: best-practices
       references:

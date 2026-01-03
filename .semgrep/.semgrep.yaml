@@ -32,8 +32,11 @@ paths:
     - "**/build/**"
     - "**/.next/**"
 
-# Severity thresholds
-# Set to 'error' to fail on any finding
+# Severity thresholds for CI (blocks commit on ERROR/WARNING)
+# INFO findings are logged but don't block
+# To also scan test files for security issues, run:
+#   semgrep scan --config .semgrep/ --include="**/*.test.ts" --severity=ERROR --severity=WARNING
 severity:
   - ERROR
   - WARNING
+  - INFO

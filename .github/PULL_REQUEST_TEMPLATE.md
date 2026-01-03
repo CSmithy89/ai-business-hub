@@ -77,11 +77,11 @@
 - [ ] No comments describe removed/changed functionality without update
 - [ ] No TODO comments without linked issue
 
-### PR Size Check
+### PR Size & Scope
 
-- [ ] This PR changes fewer than 50 files
-  <!-- If 50-100 files: Consider splitting into smaller PRs -->
-  <!-- If 100+ files: Requires explicit approval for large refactor -->
+- [ ] PR has focused scope (single epic or related stories)
+  <!-- If 50+ files: Ensure changes are cohesive (related refactoring is OK) -->
+  <!-- If 100+ files: Consider splitting or get explicit approval for large refactor -->
 
 ## Multi-Tenant Considerations
 

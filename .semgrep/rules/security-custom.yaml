@@ -59,10 +59,17 @@ rules:
           redirect($URL)
       - pattern: |
           res.redirect($URL)
+    pattern-not-either:
+      - pattern: window.location.href = "..."
+      - pattern: window.location.href = '...'
+      - pattern: redirect("...")
+      - pattern: redirect('...')
+      - pattern: res.redirect("...")
+      - pattern: res.redirect('...')
     languages:
       - typescript
       - javascript
-    message: "Potential open redirect. Validate redirect URLs against an allowlist."
+    message: "Potential open redirect. Validate dynamic redirect URLs against an allowlist."
     severity: WARNING
     metadata:
       category: security
