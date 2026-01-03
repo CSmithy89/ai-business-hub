@@ -98,6 +98,12 @@ interface MetricsConfig {
 }
 
 /**
+ * Metrics buffer for batching (could be sent to analytics in production)
+ */
+const metricsBuffer: Metric[] = []
+const MAX_BUFFER_SIZE = 100
+
+/**
  * Get current configuration from environment
  * Uses defensive parsing to handle invalid values
  */
@@ -107,8 +113,11 @@ function getConfig(): MetricsConfig {
   const sampleRate = Number.isNaN(parsedSampleRate) ? 1.0 : Math.max(0, Math.min(1, parsedSampleRate));
 
   // Parse batch size with fallback to 10 if invalid
+  // Cap at MAX_BUFFER_SIZE to ensure auto-flush can trigger before trimming
   const parsedBatchSize = parseInt(process.env.NEXT_PUBLIC_METRICS_BATCH_SIZE || '10', 10);
-  const batchSize = Number.isNaN(parsedBatchSize) || parsedBatchSize < 1 ? 10 : parsedBatchSize;
+  const batchSize = Number.isNaN(parsedBatchSize) || parsedBatchSize < 1
+    ? 10
+    : Math.min(parsedBatchSize, MAX_BUFFER_SIZE);
 
   return {
     enabled: process.env.NEXT_PUBLIC_METRICS_ENABLED === 'true' ||
@@ -118,12 +127,6 @@ function getConfig(): MetricsConfig {
     batchSize,
   }
 }
-
-/**
- * Metrics buffer for batching (could be sent to analytics in production)
- */
-const metricsBuffer: Metric[] = []
-const MAX_BUFFER_SIZE = 100
 
 /**
  * Track a metric

@@ -794,7 +794,7 @@ export const useDashboardStateStore = create<DashboardStateStore>()(
 
     incrementVersion: () => {
       const newVersion = get().stateVersion + 1;
-      set({ stateVersion: newVersion });
+      set({ stateVersion: newVersion, timestamp: Date.now() });
       return newVersion;
     },
 

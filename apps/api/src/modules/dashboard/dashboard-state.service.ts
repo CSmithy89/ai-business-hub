@@ -626,18 +626,42 @@ export class DashboardStateService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Recursively sort all object keys for deterministic serialization.
+   * Handles nested objects and arrays containing objects.
+   *
+   * @param value - Value to sort (objects get sorted, primitives pass through)
+   * @returns Sorted copy of the value
+   */
+  private sortObjectKeysDeep(value: unknown): unknown {
+    if (value === null || typeof value !== 'object') {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.sortObjectKeysDeep(item));
+    }
+
+    // Sort object keys and recursively sort values
+    const sorted: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      sorted[key] = this.sortObjectKeysDeep((value as Record<string, unknown>)[key]);
+    }
+    return sorted;
+  }
+
+  /**
    * Compute SHA-256 checksum of state object
    *
-   * Uses deterministic JSON stringification (sorted keys) to ensure
-   * consistent checksums regardless of property order.
+   * Uses deterministic JSON stringification (recursively sorted keys) to ensure
+   * consistent checksums regardless of property order at any nesting level.
    *
    * @param state - State object to hash
    * @returns SHA-256 hash in hex format
    */
   private computeChecksum(state: Record<string, unknown>): string {
-    // Sort keys for deterministic serialization
-    const sortedJson = JSON.stringify(state, Object.keys(state).sort());
-    return createHash('sha256').update(sortedJson).digest('hex');
+    // Deep sort all keys for deterministic serialization
+    const sortedState = this.sortObjectKeysDeep(state);
+    return createHash('sha256').update(JSON.stringify(sortedState)).digest('hex');
   }
 
   /**

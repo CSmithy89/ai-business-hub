@@ -37,17 +37,15 @@ except ImportError:
 
 # Model to encoding mapping
 # Reference: https://github.com/openai/tiktoken/blob/main/tiktoken/model.py
+# NOTE: Only OpenAI models have accurate tiktoken encodings.
+# Claude models use Anthropic's proprietary tokenizer - we fall back to estimation.
 MODEL_ENCODINGS = {
     # GPT-4 and GPT-3.5 Turbo
     "gpt-4": "cl100k_base",
     "gpt-4-turbo": "cl100k_base",
     "gpt-4o": "o200k_base",
     "gpt-3.5-turbo": "cl100k_base",
-    # Claude models use similar tokenization to cl100k_base
-    "claude": "cl100k_base",
-    "claude-3": "cl100k_base",
-    "claude-3.5": "cl100k_base",
-    # Default
+    # Default for unknown models (estimation will be used for non-OpenAI models)
     "default": "cl100k_base",
 }
 
@@ -179,8 +177,9 @@ def count_tokens_with_metadata(
             logger.warning(f"Token encoding failed: {e}")
 
     # Fallback estimation
+    # Use 3.5 characters per token (consistent with count_tokens)
     return {
-        "count": len(text) // 4,
+        "count": int(len(text) / 3.5),
         "method": "estimation",
         "encoding": None,
         "accurate": False,
@@ -198,13 +197,14 @@ def estimate_tokens(text: str) -> int:
     Estimate token count without tiktoken (always uses estimation).
 
     Useful for quick approximations when accuracy isn't critical.
+    Uses 3.5 chars/token for conservative estimation with code/technical content.
 
     Args:
         text: Text to estimate tokens for
 
     Returns:
-        Estimated token count (len(text) // 4)
+        Estimated token count
     """
     if not text:
         return 0
-    return len(text) // 4
+    return int(len(text) / 3.5)
