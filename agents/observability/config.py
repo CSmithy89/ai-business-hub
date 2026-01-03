@@ -62,11 +62,16 @@ class OTelSettings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_metrics_auth_config(self) -> "OTelSettings":
-        """Validate metrics auth configuration consistency."""
+        """
+        Validate metrics auth configuration consistency.
+
+        Raises ValueError if auth is enabled but key is missing, to fail fast
+        at startup rather than returning 500 errors at runtime.
+        """
         if self.metrics_require_auth and not self.metrics_api_key:
-            logger.warning(
+            raise ValueError(
                 "METRICS_REQUIRE_AUTH is enabled but METRICS_API_KEY is not set. "
-                "The /metrics endpoint will return 500 errors until configured."
+                "Either set METRICS_API_KEY or disable METRICS_REQUIRE_AUTH."
             )
         return self
 

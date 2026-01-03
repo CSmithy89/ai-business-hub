@@ -770,20 +770,7 @@ export class RealtimeGateway
       return;
     }
 
-    // SECURITY: Validate payload size
-    const payloadSize = JSON.stringify(rawData).length;
-    if (payloadSize > this.MAX_STATE_PAYLOAD_SIZE) {
-      this.logger.warn({
-        message: 'Dashboard state update payload too large',
-        socketId: client.id,
-        userId,
-        payloadSize,
-        maxSize: this.MAX_STATE_PAYLOAD_SIZE,
-      });
-      return;
-    }
-
-    // SECURITY: Validate input with Zod
+    // SECURITY: Validate input with Zod first (cheaper than size check)
     const parseResult = DashboardStateUpdatePayloadSchema.safeParse(rawData);
     if (!parseResult.success) {
       this.logger.warn({
@@ -796,6 +783,19 @@ export class RealtimeGateway
     }
 
     const data = parseResult.data;
+
+    // SECURITY: Validate payload size (after validation to prevent DoS with malformed payloads)
+    const payloadSize = JSON.stringify(data).length;
+    if (payloadSize > this.MAX_STATE_PAYLOAD_SIZE) {
+      this.logger.warn({
+        message: 'Dashboard state update payload too large',
+        socketId: client.id,
+        userId,
+        payloadSize,
+        maxSize: this.MAX_STATE_PAYLOAD_SIZE,
+      });
+      return;
+    }
 
     // Rate limit check
     if (!this.checkDashboardStateRateLimit(userId)) {

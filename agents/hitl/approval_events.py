@@ -154,6 +154,17 @@ class ApprovalEventManager:
                 logger.debug(f"Approval {approval_id} already resolved, returning cached result")
                 return self._results.pop(approval_id)
 
+            # Prevent multiple waiters for the same approval_id
+            if approval_id in self._pending_events:
+                logger.warning(
+                    f"Duplicate wait attempt for approval {approval_id} - "
+                    "another coroutine is already waiting"
+                )
+                raise ValueError(
+                    f"Approval {approval_id} already has a pending waiter. "
+                    "Only one coroutine can wait per approval."
+                )
+
             self._pending_events[approval_id] = pending
             logger.debug(f"Registered wait for approval {approval_id}")
 
@@ -301,14 +312,17 @@ class ApprovalEventManager:
         """Whether the event bus is believed to be connected."""
         return self._event_bus_connected
 
-    def get_pending_approvals(self) -> list[str]:
+    async def get_pending_approvals(self) -> list[str]:
         """
         Get list of approval IDs currently being waited on.
+
+        Thread-safe operation that acquires lock before reading.
 
         Returns:
             List of pending approval IDs
         """
-        return list(self._pending_events.keys())
+        async with self._lock:
+            return list(self._pending_events.keys())
 
 
 # =============================================================================

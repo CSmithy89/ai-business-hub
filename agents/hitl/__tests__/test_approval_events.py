@@ -121,11 +121,12 @@ class TestApprovalResult:
 class TestApprovalEventManager:
     """Tests for ApprovalEventManager class."""
 
-    def test_initializes_empty(self, event_manager):
+    @pytest.mark.asyncio
+    async def test_initializes_empty(self, event_manager):
         """Should initialize with empty pending and results."""
         assert event_manager.pending_count == 0
         assert not event_manager.is_connected
-        assert event_manager.get_pending_approvals() == []
+        assert await event_manager.get_pending_approvals() == []
 
     def test_set_event_bus_connected(self, event_manager):
         """Should update connection status."""
@@ -275,7 +276,7 @@ class TestWaitForEvent:
 
         # Should be cleaned up
         assert event_manager.pending_count == 0
-        assert "appr_cleanup_timeout" not in event_manager.get_pending_approvals()
+        assert "appr_cleanup_timeout" not in await event_manager.get_pending_approvals()
 
     @pytest.mark.asyncio
     async def test_cleanup_on_cancellation(self, event_manager):

@@ -29,8 +29,6 @@ import {
   type StateFullCallback,
 } from '@/lib/realtime/state-sync-client';
 import { createChange } from '@/lib/realtime/state-diff';
-import type { Socket } from 'socket.io-client';
-import type { ServerToClientEvents, ClientToServerEvents } from '@/lib/realtime/types';
 
 const { SYNC_DEBOUNCE_MS, RESTORE_ON_AUTH, SIGNIFICANT_CHANGE_PATHS } =
   DM_CONSTANTS.STATE_SYNC;
@@ -214,10 +212,8 @@ export function useDashboardSync(): UseDashboardSyncReturn {
 
     const stateSyncClient = getStateSyncClient();
 
-    // Connect to the socket
-    stateSyncClient.connect(
-      socket as unknown as Socket<ServerToClientEvents, ClientToServerEvents>
-    );
+    // Connect to the socket (socket is non-null here after the check above)
+    stateSyncClient.connect(socket);
 
     // Set initial version from current store state
     const currentVersion = useDashboardStateStore.getState().stateVersion;

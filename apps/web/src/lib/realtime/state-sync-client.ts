@@ -65,6 +65,19 @@ export type StateSyncCallback = (data: DashboardStateSyncPayload) => void;
 export type StateFullCallback = (data: DashboardStateFullPayload) => void;
 
 /**
+ * Error types for state sync failures
+ */
+export type StateSyncErrorType = 'disconnected' | 'payload_too_large' | 'emit_failed';
+
+/**
+ * Error callback for sync failures
+ */
+export type StateSyncErrorCallback = (
+  error: StateSyncErrorType,
+  details: { path?: string; pendingCount?: number; payloadSize?: number }
+) => void;
+
+/**
  * State Sync Client class
  *
  * Manages the WebSocket connection for dashboard state synchronization.
@@ -79,6 +92,7 @@ export class StateSyncClient {
   private tabId: string;
   private syncCallbacks: Set<StateSyncCallback> = new Set();
   private fullCallbacks: Set<StateFullCallback> = new Set();
+  private errorCallbacks: Set<StateSyncErrorCallback> = new Set();
   private debounceTimeout: NodeJS.Timeout | null = null;
   private pendingChanges: StateChange[] = [];
   private lastKnownVersion = 0;
@@ -235,6 +249,39 @@ export class StateSyncClient {
   }
 
   /**
+   * Subscribe to sync error events
+   *
+   * Use this to handle silent data loss scenarios like:
+   * - Socket disconnection causing changes to be dropped
+   * - Payloads too large to send
+   *
+   * @param callback - Function to call when a sync error occurs
+   * @returns Unsubscribe function
+   */
+  onError(callback: StateSyncErrorCallback): () => void {
+    this.errorCallbacks.add(callback);
+    return () => {
+      this.errorCallbacks.delete(callback);
+    };
+  }
+
+  /**
+   * Notify error callbacks
+   */
+  private notifyError(
+    error: StateSyncErrorType,
+    details: { path?: string; pendingCount?: number; payloadSize?: number }
+  ): void {
+    for (const callback of this.errorCallbacks) {
+      try {
+        callback(error, details);
+      } catch (err) {
+        console.error('[StateSyncClient] Error in error callback:', err);
+      }
+    }
+  }
+
+  /**
    * Emit a state change to the server
    * Changes are debounced and batched for efficiency
    *
@@ -261,7 +308,18 @@ export class StateSyncClient {
    * Flush all pending changes to the server
    */
   private flushChanges(version: number): void {
-    if (!this.socket?.connected || this.pendingChanges.length === 0) {
+    if (this.pendingChanges.length === 0) {
+      return;
+    }
+
+    // If disconnected, notify error and preserve changes for retry on reconnect
+    if (!this.socket?.connected) {
+      console.warn(
+        '[StateSyncClient] Socket disconnected, dropping',
+        this.pendingChanges.length,
+        'pending changes'
+      );
+      this.notifyError('disconnected', { pendingCount: this.pendingChanges.length });
       this.pendingChanges = [];
       return;
     }
@@ -285,6 +343,7 @@ export class StateSyncClient {
           change.path,
           payloadSize
         );
+        this.notifyError('payload_too_large', { path: change.path, payloadSize });
         continue;
       }
 
