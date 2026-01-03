@@ -14,6 +14,7 @@
  */
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -33,6 +34,26 @@ const DEFAULT_STATE_TTL_SECONDS = 30 * 24 * 60 * 60; // 2592000
 
 /** Redis key prefix for dashboard state */
 const KEY_PREFIX = 'hyvve:dashboard:state:';
+
+/** Lock key prefix for distributed locking */
+const LOCK_PREFIX = 'hyvve:dashboard:lock:';
+
+/** Lock TTL in seconds (auto-expire to prevent deadlocks) */
+const LOCK_TTL_SECONDS = 5;
+
+/** Max lock acquisition attempts */
+const LOCK_MAX_ATTEMPTS = 3;
+
+/** Delay between lock attempts in ms */
+const LOCK_RETRY_DELAY_MS = 100;
+
+/**
+ * CR-09: Redis retry configuration
+ * Retry transient Redis failures with exponential backoff
+ */
+const REDIS_MAX_RETRIES = 3;
+const REDIS_RETRY_BASE_DELAY_MS = 50;
+const REDIS_RETRY_MAX_DELAY_MS = 500;
 
 /**
  * Lua script for atomic check-and-set operation
@@ -76,6 +97,26 @@ end
 -- Save new state with TTL
 redis.call('SET', key, newStateJson, 'EX', ttlSeconds)
 return cjson.encode({ status = 'success', version = clientVersion })
+`;
+
+/**
+ * Lua script for safe lock release
+ * Only releases lock if we still own it (prevents releasing another client's lock)
+ *
+ * KEYS[1] = lock key
+ * ARGV[1] = lock ID (owner identifier)
+ *
+ * Returns: 1 if released, 0 if not owned
+ */
+const RELEASE_LOCK_SCRIPT = `
+local key = KEYS[1]
+local lockId = ARGV[1]
+
+if redis.call('GET', key) == lockId then
+  return redis.call('DEL', key)
+else
+  return 0
+end
 `;
 
 @Injectable()
@@ -148,6 +189,18 @@ export class DashboardStateService implements OnModuleInit {
     }
 
     const key = this.getStateKey(userId, workspaceId);
+    const lockKey = this.getLockKey(key);
+
+    // Acquire distributed lock to prevent concurrent updates
+    const lockId = await this.acquireLock(lockKey);
+    if (!lockId) {
+      this.logger.warn(`Could not acquire lock for ${key}, returning conflict`);
+      return {
+        success: false,
+        serverVersion: dto.version,
+        conflictResolution: 'server',
+      };
+    }
 
     try {
       // Prepare state data
@@ -212,6 +265,9 @@ export class DashboardStateService implements OnModuleInit {
         success: false,
         serverVersion: dto.version,
       };
+    } finally {
+      // Always release lock
+      await this.releaseLock(lockKey, lockId);
     }
   }
 
@@ -234,7 +290,10 @@ export class DashboardStateService implements OnModuleInit {
     const key = this.getStateKey(userId, workspaceId);
 
     try {
-      const data = await this.redis.get(key);
+      // CR-09: Use retry logic for Redis GET
+      const data = await this.withRedisRetry('getState', () =>
+        this.redis!.get(key),
+      );
 
       if (!data) {
         this.logger.debug(`No dashboard state found for ${key}`);
@@ -280,7 +339,10 @@ export class DashboardStateService implements OnModuleInit {
     const key = this.getStateKey(userId, workspaceId);
 
     try {
-      const deleted = await this.redis.del(key);
+      // CR-09: Use retry logic for Redis DEL
+      const deleted = await this.withRedisRetry('deleteState', () =>
+        this.redis!.del(key),
+      );
       this.logger.debug(`Deleted dashboard state for ${key}: ${deleted > 0}`);
 
       return { success: deleted > 0 };
@@ -294,6 +356,199 @@ export class DashboardStateService implements OnModuleInit {
 
       return { success: false };
     }
+  }
+
+  /**
+   * Generate lock key for a state key
+   */
+  private getLockKey(stateKey: string): string {
+    return `${LOCK_PREFIX}${stateKey}`;
+  }
+
+  /**
+   * Acquire a distributed lock with retry
+   *
+   * Uses SETNX (SET if Not eXists) with TTL to prevent deadlocks.
+   * Retries with exponential backoff if lock is held.
+   *
+   * @param lockKey - The lock key
+   * @returns Lock ID if acquired, null if failed
+   */
+  private async acquireLock(lockKey: string): Promise<string | null> {
+    if (!this.redis) {
+      return null;
+    }
+
+    const lockId = randomUUID();
+
+    for (let attempt = 1; attempt <= LOCK_MAX_ATTEMPTS; attempt++) {
+      try {
+        // SET key value NX EX seconds - atomic set-if-not-exists with expiry
+        const result = await this.redis.set(
+          lockKey,
+          lockId,
+          'EX',
+          LOCK_TTL_SECONDS,
+          'NX',
+        );
+
+        if (result === 'OK') {
+          this.logger.debug(`Lock acquired: ${lockKey} (attempt ${attempt})`);
+          return lockId;
+        }
+
+        // Lock is held by someone else, wait and retry
+        if (attempt < LOCK_MAX_ATTEMPTS) {
+          const delay = LOCK_RETRY_DELAY_MS * attempt; // Simple linear backoff
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      } catch (error) {
+        this.logger.warn(`Lock acquisition error on attempt ${attempt}:`, error);
+      }
+    }
+
+    this.logger.warn(`Failed to acquire lock after ${LOCK_MAX_ATTEMPTS} attempts: ${lockKey}`);
+    return null;
+  }
+
+  /**
+   * Release a distributed lock safely
+   *
+   * Uses Lua script to only release if we still own the lock.
+   * This prevents releasing a lock that expired and was acquired by another client.
+   *
+   * @param lockKey - The lock key
+   * @param lockId - Our lock ID
+   */
+  private async releaseLock(lockKey: string, lockId: string): Promise<void> {
+    if (!this.redis) {
+      return;
+    }
+
+    try {
+      const released = await this.redis.eval(
+        RELEASE_LOCK_SCRIPT,
+        1,
+        lockKey,
+        lockId,
+      );
+
+      if (released === 1) {
+        this.logger.debug(`Lock released: ${lockKey}`);
+      } else {
+        this.logger.warn(`Lock already released or stolen: ${lockKey}`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to release lock ${lockKey}:`, error);
+    }
+  }
+
+  /**
+   * Execute a Redis operation with retry logic (CR-09)
+   *
+   * Retries transient failures with exponential backoff.
+   * Used to improve resilience against brief network issues or Redis hiccups.
+   *
+   * @param operation - Name for logging
+   * @param fn - The Redis operation to execute
+   * @returns The operation result, or throws after max retries
+   */
+  private async withRedisRetry<T>(
+    operation: string,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= REDIS_MAX_RETRIES; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Check if this is a retryable error (connection issues, timeouts)
+        const isRetryable = this.isRetryableError(lastError);
+
+        if (!isRetryable || attempt === REDIS_MAX_RETRIES) {
+          this.logger.error({
+            message: `Redis ${operation} failed after ${attempt} attempts`,
+            error: lastError.message,
+            retryable: isRetryable,
+          });
+          throw lastError;
+        }
+
+        // Exponential backoff with jitter
+        const delay = Math.min(
+          REDIS_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 50,
+          REDIS_RETRY_MAX_DELAY_MS,
+        );
+
+        this.logger.warn({
+          message: `Redis ${operation} failed, retrying`,
+          attempt,
+          nextRetryMs: delay,
+          error: lastError.message,
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    // Should not reach here, but TypeScript needs this
+    throw lastError ?? new Error(`Redis ${operation} failed`);
+  }
+
+  /**
+   * Determine if a Redis error is retryable (CR-09)
+   *
+   * Retryable errors include:
+   * - Connection errors (ECONNRESET, ETIMEDOUT, ECONNREFUSED)
+   * - Cluster redirect errors (MOVED, ASK)
+   * - Temporary server errors
+   *
+   * Non-retryable errors include:
+   * - Invalid command errors
+   * - Script errors (NOSCRIPT, WRONGTYPE)
+   * - OOM errors
+   */
+  private isRetryableError(error: Error): boolean {
+    const message = error.message.toLowerCase();
+    const name = error.name?.toLowerCase() ?? '';
+
+    // Connection errors - retryable
+    if (
+      message.includes('econnreset') ||
+      message.includes('econnrefused') ||
+      message.includes('etimedout') ||
+      message.includes('epipe') ||
+      message.includes('connection') ||
+      message.includes('timeout') ||
+      message.includes('socket')
+    ) {
+      return true;
+    }
+
+    // Redis cluster redirects - retryable
+    if (message.includes('moved') || message.includes('ask')) {
+      return true;
+    }
+
+    // Temporary errors - retryable
+    if (
+      message.includes('busy') ||
+      message.includes('loading') ||
+      message.includes('tryagain')
+    ) {
+      return true;
+    }
+
+    // Network/abort errors - retryable
+    if (name.includes('abort') || name.includes('network')) {
+      return true;
+    }
+
+    // Default: not retryable (script errors, invalid commands, OOM, etc.)
+    return false;
   }
 
   /**

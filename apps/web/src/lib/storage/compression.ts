@@ -21,6 +21,7 @@
  */
 
 import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
+import { trackCompressionMetrics } from '@/lib/telemetry';
 
 // =============================================================================
 // CONSTANTS
@@ -110,6 +111,17 @@ export function compressIfNeeded(data: string): {
       wasCompressed: false,
       timestamp,
     };
+
+    // Track skipped compression (CR-08)
+    trackCompressionMetrics({
+      originalSize,
+      compressedSize: originalSize,
+      compressionRatio: 1,
+      wasCompressed: false,
+      savingsBytes: 0,
+      savingsPercent: 0,
+    }, 'compress');
+
     return {
       data,
       compressed: false,
@@ -138,6 +150,16 @@ export function compressIfNeeded(data: string): {
 
     // Log in development mode
     logCompressionMetrics('compress', metrics);
+
+    // Track compression metrics to analytics (CR-08)
+    trackCompressionMetrics({
+      originalSize,
+      compressedSize,
+      compressionRatio,
+      wasCompressed: true,
+      savingsBytes: originalSize - compressedSize,
+      savingsPercent: ((1 - compressedSize / originalSize) * 100),
+    }, 'compress');
 
     return {
       data: compressed,

@@ -93,6 +93,12 @@ export interface LogApprovalCancellationParams {
   reason?: string;
   ipAddress?: string;
   userAgent?: string;
+  // CR-10: Additional context for cancellation audit logs
+  approvalType?: string;
+  approvalTitle?: string;
+  cancelledByAdmin?: boolean;
+  originalRequesterId?: string;
+  originalConfidence?: number;
 }
 
 /**
@@ -392,7 +398,15 @@ export class ApprovalAuditService {
           },
           metadata: {
             reason: params.reason,
-            description: 'Approval cancelled by user',
+            description: params.cancelledByAdmin
+              ? 'Approval cancelled by workspace admin'
+              : 'Approval cancelled by requester',
+            // CR-10: Additional context
+            approvalType: params.approvalType,
+            approvalTitle: params.approvalTitle,
+            cancelledByAdmin: params.cancelledByAdmin,
+            originalRequesterId: params.originalRequesterId,
+            originalConfidence: params.originalConfidence,
           },
         },
       });

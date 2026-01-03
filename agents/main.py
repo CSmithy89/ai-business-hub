@@ -87,6 +87,9 @@ from gateway.approval_events import (
     close_approval_event_gateway,
 )
 
+# Import Approval Event Manager for periodic cleanup (CR-07)
+from hitl.approval_events import get_approval_event_manager
+
 # ============================================================================
 # Configuration (must be at top before usage)
 # ============================================================================
@@ -738,11 +741,27 @@ async def startup_event():
     # Initialize Approval Event Gateway (DM-11.6)
     await startup_approval_event_gateway()
 
+    # Start approval cleanup background task (CR-07)
+    global _approval_cleanup_task
+    _approval_cleanup_task = start_approval_cleanup_task()
+    logger.info("Approval cleanup background task started")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown."""
     logger.info("AgentOS shutting down...")
+
+    # Cancel approval cleanup background task (CR-07)
+    global _approval_cleanup_task
+    if _approval_cleanup_task is not None:
+        _approval_cleanup_task.cancel()
+        try:
+            await _approval_cleanup_task
+        except asyncio.CancelledError:
+            pass
+        _approval_cleanup_task = None
+        logger.info("Approval cleanup task cancelled")
 
     # Close Approval Event Gateway (DM-11.6)
     await close_approval_event_gateway()
@@ -846,6 +865,12 @@ async def startup_dashboard_gateway():
 
 # Global reference to MCP client (created on startup)
 _mcp_client: Optional[MCPClient] = None
+
+# Global reference to approval cleanup task (CR-07)
+_approval_cleanup_task: Optional[asyncio.Task] = None
+
+# Cleanup interval in seconds (10 minutes)
+APPROVAL_CLEANUP_INTERVAL_SECONDS = 10 * 60
 
 
 def get_mcp_client() -> Optional[MCPClient]:
@@ -954,6 +979,55 @@ async def startup_approval_event_gateway():
         logger.warning(
             f"Failed to initialize approval event gateway, using polling fallback: {e}"
         )
+
+
+# =============================================================================
+# Approval Cleanup Task (CR-07)
+# =============================================================================
+
+
+async def _approval_cleanup_loop():
+    """
+    Background task to periodically clean up stale approval results.
+
+    Runs cleanup_stale_results() every 10 minutes to prevent memory leaks
+    when wait_for_event() is never called (e.g., agent crash before retrieval).
+
+    CR-07: Memory leak - no periodic cleanup task
+    """
+    logger.info(
+        f"Starting approval cleanup task (interval: {APPROVAL_CLEANUP_INTERVAL_SECONDS}s)"
+    )
+
+    while True:
+        try:
+            await asyncio.sleep(APPROVAL_CLEANUP_INTERVAL_SECONDS)
+
+            # Get the event manager and run cleanup
+            manager = get_approval_event_manager()
+            cleaned = await manager.cleanup_stale_results()
+
+            if cleaned > 0:
+                logger.info(f"Approval cleanup: removed {cleaned} stale results")
+            else:
+                logger.debug("Approval cleanup: no stale results to clean")
+
+        except asyncio.CancelledError:
+            logger.info("Approval cleanup task cancelled")
+            break
+        except Exception as e:
+            logger.error(f"Error in approval cleanup task: {e}", exc_info=True)
+            # Continue running despite errors
+
+
+def start_approval_cleanup_task() -> asyncio.Task:
+    """
+    Start the background approval cleanup task.
+
+    Returns:
+        The created asyncio Task.
+    """
+    return asyncio.create_task(_approval_cleanup_loop())
 
 
 # Mount A2A discovery endpoints (from DM-02.3)

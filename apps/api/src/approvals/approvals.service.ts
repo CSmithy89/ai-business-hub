@@ -541,7 +541,12 @@ export class ApprovalsService {
       );
     }
 
-    // Check permission: creator or admin can cancel
+    // Check permission: creator or workspace admin can cancel
+    // Note: isAdmin is already workspace-scoped because:
+    // 1. TenantGuard queries WorkspaceMember for user+workspaceId combination
+    // 2. Controller extracts memberRole from request (set by TenantGuard)
+    // 3. This approval.workspaceId is verified to match the request workspaceId above
+    // So isAdmin reflects user's role in THIS workspace, not any other workspace.
     const isCreator = approval.requestedBy === userId;
     if (!isCreator && !isAdmin) {
       throw new ForbiddenException(
@@ -583,20 +588,35 @@ export class ApprovalsService {
       },
     );
 
-    // Log to audit trail
+    // Log to audit trail (CR-10: Include additional context)
     await this.auditLogger.logApprovalCancellation({
       workspaceId,
       userId,
       approvalId: id,
       reason: dto.reason,
+      approvalType: approval.type,
+      approvalTitle: approval.title,
+      cancelledByAdmin: isAdmin,
+      originalRequesterId: approval.requestedBy,
+      originalConfidence: approval.confidenceScore,
     });
 
+    // CR-10: Add context to cancellation audit logs
     this.logger.log({
       message: 'Approval cancelled',
       workspaceId,
       approvalId: id,
       userId,
       reason: dto.reason,
+      // Additional context for audit trail
+      approvalType: approval.type,
+      approvalTitle: approval.title,
+      cancelledByAdmin: isAdmin,
+      cancelledByRole: isAdmin ? 'admin' : 'creator',
+      originalRequesterId: approval.requestedBy,
+      originalConfidence: approval.confidenceScore,
+      createdAt: approval.createdAt,
+      cancelledAt: now.toISOString(),
     });
 
     return {

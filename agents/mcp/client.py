@@ -31,6 +31,10 @@ logger = logging.getLogger(__name__)
 # DM-11.4: Parallel Connection Support
 # ============================================================================
 
+# Maximum concurrent MCP connections to prevent file descriptor exhaustion
+# CR-06: Backpressure for parallel connections
+MAX_CONCURRENT_MCP_CONNECTIONS = 10
+
 
 @dataclass
 class ConnectionResult:
@@ -532,57 +536,63 @@ class MCPClient:
         logger.info(f"Starting parallel MCP connections for {len(server_names)} servers...")
         overall_start = time.time()
 
-        # Create connection task with timeout wrapper
+        # Semaphore for backpressure - prevents file descriptor exhaustion
+        # CR-06: Limit concurrent connections
+        semaphore = asyncio.Semaphore(MAX_CONCURRENT_MCP_CONNECTIONS)
+
+        # Create connection task with timeout and semaphore wrapper
         async def connect_with_timeout(name: str) -> ConnectionResult:
-            """Connect to a single server with timeout and error handling."""
-            start_time = time.time()
-            try:
-                success = await asyncio.wait_for(
-                    self.connect(name),
-                    timeout=timeout
-                )
-                elapsed_ms = (time.time() - start_time) * 1000
-                tools_count = len(self._tools_cache.get(name, []))
-
-                if success:
-                    logger.info(
-                        f"MCP server '{name}' connected: {tools_count} tools "
-                        f"({elapsed_ms:.1f}ms)"
+            """Connect to a single server with timeout, backpressure, and error handling."""
+            # Acquire semaphore to limit concurrent connections (CR-06)
+            async with semaphore:
+                start_time = time.time()
+                try:
+                    success = await asyncio.wait_for(
+                        self.connect(name),
+                        timeout=timeout
                     )
-                else:
-                    logger.warning(
-                        f"MCP server '{name}' connection returned False "
-                        f"({elapsed_ms:.1f}ms)"
-                    )
+                    elapsed_ms = (time.time() - start_time) * 1000
+                    tools_count = len(self._tools_cache.get(name, []))
 
-                return ConnectionResult(
-                    server_name=name,
-                    success=success,
-                    tools_count=tools_count if success else 0,
-                    connect_time_ms=elapsed_ms,
-                )
-            except asyncio.TimeoutError:
-                elapsed_ms = (time.time() - start_time) * 1000
-                error_msg = f"Connection timed out after {timeout}s"
-                logger.error(f"MCP server '{name}': {error_msg}")
-                return ConnectionResult(
-                    server_name=name,
-                    success=False,
-                    error=error_msg,
-                    retry_scheduled=True,
-                    connect_time_ms=elapsed_ms,
-                )
-            except Exception as e:
-                elapsed_ms = (time.time() - start_time) * 1000
-                error_msg = str(e)
-                logger.error(f"MCP server '{name}' failed: {error_msg}")
-                return ConnectionResult(
-                    server_name=name,
-                    success=False,
-                    error=error_msg,
-                    retry_scheduled=True,
-                    connect_time_ms=elapsed_ms,
-                )
+                    if success:
+                        logger.info(
+                            f"MCP server '{name}' connected: {tools_count} tools "
+                            f"({elapsed_ms:.1f}ms)"
+                        )
+                    else:
+                        logger.warning(
+                            f"MCP server '{name}' connection returned False "
+                            f"({elapsed_ms:.1f}ms)"
+                        )
+
+                    return ConnectionResult(
+                        server_name=name,
+                        success=success,
+                        tools_count=tools_count if success else 0,
+                        connect_time_ms=elapsed_ms,
+                    )
+                except asyncio.TimeoutError:
+                    elapsed_ms = (time.time() - start_time) * 1000
+                    error_msg = f"Connection timed out after {timeout}s"
+                    logger.error(f"MCP server '{name}': {error_msg}")
+                    return ConnectionResult(
+                        server_name=name,
+                        success=False,
+                        error=error_msg,
+                        retry_scheduled=True,
+                        connect_time_ms=elapsed_ms,
+                    )
+                except Exception as e:
+                    elapsed_ms = (time.time() - start_time) * 1000
+                    error_msg = str(e)
+                    logger.error(f"MCP server '{name}' failed: {error_msg}")
+                    return ConnectionResult(
+                        server_name=name,
+                        success=False,
+                        error=error_msg,
+                        retry_scheduled=True,
+                        connect_time_ms=elapsed_ms,
+                    )
 
         # Execute all connections in parallel
         tasks = [connect_with_timeout(name) for name in server_names]
