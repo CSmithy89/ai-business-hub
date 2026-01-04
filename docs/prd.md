@@ -1,9 +1,9 @@
 # HYVVE Platform Foundation - Product Requirements Document
 
 **Author:** chris
-**Date:** 2025-12-13
-**Version:** 2.0
-**Status:** Approved (Foundation Complete)
+**Date:** 2026-01-04
+**Version:** 3.0
+**Status:** Approved (Foundation + Core-PM + bm-dm Complete)
 
 ---
 
@@ -1352,8 +1352,105 @@ model ApiKey {
 
 ---
 
+## Core-PM Module (Project Management + Knowledge Base)
+
+**Status:** Complete (16 epics, 61 stories)
+
+The Core-PM module provides project management capabilities with AI-assisted planning and a workspace-scoped knowledge base.
+
+### Project Management Features (PM-01 to PM-12)
+
+| Feature | Epic | Status |
+|---------|------|--------|
+| Project CRUD & Settings | PM-01 | Complete |
+| Phase & Milestone Management | PM-02 | Complete |
+| Task Management | PM-03 | Complete |
+| Task Views (List, Board, Timeline) | PM-04 | Complete |
+| Real-time Collaboration (Yjs) | PM-05 | Complete |
+| Notifications & Activity Feed | PM-06 | Complete |
+| Search & Filtering | PM-07 | Complete |
+| Reporting & Analytics | PM-08 | Complete |
+| External API & Webhooks | PM-09 | Complete |
+| PM Agent Team (Navi, Sage, Chrono) | PM-10 | Complete |
+| Agent-UI Integration | PM-11 | Complete |
+| Polish & Performance | PM-12 | Complete |
+
+### Knowledge Base Features (KB-01 to KB-04)
+
+| Feature | Epic | Status |
+|---------|------|--------|
+| Document Management & Versioning | KB-01 | Complete |
+| RAG Infrastructure (pgvector) | KB-02 | Complete |
+| KB Agent (Scribe) | KB-03 | Complete |
+| Advanced Features | KB-04 | Complete |
+
+### PM Agent Team
+
+| Agent | Role | Capabilities |
+|-------|------|--------------|
+| **Navi** | Team Lead | Project orchestration, task delegation |
+| **Sage** | Strategy Advisor | Risk analysis, resource optimization |
+| **Chrono** | Timeline Manager | Scheduling, deadline tracking, dependencies |
+
+---
+
+## Dynamic Module System (bm-dm)
+
+**Status:** Complete (11 epics, 77 stories, 431 points)
+
+The bm-dm module implements the Unified Protocol Architecture enabling seamless agent-to-user and agent-to-agent communication.
+
+### Protocol Stack
+
+| Protocol | Purpose | Implementation |
+|----------|---------|----------------|
+| **AG-UI** | Agent-to-User streaming | CopilotKit integration |
+| **A2A** | Agent-to-Agent communication | Google's A2A standard |
+| **MCP** | External tool integration | Model Context Protocol |
+
+### Implementation Phases
+
+| Phase | Epic | Focus | Stories |
+|-------|------|-------|---------|
+| 1 | DM-01 | CopilotKit Frontend Infrastructure | 8 |
+| 2 | DM-02 | Agno Multi-Interface Backend | 9 |
+| 3 | DM-03 | Dashboard Agent Integration | 5 |
+| 4 | DM-04 | Shared State & Real-Time | 5 |
+| 5 | DM-05 | Advanced HITL & Streaming | 5 |
+| 6 | DM-06 | Contextual Intelligence | 6 |
+| 7 | DM-07 | Infrastructure Stabilization | 5 |
+| 8 | DM-08 | Quality & Performance Hardening | 7 |
+| 9 | DM-09 | Observability & Testing | 8 |
+| 10 | DM-10 | Documentation & DX | 16 |
+| 11 | DM-11 | Advanced Features & Optimizations | 15 |
+
+### Key Capabilities Delivered
+
+- **Generative UI**: Widgets rendered dynamically from agent tool calls
+- **Real-time State Sync**: Redis + WebSocket for cross-tab/device sync
+- **Event-driven HITL**: No-polling approval workflows (<100ms latency)
+- **OpenTelemetry**: Full observability stack (traces, metrics, logs)
+- **Zod Validation**: Runtime schema validation for widget data
+- **Rate Limiting**: A2A request throttling and caching
+- **Comprehensive Documentation**: 16 guides and runbooks
+
+---
+
+## Implementation Summary
+
+### All Phases Complete
+
+| Phase | Epics | Stories | Points | Status |
+|-------|-------|---------|--------|--------|
+| **Foundation** | 17 | 190 | 541 | Complete |
+| **Core-PM** | 16 | 61 | ~200 | Complete |
+| **bm-dm** | 11 | 77 | 431 | Complete |
+| **TOTAL** | **44** | **328** | **~1,172** | **Complete** |
+
+---
+
 _This PRD captures the Platform Foundation for HYVVE - the core infrastructure enabling 90% business automation with human-in-the-loop oversight._
 
-_Version 2.0 - Updated: 2025-12-13 - Foundation Complete (17 Epics, 190 Stories, 541 Points)_
+_Version 3.0 - Updated: 2026-01-04 - Foundation + Core-PM + bm-dm Complete (44 Epics, 328 Stories, ~1,172 Points)_
 
 _Created through collaborative discovery between chris and AI facilitator._

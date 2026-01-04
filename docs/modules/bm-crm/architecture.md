@@ -1,9 +1,9 @@
 # BM-CRM Module Architecture
 
 **Author:** Chris
-**Date:** 2025-12-16
-**Version:** 1.1
-**Status:** Draft (Updated for Core-PM integration)
+**Date:** 2026-01-04
+**Version:** 1.2
+**Status:** Draft (Updated for DM protocol integration)
 **Parent:** [Platform Architecture](/docs/architecture.md)
 
 ---
@@ -1592,8 +1592,12 @@ interface CrmTeamRunResponse {
 ## References
 
 - [Platform Architecture](/docs/architecture.md)
+- [Dynamic Module System](/docs/architecture/dynamic-module-system.md)
 - [A2A Protocol](/docs/architecture/a2a-protocol.md)
 - [AG-UI Protocol](/docs/architecture/ag-ui-protocol.md)
+- [MCP Integration Guide](/docs/guides/mcp-integrations.md)
+- [OpenTelemetry Usage](/docs/guides/opentelemetry-usage.md)
+- [CopilotKit Patterns](/docs/guides/copilotkit-patterns.md)
 - [BM-CRM PRD](/docs/modules/bm-crm/PRD.md)
 - [BMAD Agno Development Guide](/docs/guides/bmad-agno-development-guide.md)
 

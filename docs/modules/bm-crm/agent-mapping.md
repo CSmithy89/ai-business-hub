@@ -1,9 +1,9 @@
 # BM-CRM Agent Mapping
 
 **Created:** 2025-11-29
-**Updated:** 2025-12-24
+**Updated:** 2026-01-04
 **Source:** Cross-Module Architecture Registry
-**Status:** Aligned with Platform Standards
+**Status:** Aligned with DM Protocol Standards (AG-UI + A2A + MCP)
 
 ---
 
@@ -387,23 +387,88 @@ DEAL VALUE EXCEEDS THRESHOLD ($X)
 
 ---
 
-## A2A Communication Patterns
+## Protocol Communication
 
-### Inter-Agent Protocol
+BM-CRM agents use the **Unified Protocol Architecture** from the Dynamic Module System (bm-dm):
 
-BM-CRM agents communicate via the A2A (Agent-to-Agent) protocol:
+### Protocol Summary
+
+| Protocol | Purpose | Usage in BM-CRM |
+|----------|---------|-----------------|
+| **AG-UI** | Frontend↔Agent | "Ask Clara" chat, Generative UI widgets |
+| **A2A** | Agent↔Agent | Clara↔Scout delegation, Clara↔Navi handoffs |
+| **MCP** | Agent↔Tools | Enrichment providers (Clearbit, Apollo, Hunter) |
+
+### AG-UI Communication (Frontend)
+
+CRM agents expose capabilities via AG-UI protocol through CopilotKit:
+
+```typescript
+// Frontend: "Ask Clara" chat panel
+import { useCopilotChat, useCopilotAction } from '@copilotkit/react';
+
+// Clara responds via AG-UI with Generative UI widgets
+useCopilotAction({
+  name: "displayLeadScore",
+  handler: ({ contactId, score, tier }) => {
+    // Render lead score widget dynamically
+  }
+});
+```
+
+### A2A Communication (Agent-to-Agent)
+
+BM-CRM agents communicate via Google's A2A (Agent-to-Agent) protocol:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  A2A PROTOCOL                                                    │
+│  A2A PROTOCOL (JSON-RPC 2.0 over HTTP)                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
+│  INTRA-MODULE (same module)                                     │
 │  @bm-crm.clara ─────────► @bm-crm.scout (delegate scoring)      │
 │  @bm-crm.clara ─────────► @bm-crm.flow (check pipeline)         │
+│  @bm-crm.clara ─────────► @bm-crm.atlas (enrich contact)        │
+│                                                                 │
+│  INTER-MODULE (cross-module via Gateway)                        │
 │  @bm-crm.tracker ───────► @core-pm.navi (link to tasks)         │
 │  @bm-crm.clara ─────────► @core-pm.navi (handoff on deal won)   │
+│  @bm-crm.clara ─────────► @core-pm.scribe (query playbooks)     │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+**A2A Request Example (Clara → Scout):**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "run",
+  "params": {
+    "task": "Score this lead",
+    "context": {
+      "contact_id": "ct_abc123",
+      "include_breakdown": true
+    }
+  },
+  "id": "req_001"
+}
+```
+
+### MCP Communication (External Tools)
+
+Atlas uses MCP protocol to connect to enrichment providers:
+
+```python
+# agents/crm/atlas.py
+from mcp import Client
+
+async def enrich_via_mcp(email: str) -> dict:
+    async with Client("clearbit-mcp") as mcp:
+        result = await mcp.call_tool(
+            "enrich_person",
+            {"email": email}
+        )
+    return result
 ```
 
 ### AgentCard Discovery
@@ -548,12 +613,16 @@ def test_approval_required_tools_cannot_bypass():
 
 ## References
 
-- **Cross-Module Architecture:** `/docs/architecture/cross-module-architecture.md`
 - **Dynamic Module System:** `/docs/architecture/dynamic-module-system.md`
+- **A2A Protocol:** `/docs/architecture/a2a-protocol.md`
+- **AG-UI Protocol:** `/docs/architecture/ag-ui-protocol.md`
+- **MCP Integration Guide:** `/docs/guides/mcp-integrations.md`
+- **CopilotKit Patterns:** `/docs/guides/copilotkit-patterns.md`
+- **Cross-Module Architecture:** `/docs/architecture/cross-module-architecture.md`
 - **CRM Architecture:** `/docs/modules/bm-crm/architecture.md`
 - **CRM PRD:** `/docs/modules/bm-crm/PRD.md`
 - **Event Schema:** `/docs/architecture/event-bus.md`
 
 ---
 
-_Aligned with Cross-Module Architecture v1.0 (2024-12-24)_
+_Aligned with DM Protocol Standards v3.0 (2026-01-04)_

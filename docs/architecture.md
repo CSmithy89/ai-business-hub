@@ -1,9 +1,9 @@
 # HYVVE Platform Foundation - Architecture Document
 
 **Author:** chris
-**Date:** 2025-12-15
-**Version:** 2.1
-**Status:** Approved (Foundation Complete)
+**Date:** 2026-01-04
+**Version:** 3.0
+**Status:** Approved (Foundation + Core-PM + bm-dm Complete)
 
 ---
 
@@ -11,7 +11,10 @@
 
 HYVVE Platform Foundation uses a **hybrid monorepo architecture** combining Next.js 15 (App Router) for the frontend and platform API routes, NestJS for modular business logic, and AgentOS (FastAPI + Agno) for agent execution. The architecture employs **defense-in-depth multi-tenancy** through Row-Level Security (RLS) combined with Prisma Client Extensions. Real-time capabilities are provided via Socket.io with a WebSocket gateway, with Redis Streams powering the event bus for cross-module communication. The BYOAI (Bring Your Own AI) pattern enables users to connect their preferred AI providers (Claude, OpenAI, Gemini, DeepSeek, OpenRouter) with encrypted credential storage, and AgentOS can decrypt those credentials for agent runs.
 
-**Foundation Phase Complete:** All 17 epics (190 stories, 541 points) have been delivered, establishing the complete platform foundation including multi-provider authentication (email, Google, Microsoft, GitHub, Magic Link), two-factor authentication, comprehensive RBAC, approval queue system, event bus infrastructure, BYOAI configuration, business portfolio management, onboarding wizard, real-time WebSocket updates, and premium UI polish with responsive design.
+**All Phases Complete:** 44 epics (328 stories, ~1,172 points) have been delivered across three phases:
+- **Foundation (17 epics):** Multi-provider authentication, 2FA, RBAC, approval queue, event bus, BYOAI, business onboarding, real-time WebSocket, responsive design
+- **Core-PM (16 epics):** Project management, knowledge base with RAG, real-time collaboration (Yjs), PM agent team (Navi, Sage, Chrono), KB agent (Scribe)
+- **bm-dm (11 epics):** Unified Protocol Architecture (AG-UI + A2A + MCP), CopilotKit integration, generative UI widgets, real-time state sync, event-driven HITL, OpenTelemetry observability
 
 This document focuses on how these pieces are wired together across:
 
@@ -89,6 +92,13 @@ hyvve/
 │   │   │   │   │   ├── sidebar.tsx
 │   │   │   │   │   ├── header.tsx
 │   │   │   │   │   └── chat-panel.tsx
+│   │   │   │   ├── copilot/          # CopilotKit integration (AG-UI)
+│   │   │   │   │   ├── CopilotProvider.tsx
+│   │   │   │   │   ├── ChatPanel.tsx
+│   │   │   │   │   └── widgets/      # Generative UI widgets
+│   │   │   │   │       ├── metrics-widget.tsx
+│   │   │   │   │       ├── action-widget.tsx
+│   │   │   │   │       └── widget-slots.tsx
 │   │   │   │   ├── approval/         # Approval queue components
 │   │   │   │   ├── workspace/        # Workspace components
 │   │   │   │   └── common/           # Shared components
@@ -137,9 +147,17 @@ hyvve/
 │       │   │       ├── openai.provider.ts
 │       │   │       ├── gemini.provider.ts
 │       │   │       └── deepseek.provider.ts
-│       │   └── websocket/            # WebSocket gateway
-│       │       ├── websocket.module.ts
-│       │       └── websocket.gateway.ts
+│       │   ├── websocket/            # WebSocket gateway
+│       │   │   ├── websocket.module.ts
+│       │   │   └── websocket.gateway.ts
+│       │   ├── telemetry/            # OpenTelemetry observability
+│       │   │   ├── otel.ts           # OTel SDK setup
+│       │   │   ├── tracing.ts        # Trace context
+│       │   │   └── metrics.ts        # Custom metrics
+│       │   └── a2a/                  # A2A Protocol endpoints
+│       │       ├── a2a.module.ts
+│       │       ├── a2a.controller.ts # /.well-known/agent.json
+│       │       └── a2a.service.ts    # AgentCard generation
 │       ├── test/                     # E2E tests
 │       ├── nest-cli.json
 │       └── package.json
@@ -158,8 +176,20 @@ hyvve/
 │   │   ├── prism.py                 # Analytics/insights
 │   │   └── team.py                  # Team coordination
 │   ├── gateway/                     # Gateway agent (A2A routing)
+│   │   ├── router.py                # A2A request routing
+│   │   ├── agent_cards.py           # AgentCard discovery
+│   │   └── rate_limiter.py          # Per-agent rate limiting
 │   ├── mesh/                        # Agent mesh infrastructure
+│   │   ├── discovery.py             # Agent discovery service
+│   │   ├── orchestrator.py          # Multi-agent orchestration
+│   │   └── state_sync.py            # Redis state synchronization
 │   ├── hitl/                        # Human-in-the-loop handlers
+│   │   ├── approval_flow.py         # Event-driven approvals
+│   │   ├── websocket_handler.py     # WebSocket notifications
+│   │   └── timeout_manager.py       # Approval timeouts
+│   ├── telemetry/                   # Python observability
+│   │   ├── otel.py                  # OpenTelemetry setup
+│   │   └── metrics.py               # Agent metrics
 │   ├── middleware/                  # Custom middleware
 │   ├── config.py                    # AgentOS configuration
 │   ├── main.py                      # FastAPI entry point
@@ -1525,6 +1555,167 @@ Desktop (>1280px):
 - Perceived performance improvement
 - Immediate feedback on user actions
 - Graceful error handling with retry
+
+### ADR-013: AG-UI Protocol (CopilotKit Integration)
+
+**Status**: Accepted (DM-01)
+
+**Context**: Need standardized protocol for agent-to-user communication with streaming support.
+
+**Decision**: Adopt AG-UI protocol via CopilotKit for frontend agent interactions.
+
+**Implementation**:
+```typescript
+// Slot-based widget rendering
+<CopilotKit>
+  <SlotProvider slots={['metrics', 'actions', 'insights']}>
+    <Dashboard />
+  </SlotProvider>
+</CopilotKit>
+
+// Agent tool calls render as widgets
+useRenderToolCall({
+  name: 'render_metrics_widget',
+  handler: (props) => <MetricsWidget {...props} />
+})
+```
+
+**Consequences**:
+- Generative UI with agent-controlled rendering
+- Streaming responses with partial updates
+- Standardized widget interface
+
+### ADR-014: A2A Protocol (Agent-to-Agent Communication)
+
+**Status**: Accepted (DM-02, DM-03)
+
+**Context**: Agents need to communicate with each other for orchestration and delegation.
+
+**Decision**: Adopt Google's A2A (Agent-to-Agent) protocol standard.
+
+**Implementation**:
+- AgentCard discovery for capability advertisement
+- Task-based RPC for agent invocation
+- Async task status polling with webhook callbacks
+
+**Key Components**:
+```
+Dashboard Agent (Gateway)
+    ├── PM Agents (Navi, Sage, Chrono)
+    ├── KB Agent (Scribe)
+    ├── Brand Agents (Bella team)
+    └── CRM Agents (future)
+```
+
+**Consequences**:
+- Zero custom adapters (Agno handles natively)
+- Automatic capability negotiation
+- Interoperability with external A2A agents
+
+### ADR-015: MCP Integration Pattern
+
+**Status**: Accepted (DM-06)
+
+**Context**: Agents need access to external tools (file system, databases, APIs).
+
+**Decision**: Integrate Model Context Protocol (MCP) for external tool access.
+
+**Implementation**:
+- Workspace-scoped MCP server configuration
+- Permission-controlled tool exposure
+- Parallel MCP connection initialization (DM-11-4)
+
+**Consequences**:
+- Extensible tool ecosystem
+- Security via permission controls
+- Performance via parallel connections
+
+### ADR-016: Unified Protocol Architecture
+
+**Status**: Accepted (DM-02)
+
+**Context**: Multiple protocols (AG-UI, A2A, MCP) need coherent integration.
+
+**Decision**: Implement Unified Protocol Architecture with Agno's multi-interface support.
+
+**Architecture**:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    UNIFIED PROTOCOL LAYER                        │
+├─────────────────────┬─────────────────────┬─────────────────────┤
+│      AG-UI          │        A2A          │        MCP          │
+│   (User ↔ Agent)    │   (Agent ↔ Agent)   │   (Agent ↔ Tools)   │
+│                     │                     │                     │
+│   CopilotKit        │   Google Standard   │   Anthropic Standard│
+│   Streaming         │   Task RPC          │   Tool Invocation   │
+└─────────────────────┴─────────────────────┴─────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         AgentOS (Agno)                           │
+│                                                                  │
+│   Same agent accessible via all three protocols                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Consequences**:
+- Single agent definition, multiple interfaces
+- No custom adapter code
+- Future-proof for new protocols
+
+### ADR-017: OpenTelemetry Observability Stack
+
+**Status**: Accepted (DM-09)
+
+**Context**: Production systems need comprehensive observability for debugging and performance analysis.
+
+**Decision**: Implement OpenTelemetry for traces, metrics, and structured logging.
+
+**Implementation**:
+- Traces: Cross-service request tracking
+- Metrics: Counter, histogram, gauge instruments
+- Logs: Structured logging with trace context
+
+**Key Metrics**:
+| Metric | Type | Purpose |
+|--------|------|---------|
+| `http.request.duration` | Histogram | API latency |
+| `a2a.task.duration` | Histogram | Agent task time |
+| `widget.render.duration` | Histogram | Widget render time |
+| `ws.connections.active` | Gauge | WebSocket connections |
+| `approval.pending` | Gauge | Pending approvals |
+
+**Consequences**:
+- Full request tracing across services
+- Performance bottleneck identification
+- Vendor-agnostic (works with Jaeger, Grafana, etc.)
+
+### ADR-018: Dashboard State Sync System
+
+**Status**: Accepted (DM-04, DM-11)
+
+**Context**: Dashboard state needs synchronization across browser tabs and devices.
+
+**Decision**: Implement Redis + WebSocket state synchronization with version-based conflict detection.
+
+**Architecture**:
+```
+Browser Tab A ──┐
+Browser Tab B ──┼── WebSocket ── NestJS Gateway ── Redis
+Browser Tab C ──┘
+```
+
+**Key Features**:
+- Tab ID management (echo prevention)
+- Version-based conflict detection
+- Debounced updates (100ms)
+- LZ-string compression for large payloads
+- Migration system for schema evolution
+
+**Consequences**:
+- Real-time cross-tab sync
+- Optimistic updates with rollback
+- Offline-resilient with reconnection recovery
 
 ---
 
